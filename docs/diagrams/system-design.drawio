@@ -1,0 +1,65 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture">
+    <mxGraphModel dx="1024" dy="768" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="catalog" value="Catalog Module
+Product
+Brand
+Category
+ProductVariant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="200" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="inventory" value="Inventory Module
+Inventory
+StockMovement
+Batch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="400" y="150" width="200" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="edge1" style="endArrow=block;html=1;" edge="1" parent="1" source="catalog" target="inventory">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="Domain Classes">
+    <mxGraphModel dx="1024" dy="768" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="product" value="Product
+id
+name
+description
+brandId
+categoryId" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="200" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="variant" value="ProductVariant
+id
+productId
+sku
+barcode" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="100" width="200" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="inventoryClass" value="Inventory
+productVariantId
+quantity
+reservedQuantity
+minimumStock" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="300" width="220" height="140" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
