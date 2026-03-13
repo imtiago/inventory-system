@@ -8,7 +8,10 @@
     "strict": true,
     "baseUrl": "src",
     "paths": {
-      "@catalog/*": ["modules/catalog/*"]
+      "@catalog/*": ["modules/catalog/*"],
+      "@receivables/*": ["modules/receivables/*"],
+      "@payables/*": ["modules/payables/*"],
+      "@shared/*": ["shared/*"]
     }
   }
 }
