@@ -1,19 +1,24 @@
+// src/modules/catalog/infrastructure/http/controllers/CreateVariantController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
-import { CreateVariant } from "../../../application/useCases/CreateVariant";
+import { ProductRepository } from "../../../domain/repositories/ProductRepository";
 import { createVariantSchema } from "../../../interfaces/http/schemas/createVariantSchema";
+import { CreateVariant } from "../../../application/useCases/CreateVariant";
 
-export async function CreateVariantController(
-  request: FastifyRequest<{ Params: { productId: string }; Body: unknown }>,
-  reply: FastifyReply,
-) {
-  const { productId } = request.params;
-  const body = createVariantSchema.parse(request.body);
+export function makeCreateVariantController(repository: ProductRepository) {
+  return async function CreateVariantController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    try {
+      const productId = request.params["productId"] as string;
+      const data = createVariantSchema.parse(request.body);
 
-  const repo = new PrismaProductRepository();
-  const useCase = new CreateVariant(repo);
+      const useCase = new CreateVariant(repository);
+      const variant = await useCase.execute(productId, data);
 
-  const variant = await useCase.execute({ productId, ...body });
-
-  return reply.status(201).send(variant);
+      return reply.status(201).send(variant);
+    } catch (err: any) {
+      return reply.status(400).send({ message: err.message });
+    }
+  };
 }

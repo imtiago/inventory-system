@@ -6,48 +6,63 @@ import { RemoveInventory } from "../../../application/useCases/RemoveInventory";
 import { addInventorySchema } from "../../../interfaces/http/schemas/addInventorySchema";
 import { removeInventorySchema } from "../../../interfaces/http/schemas/removeInventorySchema";
 import { getInventorySchema } from "../../../interfaces/http/schemas/getInventorySchema";
+import { authorize } from "../../../../../shared/middleware/authorize";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   const repo = new PrismaInventoryRepository();
 
-  app.post("/add", async (req, reply) => {
-    const parsed = addInventorySchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.status(400).send({ errors: parsed.error.format() });
-    }
+  app.post(
+    "/add",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    async (req, reply) => {
+      const parsed = addInventorySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ errors: parsed.error.format() });
+      }
 
-    const { productVariantId, quantity } = parsed.data;
-    const useCase = new AddInventory(repo);
-    const inventory = await useCase.execute(productVariantId, quantity);
-    return reply.status(201).send(inventory);
-  });
+      const { productVariantId, quantity } = parsed.data;
+      const useCase = new AddInventory(repo);
+      const inventory = await useCase.execute(productVariantId, quantity);
+      return reply.status(201).send(inventory);
+    },
+  );
 
-  app.post("/remove", async (req, reply) => {
-    const parsed = removeInventorySchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.status(400).send({ errors: parsed.error.format() });
-    }
+  app.post(
+    "/remove",
+    { preHandler: [authorize(["admin", "vendedor"])] },
 
-    const { productVariantId, quantity } = parsed.data;
-    const useCase = new RemoveInventory(repo);
-    const inventory = await useCase.execute(productVariantId, quantity);
-    return reply.send(inventory);
-  });
+    async (req, reply) => {
+      const parsed = removeInventorySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ errors: parsed.error.format() });
+      }
+
+      const { productVariantId, quantity } = parsed.data;
+      const useCase = new RemoveInventory(repo);
+      const inventory = await useCase.execute(productVariantId, quantity);
+      return reply.send(inventory);
+    },
+  );
 
   // Endpoint GET com validação
-  app.get("/:variantId", async (req, reply) => {
-    const parsed = getInventorySchema.safeParse(req.params);
-    if (!parsed.success) {
-      return reply.status(400).send({ errors: parsed.error.format() });
-    }
+  app.get(
+    "/:variantId",
+    { preHandler: [authorize(["admin", "vendedor"])] },
 
-    const { variantId } = parsed.data;
-    const inventory = await repo.findByVariant(variantId);
+    async (req, reply) => {
+      const parsed = getInventorySchema.safeParse(req.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ errors: parsed.error.format() });
+      }
 
-    if (!inventory) {
-      return reply.status(404).send({ message: "Inventory not found" });
-    }
+      const { variantId } = parsed.data;
+      const inventory = await repo.findByVariant(variantId);
 
-    return reply.send(inventory);
-  });
+      if (!inventory) {
+        return reply.status(404).send({ message: "Inventory not found" });
+      }
+
+      return reply.send(inventory);
+    },
+  );
 }

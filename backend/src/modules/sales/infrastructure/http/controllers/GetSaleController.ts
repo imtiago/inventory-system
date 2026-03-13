@@ -5,7 +5,6 @@ import { GetSale } from "../../../application/useCases/GetSale";
 export async function GetSaleController(
   request: FastifyRequest,
   reply: FastifyReply,
-  saleRepo: SaleRepository,
 ) {
   const { id } = request.params as { id: string };
   const useCase = new GetSale(saleRepo);

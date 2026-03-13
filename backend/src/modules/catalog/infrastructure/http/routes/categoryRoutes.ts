@@ -1,22 +1,21 @@
-// backend/src/modules/catalog/interfaces/http/routes/categoryRoutes.ts
+// src/modules/catalog/infrastructure/http/routes/categoryRoutes.ts
 import { FastifyInstance } from "fastify";
-import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
-import { createCategorySchema } from "../../../interfaces/http/schemas/createCategorySchema";
+import { PrismaCategoryRepository } from "../../repositories/PrismaCategoryRepository";
+import { authorize } from "../../../../../shared/middleware/authorize";
+import { makeCreateCategoryController } from "../controllers/CreateCategoryController";
+import { makeListCategoriesController } from "../controllers/ListCategoriesController";
 
 export async function categoryRoutes(app: FastifyInstance) {
-  const repo = new PrismaProductRepository();
+  const categoryRepo = new PrismaCategoryRepository();
 
-  app.post("/", async (req, reply) => {
-    const parsed = createCategorySchema.safeParse(req.body);
-    if (!parsed.success)
-      return reply.status(400).send({ errors: parsed.error.format() });
-
-    const category = await repo.createCategory(parsed.data);
-    return reply.status(201).send(category);
-  });
-
-  app.get("/", async (req, reply) => {
-    const categories = await repo.listCategories();
-    return reply.send(categories);
-  });
+  app.post(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeCreateCategoryController(categoryRepo),
+  );
+  app.get(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeListCategoriesController(categoryRepo),
+  );
 }

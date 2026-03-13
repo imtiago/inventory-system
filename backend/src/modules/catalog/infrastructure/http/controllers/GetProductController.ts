@@ -1,21 +1,16 @@
-import { FastifyReply, FastifyRequest } from "fastify";
-import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
+// src/modules/catalog/infrastructure/http/controllers/GetProductController.ts
+import { FastifyRequest, FastifyReply } from "fastify";
+import { ProductRepository } from "../../../domain/repositories/ProductRepository";
 import { GetProduct } from "../../../application/useCases/GetProduct";
 
-export async function GetProductController(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const { id } = request.params as { id: string };
-
-  const repository = new PrismaProductRepository();
-  const useCase = new GetProduct(repository);
-
-  const product = await useCase.execute(id);
-
-  if (!product) {
-    return reply.status(404).send({ message: "Product not found" });
-  }
-
-  return reply.send(product);
+export function makeGetProductController(repository: ProductRepository) {
+  return async function GetProductController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    const { id } = request.params as { id: string };
+    const useCase = new GetProduct(repository);
+    const product = await useCase.execute(id);
+    return reply.send(product);
+  };
 }

@@ -1,22 +1,21 @@
-// backend/src/modules/catalog/interfaces/http/routes/brandRoutes.ts
+// src/modules/catalog/infrastructure/http/routes/brandRoutes.ts
 import { FastifyInstance } from "fastify";
-import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
-import { createBrandSchema } from "../../../interfaces/http/schemas/createBrandSchema";
+import { authorize } from "../../../../../shared/middleware/authorize";
+import { makeCreateBrandController } from "../controllers/CreateBrandController";
+import { makeListBrandsController } from "../controllers/ListBrandsController";
+import { PrismaBrandRepository } from "../../repositories/PrismaBrandRepository";
 
 export async function brandRoutes(app: FastifyInstance) {
-  const repo = new PrismaProductRepository();
+  const brandRepo = new PrismaBrandRepository();
 
-  app.post("/", async (req, reply) => {
-    const parsed = createBrandSchema.safeParse(req.body);
-    if (!parsed.success)
-      return reply.status(400).send({ errors: parsed.error.format() });
-
-    const brand = await repo.createBrand(parsed.data);
-    return reply.status(201).send(brand);
-  });
-
-  app.get("/", async (req, reply) => {
-    const brands = await repo.listBrands();
-    return reply.send(brands);
-  });
+  app.post(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeCreateBrandController(brandRepo),
+  );
+  app.get(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeListBrandsController(brandRepo),
+  );
 }

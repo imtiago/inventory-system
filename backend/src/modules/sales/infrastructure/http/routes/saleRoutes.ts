@@ -1,13 +1,23 @@
 import { FastifyInstance } from "fastify";
-import { PrismaSaleRepository } from "../../repositories/PrismaSaleRepository";
 import { CreateSaleController } from "../controllers/CreateSaleController";
 import { ListSalesController } from "../controllers/ListSalesController";
 import { GetSaleController } from "../controllers/GetSaleController";
+import { authorize } from "../../../../../shared/middleware/authorize";
 
 export async function saleRoutes(app: FastifyInstance) {
-  const saleRepo = new PrismaSaleRepository();
-
-  app.post("/", (req, reply) => CreateSaleController(req, reply, saleRepo));
-  app.get("/", (req, reply) => ListSalesController(req, reply, saleRepo));
-  app.get("/:id", (req, reply) => GetSaleController(req, reply, saleRepo));
+  app.post(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    CreateSaleController,
+  );
+  app.get(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    ListSalesController,
+  );
+  app.get(
+    "/:id",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    GetSaleController,
+  );
 }
