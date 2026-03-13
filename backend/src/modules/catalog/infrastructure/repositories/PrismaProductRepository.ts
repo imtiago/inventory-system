@@ -1,100 +1,94 @@
+// backend/src/modules/catalog/infrastructure/repositories/PrismaProductRepository.ts
+import { prisma } from "../../../../shared/prisma";
+import { ProductRepository } from "../../domain/repositories/ProductRepository";
 import { Product } from "../../domain/entities/Product";
 import { ProductVariant } from "../../domain/entities/ProductVariant";
-import { ProductRepository } from "../../domain/repositories/ProductRepository";
-import { prisma } from "../../../../shared/prisma";
+import { Brand } from "../../domain/entities/Brand";
+import { Category } from "../../domain/entities/Category";
 
 export class PrismaProductRepository implements ProductRepository {
-  // Cria produto
   async create(product: Product): Promise<Product> {
-    const created = await prisma.product.create({
-      data: {
-        name: product.name,
-        description: product.description,
-        brandId: product.brandId,
-        categoryId: product.categoryId,
-      },
-    });
+    return prisma.product.create({ data: product });
+  }
 
-    return new Product({
-      id: created.id,
-      name: created.name,
-      description: created.description ?? undefined,
-      brandId: created.brandId,
-      categoryId: created.categoryId,
-      createdAt: created.createdAt,
+  async list(page: number, limit: number): Promise<Product[]> {
+    return prisma.product.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      include: { variants: true },
     });
   }
 
-  async list(): Promise<Product[]> {
-    const products = await prisma.product.findMany();
-    return products.map(
-      (p) =>
-        new Product({
-          id: p.id,
-          name: p.name,
-          description: p.description ?? undefined,
-          brandId: p.brandId,
-          categoryId: p.categoryId,
-          createdAt: p.createdAt,
+  async getById(id: string): Promise<Product | null> {
+    return prisma.product.findUnique({
+      where: { id },
+      include: { variants: true },
+    });
+  }
+
+  // Lista todas as brands
+  async listBrands(): Promise<Brand[]> {
+    const brands = await prisma.brand.findMany();
+
+    // mapeia para a entidade Brand
+    return brands.map(
+      (b) =>
+        new Brand({
+          id: b.id,
+          name: b.name,
+          createdAt: b.createdAt ?? new Date(), // garante que createdAt exista
         }),
     );
   }
-  // Cria variante
-  async createVariant(variant: ProductVariant): Promise<ProductVariant> {
-    const created = await prisma.productVariant.create({
+
+  // Cria uma brand
+  async createBrand(brand: Brand): Promise<Brand> {
+    const created = await prisma.brand.create({
       data: {
-        name: variant.name,
-        sku: variant.sku,
-        productId: variant.productId,
+        id: brand.id,
+        name: brand.name,
+        createdAt: brand.createdAt,
       },
     });
 
-    return new ProductVariant({
+    return new Brand({
       id: created.id,
       name: created.name,
-      sku: created.sku,
-      productId: created.productId,
       createdAt: created.createdAt,
     });
   }
 
-  // Lista variantes de um produto
-  async listVariants(productId: string): Promise<ProductVariant[]> {
+  async listCategories(): Promise<Category[]> {
+    return prisma.category.findMany();
+  }
+
+  async createCategory(category: Category): Promise<Category> {
+    return prisma.category.create({ data: category });
+  }
+  async findAll(): Promise<Product[]> {
+    return prisma.product.findMany();
+  }
+
+  async createVariant(variant: ProductVariant): Promise<ProductVariant> {
+    return prisma.productVariant.create({
+      data: {
+        id: variant.id,
+        productId: variant.productId,
+        name: variant.name,
+        sku: variant.sku,
+        barcode: variant.barcode,
+      },
+    });
+  }
+
+  async findVariantsByProductId(productId: string): Promise<ProductVariant[]> {
     const variants = await prisma.productVariant.findMany({
       where: { productId },
     });
 
-    return variants.map(
-      (v) =>
-        new ProductVariant({
-          id: v.id,
-          name: v.name,
-          sku: v.sku,
-          productId: v.productId,
-          createdAt: v.createdAt,
-        }),
-    );
-  }
-
-  async findAll(page = 1, limit = 10): Promise<Product[]> {
-    const skip = (page - 1) * limit;
-
-    const products = await prisma.product.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    });
-
-    return products.map(
-      (p) =>
-        new Product({
-          id: p.id,
-          name: p.name,
-          description: p.description ?? undefined,
-          brandId: p.brandId,
-          categoryId: p.categoryId,
-          createdAt: p.createdAt,
-        }),
-    );
+    return variants.map((v) => ({
+      ...v,
+      barcode: v.barcode ?? undefined, // converte null para undefined
+    }));
   }
 }

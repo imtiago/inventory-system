@@ -2,6 +2,7 @@ export interface ProductVariantProps {
   id?: string;
   name: string;
   sku: string;
+  barcode?: string; // <- novo campo opcional
   productId: string;
   createdAt?: Date;
 }
@@ -10,6 +11,7 @@ export class ProductVariant {
   id?: string;
   name: string;
   sku: string;
+  barcode?: string; // <- novo campo opcional
   productId: string;
   createdAt: Date;
 
@@ -18,6 +20,7 @@ export class ProductVariant {
     this.name = props.name;
     this.sku = props.sku;
     this.productId = props.productId;
+    this.barcode = props.barcode;
     this.createdAt = props.createdAt ?? new Date();
   }
 }

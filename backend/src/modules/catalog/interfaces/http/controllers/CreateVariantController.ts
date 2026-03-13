@@ -1,22 +1,19 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { PrismaProductVariantRepository } from "../../../infrastructure/repositories/PrismaProductVariantRepository";
-import { ProductVariant } from "../../../domain/entities/ProductVariant";
+import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
+import { CreateVariant } from "../../../application/useCases/CreateVariant";
+import { createVariantSchema } from "../schemas/createVariantSchema";
 
 export async function CreateVariantController(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Params: { productId: string }; Body: unknown }>,
   reply: FastifyReply,
 ) {
-  const repository = new PrismaProductVariantRepository();
+  const { productId } = request.params;
+  const body = createVariantSchema.parse(request.body);
 
-  const { name, sku, productId } = request.body as any;
+  const repo = new PrismaProductRepository();
+  const useCase = new CreateVariant(repo);
 
-  const variant = new ProductVariant({
-    name,
-    sku,
-    productId,
-  });
+  const variant = await useCase.execute({ productId, ...body });
 
-  const created = await repository.create(variant);
-
-  return reply.status(201).send(created);
+  return reply.status(201).send(variant);
 }

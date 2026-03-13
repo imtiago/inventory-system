@@ -1,24 +1,23 @@
-export interface ProductProps {
-  id?: string;
-  name: string;
-  description?: string;
-  brandId: string;
-  categoryId: string;
-  createdAt?: Date;
-}
-
+// src/modules/catalog/domain/entities/Product.ts
 export class Product {
-  id?: string;
+  id: string;
   name: string;
-  description?: string;
+  description?: string | null; // <- aceitar null
   brandId: string;
   categoryId: string;
   createdAt: Date;
 
-  constructor(props: ProductProps) {
+  constructor(props: {
+    id: string;
+    name: string;
+    description?: string | null; // <- aceitar null
+    brandId: string;
+    categoryId: string;
+    createdAt?: Date;
+  }) {
     this.id = props.id;
     this.name = props.name;
-    this.description = props.description;
+    this.description = props.description ?? null; // garante null
     this.brandId = props.brandId;
     this.categoryId = props.categoryId;
     this.createdAt = props.createdAt ?? new Date();

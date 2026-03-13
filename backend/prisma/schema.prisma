@@ -8,15 +8,17 @@ datasource db {
 }
 
 model Brand {
-  id       String    @id @default(uuid())
-  name     String
-  products Product[]
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now()) // ✅ adicionar
+  products  Product[]
 }
 
 model Category {
-  id       String    @id @default(uuid())
-  name     String
-  products Product[]
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now()) // ✅ adicionar
+  products  Product[]
 }
 
 model Product {
@@ -35,9 +37,10 @@ model Product {
 }
 
 model ProductVariant {
-  id        String @id @default(uuid())
+  id        String  @id @default(uuid())
   name      String
-  sku       String @unique
+  sku       String  @unique
+  barcode   String? @unique // campo de código de barras opcional e único
   productId String
 
   product Product @relation(fields: [productId], references: [id])
