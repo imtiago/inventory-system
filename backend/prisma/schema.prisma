@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id       String    @id @default(uuid())
+  name     String
+  products Product[]
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String
+  products Product[]
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  brandId     String
+  categoryId  String
+
+  brand    Brand    @relation(fields: [brandId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  variants ProductVariant[]
+
+  createdAt DateTime @default(now())
+}
+
+model ProductVariant {
+  id        String @id @default(uuid())
+  name      String
+  sku       String @unique
+  productId String
+
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt      DateTime        @default(now())
+  inventory      Inventory?
+  stockMovements StockMovement[]
+}
+
+model Inventory {
+  id               String   @id @default(uuid())
+  productVariantId String   @unique
+  quantity         Int
+  reservedQuantity Int
+  minimumStock     Int
+  createdAt        DateTime @default(now()) // ✅ adicionado
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model StockMovement {
+  id               String   @id @default(uuid())
+  productVariantId String
+  type             String
+  quantity         Int
+  createdAt        DateTime @default(now())
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+}
