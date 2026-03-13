@@ -70,3 +70,29 @@ model StockMovement {
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 }
+
+model Sale {
+  id          String     @id @default(uuid())
+  customerId  String
+  totalAmount Float
+  createdAt   DateTime   @default(now())
+  items       SaleItem[]
+}
+
+model SaleItem {
+  id               String @id @default(uuid())
+  saleId           String
+  productVariantId String
+  quantity         Int
+  price            Float
+  sale             Sale   @relation(fields: [saleId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+}

@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createProductSchema } from "../schemas/createProductSchema";
+import { createProductSchema } from "../../../interfaces/http/schemas/createProductSchema";
 import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
 import { CreateProduct } from "../../../application/useCases/CreateProduct";
 

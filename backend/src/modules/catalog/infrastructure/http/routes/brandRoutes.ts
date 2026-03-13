@@ -1,7 +1,7 @@
 // backend/src/modules/catalog/interfaces/http/routes/brandRoutes.ts
 import { FastifyInstance } from "fastify";
 import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
-import { createBrandSchema } from "../schemas/createBrandSchema";
+import { createBrandSchema } from "../../../interfaces/http/schemas/createBrandSchema";
 
 export async function brandRoutes(app: FastifyInstance) {
   const repo = new PrismaProductRepository();

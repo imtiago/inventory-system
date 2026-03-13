@@ -3,14 +3,14 @@ import { FastifyInstance } from "fastify";
 import { PrismaInventoryRepository } from "../../../infrastructure/repositories/PrismaInventoryRepository";
 import { AddInventory } from "../../../application/useCases/AddInventory";
 import { RemoveInventory } from "../../../application/useCases/RemoveInventory";
-import { addInventorySchema } from "../schemas/addInventorySchema";
-import { removeInventorySchema } from "../schemas/removeInventorySchema";
-import { getInventorySchema } from "../schemas/getInventorySchema";
+import { addInventorySchema } from "../../../interfaces/http/schemas/addInventorySchema";
+import { removeInventorySchema } from "../../../interfaces/http/schemas/removeInventorySchema";
+import { getInventorySchema } from "../../../interfaces/http/schemas/getInventorySchema";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   const repo = new PrismaInventoryRepository();
 
-  app.post("/inventory/add", async (req, reply) => {
+  app.post("/add", async (req, reply) => {
     const parsed = addInventorySchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ errors: parsed.error.format() });
@@ -22,7 +22,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
     return reply.status(201).send(inventory);
   });
 
-  app.post("/inventory/remove", async (req, reply) => {
+  app.post("/remove", async (req, reply) => {
     const parsed = removeInventorySchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ errors: parsed.error.format() });
@@ -35,7 +35,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
   });
 
   // Endpoint GET com validação
-  app.get("/inventory/:variantId", async (req, reply) => {
+  app.get("/:variantId", async (req, reply) => {
     const parsed = getInventorySchema.safeParse(req.params);
     if (!parsed.success) {
       return reply.status(400).send({ errors: parsed.error.format() });

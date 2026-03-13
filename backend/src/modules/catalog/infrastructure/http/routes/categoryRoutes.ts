@@ -1,7 +1,7 @@
 // backend/src/modules/catalog/interfaces/http/routes/categoryRoutes.ts
 import { FastifyInstance } from "fastify";
 import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
-import { createCategorySchema } from "../schemas/createCategorySchema";
+import { createCategorySchema } from "../../../interfaces/http/schemas/createCategorySchema";
 
 export async function categoryRoutes(app: FastifyInstance) {
   const repo = new PrismaProductRepository();

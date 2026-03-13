@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { PrismaProductRepository } from "../../../infrastructure/repositories/PrismaProductRepository";
 import { CreateVariant } from "../../../application/useCases/CreateVariant";
-import { createVariantSchema } from "../schemas/createVariantSchema";
+import { createVariantSchema } from "../../../interfaces/http/schemas/createVariantSchema";
 
 export async function CreateVariantController(
   request: FastifyRequest<{ Params: { productId: string }; Body: unknown }>,

@@ -1,18 +1,18 @@
 import Fastify from "fastify";
-import { productRoutes } from "./modules/catalog/interfaces/http/routes/productRoutes";
-import { inventoryRoutes } from "./modules/inventory/interfaces/http/routes/inventoryRoutes";
-import { brandRoutes } from "./modules/catalog/interfaces/http/routes/brandRoutes";
-import { categoryRoutes } from "./modules/catalog/interfaces/http/routes/categoryRoutes";
+import { productRoutes } from "./modules/catalog/infrastructure/http/routes/productRoutes";
+import { brandRoutes } from "./modules/catalog/infrastructure/http/routes/brandRoutes";
+import { categoryRoutes } from "./modules/catalog/infrastructure/http/routes/categoryRoutes";
+import { saleRoutes } from "./modules/sales/infrastructure/http/routes/saleRoutes";
+import { inventoryRoutes } from "./modules/inventory/infrastructure/http/routes/inventoryRoutes";
+import { customerRoutes } from "./modules/customer/infrastructure/http/routes/customerRoutes";
 
 export const app = Fastify({
   logger: true,
 });
 
-app.register(productRoutes, {
-  prefix: "/api",
-});
-
 app.register(productRoutes, { prefix: "/products" });
 app.register(brandRoutes, { prefix: "/brands" });
 app.register(categoryRoutes, { prefix: "/categories" });
-app.register(inventoryRoutes);
+app.register(saleRoutes, { prefix: "/sales" });
+app.register(customerRoutes, { prefix: "/customers" });
+app.register(inventoryRoutes, { prefix: "/inventory" });
