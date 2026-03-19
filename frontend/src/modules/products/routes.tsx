@@ -7,7 +7,7 @@ export const productRoutes = [
   { path: "/products", name: "Produtos", component: ProductListPage },
   { path: "/products/new", name: "Novo Produto", component: ProductFormPage },
   {
-    path: "/products/edit/:id",
+    path: "/products/:id/edit",
     name: "Editar Produto",
     component: ProductEditPage,
   },

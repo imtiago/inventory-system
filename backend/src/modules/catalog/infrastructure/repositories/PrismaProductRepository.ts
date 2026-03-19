@@ -95,4 +95,25 @@ export class PrismaProductRepository implements ProductRepository {
       barcode: v.barcode ?? undefined, // converte null para undefined
     }));
   }
+
+  async update(id: string, data: Partial<Product>): Promise<Product> {
+    // Atualiza o produto
+    const updated = await prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        brand: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+        variants: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async delete(id: string): Promise<void> {
+    await prisma.product.delete({
+      where: { id },
+    });
+  }
 }

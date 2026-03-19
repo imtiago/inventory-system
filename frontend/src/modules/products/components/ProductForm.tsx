@@ -10,10 +10,13 @@ import { useCategories } from "@/modules/categories/hooks/useCategories";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
   sku: z.string().min(1, "SKU obrigatório"),
+  barcode: z.string().min(1, "Código de barras obrigatório"), // novo campo
   brandId: z.string().optional(),
   categoryId: z.string().optional(),
 });
@@ -24,11 +27,19 @@ type Props = {
   defaultValues?: FormData;
   productId?: string;
   onSuccess?: () => void;
+  useScanner?: boolean; // opção de usar scanner
 };
 
-export function ProductForm({ defaultValues, productId, onSuccess }: Props) {
+export function ProductForm({
+  defaultValues,
+  productId,
+  onSuccess,
+  useScanner,
+}: Props) {
   const { data: brands } = useBrands();
   const { data: categories } = useCategories();
+
+  const [showScanner, setShowScanner] = useState(false);
 
   const { mutate: create } = useCreateProduct();
   const { mutate: update } = useUpdateProduct();
@@ -40,14 +51,26 @@ export function ProductForm({ defaultValues, productId, onSuccess }: Props) {
 
   const onSubmit = (data: FormData) => {
     if (productId) {
-      update({ id: productId, data }, { onSuccess });
+      update({ id: productId, input: data }, { onSuccess });
     } else {
       create(data, { onSuccess });
     }
   };
 
+  const handleBarcodeDetected = (code: string) => {
+    form.setValue("barcode", code);
+    setShowScanner(false);
+  };
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-md">
+      {/* Scanner */}
+      {useScanner && !showScanner && (
+        <Button onClick={() => setShowScanner(true)}>
+          Ler código de barras
+        </Button>
+      )}
+      {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} />}
       {/* Nome */}
       <div>
         <label>Nome</label>

@@ -15,4 +15,6 @@ export interface ProductRepository {
   createCategory(category: Category): Promise<Category>;
   findAll?(): Promise<Product[]>; // ou opcional
   findVariantsByProductId(productId: string): Promise<ProductVariant[]>;
+  update(id: string, data: Partial<Product>): Promise<Product>;
+  delete(id: string): Promise<void>;
 }

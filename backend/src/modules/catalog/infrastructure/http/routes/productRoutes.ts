@@ -6,6 +6,8 @@ import { makeListProductsController } from "../controllers/ListProductsControlle
 import { makeCreateVariantController } from "../controllers/CreateVariantController";
 import { makeGetProductController } from "../controllers/GetProductController";
 import { makeListProductVariantsController } from "../controllers/ListProductVariantsController";
+import { makeUpdateProductController } from "../controllers/UpdateProductController";
+import { makeDeleteProductController } from "../controllers/DeleteProductController";
 
 export async function productRoutes(app: FastifyInstance) {
   const productRepo = new PrismaProductRepository();
@@ -24,6 +26,16 @@ export async function productRoutes(app: FastifyInstance) {
     "/:id",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGetProductController(productRepo),
+  );
+  app.put(
+    "/:id",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeUpdateProductController(productRepo),
+  );
+  app.delete(
+    "/:id",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeDeleteProductController(productRepo),
   );
   app.post(
     "/:productId/variants",

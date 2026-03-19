@@ -21,6 +21,7 @@ export const app = Fastify({
 app.register(responseInterceptor);
 app.register(cors, {
   origin: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 });
 
 app.setErrorHandler((error, request, reply) => {

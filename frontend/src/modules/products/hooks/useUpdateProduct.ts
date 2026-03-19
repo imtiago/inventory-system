@@ -16,7 +16,13 @@ export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, input }: UpdateInput) => updateProduct(id, input),
+    mutationFn: async ({ id, input }: UpdateInput) => {
+      // Garante que sempre envia objeto no body
+      if (!input || Object.keys(input).length === 0) {
+        throw new Error("Dados do produto inválidos");
+      }
+      return await updateProduct(id, input);
+    },
 
     onSuccess: () => {
       toast.success("Produto atualizado");

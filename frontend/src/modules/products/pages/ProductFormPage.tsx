@@ -8,7 +8,7 @@ export const ProductFormPage: React.FC = () => {
   return (
     <div className="p-8">
       <h1 className="text-3xl mb-6">Novo Produto</h1>
-      <ProductForm onSuccess={() => navigate("/products")} />
+      <ProductForm onSuccess={() => navigate("/products")} useScanner={true} />
     </div>
   );
 };

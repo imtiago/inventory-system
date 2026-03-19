@@ -3,7 +3,10 @@ import type { Product } from "../types";
 
 export const getProducts = async (search = "") => {
   const { data } = await api.get(`/products?search=${search}`);
-  return data;
+  return data.map((p: Product) => ({
+    ...p,
+    stock: p.stock ?? 0, // fallback se não houver estoque
+  }));
 };
 
 export const createProduct = async (input: {
