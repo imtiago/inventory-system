@@ -1,4 +1,21 @@
+# Node
 node_modules
-dist
+npm-debug.log
+
+# Env
 .env
-coverage
+.env.local
+
+# Build
+dist
+build
+
+# Vite
+.vite
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store

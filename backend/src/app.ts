@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { responseInterceptor } from "./shared/http/responseInterceptor";
 import { productRoutes } from "./modules/catalog/infrastructure/http/routes/productRoutes";
 import { brandRoutes } from "./modules/catalog/infrastructure/http/routes/brandRoutes";
 import { categoryRoutes } from "./modules/catalog/infrastructure/http/routes/categoryRoutes";
@@ -9,11 +10,54 @@ import { userRoutes } from "./modules/auth/infrastructure/http/routes/userRoutes
 import { authenticate } from "./shared/middleware/auth";
 import { receivableRoutes } from "@receivables/infrastructure/http/routes/receivableRoutes";
 import { payableRoutes } from "@payables/infrastructure/http/routes/payableRoutes";
+import { ZodError } from "zod";
+import { AppError } from "./shared/errors/AppError";
+
+import cors from "@fastify/cors";
 
 export const app = Fastify({
   logger: true,
 });
+app.register(responseInterceptor);
+app.register(cors, {
+  origin: true,
+});
 
+app.setErrorHandler((error, request, reply) => {
+  if (error instanceof ZodError) {
+    return reply.status(400).send({
+      success: false,
+      data: null,
+      message: "Erro de validação",
+      errors: error.issues.map((e) => ({
+        field: e.path.join("."),
+        message: e.message,
+        code: e.code,
+      })),
+    });
+  }
+  if (error instanceof AppError) {
+    return reply.status(error.statusCode).send({
+      success: false,
+      data: null,
+      message: error.message,
+    });
+  }
+
+  if (error instanceof Error) {
+    return reply.status(500).send({
+      success: false,
+      data: null,
+      message: error.message,
+    });
+  }
+
+  return reply.status(500).send({
+    success: false,
+    data: null,
+    message: "Erro desconhecido",
+  });
+});
 // Lista de rotas públicas
 const publicRoutes = [
   "/users", // criação de usuário
