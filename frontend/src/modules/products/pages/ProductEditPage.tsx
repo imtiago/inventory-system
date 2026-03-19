@@ -1,27 +1,37 @@
-import { useParams } from "react-router-dom";
+// src/modules/products/pages/ProductEditPage.tsx
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getProductById } from "../services/productService";
 import { ProductForm } from "../components/ProductForm";
-import { useProduct } from "../hooks/useProducts";
+import type { Product } from "../types";
 
-export function ProductEditPage() {
-  const { id } = useParams();
+export const ProductEditPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-  const { data, isLoading } = useProduct(id!);
+  const { data: product, isLoading } = useQuery<Product | undefined>({
+    queryKey: ["product", id],
+    queryFn: () => getProductById(id!),
+    enabled: !!id,
+  });
 
-  if (isLoading) return <p>Carregando...</p>;
+  if (isLoading) return <p>Carregando produto...</p>;
+  if (!product) return <p>Produto não encontrado</p>;
 
   return (
-    <div>
-      <h1>Editar Produto</h1>
-
+    <div className="p-8">
+      <h1 className="text-3xl mb-6">Editar Produto</h1>
       <ProductForm
-        productId={id}
         defaultValues={{
-          name: data.name,
-          sku: data.sku,
-          brandId: data.brandId,
-          categoryId: data.categoryId,
+          name: product.name,
+          sku: product.variants?.[0]?.sku || "", // primeira variante como padrão
+          brandId: product.brandId || "",
+          categoryId: product.categoryId || "",
         }}
+        productId={id}
+        onSuccess={() => navigate("/products")}
       />
     </div>
   );
-}
+};

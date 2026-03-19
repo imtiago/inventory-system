@@ -15,7 +15,11 @@ export class PrismaProductRepository implements ProductRepository {
     return prisma.product.findMany({
       skip: (page - 1) * limit,
       take: limit,
-      include: { variants: true },
+      include: {
+        brand: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+        variants: true,
+      },
     });
   }
 

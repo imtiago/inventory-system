@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -8,26 +8,8 @@ import { useUpdateProduct } from "../hooks/useUpdateProduct";
 import { useBrands } from "@/modules/brands/hooks/useBrands";
 import { useCategories } from "@/modules/categories/hooks/useCategories";
 
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-
-// UI
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
@@ -41,9 +23,10 @@ type FormData = z.infer<typeof schema>;
 type Props = {
   defaultValues?: FormData;
   productId?: string;
+  onSuccess?: () => void;
 };
 
-export function ProductForm({ defaultValues, productId }: Props) {
+export function ProductForm({ defaultValues, productId, onSuccess }: Props) {
   const { data: brands } = useBrands();
   const { data: categories } = useCategories();
 
@@ -57,135 +40,80 @@ export function ProductForm({ defaultValues, productId }: Props) {
 
   const onSubmit = (data: FormData) => {
     if (productId) {
-      update({ id: productId, data });
+      update({ id: productId, data }, { onSuccess });
     } else {
-      create(data);
+      create(data, { onSuccess });
     }
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 max-w-md"
-      >
-        {/* Nome */}
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: Perfume Kaiak" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-md">
+      {/* Nome */}
+      <div>
+        <label>Nome</label>
+        <Input {...form.register("name")} placeholder="Ex: Perfume Kaiak" />
+        {form.formState.errors.name && (
+          <p className="text-red-500">{form.formState.errors.name.message}</p>
+        )}
+      </div>
 
-        {/* SKU */}
-        <FormField
-          control={form.control}
-          name="sku"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>SKU</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: KAI-100" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* SKU */}
+      <div>
+        <label>SKU</label>
+        <Input {...form.register("sku")} placeholder="Ex: KAI-100" />
+        {form.formState.errors.sku && (
+          <p className="text-red-500">{form.formState.errors.sku.message}</p>
+        )}
+      </div>
 
-        {/* Marca */}
-        <FormField
+      {/* Marca */}
+      <div>
+        <label>Marca</label>
+        <Controller
           control={form.control}
           name="brandId"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Marca</FormLabel>
-
-              <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a marca" />
-                  </SelectTrigger>
-                </FormControl>
-
-                <SelectContent>
-                  {!brands && (
-                    <SelectItem value="loading" disabled>
-                      Carregando...
-                    </SelectItem>
-                  )}
-
-                  {brands?.length === 0 && (
-                    <SelectItem value="empty" disabled>
-                      Nenhuma marca cadastrada
-                    </SelectItem>
-                  )}
-
-                  {brands?.map((b: any) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <FormMessage />
-            </FormItem>
+            <select
+              {...field}
+              className="border border-gray-300 rounded px-2 py-1 w-full"
+            >
+              <option value="">Selecione a marca</option>
+              {brands?.map((b: any) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
           )}
         />
+      </div>
 
-        {/* Categoria */}
-        <FormField
+      {/* Categoria */}
+      <div>
+        <label>Categoria</label>
+        <Controller
           control={form.control}
           name="categoryId"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Categoria</FormLabel>
-
-              <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                </FormControl>
-
-                <SelectContent>
-                  {!categories && (
-                    <SelectItem value="loading" disabled>
-                      Carregando...
-                    </SelectItem>
-                  )}
-
-                  {categories?.length === 0 && (
-                    <SelectItem value="empty" disabled>
-                      Nenhuma categoria cadastrada
-                    </SelectItem>
-                  )}
-
-                  {categories?.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <FormMessage />
-            </FormItem>
+            <select
+              {...field}
+              className="border border-gray-300 rounded px-2 py-1 w-full"
+            >
+              <option value="">Selecione a categoria</option>
+              {categories?.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           )}
         />
+      </div>
 
-        {/* Botão */}
-        <Button type="submit" className="w-full">
-          {form.formState.isSubmitting ? "Salvando..." : "Salvar"}
-        </Button>
-      </form>
-    </Form>
+      {/* Botão */}
+      <Button type="submit" className="w-full">
+        {form.formState.isSubmitting ? "Salvando..." : "Salvar"}
+      </Button>
+    </form>
   );
 }

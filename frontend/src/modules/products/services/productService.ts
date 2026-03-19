@@ -1,4 +1,5 @@
 import { api } from "@/shared/services/api";
+import type { Product } from "../types";
 
 export const getProducts = async (search = "") => {
   const { data } = await api.get(`/products?search=${search}`);
@@ -19,7 +20,7 @@ export const deleteProduct = async (id: string) => {
   await api.delete(`/products/${id}`);
 };
 
-export const getProductById = async (id: string) => {
+export const getProductById = async (id: string): Promise<Product> => {
   const { data } = await api.get(`/products/${id}`);
   return data;
 };
