@@ -17,4 +17,8 @@ export interface ProductRepository {
   findVariantsByProductId(productId: string): Promise<ProductVariant[]>;
   update(id: string, data: Partial<Product>): Promise<Product>;
   delete(id: string): Promise<void>;
+
+  // ✅ Métodos adicionados para o ImportNfeUseCase
+  findByCode(code: string): Promise<Product | null>;
+  updateStock(id: string, quantity: number): Promise<void>;
 }

@@ -1,23 +1,35 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { CreateSale } from "../../../application/useCases/CreateSale";
-import { SaleRepository } from "../../../domain/repositories/SaleRepository";
-import { PrismaInventoryRepository } from "../../../../inventory/infrastructure/repositories/PrismaInventoryRepository";
-import { PrismaCustomerRepository } from "../../../../customer/infrastructure/repositories/PrismaCustomerRepository";
+import { createSaleSchema } from "../../../interfaces/http/schemas/createSaleSchema";
+import { InventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
+import { ReceivableRepository } from "@receivables/domain/repositories/ReceivableRepository";
+import { SaleRepository } from "modules/sales/domain/repositories/SaleRepository";
+import { TransactionManager } from "@shared/domain/TransactionManager";
 
-export async function CreateSaleController(
-  request: FastifyRequest,
-  reply: FastifyReply,
+export function makeCreateSaleController(
+  inventoryRepo: InventoryRepository,
+  saleRepo: SaleRepository,
+  receivableRepository: ReceivableRepository,
+  transaction: TransactionManager,
 ) {
-  const inventoryRepo = new PrismaInventoryRepository();
-  const repository = new PrismaCustomerRepository();
+  return async function CreateSaleController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    try {
+      const data = createSaleSchema.parse(request.body);
 
-  const useCase = new CreateSale(saleRepo, inventoryRepo);
-  const data = request.body as any;
+      const useCase = new CreateSale(
+        saleRepo,
+        inventoryRepo,
+        receivableRepository,
+        transaction,
+      );
+      const sale = await useCase.execute(data);
 
-  try {
-    const sale = await useCase.execute(data);
-    return reply.send(sale);
-  } catch (err: any) {
-    return reply.status(400).send({ message: err.message });
-  }
+      return reply.status(201).send(sale);
+    } catch (err: any) {
+      return reply.status(400).send({ message: err.message });
+    }
+  };
 }

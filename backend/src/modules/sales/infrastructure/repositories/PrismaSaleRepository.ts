@@ -1,26 +1,27 @@
+import { PrismaClient, SaleStatus } from "@prisma/client";
 import { prisma } from "../../../../shared/prisma";
 import { Sale } from "../../domain/entities/Sale";
+import { SaleRepository } from "modules/sales/domain/repositories/SaleRepository";
 
-export class PrismaSaleRepository {
-  async create(sale: Sale): Promise<Sale> {
-    const created = await prisma.sale.create({
+export class PrismaSaleRepository implements SaleRepository {
+  async create(sale: Sale, tx: PrismaClient = prisma): Promise<Sale> {
+    return tx.sale.create({
       data: {
         id: sale.id,
         customerId: sale.customerId,
         totalAmount: sale.totalAmount,
-        createdAt: sale.createdAt,
         items: {
-          create: sale.items.map((i) => ({
-            productVariantId: i.productVariantId,
-            quantity: i.quantity,
-            price: i.price,
+          create: sale.items.map((item) => ({
+            productVariantId: item.productVariantId,
+            quantity: item.quantity,
+            price: item.price,
           })),
         },
       },
-      include: { items: true },
+      include: {
+        items: true,
+      },
     });
-
-    return created as unknown as Sale;
   }
 
   async list(page: number, limit: number): Promise<Sale[]> {
@@ -34,11 +35,19 @@ export class PrismaSaleRepository {
     return sales as unknown as Sale[];
   }
 
-  async getById(id: string): Promise<Sale | null> {
-    const sale = await prisma.sale.findUnique({
+  async getById(id: string, tx = prisma) {
+    return tx.sale.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: true,
+      },
     });
-    return sale as unknown as Sale | null;
+  }
+
+  async updateStatus(id: string, status: SaleStatus, tx = prisma) {
+    return tx.sale.update({
+      where: { id },
+      data: { status },
+    });
   }
 }

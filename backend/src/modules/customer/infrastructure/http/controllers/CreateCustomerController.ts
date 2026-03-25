@@ -1,15 +1,24 @@
-// /src/modules/customer/infrastructure/http/controllers/CreateCustomerController.ts
+// src/modules/customer/infrastructure/http/controllers/CreateCustomerController.ts
+
 import { FastifyReply, FastifyRequest } from "fastify";
-import { PrismaCustomerRepository } from "../../repositories/PrismaCustomerRepository";
+import { CustomerRepository } from "../../../domain/repositories/CustomerRepository";
 import { CreateCustomer } from "../../../application/useCases/CreateCustomer";
+import { createCustomerSchema } from "../../../interfaces/http/schemas/createCustomerSchema";
 
-export async function CreateCustomerController(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const repository = new PrismaCustomerRepository();
-  const useCase = new CreateCustomer(repository);
+export function makeCreateCustomerController(repository: CustomerRepository) {
+  return async function CreateCustomerController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    try {
+      const data = createCustomerSchema.parse(request.body);
 
-  const customer = await useCase.execute(request.body as any);
-  return reply.send(customer);
+      const useCase = new CreateCustomer(repository);
+      const customer = await useCase.execute(data);
+
+      return reply.status(201).send(customer);
+    } catch (err: any) {
+      return reply.status(400).send({ message: err.message });
+    }
+  };
 }

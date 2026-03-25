@@ -1,16 +1,23 @@
 // backend/src/modules/inventory/domain/repositories/InventoryRepository.ts
+import { Prisma, StockMovementType } from "@prisma/client";
 import { Inventory } from "../entities/Inventory";
-import { StockMovement, StockMovementType } from "../entities/StockMovement";
+import { StockMovement } from "../entities/StockMovement";
 
 export interface InventoryRepository {
-  findByVariant(productVariantId: string): Promise<Inventory | null>;
+  findByVariant(
+    variantId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Inventory | null>;
+  update(
+    inventory: Inventory,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Inventory>;
   create(data: {
     productVariantId: string;
     quantity?: number;
     reservedQuantity?: number;
     minimumStock?: number;
   }): Promise<Inventory>;
-  update(inventory: Inventory): Promise<Inventory>;
   addMovement(data: {
     productVariantId: string;
     type: StockMovementType;

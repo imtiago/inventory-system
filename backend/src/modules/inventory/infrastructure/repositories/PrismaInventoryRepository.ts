@@ -2,26 +2,14 @@
 import { prisma } from "../../../../shared/prisma";
 import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
 import { Inventory } from "../../domain/entities/Inventory";
-import {
-  StockMovement,
-  StockMovementType,
-} from "../../domain/entities/StockMovement";
+import { StockMovement } from "../../domain/entities/StockMovement";
+import { Prisma, StockMovementType } from "@prisma/client";
 
 export class PrismaInventoryRepository implements InventoryRepository {
   // Exemplo do findByVariant
-  async findByVariant(productVariantId: string): Promise<Inventory | null> {
-    const inv = await prisma.inventory.findUnique({
-      where: { productVariantId },
-    });
-    if (!inv) return null;
-
-    return new Inventory({
-      id: inv.id,
-      productVariantId: inv.productVariantId,
-      quantity: inv.quantity,
-      reservedQuantity: inv.reservedQuantity,
-      minimumStock: inv.minimumStock,
-      createdAt: inv.createdAt, // ✅ agora existe
+  async findByVariant(variantId: string, tx = prisma) {
+    return tx.inventory.findUnique({
+      where: { productVariantId: variantId },
     });
   }
 
@@ -50,23 +38,15 @@ export class PrismaInventoryRepository implements InventoryRepository {
     });
   }
 
-  async update(inventory: Inventory): Promise<Inventory> {
-    const inv = await prisma.inventory.update({
+  async update(
+    inventory: Inventory,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Inventory> {
+    return tx.inventory.update({
       where: { id: inventory.id },
       data: {
         quantity: inventory.quantity,
-        reservedQuantity: inventory.reservedQuantity,
-        minimumStock: inventory.minimumStock,
       },
-    });
-
-    return new Inventory({
-      id: inv.id,
-      productVariantId: inv.productVariantId,
-      quantity: inv.quantity,
-      reservedQuantity: inv.reservedQuantity,
-      minimumStock: inv.minimumStock,
-      createdAt: inv.createdAt,
     });
   }
 

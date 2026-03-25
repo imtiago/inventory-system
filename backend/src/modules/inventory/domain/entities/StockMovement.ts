@@ -1,6 +1,4 @@
 // backend/src/modules/inventory/domain/entities/StockMovement.ts
-export type StockMovementType = "ENTRY" | "EXIT";
-
 export interface StockMovementProps {
   id: string;
   productVariantId: string;

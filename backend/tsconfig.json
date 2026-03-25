@@ -10,7 +10,9 @@
     "paths": {
       "@catalog/*": ["modules/catalog/*"],
       "@receivables/*": ["modules/receivables/*"],
+      "@inventory/*": ["modules/inventory/*"],
       "@payables/*": ["modules/payables/*"],
+      "@nfe-import/*": ["nfe-import/*"],
       "@shared/*": ["shared/*"]
     }
   }

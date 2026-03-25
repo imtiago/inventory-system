@@ -1,13 +1,29 @@
+// src/modules/users/infrastructure/http/controllers/ListUsersController.ts
+
 import { FastifyRequest, FastifyReply } from "fastify";
-import { PrismaUserRepository } from "../../repositories/PrismaUserRepository";
+import { UserRepository } from "../../../domain/repositories/UserRepository";
 import { ListUsers } from "../../../application/useCases/ListUsers";
+import { z } from "zod";
 
-export async function ListUsersController(request: FastifyRequest, reply: FastifyReply) {
-  const { page = 1, limit = 10 } = request.query as any;
+const listUsersQuerySchema = z.object({
+  page: z.coerce.number().default(1),
+  limit: z.coerce.number().default(10),
+});
 
-  const repo = new PrismaUserRepository();
-  const useCase = new ListUsers(repo);
+export function makeListUsersController(repository: UserRepository) {
+  return async function ListUsersController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { page, limit } = listUsersQuerySchema.parse(request.query);
 
-  const users = await useCase.execute(Number(page), Number(limit));
-  return reply.send(users);
+      const useCase = new ListUsers(repository);
+      const users = await useCase.execute(page, limit);
+
+      return reply.send(users);
+    } catch (err: any) {
+      return reply.status(400).send({ message: err.message });
+    }
+  };
 }

@@ -3,27 +3,26 @@ import { ReceivableRepository } from "../../domain/repositories/ReceivableReposi
 import { Receivable } from "../../domain/entities/Receivable";
 import { Parcel } from "../../domain/entities/Parcel";
 import { prisma } from "../../../../shared/prisma";
+import { toDomain } from "../mappers/receivableMapper";
 
 export class PrismaReceivableRepository implements ReceivableRepository {
-  async create(receivable: Receivable): Promise<Receivable> {
-    const created = await prisma.receivable.create({
+  async create(data: Receivable, tx = prisma) {
+    const receivable = await tx.receivable.create({
       data: {
-        id: receivable.id,
-        saleId: receivable.saleId,
-        totalAmount: receivable.totalAmount,
-        createdAt: receivable.createdAt,
+        id: data.id,
+        saleId: data.saleId,
+        totalAmount: data.totalAmount,
+        createdAt: data.createdAt,
         parcels: {
-          create: receivable.parcels.map((p) => ({
-            id: p.id,
-            amount: p.amount,
-            dueDate: p.dueDate,
-            paid: p.paid,
-          })),
+          create: data.parcels,
         },
       },
-      include: { parcels: true },
+      include: {
+        parcels: true,
+      },
     });
-    return created as unknown as Receivable;
+
+    return toDomain(receivable);
   }
 
   async list(): Promise<Receivable[]> {

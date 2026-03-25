@@ -14,10 +14,12 @@ import { ZodError } from "zod";
 import { AppError } from "./shared/errors/AppError";
 
 import cors from "@fastify/cors";
+import { importNfeRoutes } from "modules/nfe-import/interfaces/http/routes/importNfeRoutes";
 
 export const app = Fastify({
   logger: true,
 });
+
 app.register(responseInterceptor);
 app.register(cors, {
   origin: true,
@@ -81,3 +83,4 @@ app.register(inventoryRoutes, { prefix: "/inventory" });
 app.register(receivableRoutes);
 app.register(payableRoutes);
 app.register(userRoutes);
+app.register(importNfeRoutes);

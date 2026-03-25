@@ -1,19 +1,32 @@
+// src/modules/sales/infrastructure/http/controllers/GetSaleController.ts
+
 import { FastifyRequest, FastifyReply } from "fastify";
 import { SaleRepository } from "../../../domain/repositories/SaleRepository";
 import { GetSale } from "../../../application/useCases/GetSale";
+import { z } from "zod";
 
-export async function GetSaleController(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const { id } = request.params as { id: string };
-  const useCase = new GetSale(saleRepo);
+const paramsSchema = z.object({
+  id: z.string(),
+});
 
-  const sale = await useCase.execute(id);
+export function makeGetSaleController(repository: SaleRepository) {
+  return async function GetSaleController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { id } = paramsSchema.parse(request.params);
 
-  if (!sale) {
-    return reply.status(404).send({ message: "Sale not found" });
-  }
+      const useCase = new GetSale(repository);
+      const sale = await useCase.execute(id);
 
-  return reply.send(sale);
+      return reply.send(sale);
+    } catch (err: any) {
+      if (err.message === "Venda não encontrada") {
+        return reply.status(404).send({ message: err.message });
+      }
+
+      return reply.status(400).send({ message: err.message });
+    }
+  };
 }

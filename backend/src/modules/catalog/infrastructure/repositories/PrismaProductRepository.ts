@@ -116,4 +116,17 @@ export class PrismaProductRepository implements ProductRepository {
       where: { id },
     });
   }
+
+  async findByCode(code: string): Promise<Product | null> {
+    return prisma.product.findUnique({
+      where: { code },
+    });
+  }
+
+  async updateStock(id: string, quantity: number): Promise<void> {
+    await prisma.product.update({
+      where: { id },
+      data: { stock: { increment: quantity } },
+    });
+  }
 }

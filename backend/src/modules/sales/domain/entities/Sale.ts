@@ -1,3 +1,4 @@
+import { SaleStatus } from "@prisma/client";
 import { SaleItem } from "./SaleItem";
 
 export interface Sale {
@@ -6,4 +7,5 @@ export interface Sale {
   items: SaleItem[];
   totalAmount: number;
   createdAt: Date;
+  status: SaleStatus; // 🔥 NOVO
 }

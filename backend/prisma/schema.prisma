@@ -7,6 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  VENDEDOR
+  ESTOQUISTA
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
 model Brand {
   id        String    @id @default(uuid())
   name      String
@@ -27,6 +45,7 @@ model Product {
   description String?
   brandId     String
   categoryId  String
+  code        String  @unique
 
   brand    Brand    @relation(fields: [brandId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
@@ -62,21 +81,26 @@ model Inventory {
 }
 
 model StockMovement {
-  id               String   @id @default(uuid())
+  id               String            @id @default(uuid())
   productVariantId String
-  type             String
+  type             StockMovementType
   quantity         Int
-  createdAt        DateTime @default(now())
+  createdAt        DateTime          @default(now())
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 }
 
 model Sale {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   customerId  String
   totalAmount Float
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime @default(now())
+
+  status SaleStatus @default(COMPLETED) // 🔥 NOVO
+
+  customer    Customer     @relation(fields: [customerId], references: [id])
   items       SaleItem[]
+  receivables Receivable[]
 }
 
 model SaleItem {
@@ -95,15 +119,16 @@ model Customer {
   phone     String?
   address   String?
   createdAt DateTime @default(now())
+  sales     Sale[]
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      String? // "admin" | "vendedor" | "estoquista"
-  createdAt DateTime @default(now())
+  role      UserRole?
+  createdAt DateTime  @default(now())
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -114,6 +139,7 @@ model Receivable {
   totalAmount Float
   createdAt   DateTime           @default(now())
   parcels     ReceivableParcel[]
+  sale        Sale               @relation(fields: [saleId], references: [id])
 }
 
 model ReceivableParcel {

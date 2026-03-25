@@ -1,8 +1,10 @@
+import { UserRole } from "@prisma/client";
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // hash da senha
-  role?: "admin" | "vendedor" | "estoquista";
+  password: string;
+  role?: UserRole;
   createdAt: Date;
 }

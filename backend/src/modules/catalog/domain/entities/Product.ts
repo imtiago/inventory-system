@@ -2,6 +2,7 @@
 export class Product {
   id: string;
   name: string;
+  code: string; // ✅ código do produto (cProd da NF)
   description?: string | null; // <- aceitar null
   brandId: string;
   categoryId: string;
@@ -9,6 +10,7 @@ export class Product {
 
   constructor(props: {
     id: string;
+    code: string; // ✅ código do produto (cProd da NF)
     name: string;
     description?: string | null; // <- aceitar null
     brandId: string;
@@ -16,6 +18,7 @@ export class Product {
     createdAt?: Date;
   }) {
     this.id = props.id;
+    this.code = props.code;
     this.name = props.name;
     this.description = props.description ?? null; // garante null
     this.brandId = props.brandId;
