@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateCategoryController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { CategoryRepository } from "../../../domain/repositories/CategoryRepository";
-import { CreateCategory } from "../../../application/useCases/CreateCategory";
+import { CreateCategory } from "../../../application/useCases/CreateCategoryUseCase";
 import { createCategorySchema } from "../../../interfaces/http/schemas/createCategorySchema";
 
 export function makeCreateCategoryController(repository: CategoryRepository) {

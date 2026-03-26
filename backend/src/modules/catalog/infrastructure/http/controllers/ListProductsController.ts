@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/ListProductsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ProductRepository } from "../../../domain/repositories/ProductRepository";
-import { ListProducts } from "../../../application/useCases/ListProducts";
+import { ListProducts } from "../../../application/useCases/ListProductsUseCase";
 
 export function makeListProductsController(repository: ProductRepository) {
   return async function ListProductsController(

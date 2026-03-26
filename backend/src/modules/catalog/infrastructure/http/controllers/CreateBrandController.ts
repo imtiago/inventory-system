@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateBrandController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { BrandRepository } from "../../../domain/repositories/BrandRepository";
-import { CreateBrand } from "../../../application/useCases/CreateBrand";
+import { CreateBrand } from "../../../application/useCases/CreateBrandUseCase";
 import { createBrandSchema } from "@catalog/interfaces/http/schemas/createBrandSchema";
 
 export function makeCreateBrandController(repository: BrandRepository) {

@@ -1,6 +1,6 @@
 // src/modules/catalog/infrastructure/http/controllers/ListBrandsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { ListBrands } from "@catalog/application/useCases/ListBrands";
+import { ListBrands } from "@catalog/application/useCases/ListBrandsUseCase";
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
 export function makeListBrandsController(repository: BrandRepository) {

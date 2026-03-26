@@ -9,14 +9,14 @@ export class NfeItem {
   constructor(props: {
     code: string;
     name: string;
-    quantity: number;
+    quantity?: number;
     unit: string;
-    price: number;
+    price?: number;
   }) {
     this.code = props.code;
     this.name = props.name;
-    this.quantity = props.quantity;
+    this.quantity = props.quantity ?? 0;
     this.unit = props.unit;
-    this.price = props.price;
+    this.price = props.price ?? 0;
   }
 }

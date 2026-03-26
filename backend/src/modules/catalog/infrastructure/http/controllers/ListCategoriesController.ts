@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/ListCategoriesController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { PrismaCategoryRepository } from "../../repositories/PrismaCategoryRepository";
-import { GetCategories } from "@catalog/application/useCases/GetCategories";
+import { GetCategories } from "@catalog/application/useCases/GetCategoriesUseCase";
 
 export function makeListCategoriesController(
   repository: PrismaCategoryRepository,

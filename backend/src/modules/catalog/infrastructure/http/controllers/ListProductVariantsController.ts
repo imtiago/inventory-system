@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/ListProductVariantsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ProductRepository } from "../../../domain/repositories/ProductRepository";
-import { ListProductVariants } from "../../../application/useCases/ListProductVariants";
+import { ListProductVariants } from "../../../application/useCases/ListProductVariantsUseCase";
 
 export function makeListProductVariantsController(
   repository: ProductRepository,

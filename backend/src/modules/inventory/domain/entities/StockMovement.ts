@@ -1,14 +1,7 @@
+import { v4 as uuid } from "uuid";
 import { StockMovementType } from "@prisma/client";
 
 // backend/src/modules/inventory/domain/entities/StockMovement.ts
-export interface StockMovementProps {
-  id: string;
-  productVariantId: string;
-  type: StockMovementType;
-  quantity: number;
-  createdAt: Date;
-}
-
 export class StockMovement {
   id: string;
   productVariantId: string;
@@ -16,11 +9,17 @@ export class StockMovement {
   quantity: number;
   createdAt: Date;
 
-  constructor(props: StockMovementProps) {
-    this.id = props.id;
+  constructor(props: {
+    id?: string;
+    productVariantId: string;
+    type: StockMovementType;
+    quantity: number;
+    createdAt?: Date;
+  }) {
+    this.id = props.id ?? uuid();
     this.productVariantId = props.productVariantId;
     this.type = props.type;
     this.quantity = props.quantity;
-    this.createdAt = props.createdAt;
+    this.createdAt = props.createdAt ?? new Date();
   }
 }

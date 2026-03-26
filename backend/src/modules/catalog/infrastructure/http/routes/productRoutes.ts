@@ -25,14 +25,7 @@ export async function productRoutes(app: FastifyInstance) {
   app.post(
     "/",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeCreateProductController(
-      brandRepo,
-      categoryRepo,
-      productRepo,
-      productVariantRepo,
-      inventoryRepo,
-      transactionManager,
-    ),
+    makeCreateProductController(),
   );
   app.get(
     "/",

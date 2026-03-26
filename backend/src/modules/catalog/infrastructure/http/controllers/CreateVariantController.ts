@@ -2,7 +2,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ProductRepository } from "../../../domain/repositories/ProductRepository";
 import { createVariantSchema } from "../../../interfaces/http/schemas/createVariantSchema";
-import { CreateVariant } from "../../../application/useCases/CreateVariant";
+import { CreateVariant } from "../../../application/useCases/CreateVariantUseCase";
 
 export function makeCreateVariantController(repository: ProductRepository) {
   return async function CreateVariantController(

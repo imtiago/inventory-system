@@ -6,7 +6,7 @@ import { InventoryRepository } from "@inventory/domain/repositories/InventoryRep
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
-import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
+import { GetBrandById } from "./GetBrandByIdUseCase";
 
 interface CreateProductDTO {
   name: string;
@@ -17,7 +17,7 @@ interface CreateProductDTO {
 
 export class CreateProduct {
   constructor(
-    private brandRepo: BrandRepository,
+    private geBrandById: GetBrandById,
     private categoryRepo: CategoryRepository,
     private productRepo: ProductRepository,
     private variantRepo: ProductVariantRepository,
@@ -30,7 +30,7 @@ export class CreateProduct {
   }
   async execute(data: CreateProductDTO): Promise<Product> {
     return this.transaction.execute(async () => {
-      const brandExists = await this.brandRepo.findById(data.brandId);
+      const brandExists = await this.geBrandById.execute(data.brandId);
       if (!brandExists) throw new Error("Brand não encontrada");
 
       const categoryExists = await this.categoryRepo.findById(data.categoryId);

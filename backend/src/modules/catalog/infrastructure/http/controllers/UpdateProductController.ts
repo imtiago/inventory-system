@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateProductController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ProductRepository } from "../../../domain/repositories/ProductRepository";
-import { UpdateProductUseCase } from "@catalog/application/useCases/UpdateProduct";
+import { UpdateProductUseCase } from "@catalog/application/useCases/UpdateProductUseCase";
 import { updateProductSchema } from "@catalog/interfaces/http/schemas/productSchemas";
 
 export function makeUpdateProductController(repository: ProductRepository) {

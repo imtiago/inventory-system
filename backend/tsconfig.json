@@ -8,10 +8,13 @@
     "strict": true,
     "baseUrl": "src",
     "paths": {
+      "@auth/*": ["modules/auth/*"],
       "@catalog/*": ["modules/catalog/*"],
-      "@receivables/*": ["modules/receivables/*"],
+      "@customer/*": ["modules/customer/*"],
       "@inventory/*": ["modules/inventory/*"],
+      "@receivables/*": ["modules/receivables/*"],
       "@payables/*": ["modules/payables/*"],
+      "@sales/*": ["modules/sales/*"],
       "@nfe-import/*": ["nfe-import/*"],
       "@shared/*": ["shared/*"]
     }
