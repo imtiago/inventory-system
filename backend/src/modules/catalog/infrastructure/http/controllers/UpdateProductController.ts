@@ -1,10 +1,9 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateProductController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { ProductRepository } from "../../../domain/repositories/ProductRepository";
-import { UpdateProductUseCase } from "@catalog/application/useCases/UpdateProductUseCase";
 import { updateProductSchema } from "@catalog/interfaces/http/schemas/productSchemas";
+import { makeUpdateProductUseCase } from "@catalog/application/factories/UpdateProductFactory";
 
-export function makeUpdateProductController(repository: ProductRepository) {
+export function makeUpdateProductController() {
   return async function UpdateProductController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -13,7 +12,7 @@ export function makeUpdateProductController(repository: ProductRepository) {
       const { id } = request.params as { id: string };
       const data = updateProductSchema.parse(request.body);
 
-      const useCase = new UpdateProductUseCase(repository);
+      const useCase = makeUpdateProductUseCase();
       const updatedProduct = await useCase.execute(id, data);
 
       return reply.status(200).send(updatedProduct);

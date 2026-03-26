@@ -1,6 +1,6 @@
 // src/modules/catalog/application/factories/CreateProductFactory.ts
 import { InventoryService } from "@inventory/application/factories/InventoryServiceFactory";
-import { CreateProduct } from "../useCases/CreateProductUseCase";
+import { CreateProductUseCase } from "../useCases/CreateProductUseCase";
 import { PrismaProductRepository } from "@catalog/infrastructure/repositories/PrismaProductRepository";
 import { PrismaCategoryRepository } from "@catalog/infrastructure/repositories/PrismaCategoryRepository";
 import { PrismaProductVariantRepository } from "@catalog/infrastructure/repositories/PrismaProductVariantRepository";
@@ -17,7 +17,7 @@ export function makeCreateProductUseCase() {
 
   // const inventoryService = InventoryService.createDefault();
 
-  return new CreateProduct(
+  return new CreateProductUseCase(
     brandRepo,
     categoryRepo,
     repository,

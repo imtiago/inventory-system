@@ -2,7 +2,7 @@
 import { BrandRepository } from "../../domain/repositories/BrandRepository";
 import { Brand } from "../../domain/entities/Brand";
 
-export class ListBrands {
+export class ListBrandsUseCase {
   constructor(private repository: BrandRepository) {}
 
   async execute(page: number = 1, limit: number = 10): Promise<Brand[]> {

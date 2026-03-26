@@ -2,7 +2,7 @@
 import { CategoryRepository } from "../../domain/repositories/CategoryRepository";
 import { Category } from "../../domain/entities/Category";
 
-export class CreateCategory {
+export class CreateCategoryUseCase {
   constructor(private repository: CategoryRepository) {}
 
   async execute(name: string): Promise<Category> {

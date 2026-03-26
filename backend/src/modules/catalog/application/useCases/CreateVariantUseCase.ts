@@ -9,7 +9,7 @@ interface Input {
   barcode?: string;
 }
 
-export class CreateVariant {
+export class CreateVariantUseCase {
   constructor(private productRepo: ProductRepository) {}
 
   async execute({

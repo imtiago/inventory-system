@@ -1,10 +1,9 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateVariantController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { ProductRepository } from "../../../domain/repositories/ProductRepository";
 import { createVariantSchema } from "../../../interfaces/http/schemas/createVariantSchema";
-import { CreateVariant } from "../../../application/useCases/CreateVariantUseCase";
+import { makeCreateVariantUseCase } from "@catalog/application/factories/CreateVariantFactory";
 
-export function makeCreateVariantController(repository: ProductRepository) {
+export function makeCreateVariantController() {
   return async function CreateVariantController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -13,7 +12,7 @@ export function makeCreateVariantController(repository: ProductRepository) {
       const productId = request.params["productId"] as string;
       const data = createVariantSchema.parse(request.body);
 
-      const useCase = new CreateVariant(repository);
+      const useCase = makeCreateVariantUseCase();
       const variant = await useCase.execute(productId, data);
 
       return reply.status(201).send(variant);

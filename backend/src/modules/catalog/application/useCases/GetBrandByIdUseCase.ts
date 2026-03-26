@@ -2,7 +2,7 @@
 import { BrandRepository } from "../../domain/repositories/BrandRepository";
 import { Brand } from "../../domain/entities/Brand";
 
-export class GetBrandById {
+export class GetBrandByIdUseCase {
   constructor(private repository: BrandRepository) {}
 
   async execute(id: string): Promise<Brand | null> {

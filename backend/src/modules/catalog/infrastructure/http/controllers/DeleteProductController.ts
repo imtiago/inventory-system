@@ -1,8 +1,7 @@
-import { DeleteProductUseCase } from "@catalog/application/useCases/DeleteProductUseCase";
-import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
+import { makeDeleteProductUseCase } from "@catalog/application/factories/DeleteProductFactory";
 import { FastifyRequest, FastifyReply } from "fastify";
 
-export function makeDeleteProductController(repository: ProductRepository) {
+export function makeDeleteProductController() {
   return async function DeleteProductController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -10,7 +9,7 @@ export function makeDeleteProductController(repository: ProductRepository) {
     try {
       const { id } = request.params as { id: string };
 
-      const useCase = new DeleteProductUseCase(repository);
+      const useCase = makeDeleteProductUseCase();
       await useCase.execute(id);
 
       return reply.status(204).send(); // 204 No Content

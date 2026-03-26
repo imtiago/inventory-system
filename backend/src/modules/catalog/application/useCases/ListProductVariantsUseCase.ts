@@ -1,6 +1,6 @@
 import { ProductRepository } from "../../domain/repositories/ProductRepository";
 
-export class ListProductVariants {
+export class ListProductVariantsUseCase {
   constructor(private productRepo: ProductRepository) {}
 
   async execute(productId: string) {

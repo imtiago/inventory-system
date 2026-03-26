@@ -3,7 +3,7 @@ import { BrandRepository } from "../../domain/repositories/BrandRepository";
 import { Brand } from "../../domain/entities/Brand";
 import crypto from "crypto";
 
-export class CreateBrand {
+export class CreateBrandUseCase {
   constructor(private repository: BrandRepository) {}
 
   async execute(data: { name: string }): Promise<Brand> {

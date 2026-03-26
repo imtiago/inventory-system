@@ -15,7 +15,7 @@ interface CreateProductDTO {
   categoryId: string;
 }
 
-export class CreateProduct {
+export class CreateProductUseCase {
   constructor(
     private geBrandById: GetBrandById,
     private categoryRepo: CategoryRepository,

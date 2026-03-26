@@ -1,17 +1,14 @@
 // src/modules/catalog/infrastructure/http/controllers/ListProductVariantsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { ProductRepository } from "../../../domain/repositories/ProductRepository";
-import { ListProductVariants } from "../../../application/useCases/ListProductVariantsUseCase";
+import { makeListProductVariantsUseCase } from "@catalog/application/factories/ListProductVariantsFactory";
 
-export function makeListProductVariantsController(
-  repository: ProductRepository,
-) {
+export function makeListProductVariantsController() {
   return async function ListProductVariantsController(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
     const { productId } = request.params as { productId: string };
-    const useCase = new ListProductVariants(repository);
+    const useCase = makeListProductVariantsUseCase();
     const variants = await useCase.execute(productId);
     return reply.send(variants);
   };
