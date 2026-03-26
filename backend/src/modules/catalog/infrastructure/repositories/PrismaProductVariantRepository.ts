@@ -7,7 +7,7 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
     const created = await prisma.productVariant.create({
       data: {
         name: variant.name,
-        sku: variant.sku,
+        code: variant.code,
         productId: variant.productId,
       },
     });
@@ -19,5 +19,8 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
     return prisma.productVariant.findMany({
       where: { productId },
     });
+  }
+  async count(): Promise<number> {
+    return prisma.productVariant.count();
   }
 }

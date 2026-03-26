@@ -12,7 +12,7 @@ export function makeCreateCategoryController(repository: CategoryRepository) {
     try {
       const data = createCategorySchema.parse(request.body);
       const useCase = new CreateCategory(repository);
-      const category = await useCase.execute(data);
+      const category = await useCase.execute(data.name);
       return reply.status(201).send(category);
     } catch (err: any) {
       return reply.status(400).send({ message: err.message });

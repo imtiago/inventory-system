@@ -5,9 +5,11 @@ import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeAddInventoryController } from "../controllers/AddInventoryController";
 import { makeRemoveInventoryController } from "../controllers/RemoveInventoryController";
 import { makeGetInventoryController } from "../controllers/GetInventoryController";
+import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   const repo = new PrismaInventoryRepository();
+  const tx = new PrismaTransactionManager();
 
   app.post(
     "/add",
@@ -18,7 +20,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
   app.post(
     "/remove",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeRemoveInventoryController(repo),
+    makeRemoveInventoryController(repo, tx),
   );
 
   // Endpoint GET com validação

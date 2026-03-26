@@ -1,7 +1,10 @@
+import { v4 as uuid } from "uuid";
+
 export class ProductVariant {
   id: string;
   productId: string;
   code: string; // código da NF ou SKU
+  name: string; // código da NF ou SKU
   barcode: string; // ✅ código de barras
   unit: string;
   stock: number;
@@ -9,19 +12,21 @@ export class ProductVariant {
   createdAt: Date;
 
   constructor(props: {
-    id: string;
+    id?: string;
     productId: string;
     code: string;
-    barcode: string; // obrigatório
+    name?: string;
+    barcode?: string;
     unit: string;
     stock?: number;
     price?: number;
     createdAt?: Date;
   }) {
-    this.id = props.id;
+    this.id = props.id || uuid();
     this.productId = props.productId;
     this.code = props.code;
-    this.barcode = props.barcode; // salva o código de barras
+    this.name = props.name || "Padrão";
+    this.barcode = props.barcode || ""; // salva o código de barras
     this.unit = props.unit;
     this.stock = props.stock ?? 0;
     this.price = props.price;

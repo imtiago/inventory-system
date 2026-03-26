@@ -14,7 +14,7 @@ import { ZodError } from "zod";
 import { AppError } from "./shared/errors/AppError";
 
 import cors from "@fastify/cors";
-import { importNfeRoutes } from "modules/nfe-import/interfaces/http/routes/importNfeRoutes";
+import { importNfeRoutes } from "modules/nfe-import/infrastructure/http/routes/importNfeRoutes";
 
 export const app = Fastify({
   logger: true,

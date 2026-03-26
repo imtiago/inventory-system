@@ -33,4 +33,10 @@ export class PrismaCategoryRepository {
       createdAt: created.createdAt,
     });
   }
+
+  async findById(id: string): Promise<Category | null> {
+    return prisma.category.findUnique({
+      where: { id },
+    });
+  }
 }

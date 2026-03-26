@@ -18,9 +18,12 @@ export interface InventoryRepository {
     reservedQuantity?: number;
     minimumStock?: number;
   }): Promise<Inventory>;
-  addMovement(data: {
-    productVariantId: string;
-    type: StockMovementType;
-    quantity: number;
-  }): Promise<StockMovement>;
+  addMovement(
+    data: {
+      productVariantId: string;
+      type: StockMovementType;
+      quantity: number;
+    },
+    tx?: Prisma.TransactionClient,
+  ): Promise<StockMovement>;
 }

@@ -1,7 +1,12 @@
 // /home/tiago/projects/inventory-system/backend/src/modules/catalog/application/useCases/CreateProduct.ts
+import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { Product } from "../../domain/entities/Product";
 import { ProductRepository } from "../../domain/repositories/ProductRepository";
-import { v4 as uuid } from "uuid";
+import { InventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
+import { TransactionManager } from "@shared/domain/TransactionManager";
+import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
+import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
+import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
 interface CreateProductDTO {
   name: string;
@@ -11,18 +16,53 @@ interface CreateProductDTO {
 }
 
 export class CreateProduct {
-  constructor(private repo: ProductRepository) {}
-
+  constructor(
+    private brandRepo: BrandRepository,
+    private categoryRepo: CategoryRepository,
+    private productRepo: ProductRepository,
+    private variantRepo: ProductVariantRepository,
+    private inventoryRepo: InventoryRepository,
+    private transaction: TransactionManager,
+  ) {}
+  private async generateCode(): Promise<string> {
+    const count = await this.variantRepo.count();
+    return `P${String(count + 1).padStart(4, "0")}`;
+  }
   async execute(data: CreateProductDTO): Promise<Product> {
-    const product = new Product({
-      id: uuid(), // ✅ adiciona o ID
-      name: data.name,
-      description: data.description ?? null, // garante string | null
-      brandId: data.brandId,
-      categoryId: data.categoryId,
-      createdAt: new Date(), // opcional, mas garante compatibilidade
-    });
+    return this.transaction.execute(async () => {
+      const brandExists = await this.brandRepo.findById(data.brandId);
+      if (!brandExists) throw new Error("Brand não encontrada");
 
-    return this.repo.create(product);
+      const categoryExists = await this.categoryRepo.findById(data.categoryId);
+      if (!categoryExists) throw new Error("Category não encontrada");
+
+      const product = new Product({
+        name: data.name,
+        description: data.description ?? null, // garante string | null
+        brandId: data.brandId,
+        categoryId: data.categoryId,
+        createdAt: new Date(), // opcional, mas garante compatibilidade
+      });
+      const createdProduct = await this.productRepo.create(product);
+      // 2️⃣ Criar Variant padrão
+      const variant = new ProductVariant({
+        code: await this.generateCode(),
+        productId: createdProduct.id,
+        createdAt: new Date(),
+        unit: "UN",
+      });
+
+      const createdVariant = await this.variantRepo.create(variant);
+
+      // 3️⃣ Criar Inventory inicial
+      await this.inventoryRepo.create({
+        productVariantId: createdVariant.id,
+        quantity: 0,
+        reservedQuantity: 0,
+        minimumStock: 0,
+      });
+
+      return createdProduct;
+    });
   }
 }

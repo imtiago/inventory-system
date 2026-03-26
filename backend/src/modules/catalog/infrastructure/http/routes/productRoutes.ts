@@ -8,14 +8,31 @@ import { makeGetProductController } from "../controllers/GetProductController";
 import { makeListProductVariantsController } from "../controllers/ListProductVariantsController";
 import { makeUpdateProductController } from "../controllers/UpdateProductController";
 import { makeDeleteProductController } from "../controllers/DeleteProductController";
+import { PrismaProductVariantRepository } from "@catalog/infrastructure/repositories/PrismaProductVariantRepository";
+import { PrismaInventoryRepository } from "@inventory/infrastructure/repositories/PrismaInventoryRepository";
+import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
+import { PrismaBrandRepository } from "@catalog/infrastructure/repositories/PrismaBrandRepository";
+import { PrismaCategoryRepository } from "@catalog/infrastructure/repositories/PrismaCategoryRepository";
 
 export async function productRoutes(app: FastifyInstance) {
+  const brandRepo = new PrismaBrandRepository();
+  const categoryRepo = new PrismaCategoryRepository();
   const productRepo = new PrismaProductRepository();
+  const productVariantRepo = new PrismaProductVariantRepository();
+  const inventoryRepo = new PrismaInventoryRepository();
+  const transactionManager = new PrismaTransactionManager();
 
   app.post(
     "/",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeCreateProductController(productRepo),
+    makeCreateProductController(
+      brandRepo,
+      categoryRepo,
+      productRepo,
+      productVariantRepo,
+      inventoryRepo,
+      transactionManager,
+    ),
   );
   app.get(
     "/",

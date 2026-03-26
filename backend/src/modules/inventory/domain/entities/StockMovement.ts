@@ -1,3 +1,5 @@
+import { StockMovementType } from "@prisma/client";
+
 // backend/src/modules/inventory/domain/entities/StockMovement.ts
 export interface StockMovementProps {
   id: string;

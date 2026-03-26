@@ -45,7 +45,6 @@ model Product {
   description String?
   brandId     String
   categoryId  String
-  code        String  @unique
 
   brand    Brand    @relation(fields: [brandId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
@@ -58,7 +57,7 @@ model Product {
 model ProductVariant {
   id        String  @id @default(uuid())
   name      String
-  sku       String  @unique
+  code      String  @unique
   barcode   String? @unique // campo de código de barras opcional e único
   productId String
 

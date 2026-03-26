@@ -1,24 +1,23 @@
+import { v4 as uuid } from "uuid";
+
 // src/modules/catalog/domain/entities/Product.ts
 export class Product {
   id: string;
   name: string;
-  code: string; // ✅ código do produto (cProd da NF)
   description?: string | null; // <- aceitar null
   brandId: string;
   categoryId: string;
   createdAt: Date;
 
   constructor(props: {
-    id: string;
-    code: string; // ✅ código do produto (cProd da NF)
+    id?: string;
     name: string;
     description?: string | null; // <- aceitar null
     brandId: string;
     categoryId: string;
     createdAt?: Date;
   }) {
-    this.id = props.id;
-    this.code = props.code;
+    this.id = props.id || uuid();
     this.name = props.name;
     this.description = props.description ?? null; // garante null
     this.brandId = props.brandId;

@@ -79,7 +79,6 @@ export class PrismaProductRepository implements ProductRepository {
         id: variant.id,
         productId: variant.productId,
         name: variant.name,
-        sku: variant.sku,
         barcode: variant.barcode,
       },
     });

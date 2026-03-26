@@ -19,4 +19,10 @@ export class PrismaBrandRepository implements BrandRepository {
     });
     return brands as unknown as Brand[];
   }
+
+  async findById(id: string): Promise<Brand | null> {
+    return prisma.brand.findUnique({
+      where: { id },
+    });
+  }
 }
