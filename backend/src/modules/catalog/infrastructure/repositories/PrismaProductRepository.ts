@@ -5,10 +5,13 @@ import { Product } from "../../domain/entities/Product";
 import { ProductVariant } from "../../domain/entities/ProductVariant";
 import { Brand } from "../../domain/entities/Brand";
 import { Category } from "../../domain/entities/Category";
+import { ProductMapper } from "@catalog/application/mappers/ProductMapper";
 
 export class PrismaProductRepository implements ProductRepository {
   async create(product: Product): Promise<Product> {
-    return prisma.product.create({ data: product });
+    const data = ProductMapper.toPersistence(product);
+    const created = await prisma.product.create({ data });
+    return ProductMapper.toDomain(created);
   }
 
   async list(page: number, limit: number): Promise<Product[]> {
@@ -23,7 +26,7 @@ export class PrismaProductRepository implements ProductRepository {
     });
   }
 
-  async getById(id: string): Promise<Product | null> {
+  async findById(id: string): Promise<Product | null> {
     return prisma.product.findUnique({
       where: { id },
       include: { variants: true },

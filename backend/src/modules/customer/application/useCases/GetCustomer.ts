@@ -6,6 +6,6 @@ export class GetCustomer {
   constructor(private customerRepo: CustomerRepository) {}
 
   async execute(id: string): Promise<Customer | null> {
-    return this.customerRepo.getById(id);
+    return this.customerRepo.findById(id);
   }
 }

@@ -15,7 +15,7 @@ export class PrismaCustomerRepository implements CustomerRepository {
     return customers as unknown as Customer[];
   }
 
-  async getById(id: string): Promise<Customer | null> {
+  async findById(id: string): Promise<Customer | null> {
     const customer = await prisma.customer.findUnique({ where: { id } });
     return customer as unknown as Customer | null;
   }

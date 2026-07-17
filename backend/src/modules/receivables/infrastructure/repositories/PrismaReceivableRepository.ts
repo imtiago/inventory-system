@@ -32,7 +32,7 @@ export class PrismaReceivableRepository implements ReceivableRepository {
     return list as unknown as Receivable[];
   }
 
-  async getById(id: string): Promise<Receivable | null> {
+  async findById(id: string): Promise<Receivable | null> {
     const rec = await prisma.receivable.findUnique({
       where: { id },
       include: { parcels: true },

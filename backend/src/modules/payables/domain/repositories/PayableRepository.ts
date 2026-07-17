@@ -5,6 +5,6 @@ import { PayableParcel } from "../entities/PayableParcel";
 export interface PayableRepository {
   create(payable: Payable): Promise<Payable>;
   list(): Promise<Payable[]>;
-  getById(id: string): Promise<Payable | null>;
+  findById(id: string): Promise<Payable | null>;
   markParcelAsPaid(parcelId: string, paidAt: Date): Promise<PayableParcel>;
 }

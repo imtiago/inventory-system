@@ -4,6 +4,6 @@ export class GetSale {
   constructor(private saleRepo: SaleRepository) {}
 
   async execute(id: string) {
-    return this.saleRepo.getById(id);
+    return this.saleRepo.findById(id);
   }
 }

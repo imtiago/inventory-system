@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateCategoryController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { CategoryRepository } from "../../../domain/repositories/CategoryRepository";
-import { CreateCategory } from "../../../application/useCases/CreateCategoryUseCase";
+import { CreateCategoryUseCase } from "../../../application/useCases/CreateCategoryUseCase";
 import { createCategorySchema } from "../../../interfaces/http/schemas/createCategorySchema";
 
 export function makeCreateCategoryController(repository: CategoryRepository) {
@@ -11,7 +11,7 @@ export function makeCreateCategoryController(repository: CategoryRepository) {
   ) {
     try {
       const data = createCategorySchema.parse(request.body);
-      const useCase = new CreateCategory(repository);
+      const useCase = new CreateCategoryUseCase(repository);
       const category = await useCase.execute(data.name);
       return reply.status(201).send(category);
     } catch (err: any) {

@@ -19,7 +19,7 @@ export class CreateVariantUseCase {
     barcode,
   }: Input): Promise<ProductVariant> {
     // Verifica se o produto existe
-    const product = await this.productRepo.getById(productId);
+    const product = await this.productRepo.findById(productId);
     if (!product) {
       throw new Error("Product not found");
     }

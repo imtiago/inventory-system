@@ -8,7 +8,7 @@ export class UpdateProductUseCase {
 
   async execute(id: string, data: Partial<Product>): Promise<Product> {
     // 1. Verificar se o produto existe
-    const existing = await this.productRepository.getById(id);
+    const existing = await this.productRepository.findById(id);
     if (!existing) {
       throw new Error("Produto não encontrado");
     }

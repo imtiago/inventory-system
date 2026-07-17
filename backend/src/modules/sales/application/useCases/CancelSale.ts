@@ -11,7 +11,7 @@ export class CancelSale {
   async execute(saleId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       // 1. Buscar venda
-      const sale = await this.saleRepo.getById(saleId, tx);
+      const sale = await this.saleRepo.findById(saleId, tx);
 
       if (!sale) throw new Error("Venda não encontrada");
 

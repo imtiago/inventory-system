@@ -35,7 +35,7 @@ export class PrismaSaleRepository implements SaleRepository {
     return sales as unknown as Sale[];
   }
 
-  async getById(id: string, tx = prisma) {
+  async findById(id: string, tx = prisma) {
     return tx.sale.findUnique({
       where: { id },
       include: {

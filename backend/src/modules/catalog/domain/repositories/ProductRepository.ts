@@ -7,7 +7,7 @@ import { Category } from "../entities/Category";
 export interface ProductRepository {
   create(product: Product): Promise<Product>;
   list(page: number, limit: number): Promise<Product[]>;
-  getById(id: string): Promise<Product | null>;
+  findById(id: string): Promise<Product | null>;
   createVariant(variant: ProductVariant): Promise<ProductVariant>;
   listBrands(): Promise<Brand[]>;
   createBrand(brand: Brand): Promise<Brand>;

@@ -6,6 +6,6 @@ import { Receivable } from "../entities/Receivable";
 export interface ReceivableRepository {
   create(data: Receivable, tx?: any): Promise<Receivable>;
   list(): Promise<Receivable[]>;
-  getById(id: string): Promise<Receivable | null>;
+  findById(id: string): Promise<Receivable | null>;
   markParcelAsPaid(parcelId: string, paidAt: Date): Promise<Parcel>;
 }

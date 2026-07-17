@@ -31,7 +31,7 @@ export class PrismaPayableRepository implements PayableRepository {
     return list as unknown as Payable[];
   }
 
-  async getById(id: string): Promise<Payable | null> {
+  async findById(id: string): Promise<Payable | null> {
     const payable = await prisma.payable.findUnique({
       where: { id },
       include: { parcels: true },
