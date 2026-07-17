@@ -1,15 +1,12 @@
 import { v4 as uuid } from "uuid";
 
 export class ProductVariant {
-  id: string;
-  productId: string;
-  code: string; // SKU ou código NF
-  name: string;
-  barcode: string | null;
-  unit: string;
-  stock: number;
-  price: number | null;
-  createdAt: Date;
+  private _id: string;
+  private _productId: string;
+  private _code: string;
+  private _name: string;
+  private _barcode: string | null;
+  private _createdAt: Date;
 
   constructor(props: {
     id?: string;
@@ -17,19 +14,45 @@ export class ProductVariant {
     code: string;
     name?: string;
     barcode?: string | null;
-    unit: string;
-    stock?: number;
-    price?: number | null;
     createdAt?: Date;
   }) {
-    this.id = props.id ?? uuid();
-    this.productId = props.productId;
-    this.code = props.code;
-    this.name = props.name ?? "Padrão";
-    this.barcode = props.barcode ?? null;
-    this.unit = props.unit;
-    this.stock = props.stock ?? 0;
-    this.price = props.price ?? null;
-    this.createdAt = props.createdAt ?? new Date();
+    this._id = props.id ?? uuid();
+    this._productId = props.productId;
+    this._code = props.code;
+    this._name = props.name ?? "Padrão";
+    this._barcode = props.barcode ?? null;
+    this._createdAt = props.createdAt ?? new Date();
+  }
+
+  get id(): string {
+    return this._id;
+  }
+
+  get productId(): string {
+    return this._productId;
+  }
+
+  get code(): string {
+    return this._code;
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  get barcode(): string | null {
+    return this._barcode;
+  }
+
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+
+  rename(name: string): void {
+    this._name = name;
+  }
+
+  changeBarcode(barcode: string | null): void {
+    this._barcode = barcode;
   }
 }

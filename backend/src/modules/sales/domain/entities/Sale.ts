@@ -1,46 +1,81 @@
 import { v4 as uuid } from "uuid";
-import { SaleStatus } from "@prisma/client";
+import { SaleStatus } from "../enums/SaleStatus";
 import { SaleItem } from "./SaleItem";
 
-// src/modules/sales/domain/entities/Sale.ts
 export class Sale {
-  id: string;
-  customerId: string;
-  items: SaleItem[];
-  totalAmount: number;
-  createdAt: Date;
-  status: SaleStatus;
+  private _id: string;
+  private _customerId: string;
+  private _items: SaleItem[];
+  private _createdAt: Date;
+  private _status: SaleStatus;
 
   constructor(props: {
     id?: string;
     customerId: string;
     items?: SaleItem[];
-    totalAmount?: number;
     createdAt?: Date;
     status?: SaleStatus;
   }) {
-    this.id = props.id ?? uuid();
-    this.customerId = props.customerId;
-    this.items = props.items ?? [];
-    this.totalAmount = props.totalAmount ?? 0;
-    this.createdAt = props.createdAt ?? new Date();
-    this.status = props.status ?? SaleStatus.PENDING; // padrão
+    this._id = props.id ?? uuid();
+
+    this._customerId = props.customerId;
+
+    this._items = props.items ?? [];
+
+    this._createdAt = props.createdAt ?? new Date();
+
+    this._status = props.status ?? SaleStatus.PENDING;
   }
 
-  addItem(item: SaleItem) {
-    this.items.push(item);
-    this.recalculateTotal();
+  get id(): string {
+    return this._id;
   }
 
-  recalculateTotal() {
-    this.totalAmount = this.items.reduce((sum, i) => sum + i.totalPrice(), 0);
+  get customerId(): string {
+    return this._customerId;
   }
 
-  markAsCompleted() {
-    this.status = SaleStatus.COMPLETED;
+  get items(): SaleItem[] {
+    return [...this._items];
   }
 
-  markAsCancelled() {
-    this.status = SaleStatus.CANCELLED;
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+
+  get status(): SaleStatus {
+    return this._status;
+  }
+
+  get totalAmount(): number {
+    return this._items.reduce((total, item) => total + item.totalPrice, 0);
+  }
+
+  addItem(item: SaleItem): void {
+    if (this._status !== SaleStatus.PENDING) {
+      throw new Error("Items can only be added to pending sales.");
+    }
+
+    this._items.push(item);
+  }
+
+  removeItem(itemId: string): void {
+    this._items = this._items.filter((item) => item.id !== itemId);
+  }
+
+  markAsCompleted(): void {
+    if (this._items.length === 0) {
+      throw new Error("Cannot complete sale without items.");
+    }
+
+    this._status = SaleStatus.COMPLETED;
+  }
+
+  markAsCancelled(): void {
+    if (this._status === SaleStatus.COMPLETED) {
+      throw new Error("Completed sale cannot be cancelled.");
+    }
+
+    this._status = SaleStatus.CANCELED;
   }
 }

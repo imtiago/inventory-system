@@ -1,13 +1,18 @@
 import { v4 as uuid } from "uuid";
-import { StockMovementType } from "@prisma/client";
+export enum StockMovementType {
+  IN = "IN",
+  OUT = "OUT",
+  ADJUSTMENT = "ADJUSTMENT",
+  TRANSFER = "TRANSFER",
+}
 
 // backend/src/modules/inventory/domain/entities/StockMovement.ts
 export class StockMovement {
-  id: string;
-  productVariantId: string;
-  type: StockMovementType;
-  quantity: number;
-  createdAt: Date;
+  private _id: string;
+  private _productVariantId: string;
+  private _type: StockMovementType;
+  private _quantity: number;
+  private _createdAt: Date;
 
   constructor(props: {
     id?: string;
@@ -16,10 +21,34 @@ export class StockMovement {
     quantity: number;
     createdAt?: Date;
   }) {
-    this.id = props.id ?? uuid();
-    this.productVariantId = props.productVariantId;
-    this.type = props.type;
-    this.quantity = props.quantity;
-    this.createdAt = props.createdAt ?? new Date();
+    if (props.quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
+    }
+
+    this._id = props.id ?? uuid();
+    this._productVariantId = props.productVariantId;
+    this._type = props.type;
+    this._quantity = props.quantity;
+    this._createdAt = props.createdAt ?? new Date();
+  }
+
+  get id(): string {
+    return this._id;
+  }
+
+  get productVariantId(): string {
+    return this._productVariantId;
+  }
+
+  get type(): StockMovementType {
+    return this._type;
+  }
+
+  get quantity(): number {
+    return this._quantity;
+  }
+
+  get createdAt(): Date {
+    return this._createdAt;
   }
 }

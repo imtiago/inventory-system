@@ -9,7 +9,7 @@ import { customerRoutes } from "./modules/customer/infrastructure/http/routes/cu
 import { userRoutes } from "./modules/auth/infrastructure/http/routes/userRoutes";
 import { authenticate } from "./shared/middleware/auth";
 import { receivableRoutes } from "@receivables/infrastructure/http/routes/receivableRoutes";
-import { payableRoutes } from "@payables/infrastructure/http/routes/payableRoutes";
+import { payableRoutes } from "modules/finance/infrastructure/http/routes/payableRoutes";
 import { ZodError } from "zod";
 import { AppError } from "./shared/errors/AppError";
 

@@ -3,7 +3,7 @@ import { Sale } from "../../domain/entities/Sale";
 import { v4 as uuid } from "uuid";
 import { InventoryRepository } from "../../../inventory/domain/repositories/InventoryRepository";
 
-import { ReceivableRepository } from "@receivables/domain/repositories/ReceivableRepository";
+import { ReceivableRepository } from "modules/finance/domain/repositories/ReceivableRepository";
 import { SaleStatus } from "@prisma/client";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 

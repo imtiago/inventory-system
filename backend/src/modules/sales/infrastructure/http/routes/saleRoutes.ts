@@ -5,7 +5,7 @@ import { makeGetSaleController } from "../controllers/GetSaleController";
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/repositories/PrismaInventoryRepository";
 import { PrismaSaleRepository } from "../../repositories/PrismaSaleRepository";
-import { PrismaReceivableRepository } from "@receivables/infrastructure/repositories/PrismaReceivableRepository";
+import { PrismaReceivableRepository } from "modules/finance/infrastructure/repositories/PrismaReceivableRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
 export async function saleRoutes(app: FastifyInstance) {

@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum FinancialType {
+  PAYABLE
+  RECEIVABLE
+}
+
+enum ParcelStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  BOLETO
+}
+
 enum UserRole {
   ADMIN
   VENDEDOR
@@ -92,14 +114,13 @@ model StockMovement {
 model Sale {
   id          String   @id @default(uuid())
   customerId  String
-  totalAmount Float
+  totalAmount Decimal
   createdAt   DateTime @default(now())
 
   status SaleStatus @default(COMPLETED) // 🔥 NOVO
 
-  customer    Customer     @relation(fields: [customerId], references: [id])
-  items       SaleItem[]
-  receivables Receivable[]
+  customer Customer   @relation(fields: [customerId], references: [id])
+  items    SaleItem[]
 }
 
 model SaleItem {
@@ -132,39 +153,51 @@ model User {
   @@map("users") // opcional: nome da tabela no banco
 }
 
-model Receivable {
-  id          String             @id @default(uuid())
-  saleId      String
-  totalAmount Float
-  createdAt   DateTime           @default(now())
-  parcels     ReceivableParcel[]
-  sale        Sale               @relation(fields: [saleId], references: [id])
+model FinancialDocument {
+  id String @id @default(uuid())
+
+  type FinancialType
+
+  referenceId String
+
+  customerId String?
+  supplierId String?
+
+  totalAmount Decimal @default(0)
+
+  createdAt DateTime @default(now())
+
+  parcels FinancialParcel[]
 }
 
-model ReceivableParcel {
-  id           String     @id @default(uuid())
-  receivableId String
-  amount       Float
-  dueDate      DateTime
-  paid         Boolean    @default(false)
-  paidAt       DateTime?
-  receivable   Receivable @relation(fields: [receivableId], references: [id])
+model FinancialParcel {
+  id String @id @default(uuid())
+
+  financialDocumentId String
+
+  amount Decimal
+
+  dueDate DateTime
+
+  status ParcelStatus @default(OPEN)
+
+  financialDocument FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Cascade)
+
+  payments Payment[]
 }
 
-model Payable {
-  id          String          @id @default(uuid())
-  purchaseId  String
-  totalAmount Float
-  createdAt   DateTime        @default(now())
-  parcels     PayableParcel[]
-}
+model Payment {
+  id String @id @default(uuid())
 
-model PayableParcel {
-  id        String    @id @default(uuid())
-  payableId String
-  amount    Float
-  dueDate   DateTime
-  paid      Boolean   @default(false)
-  paidAt    DateTime?
-  payable   Payable   @relation(fields: [payableId], references: [id])
+  parcelId String
+
+  amount Decimal
+
+  method PaymentMethod
+
+  paymentDate DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Cascade)
 }

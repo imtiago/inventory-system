@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { CreateSale } from "../../../application/useCases/CreateSale";
 import { createSaleSchema } from "../../../interfaces/http/schemas/createSaleSchema";
 import { InventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
-import { ReceivableRepository } from "@receivables/domain/repositories/ReceivableRepository";
+import { ReceivableRepository } from "modules/finance/domain/repositories/ReceivableRepository";
 import { SaleRepository } from "modules/sales/domain/repositories/SaleRepository";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 
