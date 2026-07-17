@@ -1,3 +1,5 @@
+// src/modules/sales/domain/entities/Sale.ts
+
 import { v4 as uuid } from "uuid";
 import { SaleStatus } from "../enums/SaleStatus";
 import { SaleItem } from "./SaleItem";
@@ -5,8 +7,11 @@ import { SaleItem } from "./SaleItem";
 export class Sale {
   private _id: string;
   private _customerId: string;
+
   private _items: SaleItem[];
+
   private _createdAt: Date;
+
   private _status: SaleStatus;
 
   constructor(props: {
@@ -60,6 +65,10 @@ export class Sale {
   }
 
   removeItem(itemId: string): void {
+    if (this._status !== SaleStatus.PENDING) {
+      throw new Error("Items can only be removed from pending sales.");
+    }
+
     this._items = this._items.filter((item) => item.id !== itemId);
   }
 

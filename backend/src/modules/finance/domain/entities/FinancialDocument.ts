@@ -19,9 +19,12 @@ export class FinancialDocument {
     id?: string;
     type: FinancialType;
     referenceId: string;
+
     customerId?: string | null;
     supplierId?: string | null;
+
     createdAt?: Date;
+
     parcels?: FinancialParcel[];
   }) {
     this._id = props.id ?? uuid();
@@ -39,39 +42,39 @@ export class FinancialDocument {
     this._parcels = props.parcels ?? [];
   }
 
-  get id() {
+  get id(): string {
     return this._id;
   }
 
-  get type() {
+  get type(): FinancialType {
     return this._type;
   }
 
-  get referenceId() {
+  get referenceId(): string {
     return this._referenceId;
   }
 
-  get customerId() {
+  get customerId(): string | null {
     return this._customerId;
   }
 
-  get supplierId() {
+  get supplierId(): string | null {
     return this._supplierId;
   }
 
-  get createdAt() {
+  get createdAt(): Date {
     return this._createdAt;
   }
 
-  get parcels() {
+  get parcels(): FinancialParcel[] {
     return this._parcels;
   }
 
-  get totalAmount() {
+  get totalAmount(): number {
     return this._parcels.reduce((total, parcel) => total + parcel.amount, 0);
   }
 
-  addParcel(parcel: FinancialParcel) {
+  addParcel(parcel: FinancialParcel): void {
     this._parcels.push(parcel);
   }
 }

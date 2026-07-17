@@ -28,6 +28,9 @@ export class Payment {
     this._method = props.method;
 
     this._paymentDate = props.paymentDate ?? new Date();
+    if (props.amount <= 0) {
+      throw new Error("Payment amount must be greater than zero");
+    }
   }
 
   get id() {

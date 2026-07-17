@@ -102,34 +102,47 @@ model Inventory {
 }
 
 model StockMovement {
-  id               String            @id @default(uuid())
+  id String @id @default(uuid())
+
   productVariantId String
-  type             StockMovementType
-  quantity         Int
-  createdAt        DateTime          @default(now())
+
+  type StockMovementType
+
+  quantity Int
+
+  createdAt DateTime @default(now())
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 }
 
 model Sale {
-  id          String   @id @default(uuid())
-  customerId  String
-  totalAmount Decimal
-  createdAt   DateTime @default(now())
+  id String @id @default(uuid())
 
-  status SaleStatus @default(COMPLETED) // 🔥 NOVO
+  customerId String
 
-  customer Customer   @relation(fields: [customerId], references: [id])
-  items    SaleItem[]
+  totalAmount Decimal @default(0)
+
+  createdAt DateTime @default(now())
+
+  status SaleStatus @default(PENDING)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  items SaleItem[]
 }
 
 model SaleItem {
-  id               String @id @default(uuid())
-  saleId           String
+  id String @id @default(uuid())
+
+  saleId String
+
   productVariantId String
-  quantity         Int
-  price            Float
-  sale             Sale   @relation(fields: [saleId], references: [id])
+
+  quantity Int
+
+  price Decimal
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 }
 
 model Customer {
@@ -163,8 +176,6 @@ model FinancialDocument {
   customerId String?
   supplierId String?
 
-  totalAmount Decimal @default(0)
-
   createdAt DateTime @default(now())
 
   parcels FinancialParcel[]
@@ -179,10 +190,11 @@ model FinancialParcel {
 
   dueDate DateTime
 
-  status ParcelStatus @default(OPEN)
+  paidAt DateTime?
 
-  financialDocument FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
+  document FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Cascade)
   payments Payment[]
 }
 

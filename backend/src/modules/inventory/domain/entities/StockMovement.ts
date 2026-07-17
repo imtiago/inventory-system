@@ -1,4 +1,7 @@
+// backend/src/modules/inventory/domain/entities/StockMovement.ts
+
 import { v4 as uuid } from "uuid";
+
 export enum StockMovementType {
   IN = "IN",
   OUT = "OUT",
@@ -6,7 +9,6 @@ export enum StockMovementType {
   TRANSFER = "TRANSFER",
 }
 
-// backend/src/modules/inventory/domain/entities/StockMovement.ts
 export class StockMovement {
   private _id: string;
   private _productVariantId: string;
@@ -50,5 +52,21 @@ export class StockMovement {
 
   get createdAt(): Date {
     return this._createdAt;
+  }
+
+  isEntry(): boolean {
+    return this._type === StockMovementType.IN;
+  }
+
+  isExit(): boolean {
+    return this._type === StockMovementType.OUT;
+  }
+
+  isAdjustment(): boolean {
+    return this._type === StockMovementType.ADJUSTMENT;
+  }
+
+  isTransfer(): boolean {
+    return this._type === StockMovementType.TRANSFER;
   }
 }
