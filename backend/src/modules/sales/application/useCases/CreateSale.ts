@@ -5,7 +5,6 @@ import { Sale } from "../../domain/entities/Sale";
 
 import { InventoryRepository } from "../../../inventory/domain/repositories/InventoryRepository";
 
-import { Receivable } from "../../../finance/domain/entities/Receivable";
 import { ReceivableRepository } from "../../../finance/domain/repositories/ReceivableRepository";
 
 import { TransactionManager } from "@shared/domain/TransactionManager";
@@ -41,7 +40,6 @@ export class CreateSale {
       for (const item of data.items) {
         const inventory = await this.inventoryRepo.findByVariant(
           item.productVariantId,
-          tx,
         );
 
         if (!inventory) {
@@ -52,9 +50,9 @@ export class CreateSale {
 
         const movement = inventory.removeStock(item.quantity, "Sale");
 
-        await this.inventoryRepo.save(inventory, tx);
+        await this.inventoryRepo.save(inventory);
 
-        await this.inventoryRepo.addMovement(movement, tx);
+        await this.inventoryRepo.addMovement(movement);
       }
 
       /*

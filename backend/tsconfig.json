@@ -12,6 +12,7 @@
       "@catalog/*": ["modules/catalog/*"],
       "@customer/*": ["modules/customer/*"],
       "@inventory/*": ["modules/inventory/*"],
+      "@finance/*": ["modules/finance/*"],
       "@receivables/*": ["modules/receivables/*"],
       "@payables/*": ["modules/payables/*"],
       "@sales/*": ["modules/sales/*"],
