@@ -1,3 +1,5 @@
+// infrastructure/repositories/PrismaInventoryRepository.ts
+
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../shared/prisma";
 
@@ -11,12 +13,12 @@ import { StockMovementMapper } from "../mappers/StockMovementMapper";
 
 export class PrismaInventoryRepository implements InventoryRepository {
   async findByVariant(
-    variantId: string,
+    productVariantId: string,
     tx: Prisma.TransactionClient = prisma,
   ): Promise<Inventory | null> {
     const inventory = await tx.inventory.findUnique({
       where: {
-        productVariantId: variantId,
+        productVariantId,
       },
     });
 
@@ -27,30 +29,39 @@ export class PrismaInventoryRepository implements InventoryRepository {
     return InventoryMapper.toDomain(inventory);
   }
 
-  async create(inventory: Inventory): Promise<Inventory> {
-    const created = await prisma.inventory.create({
+  async save(
+    inventory: Inventory,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Inventory> {
+    const exists = await tx.inventory.findUnique({
+      where: {
+        id: inventory.id,
+      },
+    });
+
+    if (exists) {
+      const updated = await tx.inventory.update({
+        where: {
+          id: inventory.id,
+        },
+        data: InventoryMapper.toUpdatePersistence(inventory),
+      });
+
+      return InventoryMapper.toDomain(updated);
+    }
+
+    const created = await tx.inventory.create({
       data: InventoryMapper.toCreatePersistence(inventory),
     });
 
     return InventoryMapper.toDomain(created);
   }
 
-  async update(
-    inventory: Inventory,
+  async addMovement(
+    movement: StockMovement,
     tx: Prisma.TransactionClient = prisma,
-  ): Promise<Inventory> {
-    const updated = await tx.inventory.update({
-      where: {
-        id: inventory.id,
-      },
-      data: InventoryMapper.toUpdatePersistence(inventory),
-    });
-
-    return InventoryMapper.toDomain(updated);
-  }
-
-  async addMovement(movement: StockMovement): Promise<StockMovement> {
-    const created = await prisma.stockMovement.create({
+  ): Promise<StockMovement> {
+    const created = await tx.stockMovement.create({
       data: StockMovementMapper.toCreatePersistence(movement),
     });
 

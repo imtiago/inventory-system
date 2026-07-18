@@ -7,9 +7,7 @@ export class CreateCategoryUseCase {
 
   async execute(name: string): Promise<Category> {
     const category = new Category({
-      id: crypto.randomUUID(),
       name,
-      createdAt: new Date(),
     });
     return this.repository.create(category);
   }

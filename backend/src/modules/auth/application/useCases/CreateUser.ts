@@ -1,7 +1,6 @@
 import { UserRepository } from "../../domain/repositories/UserRepository";
 import { User } from "../../domain/entities/User";
 import { hash } from "bcryptjs";
-import { v4 as uuid } from "uuid";
 import { UserRole } from "@prisma/client";
 
 interface CreateUserRequest {
@@ -20,14 +19,12 @@ export class CreateUser {
 
     const hashedPassword = await hash(data.password, 10);
 
-    const user: User = {
-      id: uuid(),
+    const user = new User({
       name: data.name,
       email: data.email,
       password: hashedPassword,
-      role: data.role ?? UserRole.VENDEDOR,
-      createdAt: new Date(),
-    };
+      role: data.role,
+    });
 
     return this.userRepo.create(user);
   }

@@ -1,6 +1,9 @@
-import { v4 as uuid } from "uuid";
-
 // backend/src/modules/inventory/domain/entities/Inventory.ts
+
+import { v4 as uuid } from "uuid";
+import { StockMovement } from "./StockMovement";
+import { StockMovementType } from "../enums/StockMovementType";
+
 export class Inventory {
   private _id: string;
   private _productVariantId: string;
@@ -51,6 +54,34 @@ export class Inventory {
 
   get availableQuantity(): number {
     return this._quantity - this._reservedQuantity;
+  }
+
+  /**
+   * Entrada de estoque
+   */
+  addStock(quantity: number, reason?: string): StockMovement {
+    this.increase(quantity);
+
+    return new StockMovement({
+      productVariantId: this._productVariantId,
+      type: StockMovementType.IN,
+      quantity,
+      reason: reason ?? "Stock addition",
+    });
+  }
+
+  /**
+   * Saída de estoque
+   */
+  removeStock(quantity: number, reason?: string): StockMovement {
+    this.decrease(quantity);
+
+    return new StockMovement({
+      productVariantId: this._productVariantId,
+      type: StockMovementType.OUT,
+      quantity,
+      reason: reason ?? "Stock removal",
+    });
   }
 
   increase(quantity: number): void {

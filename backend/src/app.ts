@@ -76,10 +76,11 @@ app.addHook("onRequest", async (request, reply) => {
 app.register(productRoutes, { prefix: "/products" });
 app.register(brandRoutes, { prefix: "/brands" });
 app.register(categoryRoutes, { prefix: "/categories" });
+app.register(inventoryRoutes, { prefix: "/inventory" });
+
 app.register(saleRoutes, { prefix: "/sales" });
 app.register(customerRoutes, { prefix: "/customers" });
-app.register(inventoryRoutes, { prefix: "/inventory" });
 // app.register(inventoryRoutes, { prefix: "/finance" });
-app.register(payableRoutes);
+// app.register(payableRoutes);
 app.register(userRoutes);
 app.register(importNfeRoutes);

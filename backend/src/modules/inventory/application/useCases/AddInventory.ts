@@ -1,34 +1,28 @@
 import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
-import { StockMovementType } from "@prisma/client";
+import { Inventory } from "../../domain/entities/Inventory";
+
+interface AddInventoryRequest {
+  productVariantId: string;
+  quantity: number;
+}
 
 export class AddInventory {
   constructor(private repo: InventoryRepository) {}
 
-  async execute(productVariantId: string, quantity: number) {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be positive");
-    }
-
-    let inventory = await this.repo.findByVariant(productVariantId);
+  async execute(data: AddInventoryRequest): Promise<Inventory> {
+    let inventory = await this.repo.findByVariant(data.productVariantId);
 
     if (!inventory) {
-      inventory = await this.repo.create({
-        productVariantId,
-        quantity: 0,
-        reservedQuantity: 0,
-        minimumStock: 0,
+      inventory = new Inventory({
+        productVariantId: data.productVariantId,
       });
     }
 
-    inventory.quantity += quantity;
+    const movement = inventory.addStock(data.quantity);
 
-    await this.repo.update(inventory);
+    await this.repo.save(inventory);
 
-    await this.repo.addMovement({
-      productVariantId,
-      type: StockMovementType.IN,
-      quantity,
-    });
+    await this.repo.addMovement(movement);
 
     return inventory;
   }

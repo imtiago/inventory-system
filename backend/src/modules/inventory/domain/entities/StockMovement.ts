@@ -1,19 +1,12 @@
-// backend/src/modules/inventory/domain/entities/StockMovement.ts
-
 import { v4 as uuid } from "uuid";
-
-export enum StockMovementType {
-  IN = "IN",
-  OUT = "OUT",
-  ADJUSTMENT = "ADJUSTMENT",
-  TRANSFER = "TRANSFER",
-}
+import { StockMovementType } from "../enums/StockMovementType";
 
 export class StockMovement {
   private _id: string;
   private _productVariantId: string;
   private _type: StockMovementType;
   private _quantity: number;
+  private _reason?: string;
   private _createdAt: Date;
 
   constructor(props: {
@@ -21,6 +14,7 @@ export class StockMovement {
     productVariantId: string;
     type: StockMovementType;
     quantity: number;
+    reason?: string;
     createdAt?: Date;
   }) {
     if (props.quantity <= 0) {
@@ -31,6 +25,7 @@ export class StockMovement {
     this._productVariantId = props.productVariantId;
     this._type = props.type;
     this._quantity = props.quantity;
+    this._reason = props.reason;
     this._createdAt = props.createdAt ?? new Date();
   }
 
@@ -50,6 +45,10 @@ export class StockMovement {
     return this._quantity;
   }
 
+  get reason(): string | undefined {
+    return this._reason;
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -64,9 +63,5 @@ export class StockMovement {
 
   isAdjustment(): boolean {
     return this._type === StockMovementType.ADJUSTMENT;
-  }
-
-  isTransfer(): boolean {
-    return this._type === StockMovementType.TRANSFER;
   }
 }
