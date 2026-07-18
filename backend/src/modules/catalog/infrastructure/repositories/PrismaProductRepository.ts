@@ -5,7 +5,7 @@ import { Product } from "../../domain/entities/Product";
 import { ProductVariant } from "../../domain/entities/ProductVariant";
 import { Brand } from "../../domain/entities/Brand";
 import { Category } from "../../domain/entities/Category";
-import { ProductMapper } from "@catalog/application/mappers/ProductMapper";
+import { ProductMapper } from "@catalog/infrastructure/mappers/ProductMapper";
 
 export class PrismaProductRepository implements ProductRepository {
   async create(product: Product): Promise<Product> {
