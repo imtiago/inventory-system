@@ -14,7 +14,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
   app.post(
     "/add",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeAddInventoryController(repo),
+    makeAddInventoryController(),
   );
 
   app.post(
