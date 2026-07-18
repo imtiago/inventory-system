@@ -1,5 +1,5 @@
+import { UpdateProductUseCase } from "@catalog/application/useCases/UpdateProductUseCase";
 import { PrismaProductRepository } from "@catalog/infrastructure/repositories/PrismaProductRepository";
-import { UpdateProductUseCase } from "../useCases/UpdateProductUseCase";
 
 export function makeUpdateProductUseCase() {
   const repository = new PrismaProductRepository();
