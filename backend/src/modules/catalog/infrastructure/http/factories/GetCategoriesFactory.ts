@@ -1,5 +1,5 @@
+import { GetCategoriesUseCase } from "@catalog/application/useCases/GetCategoriesUseCase";
 import { PrismaCategoryRepository } from "@catalog/infrastructure/repositories/PrismaCategoryRepository";
-import { GetCategoriesUseCase } from "../useCases/GetCategoriesUseCase";
 
 export function makeGetCategoriesUseCase() {
   const repository = new PrismaCategoryRepository();

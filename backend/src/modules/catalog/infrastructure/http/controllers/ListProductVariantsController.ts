@@ -1,6 +1,6 @@
 // src/modules/catalog/infrastructure/http/controllers/ListProductVariantsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { makeListProductVariantsUseCase } from "@catalog/application/factories/ListProductVariantsFactory";
+import { makeListProductVariantsUseCase } from "../factories/ListProductVariantsFactory";
 
 export function makeListProductVariantsController() {
   return async function ListProductVariantsController(

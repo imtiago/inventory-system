@@ -1,6 +1,6 @@
 // src/modules/catalog/infrastructure/http/controllers/GetProductController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { makeGetProductUseCase } from "@catalog/application/factories/GetProductFactory";
+import { makeGetProductUseCase } from "../factories/GetProductFactory";
 
 export function makeGetProductController() {
   return async function GetProductController(

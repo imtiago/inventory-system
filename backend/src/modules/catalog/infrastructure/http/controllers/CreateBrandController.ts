@@ -1,21 +1,26 @@
-// src/modules/catalog/infrastructure/http/controllers/CreateBrandController.ts
-import { FastifyRequest, FastifyReply } from "fastify";
-import { BrandRepository } from "../../../domain/repositories/BrandRepository";
-import { CreateBrandUseCase } from "../../../application/useCases/CreateBrandUseCase";
-import { createBrandSchema } from "@catalog/interfaces/http/schemas/createBrandSchema";
+// infrastructure/http/controllers/CreateBrandController.ts
 
-export function makeCreateBrandController(repository: BrandRepository) {
+import { FastifyRequest, FastifyReply } from "fastify";
+import { createBrandSchema } from "@catalog/interfaces/http/schemas/createBrandSchema";
+import { makeCreateBrandUseCase } from "../factories/CreateBrandFactory";
+
+export function makeCreateBrandController() {
+  const useCase = makeCreateBrandUseCase();
+
   return async function CreateBrandController(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
     try {
       const data = createBrandSchema.parse(request.body);
-      const useCase = new CreateBrandUseCase(repository);
+
       const brand = await useCase.execute(data);
+
       return reply.status(201).send(brand);
     } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+      return reply.status(400).send({
+        message: err.message,
+      });
     }
   };
 }

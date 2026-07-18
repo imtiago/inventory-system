@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateVariantController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createVariantSchema } from "../../../interfaces/http/schemas/createVariantSchema";
-import { makeCreateVariantUseCase } from "@catalog/application/factories/CreateVariantFactory";
+import { makeCreateVariantUseCase } from "../factories/CreateVariantFactory";
 
 export function makeCreateVariantController() {
   return async function CreateVariantController(

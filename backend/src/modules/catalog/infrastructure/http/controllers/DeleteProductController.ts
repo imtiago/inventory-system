@@ -1,5 +1,5 @@
-import { makeDeleteProductUseCase } from "@catalog/application/factories/DeleteProductFactory";
 import { FastifyRequest, FastifyReply } from "fastify";
+import { makeDeleteProductUseCase } from "../factories/DeleteProductFactory";
 
 export function makeDeleteProductController() {
   return async function DeleteProductController(

@@ -1,7 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateProductController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createProductSchema } from "../../../interfaces/http/schemas/createProductSchema";
-import { makeCreateProductUseCase } from "@catalog/application/factories/CreateProductFactory";
+import { makeCreateProductUseCase } from "../factories/CreateProductFactory";
 
 export function makeCreateProductController() {
   return async function CreateProductController(
