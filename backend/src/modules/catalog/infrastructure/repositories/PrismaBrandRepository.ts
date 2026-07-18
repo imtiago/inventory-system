@@ -1,28 +1,37 @@
-// src/modules/catalog/infrastructure/repositories/PrismaBrandRepository.ts
 import { prisma } from "../../../../shared/prisma";
 import { BrandRepository } from "../../domain/repositories/BrandRepository";
 import { Brand } from "../../domain/entities/Brand";
+import { BrandMapper } from "../mappers/BrandMapper";
 
 export class PrismaBrandRepository implements BrandRepository {
   async create(brand: Brand): Promise<Brand> {
     const created = await prisma.brand.create({
-      data: { id: brand.id, name: brand.name, createdAt: brand.createdAt },
+      data: BrandMapper.toCreatePersistence(brand),
     });
-    return created as unknown as Brand;
+
+    return BrandMapper.toDomain(created);
   }
 
   async list(page: number, limit: number): Promise<Brand[]> {
     const skip = (page - 1) * limit;
+
     const brands = await prisma.brand.findMany({
       skip,
       take: limit,
     });
-    return brands as unknown as Brand[];
+
+    return brands.map(BrandMapper.toDomain);
   }
 
   async findById(id: string): Promise<Brand | null> {
-    return prisma.brand.findUnique({
+    const brand = await prisma.brand.findUnique({
       where: { id },
     });
+
+    if (!brand) {
+      return null;
+    }
+
+    return BrandMapper.toDomain(brand);
   }
 }

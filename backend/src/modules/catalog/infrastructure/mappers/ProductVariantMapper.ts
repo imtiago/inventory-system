@@ -1,5 +1,3 @@
-// src/modules/catalog/application/mappers/ProductVariantMapper.ts
-
 import { ProductVariant } from "../../domain/entities/ProductVariant";
 import { ProductVariant as PrismaProductVariant, Prisma } from "@prisma/client";
 
@@ -32,7 +30,6 @@ export class ProductVariantMapper {
     variant: ProductVariant,
   ): Prisma.ProductVariantUncheckedUpdateInput {
     return {
-      productId: variant.productId,
       code: variant.code,
       name: variant.name,
       barcode: variant.barcode,

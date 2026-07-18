@@ -1,4 +1,4 @@
-// src/modules/sales/application/mappers/SaleStatusMapper.ts
+// src/modules/sales/infrastructure/mappers/SaleStatusMapper.ts
 
 import { SaleStatus } from "../../domain/enums/SaleStatus";
 import { SaleStatus as PrismaSaleStatus } from "@prisma/client";

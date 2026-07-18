@@ -1,134 +1,74 @@
-// backend/src/modules/catalog/infrastructure/repositories/PrismaProductRepository.ts
 import { prisma } from "../../../../shared/prisma";
+
 import { ProductRepository } from "../../domain/repositories/ProductRepository";
 import { Product } from "../../domain/entities/Product";
-import { ProductVariant } from "../../domain/entities/ProductVariant";
-import { Brand } from "../../domain/entities/Brand";
-import { Category } from "../../domain/entities/Category";
-import { ProductMapper } from "@catalog/infrastructure/mappers/ProductMapper";
+
+import { ProductMapper } from "../mappers/ProductMapper";
 
 export class PrismaProductRepository implements ProductRepository {
   async create(product: Product): Promise<Product> {
-    const data = ProductMapper.toPersistence(product);
-    const created = await prisma.product.create({ data });
+    const created = await prisma.product.create({
+      data: ProductMapper.toCreatePersistence(product),
+    });
+
     return ProductMapper.toDomain(created);
   }
 
-  async list(page: number, limit: number): Promise<Product[]> {
-    return prisma.product.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
-      include: {
-        brand: { select: { id: true, name: true } },
-        category: { select: { id: true, name: true } },
-        variants: true,
+  async update(product: Product): Promise<Product> {
+    const updated = await prisma.product.update({
+      where: {
+        id: product.id,
+      },
+      data: ProductMapper.toUpdatePersistence(product),
+    });
+
+    return ProductMapper.toDomain(updated);
+  }
+
+  async delete(id: string): Promise<void> {
+    await prisma.product.delete({
+      where: {
+        id,
       },
     });
   }
 
   async findById(id: string): Promise<Product | null> {
-    return prisma.product.findUnique({
-      where: { id },
-      include: { variants: true },
-    });
-  }
-
-  // Lista todas as brands
-  async listBrands(): Promise<Brand[]> {
-    const brands = await prisma.brand.findMany();
-
-    // mapeia para a entidade Brand
-    return brands.map(
-      (b) =>
-        new Brand({
-          id: b.id,
-          name: b.name,
-          createdAt: b.createdAt ?? new Date(), // garante que createdAt exista
-        }),
-    );
-  }
-
-  // Cria uma brand
-  async createBrand(brand: Brand): Promise<Brand> {
-    const created = await prisma.brand.create({
-      data: {
-        id: brand.id,
-        name: brand.name,
-        createdAt: brand.createdAt,
+    const product = await prisma.product.findUnique({
+      where: {
+        id,
       },
     });
 
-    return new Brand({
-      id: created.id,
-      name: created.name,
-      createdAt: created.createdAt,
-    });
-  }
+    if (!product) {
+      return null;
+    }
 
-  async listCategories(): Promise<Category[]> {
-    return prisma.category.findMany();
-  }
-
-  async createCategory(category: Category): Promise<Category> {
-    return prisma.category.create({ data: category });
-  }
-  async findAll(): Promise<Product[]> {
-    return prisma.product.findMany();
-  }
-
-  async createVariant(variant: ProductVariant): Promise<ProductVariant> {
-    return prisma.productVariant.create({
-      data: {
-        id: variant.id,
-        productId: variant.productId,
-        name: variant.name,
-        barcode: variant.barcode,
-      },
-    });
-  }
-
-  async findVariantsByProductId(productId: string): Promise<ProductVariant[]> {
-    const variants = await prisma.productVariant.findMany({
-      where: { productId },
-    });
-
-    return variants.map((v) => ({
-      ...v,
-      barcode: v.barcode ?? undefined, // converte null para undefined
-    }));
-  }
-
-  async update(id: string, data: Partial<Product>): Promise<Product> {
-    // Atualiza o produto
-    const updated = await prisma.product.update({
-      where: { id },
-      data,
-      include: {
-        brand: { select: { id: true, name: true } },
-        category: { select: { id: true, name: true } },
-        variants: true,
-      },
-    });
-
-    return updated;
-  }
-
-  async delete(id: string): Promise<void> {
-    await prisma.product.delete({
-      where: { id },
-    });
+    return ProductMapper.toDomain(product);
   }
 
   async findByCode(code: string): Promise<Product | null> {
-    return prisma.product.findUnique({
-      where: { code },
+    const product = await prisma.product.findUnique({
+      where: {
+        code,
+      },
     });
+
+    if (!product) {
+      return null;
+    }
+
+    return ProductMapper.toDomain(product);
   }
 
-  async updateStock(id: string, quantity: number): Promise<void> {
-    await prisma.product.update({
-      where: { id },
-      data: { stock: { increment: quantity } },
+  async list(page: number, limit: number): Promise<Product[]> {
+    const skip = (page - 1) * limit;
+
+    const products = await prisma.product.findMany({
+      skip,
+      take: limit,
     });
+
+    return products.map(ProductMapper.toDomain);
   }
 }

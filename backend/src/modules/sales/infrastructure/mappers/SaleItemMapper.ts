@@ -1,4 +1,4 @@
-// src/modules/sales/application/mappers/SaleItemMapper.ts
+// src/modules/sales/infrastructure/mappers/SaleItemMapper.ts
 
 import { SaleItem } from "../../domain/entities/SaleItem";
 import { SaleItem as PrismaSaleItem, Prisma } from "@prisma/client";

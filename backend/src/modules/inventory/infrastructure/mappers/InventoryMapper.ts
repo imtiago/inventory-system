@@ -1,4 +1,4 @@
-// src/modules/inventory/application/mappers/InventoryMapper.ts
+// src/modules/inventory/infrastructure/mappers/InventoryMapper.ts
 
 import { Inventory } from "../../domain/entities/Inventory";
 import { Inventory as PrismaInventory, Prisma } from "@prisma/client";

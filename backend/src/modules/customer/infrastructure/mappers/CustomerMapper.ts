@@ -1,10 +1,7 @@
-// src/modules/customer/application/mappers/CustomerMapper.ts
-
 import { Customer } from "../../domain/entities/Customer";
 import { Customer as PrismaCustomer, Prisma } from "@prisma/client";
 
 export class CustomerMapper {
-  // Banco -> Domínio
   static toDomain(prisma: PrismaCustomer): Customer {
     return new Customer({
       id: prisma.id,
@@ -16,8 +13,9 @@ export class CustomerMapper {
     });
   }
 
-  // Domínio -> Banco (Create)
-  static toCreatePersistence(customer: Customer): Prisma.CustomerCreateInput {
+  static toCreatePersistence(
+    customer: Customer,
+  ): Prisma.CustomerUncheckedCreateInput {
     return {
       id: customer.id,
       name: customer.name,
@@ -28,8 +26,9 @@ export class CustomerMapper {
     };
   }
 
-  // Domínio -> Banco (Update)
-  static toUpdatePersistence(customer: Customer): Prisma.CustomerUpdateInput {
+  static toUpdatePersistence(
+    customer: Customer,
+  ): Prisma.CustomerUncheckedUpdateInput {
     return {
       name: customer.name,
       email: customer.email,

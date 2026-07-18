@@ -1,30 +1,50 @@
-// /src/modules/customer/infrastructure/repositories/PrismaCustomerRepository.ts
-import { CustomerRepository } from "../../domain/repositories/CustomerRepository";
-import { Customer } from "../../domain/entities/Customer";
 import { prisma } from "../../../../shared/prisma";
+
+import { Customer } from "../../domain/entities/Customer";
+import { CustomerRepository } from "../../domain/repositories/CustomerRepository";
+
+import { CustomerMapper } from "../mappers/CustomerMapper";
 
 export class PrismaCustomerRepository implements CustomerRepository {
   async create(customer: Customer): Promise<Customer> {
-    const created = await prisma.customer.create({ data: { ...customer } });
-    return created as unknown as Customer;
+    const created = await prisma.customer.create({
+      data: CustomerMapper.toCreatePersistence(customer),
+    });
+
+    return CustomerMapper.toDomain(created);
   }
 
   async list(page: number, limit: number): Promise<Customer[]> {
     const skip = (page - 1) * limit;
-    const customers = await prisma.customer.findMany({ skip, take: limit });
-    return customers as unknown as Customer[];
+
+    const customers = await prisma.customer.findMany({
+      skip,
+      take: limit,
+    });
+
+    return customers.map(CustomerMapper.toDomain);
   }
 
   async findById(id: string): Promise<Customer | null> {
-    const customer = await prisma.customer.findUnique({ where: { id } });
-    return customer as unknown as Customer | null;
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!customer) {
+      return null;
+    }
+
+    return CustomerMapper.toDomain(customer);
   }
 
   async update(customer: Customer): Promise<Customer> {
     const updated = await prisma.customer.update({
-      where: { id: customer.id },
-      data: { ...customer },
+      where: {
+        id: customer.id,
+      },
+      data: CustomerMapper.toUpdatePersistence(customer),
     });
-    return updated as unknown as Customer;
+
+    return CustomerMapper.toDomain(updated);
   }
 }

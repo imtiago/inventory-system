@@ -1,4 +1,4 @@
-// src/modules/inventory/application/mappers/StockMovementTypeMapper.ts
+// src/modules/inventory/infrastructure/mappers/StockMovementTypeMapper.ts
 
 import { StockMovementType } from "../../domain/entities/StockMovement";
 import { StockMovementType as PrismaStockMovementType } from "@prisma/client";

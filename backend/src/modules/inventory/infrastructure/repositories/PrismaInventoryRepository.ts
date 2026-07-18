@@ -1,74 +1,59 @@
-// backend/src/modules/inventory/infrastructure/repositories/PrismaInventoryRepository.ts
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../shared/prisma";
-import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
+
 import { Inventory } from "../../domain/entities/Inventory";
 import { StockMovement } from "../../domain/entities/StockMovement";
-import { Prisma, StockMovementType } from "@prisma/client";
+
+import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
+
+import { InventoryMapper } from "../mappers/InventoryMapper";
+import { StockMovementMapper } from "../mappers/StockMovementMapper";
 
 export class PrismaInventoryRepository implements InventoryRepository {
-  // Exemplo do findByVariant
-  async findByVariant(variantId: string, tx = prisma) {
-    return tx.inventory.findUnique({
-      where: { productVariantId: variantId },
-    });
-  }
-
-  async create(data: {
-    productVariantId: string;
-    quantity?: number;
-    reservedQuantity?: number;
-    minimumStock?: number;
-  }): Promise<Inventory> {
-    const inv = await prisma.inventory.create({
-      data: {
-        productVariantId: data.productVariantId,
-        quantity: data.quantity ?? 0,
-        reservedQuantity: data.reservedQuantity ?? 0,
-        minimumStock: data.minimumStock ?? 0,
+  async findByVariant(
+    variantId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Inventory | null> {
+    const inventory = await tx.inventory.findUnique({
+      where: {
+        productVariantId: variantId,
       },
     });
 
-    return new Inventory({
-      id: inv.id,
-      productVariantId: inv.productVariantId,
-      quantity: inv.quantity,
-      reservedQuantity: inv.reservedQuantity,
-      minimumStock: inv.minimumStock,
-      createdAt: inv.createdAt,
+    if (!inventory) {
+      return null;
+    }
+
+    return InventoryMapper.toDomain(inventory);
+  }
+
+  async create(inventory: Inventory): Promise<Inventory> {
+    const created = await prisma.inventory.create({
+      data: InventoryMapper.toCreatePersistence(inventory),
     });
+
+    return InventoryMapper.toDomain(created);
   }
 
   async update(
     inventory: Inventory,
     tx: Prisma.TransactionClient = prisma,
   ): Promise<Inventory> {
-    return tx.inventory.update({
-      where: { id: inventory.id },
-      data: {
-        quantity: inventory.quantity,
+    const updated = await tx.inventory.update({
+      where: {
+        id: inventory.id,
       },
+      data: InventoryMapper.toUpdatePersistence(inventory),
     });
+
+    return InventoryMapper.toDomain(updated);
   }
 
-  async addMovement(data: {
-    productVariantId: string;
-    type: StockMovementType;
-    quantity: number;
-  }): Promise<StockMovement> {
-    const movement = await prisma.stockMovement.create({
-      data: {
-        productVariantId: data.productVariantId,
-        type: data.type,
-        quantity: data.quantity,
-      },
+  async addMovement(movement: StockMovement): Promise<StockMovement> {
+    const created = await prisma.stockMovement.create({
+      data: StockMovementMapper.toCreatePersistence(movement),
     });
 
-    return new StockMovement({
-      id: movement.id,
-      productVariantId: movement.productVariantId,
-      type: movement.type as StockMovementType,
-      quantity: movement.quantity,
-      createdAt: movement.createdAt,
-    });
+    return StockMovementMapper.toDomain(created);
   }
 }

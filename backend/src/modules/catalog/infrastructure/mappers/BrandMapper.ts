@@ -1,4 +1,4 @@
-// src/modules/catalog/application/mappers/BrandMapper.ts
+// src/modules/catalog/infrastructure/mappers/BrandMapper.ts
 
 import { Brand } from "../../domain/entities/Brand";
 import { Brand as PrismaBrand } from "@prisma/client";

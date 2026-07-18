@@ -1,53 +1,76 @@
-import { PrismaClient, SaleStatus } from "@prisma/client";
+// src/modules/sales/infrastructure/repositories/PrismaSaleRepository.ts
+
+import { Prisma, SaleStatus } from "@prisma/client";
 import { prisma } from "../../../../shared/prisma";
+
 import { Sale } from "../../domain/entities/Sale";
-import { SaleRepository } from "modules/sales/domain/repositories/SaleRepository";
+import { SaleRepository } from "../../domain/repositories/SaleRepository";
+
+import { SaleMapper } from "../mappers/SaleMapper";
+import { SaleStatusMapper } from "../mappers/SaleStatusMapper";
 
 export class PrismaSaleRepository implements SaleRepository {
-  async create(sale: Sale, tx: PrismaClient = prisma): Promise<Sale> {
-    return tx.sale.create({
-      data: {
-        id: sale.id,
-        customerId: sale.customerId,
-        totalAmount: sale.totalAmount,
-        items: {
-          create: sale.items.map((item) => ({
-            productVariantId: item.productVariantId,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
+  async create(
+    sale: Sale,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Sale> {
+    const created = await tx.sale.create({
+      data: SaleMapper.toCreatePersistence(sale),
       include: {
         items: true,
       },
     });
+
+    return SaleMapper.toDomain(created);
   }
 
   async list(page: number, limit: number): Promise<Sale[]> {
     const skip = (page - 1) * limit;
+
     const sales = await prisma.sale.findMany({
       skip,
       take: limit,
-      include: { items: true },
+      include: {
+        items: true,
+      },
     });
 
-    return sales as unknown as Sale[];
+    return sales.map(SaleMapper.toDomain);
   }
 
-  async findById(id: string, tx = prisma) {
-    return tx.sale.findUnique({
+  async findById(
+    id: string,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Sale | null> {
+    const sale = await tx.sale.findUnique({
       where: { id },
       include: {
         items: true,
       },
     });
+
+    if (!sale) {
+      return null;
+    }
+
+    return SaleMapper.toDomain(sale);
   }
 
-  async updateStatus(id: string, status: SaleStatus, tx = prisma) {
-    return tx.sale.update({
+  async updateStatus(
+    id: string,
+    status: SaleStatus,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Sale> {
+    const updated = await tx.sale.update({
       where: { id },
-      data: { status },
+      data: {
+        status: SaleStatusMapper.toPrisma(status),
+      },
+      include: {
+        items: true,
+      },
     });
+
+    return SaleMapper.toDomain(updated);
   }
 }

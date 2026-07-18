@@ -1,4 +1,4 @@
-// src/modules/auth/application/mappers/UserMapper.ts
+//src/modules/auth/infrastructure/mappers/UserMapper.ts
 
 import { User } from "../../domain/entities/User";
 import { User as PrismaUser, Prisma } from "@prisma/client";

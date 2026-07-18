@@ -1,42 +1,32 @@
-// src/modules/catalog/infrastructure/repositories/PrismaCategoryRepository.ts
 import { prisma } from "../../../../shared/prisma";
 import { Category } from "../../domain/entities/Category";
+import { CategoryRepository } from "../../domain/repositories/CategoryRepository";
+import { CategoryMapper } from "../mappers/CategoryMapper";
 
-export class PrismaCategoryRepository {
-  // Listar todas as categories
+export class PrismaCategoryRepository implements CategoryRepository {
   async list(): Promise<Category[]> {
     const categories = await prisma.category.findMany();
 
-    return categories.map(
-      (c) =>
-        new Category({
-          id: c.id,
-          name: c.name,
-          createdAt: c.createdAt, // agora existe no banco!
-        }),
-    );
+    return categories.map(CategoryMapper.toDomain);
   }
 
-  // Criar uma nova category
   async create(category: Category): Promise<Category> {
     const created = await prisma.category.create({
-      data: {
-        id: category.id,
-        name: category.name,
-        createdAt: category.createdAt,
-      },
+      data: CategoryMapper.toCreatePersistence(category),
     });
 
-    return new Category({
-      id: created.id,
-      name: created.name,
-      createdAt: created.createdAt,
-    });
+    return CategoryMapper.toDomain(created);
   }
 
   async findById(id: string): Promise<Category | null> {
-    return prisma.category.findUnique({
+    const category = await prisma.category.findUnique({
       where: { id },
     });
+
+    if (!category) {
+      return null;
+    }
+
+    return CategoryMapper.toDomain(category);
   }
 }

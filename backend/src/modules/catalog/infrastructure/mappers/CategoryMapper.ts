@@ -1,7 +1,5 @@
-// src/modules/catalog/application/mappers/CategoryMapper.ts
-
 import { Category } from "../../domain/entities/Category";
-import { Category as PrismaCategory } from "@prisma/client";
+import { Category as PrismaCategory, Prisma } from "@prisma/client";
 
 export class CategoryMapper {
   // Banco -> Domínio
@@ -14,7 +12,9 @@ export class CategoryMapper {
   }
 
   // Domínio -> Banco (Create)
-  static toCreatePersistence(category: Category): PrismaCategory {
+  static toCreatePersistence(
+    category: Category,
+  ): Prisma.CategoryUncheckedCreateInput {
     return {
       id: category.id,
       name: category.name,
@@ -23,11 +23,11 @@ export class CategoryMapper {
   }
 
   // Domínio -> Banco (Update)
-  static toUpdatePersistence(category: Category): PrismaCategory {
+  static toUpdatePersistence(
+    category: Category,
+  ): Prisma.CategoryUncheckedUpdateInput {
     return {
-      id: category.id,
       name: category.name,
-      createdAt: category.createdAt,
     };
   }
 }
