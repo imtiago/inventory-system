@@ -25,7 +25,6 @@ export class CreateUser {
       password: hashedPassword,
       role: data.role,
     });
-
     return this.userRepo.create(user);
   }
 }

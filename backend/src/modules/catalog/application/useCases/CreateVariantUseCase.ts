@@ -1,39 +1,50 @@
 import { ProductRepository } from "../../domain/repositories/ProductRepository";
 import { ProductVariant } from "../../domain/entities/ProductVariant";
-import { v4 as uuidv4 } from "uuid";
+import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
+import { NumberGenerator } from "@shared/application/services/NumberGenerator";
+import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 
 interface Input {
   productId: string;
   name: string;
-  sku: string;
+  // sku: string;
   barcode?: string;
 }
 
 export class CreateVariantUseCase {
-  constructor(private productRepo: ProductRepository) {}
+  constructor(
+    private productRepository: ProductRepository,
+    private variantRepository: ProductVariantRepository,
+    private numberGenerator: NumberGenerator,
+  ) {}
 
-  async execute({
-    productId,
-    name,
-    sku,
-    barcode,
-  }: Input): Promise<ProductVariant> {
+  async execute({ productId, name, barcode }: Input): Promise<ProductVariant> {
     // Verifica se o produto existe
-    const product = await this.productRepo.findById(productId);
+    const product = await this.productRepository.findById(productId);
     if (!product) {
       throw new Error("Product not found");
     }
+    if (barcode) {
+      const barcodeExists = await this.variantRepository.findByBarcode(barcode);
+
+      if (barcodeExists) {
+        throw new Error("Barcode already exists");
+      }
+    }
+
+    const code = await this.numberGenerator.generate(
+      NumberRangeName.PRODUCT_VARIANT,
+      "V",
+    );
 
     // Cria a variante
-    const variant: ProductVariant = {
-      id: uuidv4(),
+    const variant = new ProductVariant({
       productId,
       name,
-      sku,
       barcode,
-      createdAt: new Date(),
-    };
+      code,
+    });
 
-    return this.productRepo.createVariant(variant);
+    return this.variantRepository.create(variant);
   }
 }

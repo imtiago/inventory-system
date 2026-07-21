@@ -213,3 +213,13 @@ model Payment {
 
   parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Cascade)
 }
+
+model NumberRange {
+  id String @id @default(uuid())
+
+  name         String @unique
+  currentValue Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

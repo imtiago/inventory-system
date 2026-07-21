@@ -7,7 +7,7 @@ export function authorize(allowedRoles: string[]) {
       return reply.status(401).send({ message: "Usuário não autenticado" });
     }
 
-    if (!allowedRoles.includes(request.user.role)) {
+    if (!allowedRoles.includes(request.user.role.toLocaleLowerCase())) {
       return reply.status(403).send({ message: "Acesso negado" });
     }
   };

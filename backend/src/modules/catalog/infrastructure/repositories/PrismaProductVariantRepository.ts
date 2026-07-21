@@ -44,6 +44,9 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
       where: {
         productId,
       },
+      orderBy: {
+        createdAt: "asc",
+      },
     });
 
     return variants.map(ProductVariantMapper.toDomain);
@@ -59,5 +62,33 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
         id,
       },
     });
+  }
+
+  async findByBarcode(barcode: string): Promise<ProductVariant | null> {
+    const variant = await prisma.productVariant.findFirst({
+      where: {
+        barcode,
+      },
+    });
+
+    if (!variant) {
+      return null;
+    }
+
+    return ProductVariantMapper.toDomain(variant);
+  }
+
+  async findByCode(code: string): Promise<ProductVariant | null> {
+    const variant = await prisma.productVariant.findUnique({
+      where: {
+        code,
+      },
+    });
+
+    if (!variant) {
+      return null;
+    }
+
+    return ProductVariantMapper.toDomain(variant);
   }
 }

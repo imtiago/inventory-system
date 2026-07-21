@@ -16,6 +16,18 @@ export class ProductVariant {
     barcode?: string | null;
     createdAt?: Date;
   }) {
+    if (!props.productId.trim()) {
+      throw new Error("Product id is required.");
+    }
+
+    if (!props.code.trim()) {
+      throw new Error("Variant code is required.");
+    }
+
+    if (props.name !== undefined && !props.name.trim()) {
+      throw new Error("Variant name cannot be empty.");
+    }
+
     this._id = props.id ?? uuid();
     this._productId = props.productId;
     this._code = props.code;

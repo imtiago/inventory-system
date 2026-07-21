@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,14 @@ async function main() {
     data: {
       name: "Perfumes",
     },
+  });
+
+  await prisma.numberRange.createMany({
+    data: Object.values(NumberRangeName).map((name) => ({
+      name,
+      currentValue: 0,
+    })),
+    skipDuplicates: true,
   });
 
   console.log("Seed executado com sucesso");

@@ -13,7 +13,7 @@ export function makeCreateVariantController() {
       const data = createVariantSchema.parse(request.body);
 
       const useCase = makeCreateVariantUseCase();
-      const variant = await useCase.execute(productId, data);
+      const variant = await useCase.execute({ productId, ...data });
 
       return reply.status(201).send(variant);
     } catch (err: any) {
