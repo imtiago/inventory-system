@@ -1,12 +1,13 @@
 // backend/src/modules/inventory/application/useCases/RemoveInventory.ts
 import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
 import { Inventory } from "../../domain/entities/Inventory";
-import { StockMovement } from "../../domain/entities/StockMovement";
 import { TransactionManager } from "@shared/domain/TransactionManager";
+import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 
 export class RemoveInventory {
   constructor(
-    private repository: InventoryRepository,
+    private inventoryRepository: InventoryRepository,
+    private movementRepository: StockMovementRepository,
     private transaction: TransactionManager,
   ) {}
 
@@ -15,29 +16,21 @@ export class RemoveInventory {
     quantity: number,
   ): Promise<Inventory> {
     return this.transaction.execute(async (tx) => {
-      const inventory = await this.repository.findByVariant(productVariantId);
+      const inventory = await this.inventoryRepository.findByVariant(
+        productVariantId,
+        tx,
+      );
       if (!inventory) {
         throw new Error("Inventory not found");
       }
 
-      if (inventory.quantity < quantity) {
-        throw new Error("Not enough stock to remove");
-      }
-
-      inventory.quantity -= quantity;
+      const movement = inventory.removeStock(quantity);
 
       // Atualiza o estoque
-      const updated = await this.repository.update(inventory, tx);
+      const updated = await this.inventoryRepository.save(inventory, tx);
 
       // Cria movimento de saída
-      await this.repository.addMovement(
-        {
-          productVariantId,
-          type: "OUT",
-          quantity,
-        } as StockMovement,
-        tx,
-      );
+      await this.movementRepository.create(movement, tx);
 
       return updated;
     });

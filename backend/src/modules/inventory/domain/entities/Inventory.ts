@@ -84,7 +84,7 @@ export class Inventory {
     });
   }
 
-  increase(quantity: number): void {
+  private increase(quantity: number): void {
     if (quantity <= 0) {
       throw new Error("Quantity must be greater than zero.");
     }
@@ -92,7 +92,7 @@ export class Inventory {
     this._quantity += quantity;
   }
 
-  decrease(quantity: number): void {
+  private decrease(quantity: number): void {
     if (quantity <= 0) {
       throw new Error("Quantity must be greater than zero.");
     }

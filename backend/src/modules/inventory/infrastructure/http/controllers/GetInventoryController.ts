@@ -1,10 +1,8 @@
-import { PrismaInventoryRepository } from "@inventory/infrastructure/repositories/PrismaInventoryRepository";
 import { getInventorySchema } from "@inventory/interfaces/http/schemas/getInventorySchema";
 import { FastifyRequest, FastifyReply } from "fastify";
+import { makeGetInventory } from "../factories/GetInventoryFactory";
 
-export function makeGetInventoryController(
-  repository: PrismaInventoryRepository,
-) {
+export function makeGetInventoryController() {
   return async function GetInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -12,7 +10,8 @@ export function makeGetInventoryController(
     try {
       const { variantId } = getInventorySchema.parse(request.params);
 
-      const inventory = await repository.findByVariant(variantId);
+      const useCase = makeGetInventory();
+      const inventory = await useCase.execute(variantId);
 
       if (!inventory) {
         return reply.status(404).send({ message: "Inventory not found" });

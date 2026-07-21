@@ -1,12 +1,7 @@
-import { RemoveInventory } from "@inventory/application/useCases/RemoveInventory";
-import { PrismaInventoryRepository } from "@inventory/infrastructure/repositories/PrismaInventoryRepository";
 import { removeInventorySchema } from "@inventory/interfaces/http/schemas/removeInventorySchema";
-import { TransactionManager } from "@shared/domain/TransactionManager";
 import { FastifyRequest, FastifyReply } from "fastify";
-export function makeRemoveInventoryController(
-  repository: PrismaInventoryRepository,
-  transaction: TransactionManager,
-) {
+import { makeRemoveInventory } from "../factories/RemoveInventoryFactory";
+export function makeRemoveInventoryController() {
   return async function RemoveInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -14,8 +9,7 @@ export function makeRemoveInventoryController(
     try {
       const data = removeInventorySchema.parse(request.body);
 
-      const useCase = new RemoveInventory(repository, transaction);
-
+      const useCase = makeRemoveInventory();
       const inventory = await useCase.execute(
         data.productVariantId,
         data.quantity,
