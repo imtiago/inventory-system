@@ -1,9 +1,7 @@
-import { prisma } from "../../../../shared/prisma";
-
-import { ProductVariant } from "../../domain/entities/ProductVariant";
-import { ProductVariantRepository } from "../../domain/repositories/ProductVariantRepository";
-
+import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { ProductVariantMapper } from "../mappers/ProductVariantMapper";
+import { ProductVariant } from "@prisma/client";
+import { prisma } from "@shared/prisma";
 
 export class PrismaProductVariantRepository implements ProductVariantRepository {
   async create(variant: ProductVariant): Promise<ProductVariant> {

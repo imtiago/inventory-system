@@ -1,9 +1,9 @@
-import { prisma } from "../../../../shared/prisma";
-
-import { ProductRepository } from "../../domain/repositories/ProductRepository";
-import { Product } from "../../domain/entities/Product";
+import { Product } from "@catalog/domain/entities/Product";
 
 import { ProductMapper } from "../mappers/ProductMapper";
+import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
+import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
+import { prisma } from "@shared/prisma";
 
 export class PrismaProductRepository implements ProductRepository {
   async create(product: Product): Promise<Product> {
@@ -70,5 +70,37 @@ export class PrismaProductRepository implements ProductRepository {
     });
 
     return products.map(ProductMapper.toDomain);
+  }
+
+  async findProductsForList(): Promise<ProductListDTO[]> {
+    const products = await prisma.product.findMany({
+      include: {
+        brand: true,
+
+        category: true,
+      },
+    });
+
+    return products.map((product) => ({
+      id: product.id,
+
+      name: product.name,
+
+      description: product.description,
+
+      brand: {
+        id: product.brand.id,
+
+        name: product.brand.name,
+      },
+
+      category: {
+        id: product.category.id,
+
+        name: product.category.name,
+      },
+
+      createdAt: product.createdAt,
+    }));
   }
 }

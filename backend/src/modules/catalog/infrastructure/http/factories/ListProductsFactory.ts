@@ -1,7 +1,10 @@
-import { ListProductsUseCase } from "@catalog/application/useCases/ListProductsUseCase";
-import { PrismaProductRepository } from "@catalog/infrastructure/repositories/PrismaProductRepository";
+import { PrismaProductReadRepository } from "../../prisma/contracts/PrismaProductReadRepository";
+import { ListProductsUseCase } from "../../../application/useCases/ListProductsUseCase";
 
 export function makeListProductsUseCase() {
-  const repository = new PrismaProductRepository();
-  return new ListProductsUseCase(repository);
+  const repository = new PrismaProductReadRepository();
+
+  const useCase = new ListProductsUseCase(repository);
+
+  return useCase;
 }

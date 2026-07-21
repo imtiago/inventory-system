@@ -3,6 +3,7 @@ import { Product } from "../entities/Product";
 import { ProductVariant } from "../entities/ProductVariant";
 import { Brand } from "../entities/Brand";
 import { Category } from "../entities/Category";
+import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
 
 export interface ProductRepository {
   create(product: Product): Promise<Product>;
@@ -18,6 +19,7 @@ export interface ProductRepository {
   update(id: string, data: Partial<Product>): Promise<Product>;
   delete(id: string): Promise<void>;
 
+  findProductsForList(): Promise<ProductListDTO[]>;
   // ✅ Métodos adicionados para o ImportNfeUseCase
   findByCode(code: string): Promise<Product | null>;
   updateStock(id: string, quantity: number): Promise<void>;

@@ -1,11 +1,9 @@
-// src/modules/catalog/application/useCases/ListBrands.ts
-import { BrandRepository } from "../../domain/repositories/BrandRepository";
-import { Brand } from "../../domain/entities/Brand";
+import { PrismaProductReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaProductReadRepository";
 
 export class ListBrandsUseCase {
-  constructor(private repository: BrandRepository) {}
+  constructor(private readonly productQuery: PrismaProductReadRepository) {}
 
-  async execute(page: number = 1, limit: number = 10): Promise<Brand[]> {
-    return this.repository.list(page, limit);
+  async execute() {
+    return this.productQuery.list();
   }
 }

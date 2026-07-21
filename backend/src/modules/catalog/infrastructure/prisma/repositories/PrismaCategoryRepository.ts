@@ -1,7 +1,7 @@
-import { prisma } from "../../../../shared/prisma";
-import { Category } from "../../domain/entities/Category";
-import { CategoryRepository } from "../../domain/repositories/CategoryRepository";
+import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
 import { CategoryMapper } from "../mappers/CategoryMapper";
+import { Category } from "@prisma/client";
+import { prisma } from "@shared/prisma";
 
 export class PrismaCategoryRepository implements CategoryRepository {
   async list(): Promise<Category[]> {

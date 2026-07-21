@@ -1,5 +1,5 @@
 import { CreateBrandUseCase } from "@catalog/application/useCases/CreateBrandUseCase";
-import { PrismaBrandRepository } from "@catalog/infrastructure/repositories/PrismaBrandRepository";
+import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositories/PrismaBrandRepository";
 
 export function makeCreateBrandUseCase() {
   const repository = new PrismaBrandRepository();

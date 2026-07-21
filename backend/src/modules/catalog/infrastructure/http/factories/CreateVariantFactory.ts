@@ -1,6 +1,6 @@
 import { CreateVariantUseCase } from "@catalog/application/useCases/CreateVariantUseCase";
-import { PrismaProductRepository } from "@catalog/infrastructure/repositories/PrismaProductRepository";
-import { PrismaProductVariantRepository } from "@catalog/infrastructure/repositories/PrismaProductVariantRepository";
+import { PrismaProductRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductRepository";
+import { PrismaProductVariantRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductVariantRepository";
 import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";
 
 export function makeCreateVariantUseCase() {

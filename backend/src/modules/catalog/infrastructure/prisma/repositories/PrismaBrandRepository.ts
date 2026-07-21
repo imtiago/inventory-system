@@ -1,7 +1,7 @@
-import { prisma } from "../../../../shared/prisma";
-import { BrandRepository } from "../../domain/repositories/BrandRepository";
-import { Brand } from "../../domain/entities/Brand";
+import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 import { BrandMapper } from "../mappers/BrandMapper";
+import { Brand } from "@catalog/domain/entities/Brand";
+import { prisma } from "@shared/prisma";
 
 export class PrismaBrandRepository implements BrandRepository {
   async create(brand: Brand): Promise<Brand> {

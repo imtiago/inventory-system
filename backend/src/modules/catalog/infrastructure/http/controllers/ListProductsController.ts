@@ -1,6 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/ListProductsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeListProductsUseCase } from "../factories/ListProductsFactory";
+import { ProductHttpPresenter } from "@catalog/interfaces/http/presenters/ProductHttpPresenter";
 
 export function makeListProductsController() {
   return async function ListProductsController(
@@ -9,7 +10,9 @@ export function makeListProductsController() {
   ) {
     const { page = 1, limit = 10 } = request.query as any;
     const useCase = makeListProductsUseCase();
-    const products = await useCase.execute(Number(page), Number(limit));
+    // const products = await useCase.execute(Number(page), Number(limit));
+    const products = await useCase.execute();
     return reply.send(products);
+    // return reply.send(ProductHttpPresenter.toHTTPList(products));
   };
 }

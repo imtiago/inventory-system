@@ -1,13 +1,9 @@
-import { Product } from "../../domain/entities/Product";
-import { ProductRepository } from "../../domain/repositories/ProductRepository";
+import { ProductReadRepository } from "../contracts/ProductReadRepository";
 
 export class ListProductsUseCase {
-  constructor(private productRepo: ProductRepository) {}
+  constructor(private readonly repository: ProductReadRepository) {}
 
-  async execute(page?: number, limit?: number): Promise<Product[]> {
-    if (page && limit) {
-      return this.productRepo.list(page, limit);
-    }
-    return this.productRepo.findAll!(); // usa o findAll como fallback
+  async execute() {
+    return this.repository.list();
   }
 }

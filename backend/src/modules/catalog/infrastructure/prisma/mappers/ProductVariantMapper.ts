@@ -1,4 +1,4 @@
-import { ProductVariant } from "../../domain/entities/ProductVariant";
+import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { ProductVariant as PrismaProductVariant, Prisma } from "@prisma/client";
 
 export class ProductVariantMapper {
