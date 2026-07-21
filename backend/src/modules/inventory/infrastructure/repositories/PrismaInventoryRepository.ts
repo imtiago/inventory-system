@@ -4,12 +4,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../shared/prisma";
 
 import { Inventory } from "../../domain/entities/Inventory";
-import { StockMovement } from "../../domain/entities/StockMovement";
-
 import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
-
 import { InventoryMapper } from "../mappers/InventoryMapper";
-import { StockMovementMapper } from "../mappers/StockMovementMapper";
 
 export class PrismaInventoryRepository implements InventoryRepository {
   async findByVariant(
@@ -57,14 +53,12 @@ export class PrismaInventoryRepository implements InventoryRepository {
     return InventoryMapper.toDomain(created);
   }
 
-  async addMovement(
-    movement: StockMovement,
-    tx: Prisma.TransactionClient = prisma,
-  ): Promise<StockMovement> {
-    const created = await tx.stockMovement.create({
-      data: StockMovementMapper.toCreatePersistence(movement),
-    });
+  //   tx: Prisma.TransactionClient = prisma,
+  // ): Promise<StockMovement> {
+  //   const created = await tx.stockMovement.create({
+  //     data: StockMovementMapper.toCreatePersistence(movement),
+  //   });
 
-    return StockMovementMapper.toDomain(created);
-  }
+  //   return StockMovementMapper.toDomain(created);
+  // }
 }

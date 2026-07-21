@@ -1,10 +1,14 @@
+import { Prisma } from "@prisma/client";
 import { Inventory } from "../entities/Inventory";
-import { StockMovement } from "../entities/StockMovement";
+// import { StockMovement } from "../entities/StockMovement";
 
 export interface InventoryRepository {
-  findByVariant(productVariantId: string): Promise<Inventory | null>;
+  findByVariant(
+    productVariantId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Inventory | null>;
 
-  save(inventory: Inventory): Promise<Inventory>;
+  save(inventory: Inventory, tx?: Prisma.TransactionClient): Promise<Inventory>;
 
-  addMovement(movement: StockMovement): Promise<StockMovement>;
+  // addMovement(movement: StockMovement): Promise<StockMovement>;
 }

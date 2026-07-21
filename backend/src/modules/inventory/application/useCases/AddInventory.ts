@@ -1,5 +1,7 @@
 import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
 import { Inventory } from "../../domain/entities/Inventory";
+import { TransactionManager } from "@shared/domain/TransactionManager";
+import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 
 interface AddInventoryRequest {
   productVariantId: string;
@@ -7,23 +9,31 @@ interface AddInventoryRequest {
 }
 
 export class AddInventory {
-  constructor(private repo: InventoryRepository) {}
+  constructor(
+    private inventoryRepo: InventoryRepository,
+    private movementRepo: StockMovementRepository,
+    private transaction: TransactionManager,
+  ) {}
 
   async execute(data: AddInventoryRequest): Promise<Inventory> {
-    let inventory = await this.repo.findByVariant(data.productVariantId);
+    return this.transaction.execute(async (tx) => {
+      let inventory = await this.inventoryRepo.findByVariant(
+        data.productVariantId,
+        tx,
+      );
 
-    if (!inventory) {
-      inventory = new Inventory({
-        productVariantId: data.productVariantId,
-      });
-    }
+      if (!inventory) {
+        inventory = new Inventory({
+          productVariantId: data.productVariantId,
+        });
+      }
 
-    const movement = inventory.addStock(data.quantity);
+      const movement = inventory.addStock(data.quantity);
 
-    await this.repo.save(inventory);
+      await this.inventoryRepo.save(inventory, tx);
+      await this.movementRepo.create(movement, tx);
 
-    await this.repo.addMovement(movement);
-
-    return inventory;
+      return inventory;
+    });
   }
 }
