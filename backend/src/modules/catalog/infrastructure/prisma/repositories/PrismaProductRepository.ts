@@ -50,7 +50,7 @@ export class PrismaProductRepository implements ProductRepository {
   async findByCode(code: string): Promise<Product | null> {
     const product = await prisma.product.findUnique({
       where: {
-        code,
+        code: code,
       },
     });
 

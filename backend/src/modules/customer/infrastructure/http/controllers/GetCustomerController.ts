@@ -1,15 +1,14 @@
 // src/modules/customer/infrastructure/http/controllers/GetCustomerController.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { CustomerRepository } from "../../../domain/repositories/CustomerRepository";
-import { GetCustomer } from "../../../application/useCases/GetCustomer";
 import { z } from "zod";
+import { makeGetCustomerUseCase } from "../factories/GetCustomerFactory";
 
 const paramsSchema = z.object({
   id: z.string().uuid().or(z.string()), // ajuste se quiser validar UUID
 });
 
-export function makeGetCustomerController(repository: CustomerRepository) {
+export function makeGetCustomerController() {
   return async function GetCustomerController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -17,7 +16,7 @@ export function makeGetCustomerController(repository: CustomerRepository) {
     try {
       const { id } = paramsSchema.parse(request.params);
 
-      const useCase = new GetCustomer(repository);
+      const useCase = makeGetCustomerUseCase();
       const customer = await useCase.execute(id);
 
       return reply.send(customer);

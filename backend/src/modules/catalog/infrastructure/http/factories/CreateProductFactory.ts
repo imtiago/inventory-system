@@ -5,12 +5,14 @@ import { PrismaProductVariantRepository } from "@catalog/infrastructure/prisma/r
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { CreateProductUseCase } from "@catalog/application/useCases/CreateProductUseCase";
 import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositories/PrismaBrandRepository";
+import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";
 export function makeCreateProductUseCase() {
   const brandRepo = new PrismaBrandRepository();
   const repository = new PrismaProductRepository();
   const categoryRepo = new PrismaCategoryRepository();
   const productVariantRepo = new PrismaProductVariantRepository();
   const transactionManager = new PrismaTransactionManager();
+  const codeGenerator = makeSequentialNumberGenerator();
 
   // const inventoryService = InventoryService.createDefault();
 
@@ -19,6 +21,7 @@ export function makeCreateProductUseCase() {
     categoryRepo,
     repository,
     productVariantRepo,
+    codeGenerator,
     transactionManager,
   );
 }

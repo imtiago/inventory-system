@@ -1,9 +1,7 @@
-import { prisma } from "../../../../shared/prisma";
-
-import { Customer } from "../../domain/entities/Customer";
-import { CustomerRepository } from "../../domain/repositories/CustomerRepository";
-
+import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 import { CustomerMapper } from "../mappers/CustomerMapper";
+import { Customer } from "@customer/domain/entities/Customer";
+import { prisma } from "@shared/prisma";
 
 export class PrismaCustomerRepository implements CustomerRepository {
   async create(customer: Customer): Promise<Customer> {

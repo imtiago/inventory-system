@@ -6,6 +6,8 @@ import { TransactionManager } from "@shared/domain/TransactionManager";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
+import { NumberGenerator } from "@shared/application/services/NumberGenerator";
+import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 
 interface CreateProductDTO {
   name: string;
@@ -20,12 +22,9 @@ export class CreateProductUseCase {
     private categoryRepo: CategoryRepository,
     private productRepo: ProductRepository,
     private variantRepo: ProductVariantRepository,
+    private numberGenerator: NumberGenerator,
     private transaction: TransactionManager,
   ) {}
-  private async generateCode(): Promise<string> {
-    const count = await this.variantRepo.count();
-    return `P${String(count + 1).padStart(4, "0")}`;
-  }
   async execute(data: CreateProductDTO): Promise<Product> {
     return this.transaction.execute(async () => {
       const brandExists = await this.getBrandById.findById(data.brandId);
@@ -34,7 +33,13 @@ export class CreateProductUseCase {
       const categoryExists = await this.categoryRepo.findById(data.categoryId);
       if (!categoryExists) throw new Error("Category não encontrada");
 
+      const productCode = await this.numberGenerator.generate(
+        NumberRangeName.PRODUCT,
+        "P",
+      );
+
       const product = new Product({
+        code: productCode,
         name: data.name,
         description: data.description ?? null, // garante string | null
         brandId: data.brandId,
@@ -42,8 +47,13 @@ export class CreateProductUseCase {
       });
       const createdProduct = await this.productRepo.create(product);
       // 2️⃣ Criar Variant padrão
+      const variantCode = await this.numberGenerator.generate(
+        NumberRangeName.PRODUCT_VARIANT,
+        "V",
+      );
+
       const variant = new ProductVariant({
-        code: await this.generateCode(),
+        code: variantCode,
         productId: createdProduct.id,
       });
 

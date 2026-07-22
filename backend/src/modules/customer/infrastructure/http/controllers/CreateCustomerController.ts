@@ -1,11 +1,11 @@
 // src/modules/customer/infrastructure/http/controllers/CreateCustomerController.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { CustomerRepository } from "../../../domain/repositories/CustomerRepository";
-import { CreateCustomer } from "../../../application/useCases/CreateCustomer";
 import { createCustomerSchema } from "../../../interfaces/http/schemas/createCustomerSchema";
+import { makeCreateCustomerUseCase } from "../factories/CreateCustomerFactory";
+import { CustomerHttpPresenter } from "@customer/interfaces/http/presenters/CustomerHttpPresenter";
 
-export function makeCreateCustomerController(repository: CustomerRepository) {
+export function makeCreateCustomerController() {
   return async function CreateCustomerController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -13,10 +13,10 @@ export function makeCreateCustomerController(repository: CustomerRepository) {
     try {
       const data = createCustomerSchema.parse(request.body);
 
-      const useCase = new CreateCustomer(repository);
+      const useCase = makeCreateCustomerUseCase();
       const customer = await useCase.execute(data);
 
-      return reply.status(201).send(customer);
+      return reply.status(201).send(CustomerHttpPresenter.toHTTP(customer));
     } catch (err: any) {
       return reply.status(400).send({ message: err.message });
     }

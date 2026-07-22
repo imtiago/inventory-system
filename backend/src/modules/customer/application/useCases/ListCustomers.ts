@@ -1,11 +1,12 @@
-// /src/modules/customer/application/useCases/ListCustomers.ts
-import { CustomerRepository } from "../../domain/repositories/CustomerRepository";
-import { Customer } from "../../domain/entities/Customer";
+import { CustomerReadRepository } from "../contracts/CustomerReadRepository";
+import { CustomerDetailsDTO } from "../dto/CustomerDetailsDTO";
 
 export class ListCustomers {
-  constructor(private customerRepo: CustomerRepository) {}
+  constructor(private customerRepo: CustomerReadRepository) {}
 
-  async execute(page: number, limit: number): Promise<Customer[]> {
-    return this.customerRepo.list(page, limit);
+  // async execute(page: number, limit: number): Promise<CustomerDetailsDTO[]> {
+  async execute(): Promise<CustomerDetailsDTO[]> {
+    // return this.customerRepo.list(page, limit);
+    return this.customerRepo.list();
   }
 }

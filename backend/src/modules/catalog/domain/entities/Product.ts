@@ -4,6 +4,7 @@ import { v4 as uuid } from "uuid";
 export class Product {
   private _id: string;
   private _name: string;
+  private _code: string;
   private _description: string | null;
   private _brandId: string;
   private _categoryId: string;
@@ -12,6 +13,7 @@ export class Product {
   constructor(props: {
     id?: string;
     name: string;
+    code: string;
     description?: string | null; // <- aceitar null
     brandId: string;
     categoryId: string;
@@ -19,6 +21,7 @@ export class Product {
   }) {
     this._id = props.id || uuid();
     this._name = props.name;
+    this._code = props.code;
     this._description = props.description ?? null; // garante null
     this._brandId = props.brandId;
     this._categoryId = props.categoryId;
@@ -31,6 +34,10 @@ export class Product {
 
   get name() {
     return this._name;
+  }
+
+  get code() {
+    return this._code;
   }
 
   get description() {

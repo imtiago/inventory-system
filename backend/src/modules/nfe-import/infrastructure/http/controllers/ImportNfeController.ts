@@ -5,6 +5,7 @@ import {
 } from "../../../application/useCases/ImportNfeUseCase";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 import { NfeImportRepository } from "../../../infrastructure/repositories/NfeImportRepository";
+import { PrismaProductRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductRepository";
 
 interface File {
   fieldname: string;
@@ -16,13 +17,15 @@ interface File {
 }
 
 export function makeImportNfeController(
-  productRepository: ProductRepository,
+  // productRepository: ProductRepository,
   nfeImportRepository: NfeImportRepository,
 ) {
   return async function ImportNfeController(
     req: FastifyRequest,
     reply: FastifyReply,
   ) {
+    const productRepository = new PrismaProductRepository();
+
     try {
       const file = await (req as any).file(); // ✅ correto
 

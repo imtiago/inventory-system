@@ -1,11 +1,11 @@
 // /src/modules/customer/application/useCases/GetCustomer.ts
-import { CustomerRepository } from "../../domain/repositories/CustomerRepository";
-import { Customer } from "../../domain/entities/Customer";
+import { CustomerReadRepository } from "../contracts/CustomerReadRepository";
+import { CustomerDetailsDTO } from "../dto/CustomerDetailsDTO";
 
 export class GetCustomer {
-  constructor(private customerRepo: CustomerRepository) {}
+  constructor(private customerRepo: CustomerReadRepository) {}
 
-  async execute(id: string): Promise<Customer | null> {
-    return this.customerRepo.findById(id);
+  async execute(id: string): Promise<CustomerDetailsDTO | null> {
+    return this.customerRepo.getById(id);
   }
 }

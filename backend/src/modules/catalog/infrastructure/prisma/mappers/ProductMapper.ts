@@ -6,6 +6,8 @@ export class ProductMapper {
     return new Product({
       id: prisma.id,
       name: prisma.name,
+      code: prisma.code,
+
       description: prisma.description,
       brandId: prisma.brandId,
       categoryId: prisma.categoryId,
@@ -19,6 +21,7 @@ export class ProductMapper {
     return {
       id: product.id,
       name: product.name,
+      code: product.code,
       description: product.description,
       brandId: product.brandId,
       categoryId: product.categoryId,
@@ -31,6 +34,8 @@ export class ProductMapper {
   ): Prisma.ProductUncheckedUpdateInput {
     return {
       name: product.name,
+      code: product.code,
+
       description: product.description,
       brandId: product.brandId,
       categoryId: product.categoryId,

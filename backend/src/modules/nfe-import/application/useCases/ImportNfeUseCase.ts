@@ -3,6 +3,7 @@ import { ParseXmlService } from "./ParseXmlService";
 import { ParsePdfService } from "./ParsePdfService";
 import { NfeImportRepository } from "../../infrastructure/repositories/NfeImportRepository";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
+import { Product } from "@catalog/domain/entities/Product";
 
 export enum ImportMode {
   INSERT_ONLY = "INSERT_ONLY", // apenas novos produtos
@@ -30,7 +31,6 @@ export class ImportNfeUseCase {
 
     for (const item of items) {
       const existing = await this.productRepository.findByCode(item.code);
-
       if (existing) {
         // if (mode === ImportMode.UPDATE_ONLY || mode === ImportMode.UPSERT) {
         //   // Atualiza estoque
@@ -39,13 +39,13 @@ export class ImportNfeUseCase {
       } else {
         if (mode === ImportMode.INSERT_ONLY || mode === ImportMode.UPSERT) {
           // Cria novo produto
-          await this.productRepository.create({
+          const product = new Product({
             code: item.code,
             name: item.name,
-            // stock: item.quantity,
-            unit: item.unit,
-            price: item.price,
+            categoryId: "e49eb69f-bafb-4c89-86de-3d66314043b2",
+            brandId: "eef7d276-7967-4503-89f5-90fe7cc686b0",
           });
+          await this.productRepository.create(product);
         }
       }
     }
