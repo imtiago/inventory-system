@@ -1,9 +1,9 @@
-import { PrismaProductReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaProductReadRepository";
+import { BrandReadRepository } from "../contracts/BrandReadRepository";
 
 export class ListBrandsUseCase {
-  constructor(private readonly productQuery: PrismaProductReadRepository) {}
+  constructor(private readonly brandQuery: BrandReadRepository) {}
 
   async execute() {
-    return this.productQuery.list();
+    return this.brandQuery.list();
   }
 }

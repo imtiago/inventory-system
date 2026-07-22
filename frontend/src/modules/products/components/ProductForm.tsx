@@ -15,8 +15,8 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
-  sku: z.string().min(1, "SKU obrigatório"),
-  barcode: z.string().min(1, "Código de barras obrigatório"), // novo campo
+  // sku: z.string().min(1, "SKU obrigatório"),
+  // barcode: z.string().min(1, "Código de barras obrigatório"), // novo campo
   brandId: z.string().optional(),
   categoryId: z.string().optional(),
 });
@@ -65,11 +65,11 @@ export function ProductForm({
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-md">
       {/* Scanner */}
-      {useScanner && !showScanner && (
+      {/* {useScanner && !showScanner && (
         <Button onClick={() => setShowScanner(true)}>
           Ler código de barras
         </Button>
-      )}
+      )} */}
       {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} />}
       {/* Nome */}
       <div>
@@ -81,13 +81,13 @@ export function ProductForm({
       </div>
 
       {/* SKU */}
-      <div>
+      {/* <div>
         <label>SKU</label>
         <Input {...form.register("sku")} placeholder="Ex: KAI-100" />
         {form.formState.errors.sku && (
           <p className="text-red-500">{form.formState.errors.sku.message}</p>
         )}
-      </div>
+      </div> */}
 
       {/* Marca */}
       <div>

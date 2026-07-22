@@ -1,7 +1,7 @@
 export interface ProductListDTO {
   id: string;
+
   name: string;
-  description: string | null;
 
   brand: {
     id: string;
@@ -13,5 +13,5 @@ export interface ProductListDTO {
     name: string;
   };
 
-  createdAt: Date;
+  variantsCount: number;
 }

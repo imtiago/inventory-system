@@ -24,10 +24,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products }) => {
     <table className="w-full border">
       <thead>
         <tr>
-          <th>Nome</th>
+          <th>Produto</th>
           <th>Marca</th>
           <th>Categoria</th>
-          <th>SKU / Variantes</th>
+          <th>Variantes</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -37,11 +37,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products }) => {
             <td>{product.name}</td>
             <td>{product.brand?.name || "-"}</td>
             <td>{product.category?.name || "-"}</td>
-            <td>
-              {product.variants.length > 0
-                ? `${product.variants[0].sku} (${product.variants.length})`
-                : "-"}
-            </td>
+            <td>{product.variantsCount}</td>
             <td>
               <button
                 onClick={() => navigate(`/products/${product.id}/edit`)}

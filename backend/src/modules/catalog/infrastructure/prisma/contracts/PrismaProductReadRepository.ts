@@ -10,6 +10,11 @@ export class PrismaProductReadRepository implements ProductReadRepository {
       include: {
         brand: true,
         category: true,
+        _count: {
+          select: {
+            variants: true,
+          },
+        },
       },
 
       orderBy: {
@@ -24,8 +29,6 @@ export class PrismaProductReadRepository implements ProductReadRepository {
 
       description: product.description,
 
-      createdAt: product.createdAt,
-
       brand: {
         id: product.brand.id,
         name: product.brand.name,
@@ -35,6 +38,8 @@ export class PrismaProductReadRepository implements ProductReadRepository {
         id: product.category.id,
         name: product.category.name,
       },
+
+      variantsCount: product._count.variants,
     }));
   }
 

@@ -6,9 +6,10 @@ export interface Product {
   id: string;
   name: string;
   price: number;
-  stock: number; // adicionar se o backend retorna quantidade
+  variantsCount: number; // adicionar se o backend retorna quantidade
   brandId: string;
   categoryId: string;
+  totalStock: number;
   barcode?: string; // novo campo
   brand?: Brand; // opcional, preenchido pela API
   category?: Category; // opcional, preenchido pela API

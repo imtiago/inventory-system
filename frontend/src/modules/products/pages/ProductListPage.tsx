@@ -19,6 +19,7 @@ export const ProductListPage = () => {
         onChange={(e) => setSearch(e.target.value)}
         className="mb-4 p-2 border rounded"
       />
+      <div>TEste</div>
       <ProductTable products={products} />
     </div>
   );
