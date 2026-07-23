@@ -3,37 +3,46 @@ import { InventoryRepository } from "../../domain/repositories/InventoryReposito
 import { Inventory } from "../../domain/entities/Inventory";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { Prisma } from "@prisma/client";
 
-export class RemoveInventory {
+interface RemoveInventoryRequest {
+  productVariantId: string;
+  quantity: number;
+  reason?: string;
+}
+export class RemoveInventory extends TransactionalUseCase<
+  RemoveInventoryRequest,
+  Inventory
+> {
   constructor(
     private inventoryRepository: InventoryRepository,
     private movementRepository: StockMovementRepository,
-    private transaction: TransactionManager,
-  ) {}
+    transactionManager: TransactionManager,
+  ) {
+    super(transactionManager);
+  }
 
-  async execute(
-    productVariantId: string,
-    quantity: number,
-    reason?: string,
+  async handle(
+    request: RemoveInventoryRequest,
+    tx: Prisma.TransactionClient,
   ): Promise<Inventory> {
-    return this.transaction.execute(async (tx) => {
-      const inventory = await this.inventoryRepository.findByVariant(
-        productVariantId,
-        tx,
-      );
-      if (!inventory) {
-        throw new Error("Inventory not found");
-      }
+    const inventory = await this.inventoryRepository.findByVariant(
+      request.productVariantId,
+      tx,
+    );
+    if (!inventory) {
+      throw new Error("Inventory not found");
+    }
 
-      const movement = inventory.removeStock(quantity, reason);
+    const movement = inventory.removeStock(request.quantity, request.reason);
 
-      // Atualiza o estoque
-      const updated = await this.inventoryRepository.save(inventory, tx);
+    // Atualiza o estoque
+    const updated = await this.inventoryRepository.save(inventory, tx);
 
-      // Cria movimento de saída
-      await this.movementRepository.create(movement, tx);
+    // Cria movimento de saída
+    await this.movementRepository.create(movement, tx);
 
-      return updated;
-    });
+    return updated;
   }
 }

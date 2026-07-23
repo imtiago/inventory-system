@@ -3,6 +3,9 @@ import { ProductVariant } from "../../domain/entities/ProductVariant";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
+import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { Prisma } from "@prisma/client";
 
 interface Input {
   productId: string;
@@ -11,21 +14,32 @@ interface Input {
   barcode?: string;
 }
 
-export class CreateVariantUseCase {
+export class CreateVariantUseCase extends TransactionalUseCase<
+  Input,
+  ProductVariant
+> {
   constructor(
     private productRepository: ProductRepository,
     private variantRepository: ProductVariantRepository,
     private numberGenerator: NumberGenerator,
-  ) {}
+    transactionManager: TransactionManager,
+  ) {
+    super(transactionManager);
+  }
 
-  async execute({ productId, name, barcode }: Input): Promise<ProductVariant> {
+  async handle(
+    request: Input,
+    tx: Prisma.TransactionClient,
+  ): Promise<ProductVariant> {
     // Verifica se o produto existe
-    const product = await this.productRepository.findById(productId);
+    const product = await this.productRepository.findById(request.productId);
     if (!product) {
       throw new Error("Product not found");
     }
-    if (barcode) {
-      const barcodeExists = await this.variantRepository.findByBarcode(barcode);
+    if (request.barcode) {
+      const barcodeExists = await this.variantRepository.findByBarcode(
+        request.barcode,
+      );
 
       if (barcodeExists) {
         throw new Error("Barcode already exists");
@@ -39,9 +53,9 @@ export class CreateVariantUseCase {
 
     // Cria a variante
     const variant = new ProductVariant({
-      productId,
-      name,
-      barcode,
+      productId: request.productId,
+      name: request.name,
+      barcode: request.barcode,
       code,
     });
 

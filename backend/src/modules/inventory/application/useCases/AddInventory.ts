@@ -3,43 +3,51 @@ import { Inventory } from "../../domain/entities/Inventory";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { CatalogService } from "@catalog/application/services/CatalogService";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { Prisma } from "@prisma/client";
 
 interface AddInventoryRequest {
   productVariantId: string;
   quantity: number;
 }
 
-export class AddInventory {
+export class AddInventory extends TransactionalUseCase<
+  AddInventoryRequest,
+  Inventory
+> {
   constructor(
     private inventoryRepo: InventoryRepository,
     private movementRepo: StockMovementRepository,
     private catalogoService: CatalogService,
-    private transaction: TransactionManager,
-  ) {}
+    transactionManager: TransactionManager,
+  ) {
+    super(transactionManager);
+  }
 
-  async execute(data: AddInventoryRequest): Promise<Inventory> {
-    return this.transaction.execute(async (tx) => {
-      let inventory = await this.inventoryRepo.findByVariant(
-        data.productVariantId,
-        tx,
+  async handle(
+    request: AddInventoryRequest,
+    tx: Prisma.TransactionClient,
+  ): Promise<Inventory> {
+    let inventory = await this.inventoryRepo.findByVariant(
+      request.productVariantId,
+      tx,
+    );
+
+    if (!inventory) {
+      const variant = await this.catalogoService.getProductVariant(
+        request.productVariantId,
       );
+      if (!variant) return new Error("varainte não encontrada");
+      inventory = new Inventory({
+        productVariantId: request.productVariantId,
+      });
+    }
 
-      if (!inventory) {
-        const variant = await this.catalogoService.getProductVariant(
-          data.productVariantId,
-        );
-        if (!variant) return new Error("varainte não encontrada");
-        inventory = new Inventory({
-          productVariantId: data.productVariantId,
-        });
-      }
+    const movement = inventory.addStock(request.quantity);
 
-      const movement = inventory.addStock(data.quantity);
+    await this.inventoryRepo.save(inventory, tx);
+    await this.movementRepo.create(movement, tx);
 
-      await this.inventoryRepo.save(inventory, tx);
-      await this.movementRepo.create(movement, tx);
-
-      return inventory;
-    });
+    return inventory;
   }
 }

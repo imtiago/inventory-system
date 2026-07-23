@@ -1,13 +1,30 @@
 // src/modules/catalog/application/useCases/CreateBrand.ts
 import { BrandRepository } from "../../domain/repositories/BrandRepository";
 import { Brand } from "../../domain/entities/Brand";
+import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { Prisma } from "@prisma/client";
 
-export class CreateBrandUseCase {
-  constructor(private repository: BrandRepository) {}
+interface CreateBrandRequest {
+  name: string;
+}
+export class CreateBrandUseCase extends TransactionalUseCase<
+  CreateBrandRequest,
+  Brand
+> {
+  constructor(
+    private repository: BrandRepository,
+    transactionManager: TransactionManager,
+  ) {
+    super(transactionManager);
+  }
 
-  async execute(data: { name: string }): Promise<Brand> {
+  async handle(
+    request: CreateBrandRequest,
+    tx: Prisma.TransactionClient,
+  ): Promise<Brand> {
     const brand = new Brand({
-      name: data.name,
+      name: request.name,
     });
 
     return this.repository.create(brand);

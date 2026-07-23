@@ -1,17 +1,28 @@
 import { prisma } from "../../../../shared/prisma";
 import { SaleRepository } from "../../domain/repositories/SaleRepository";
 import { InventoryRepository } from "../../../inventory/domain/repositories/InventoryRepository";
-
-export class CancelSale {
+import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { Prisma } from "@prisma/client";
+interface CancelSaleRequest {
+  saleId: string;
+}
+export class CancelSale extends TransactionalUseCase<CancelSaleRequest, void> {
   constructor(
     private saleRepo: SaleRepository,
     private inventoryRepo: InventoryRepository,
-  ) {}
+    transactionManager: TransactionManager,
+  ) {
+    super(transactionManager);
+  }
 
-  async execute(saleId: string): Promise<void> {
+  async handle(
+    request: CancelSaleRequest,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
     await prisma.$transaction(async (tx) => {
       // 1. Buscar venda
-      const sale = await this.saleRepo.findById(saleId, tx);
+      const sale = await this.saleRepo.findById(request.saleId, tx);
 
       if (!sale) throw new Error("Venda não encontrada");
 
