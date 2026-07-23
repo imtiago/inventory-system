@@ -2,6 +2,7 @@ import { InventoryRepository } from "../../domain/repositories/InventoryReposito
 import { Inventory } from "../../domain/entities/Inventory";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
+import { CatalogService } from "@catalog/application/services/CatalogService";
 
 interface AddInventoryRequest {
   productVariantId: string;
@@ -12,6 +13,7 @@ export class AddInventory {
   constructor(
     private inventoryRepo: InventoryRepository,
     private movementRepo: StockMovementRepository,
+    private catalogoService: CatalogService,
     private transaction: TransactionManager,
   ) {}
 
@@ -23,6 +25,10 @@ export class AddInventory {
       );
 
       if (!inventory) {
+        const variant = await this.catalogoService.getProductVariant(
+          data.productVariantId,
+        );
+        if (!variant) return new Error("varainte não encontrada");
         inventory = new Inventory({
           productVariantId: data.productVariantId,
         });
