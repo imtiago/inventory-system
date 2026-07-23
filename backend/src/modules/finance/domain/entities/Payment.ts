@@ -6,6 +6,8 @@ export class Payment {
 
   private _parcelId: string;
 
+  private _reference: string | null;
+
   private _amount: number;
 
   private _method: PaymentMethod;
@@ -17,6 +19,7 @@ export class Payment {
     parcelId: string;
     amount: number;
     method: PaymentMethod;
+    reference: string | null;
     paymentDate?: Date;
   }) {
     this._id = props.id ?? uuid();
@@ -26,6 +29,8 @@ export class Payment {
     this._amount = props.amount;
 
     this._method = props.method;
+
+    this._reference = props.reference;
 
     this._paymentDate = props.paymentDate ?? new Date();
     if (props.amount <= 0) {
@@ -51,5 +56,9 @@ export class Payment {
 
   get paymentDate() {
     return this._paymentDate;
+  }
+
+  get reference() {
+    return this._reference;
   }
 }

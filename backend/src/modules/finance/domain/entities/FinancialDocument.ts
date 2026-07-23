@@ -1,16 +1,20 @@
 import { v4 as uuid } from "uuid";
 import { FinancialType } from "../enums/FinancialType";
 import { FinancialParcel } from "./FinancialParcel";
+import { FinancialStatus } from "../enums/FinancialStatus";
+import { FinancialPartyType } from "../enums/FinancialPartyType";
+import { FinancialOriginType } from "../enums/FinancialOriginType";
 
 export class FinancialDocument {
   private _id: string;
   private _type: FinancialType;
+  private _originId: string;
+  private _originType: FinancialOriginType;
 
-  private _referenceId: string;
+  private _partyId: string;
+  private _partyType: FinancialPartyType;
 
-  private _customerId: string | null;
-  private _supplierId: string | null;
-
+  private _status: FinancialStatus;
   private _createdAt: Date;
 
   private _parcels: FinancialParcel[];
@@ -18,10 +22,13 @@ export class FinancialDocument {
   constructor(props: {
     id?: string;
     type: FinancialType;
-    referenceId: string;
+    originId: string;
+    originType: FinancialOriginType;
 
-    customerId?: string | null;
-    supplierId?: string | null;
+    status?: FinancialStatus;
+
+    partyId: string;
+    partyType: FinancialPartyType;
 
     createdAt?: Date;
 
@@ -31,15 +38,18 @@ export class FinancialDocument {
 
     this._type = props.type;
 
-    this._referenceId = props.referenceId;
+    this._originId = props.originId;
+    this._originType = props.originType;
 
-    this._customerId = props.customerId ?? null;
+    this._partyId = props.partyId;
 
-    this._supplierId = props.supplierId ?? null;
+    this._partyType = props.partyType;
 
     this._createdAt = props.createdAt ?? new Date();
 
     this._parcels = props.parcels ?? [];
+
+    this._status = props.status ?? FinancialStatus.OPEN;
   }
 
   get id(): string {
@@ -50,16 +60,12 @@ export class FinancialDocument {
     return this._type;
   }
 
-  get referenceId(): string {
-    return this._referenceId;
+  get partyId(): string {
+    return this._partyId;
   }
 
-  get customerId(): string | null {
-    return this._customerId;
-  }
-
-  get supplierId(): string | null {
-    return this._supplierId;
+  get partyType(): FinancialPartyType {
+    return this._partyType;
   }
 
   get createdAt(): Date {
@@ -72,6 +78,16 @@ export class FinancialDocument {
 
   get totalAmount(): number {
     return this._parcels.reduce((total, parcel) => total + parcel.amount, 0);
+  }
+
+  get status(): FinancialStatus {
+    return this._status;
+  }
+  get originId(): string {
+    return this._originId;
+  }
+  get originType(): FinancialOriginType {
+    return this._originType;
   }
 
   addParcel(parcel: FinancialParcel): void {

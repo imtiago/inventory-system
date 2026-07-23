@@ -33,18 +33,12 @@ export class FinancialDocumentMapper {
   ): Prisma.FinancialDocumentCreateInput {
     return {
       id: document.id,
-
       type: document.type,
-
-      referenceId: document.referenceId,
-
-      customerId: document.customerId,
-
-      supplierId: document.supplierId,
-
-      parcels: {
-        create: document.parcels.map(FinancialParcelMapper.toCreatePersistence),
-      },
+      createdAt: document.createdAt,
+      originId: document.originId,
+      originType: document.originType,
+      partyId: document.partyId,
+      partyType: document.partyType,
     };
   }
 

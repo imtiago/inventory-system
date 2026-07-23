@@ -12,11 +12,22 @@ enum FinancialType {
   RECEIVABLE
 }
 
-enum ParcelStatus {
+enum FinancialOriginType {
+  SALE
+  PURCHASE
+  MANUAL
+  INVOICE
+}
+
+enum FinancialPartyType {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum FinancialStatus {
   OPEN
   PARTIALLY_PAID
   PAID
-  OVERDUE
   CANCELED
 }
 
@@ -27,6 +38,14 @@ enum PaymentMethod {
   CREDIT_CARD
   DEBIT_CARD
   BOLETO
+}
+
+enum ParcelStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELED
 }
 
 enum UserRole {
@@ -181,10 +200,13 @@ model FinancialDocument {
 
   type FinancialType
 
-  referenceId String
+  originId   String
+  originType FinancialOriginType
 
-  customerId String?
-  supplierId String?
+  partyId   String
+  partyType FinancialPartyType
+
+  status FinancialStatus @default(OPEN)
 
   createdAt DateTime @default(now())
 
@@ -200,11 +222,10 @@ model FinancialParcel {
 
   dueDate DateTime
 
-  paidAt DateTime?
-
   createdAt DateTime @default(now())
 
   document FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Cascade)
+
   payments Payment[]
 }
 
@@ -216,6 +237,8 @@ model Payment {
   amount Decimal
 
   method PaymentMethod
+
+  reference String?
 
   paymentDate DateTime @default(now())
 

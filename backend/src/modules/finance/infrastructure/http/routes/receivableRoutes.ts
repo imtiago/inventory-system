@@ -12,7 +12,7 @@ export async function receivableRoutes(app: FastifyInstance) {
   app.post(
     "/receivables",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeCreateReceivableController(repo),
+    makeCreateReceivableController(),
   );
 
   app.get(
