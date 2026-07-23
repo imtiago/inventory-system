@@ -1,11 +1,6 @@
 // backend/src/modules/sales/application/useCases/CreateSale.ts
 
 import { SaleRepository } from "../../domain/repositories/SaleRepository";
-import { Sale } from "../../domain/entities/Sale";
-
-import { InventoryRepository } from "../../../inventory/domain/repositories/InventoryRepository";
-
-import { ReceivableRepository } from "../../../finance/domain/repositories/ReceivableRepository";
 
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { CustomerService } from "@customer/application/services/CustomerService";
@@ -13,6 +8,7 @@ import { CatalogService } from "@catalog/application/services/CatalogService";
 import { InventoryService } from "@inventory/application/services/InventoryService";
 import { FinancialService } from "@finance/application/services/FinacialService";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
+import { Sale } from "@sales/domain/entities/Sale";
 
 interface CreateSaleRequest {
   customerId: string;
@@ -42,6 +38,9 @@ export class CreateSale {
   async execute(data: CreateSaleRequest): Promise<Sale> {
     return this.transaction.execute(async (tx) => {
       const customer = await this.customerService.getCustomer(data.customerId);
+      if (!customer) {
+        throw new Error(`Customer not found ${data.customerId}`);
+      }
 
       const saleItems: SaleItem[] = [];
 
@@ -62,73 +61,52 @@ export class CreateSale {
         );
       }
 
-      const sale = new Sale({
-        customerId: customer.id,
-        sellerId: request.sellerId,
-        notes: request.notes,
-        discount: request.discount,
-        items: saleItems,
-      });
-
-      const variant = await this.catalogService.getProductVariant(
-        item.productVariantId,
-      );
-      /*
-       * 1 - Atualizar estoque
-       */
-      for (const item of data.items) {
-        const inventory = await this.inventoryRepo.findByVariant(
-          item.productVariantId,
-        );
-
-        if (!inventory) {
-          throw new Error(
-            `Inventory not found for variant ${item.productVariantId}`,
-          );
-        }
-
-        const movement = inventory.removeStock(item.quantity, "Sale");
-
-        await this.inventoryRepo.save(inventory);
-
-        await this.inventoryRepo.addMovement(movement);
-      }
-
       /*
        * 2 - Criar venda
        */
 
       const sale = new Sale({
-        customerId: data.customerId,
-
-        items: data.items,
+        customerId: customer.id,
+        items: saleItems,
+        // items
+        // sellerId: request.sellerId,
+        // notes: request.notes,
+        // discount: request.discount,
+        // items: saleItems,
       });
 
-      const createdSale = await this.saleRepo.save(sale, tx);
+      // const variant = await this.catalogService.getProductVariant(
+      //   item.productVariantId,
+      // );
+      /*
+       * 1 - Atualizar estoque
+       */
+      for (const item of data.items) {
+        // const inventory =
+        await this.inventoryService.consumeStock(
+          item.productVariantId,
+          item.quantity,
+          "SALE",
+        );
+
+        // if (!inventory) {
+        //   throw new Error(
+        //     `Inventory not found for variant ${item.productVariantId}`,
+        //   );
+        // }
+
+        // const movement = inventory.removeStock(item.quantity, "Sale");
+
+        // await this.inventoryRepo.save(inventory);
+
+        // await this.inventoryRepo.addMovement(movement);
+      }
+
+      const createdSale = await this.saleRepository.create(sale, tx);
 
       /*
        * 3 - Criar contas a receber
        */
-
-      if (data.installments?.length) {
-        const receivable = new Receivable({
-          saleId: createdSale.id,
-
-          totalAmount: createdSale.totalAmount,
-        });
-
-        for (const installment of data.installments) {
-          receivable.addParcel({
-            amount: installment.amount,
-
-            dueDate: installment.dueDate,
-          });
-        }
-
-        await this.receivableRepo.create(receivable, tx);
-      }
-
-      return createdSale;
 
       //      const sale = Sale.create({
       //   customerId: customer.id,
@@ -148,12 +126,13 @@ export class CreateSale {
       //   );
       // }
 
-      // await this.financialService.createReceivable({
-      //   saleId: sale.id,
-      //   customerId: sale.customerId,
-      //   amount: sale.total,
-      //   installments: request.installments,
-      // });
+      await this.financialService.createReceivable({
+        saleId: sale.id,
+        customerId: sale.customerId,
+        amount: sale.total,
+        installments: request.installments,
+      });
+      return createdSale;
 
       // return {
       //   saleId: sale.id,

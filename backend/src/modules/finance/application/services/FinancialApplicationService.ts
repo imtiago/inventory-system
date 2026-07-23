@@ -1,3 +1,4 @@
+import { CreateReceivable } from "../useCases/CreateReceivable";
 import { FinancialService } from "./FinacialService";
 
 export class FinancialApplicationService implements FinancialService {

@@ -1,7 +1,8 @@
-export function makeFinancialService() {
-  const repository = new PrismaReceivableRepository();
+import { FinancialApplicationService } from "@finance/application/services/FinancialApplicationService";
+import { makeCreateReceivableUseCase } from "./CreateReceivableFactory";
 
-  const createReceivable = new CreateReceivable(repository);
+export function makeFinancialService() {
+  const createReceivable = makeCreateReceivableUseCase();
 
   return new FinancialApplicationService(createReceivable);
 }

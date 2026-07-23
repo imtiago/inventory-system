@@ -9,11 +9,11 @@ import { PrismaReceivableRepository } from "modules/finance/infrastructure/repos
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
 export async function saleRoutes(app: FastifyInstance) {
-  // app.post(
-  //   "/",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
-  //   makeCreateSaleController(),
-  // );
+  app.post(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeCreateSaleController(),
+  );
   // app.get(
   //   "/:id",
   //   { preHandler: [authorize(["admin", "vendedor"])] },
