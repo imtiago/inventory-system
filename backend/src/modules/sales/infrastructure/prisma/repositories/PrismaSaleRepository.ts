@@ -19,10 +19,8 @@ export class PrismaSaleRepository implements SaleRepository {
         items: true,
       },
     });
-
     return SaleMapper.toDomain(created);
   }
-
   async list(page: number, limit: number): Promise<Sale[]> {
     const skip = (page - 1) * limit;
 

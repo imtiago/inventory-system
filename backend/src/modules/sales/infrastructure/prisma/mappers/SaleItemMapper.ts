@@ -8,27 +8,23 @@ export class SaleItemMapper {
   static toDomain(prisma: PrismaSaleItem): SaleItem {
     return new SaleItem({
       id: prisma.id,
-
-      productVariantId: prisma.productVariantId,
-
+      variantId: prisma.productVariantId,
       quantity: prisma.quantity,
-
-      price: prisma.price,
+      unitPrice: prisma.unitPrice,
+      variantCode: "",
     });
   }
 
   // Domínio -> Banco (Create)
   static toCreatePersistence(
     item: SaleItem,
-  ): Prisma.SaleItemCreateWithoutSaleInput {
+  ): Prisma.SaleItemUncheckedCreateWithoutSaleInput {
     return {
       id: item.id,
-
-      productVariantId: item.productVariantId,
-
+      productName: item.variantName,
       quantity: item.quantity,
-
-      price: item.price,
+      unitPrice: item.unitPrice,
+      productVariantId: item.variantId,
     };
   }
 

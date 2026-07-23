@@ -1,5 +1,6 @@
 // inventory/application/services/InventoryApplicationService.ts
 
+import { Prisma } from "@prisma/client";
 import { RemoveInventory } from "../useCases/RemoveInventory";
 import { InventoryService } from "./InventoryService";
 

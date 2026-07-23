@@ -23,7 +23,8 @@ export class SaleMapper {
 
       createdAt: prisma.createdAt,
 
-      items: prisma.items?.map(SaleItemMapper.toDomain) ?? [],
+      // items: prisma.items?.map(SaleItemMapper.toDomain) ?? [],
+      items: [],
     });
   }
 

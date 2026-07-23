@@ -64,7 +64,6 @@ export class CreateSale {
       /*
        * 2 - Criar venda
        */
-
       const sale = new Sale({
         customerId: customer.id,
         items: saleItems,
@@ -101,8 +100,8 @@ export class CreateSale {
 
         // await this.inventoryRepo.addMovement(movement);
       }
-
       const createdSale = await this.saleRepository.create(sale, tx);
+      // console.log("createdSale");
 
       /*
        * 3 - Criar contas a receber
@@ -125,12 +124,11 @@ export class CreateSale {
       //     "SALE",
       //   );
       // }
-
       await this.financialService.createReceivable({
         saleId: sale.id,
         customerId: sale.customerId,
-        amount: sale.total,
-        installments: request.installments,
+        totalAmount: sale.total,
+        // installments: request.installments,
       });
       return createdSale;
 

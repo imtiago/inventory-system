@@ -17,9 +17,9 @@ export class Sale {
     status?: SaleStatus;
     createdAt?: Date;
   }) {
-    if (props.items.length === 0) {
-      throw new Error("Sale must have items");
-    }
+    // if (props.items.length === 0) {
+    //   throw new Error("Sale must have items");
+    // }
 
     this._id = props.id ?? uuid();
 
