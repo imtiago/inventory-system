@@ -14,17 +14,11 @@ export async function saleRoutes(app: FastifyInstance) {
   const receivableRepository = new PrismaReceivableRepository();
   const transaction = new PrismaTransactionManager();
 
-  app.post(
-    "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
-    makeCreateSaleController(),
-    // makeCreateSaleController(
-    //   inventoryRepo,
-    //   saleRepo,
-    //   receivableRepository,
-    //   transaction,
-    // ),
-  );
+  // app.post(
+  //   "/",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeCreateSaleController(),
+  // );
   // app.get(
   //   "/:id",
   //   { preHandler: [authorize(["admin", "vendedor"])] },

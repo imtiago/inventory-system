@@ -1,10 +1,10 @@
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
-import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
+import { ProductVariantReadRepository } from "../contracts/ProductVariantReadRepository";
 
 export class ListProductVariantsUseCase {
   constructor(
     private productRepository: ProductRepository,
-    private variantRepository: ProductVariantRepository,
+    private variantRepository: ProductVariantReadRepository,
   ) {}
 
   async execute(productId: string) {
@@ -14,6 +14,6 @@ export class ListProductVariantsUseCase {
       throw new Error("Product not found");
     }
 
-    return this.variantRepository.findByProduct(productId);
+    return this.variantRepository.getByProductId(productId);
   }
 }
