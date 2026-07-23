@@ -1,11 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { SaleStatus } from "../enums/SaleStatus";
-
-interface SaleItem {
-  productVariantId: string;
-  quantity: number;
-  price: number;
-}
+import { SaleItem } from "./SaleItem";
 
 export class Sale {
   private _id: string;
@@ -39,11 +34,8 @@ export class Sale {
     this._createdAt = props.createdAt ?? new Date();
   }
 
-  private calculateTotal(): number {
-    return this._items.reduce(
-      (total, item) => total + item.quantity * item.price,
-      0,
-    );
+  private calculateTotal() {
+    return this._items.reduce((total, item) => total + item.total, 0);
   }
 
   get id() {

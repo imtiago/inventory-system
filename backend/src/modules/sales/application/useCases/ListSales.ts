@@ -1,9 +1,11 @@
-import { SaleRepository } from "../../domain/repositories/SaleRepository";
+import { SaleReadRepository } from "../contracts/SaleReadRepository";
 
 export class ListSales {
-  constructor(private saleRepo: SaleRepository) {}
+  constructor(private saleRepo: SaleReadRepository) {}
 
-  async execute(page: number, limit: number) {
-    return this.saleRepo.list(page, limit);
+  async execute() {
+    // async execute(page: number, limit: number) {
+    //   return this.saleRepo.list(page, limit);
+    return this.saleRepo.list();
   }
 }

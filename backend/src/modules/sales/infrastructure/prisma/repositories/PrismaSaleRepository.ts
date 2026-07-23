@@ -1,13 +1,12 @@
 // src/modules/sales/infrastructure/repositories/PrismaSaleRepository.ts
 
 import { Prisma, SaleStatus } from "@prisma/client";
-import { prisma } from "../../../../shared/prisma";
-
-import { Sale } from "../../domain/entities/Sale";
-import { SaleRepository } from "../../domain/repositories/SaleRepository";
 
 import { SaleMapper } from "../mappers/SaleMapper";
 import { SaleStatusMapper } from "../mappers/SaleStatusMapper";
+import { prisma } from "@shared/prisma";
+import { Sale } from "@sales/domain/entities/Sale";
+import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 
 export class PrismaSaleRepository implements SaleRepository {
   async create(

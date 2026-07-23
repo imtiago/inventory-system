@@ -14,6 +14,7 @@ export class RemoveInventory {
   async execute(
     productVariantId: string,
     quantity: number,
+    reason?: string,
   ): Promise<Inventory> {
     return this.transaction.execute(async (tx) => {
       const inventory = await this.inventoryRepository.findByVariant(
@@ -24,7 +25,7 @@ export class RemoveInventory {
         throw new Error("Inventory not found");
       }
 
-      const movement = inventory.removeStock(quantity);
+      const movement = inventory.removeStock(quantity, reason);
 
       // Atualiza o estoque
       const updated = await this.inventoryRepository.save(inventory, tx);

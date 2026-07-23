@@ -1,7 +1,7 @@
 // src/modules/sales/infrastructure/mappers/SaleItemMapper.ts
 
-import { SaleItem } from "../../domain/entities/SaleItem";
 import { SaleItem as PrismaSaleItem, Prisma } from "@prisma/client";
+import { SaleItem } from "@sales/domain/entities/SaleItem";
 
 export class SaleItemMapper {
   // Banco -> Domínio
