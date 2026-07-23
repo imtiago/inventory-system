@@ -1,9 +1,12 @@
 // src/modules/auth/routes.ts
+import type { AppRoute } from "@/routes/types";
 import { Login } from "./pages/Login"; // named export
 
-export const authRoutes = [
+export const authRoutes: AppRoute[] = [
   {
     path: "/login",
-    element: <Login />
+    component: Login,
+    guard: "public",
+    label: "Login",
   },
 ];

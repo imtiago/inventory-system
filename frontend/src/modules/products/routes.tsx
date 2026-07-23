@@ -2,13 +2,25 @@
 import { ProductListPage } from "./pages/ProductListPage";
 import { ProductFormPage } from "./pages/ProductFormPage";
 import { ProductEditPage } from "./pages/ProductEditPage";
+import type { AppRoute } from "@/routes/types";
 
-export const productRoutes = [
-  { path: "/products", name: "Produtos", component: ProductListPage },
-  { path: "/products/new", name: "Novo Produto", component: ProductFormPage },
+export const productRoutes: AppRoute[] = [
+  {
+    path: "/products",
+    label: "Produtos",
+    component: ProductListPage,
+    guard: "auth",
+  },
+  {
+    path: "/products/new",
+    label: "Novo Produto",
+    component: ProductFormPage,
+    guard: "auth",
+  },
   {
     path: "/products/:id/edit",
-    name: "Editar Produto",
+    label: "Editar Produto",
     component: ProductEditPage,
+    guard: "auth",
   },
 ];
