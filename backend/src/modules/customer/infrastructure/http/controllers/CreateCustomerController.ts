@@ -6,6 +6,7 @@ import { makeCreateCustomerUseCase } from "../factories/CreateCustomerFactory";
 import { CustomerHttpPresenter } from "@customer/interfaces/http/presenters/CustomerHttpPresenter";
 
 export function makeCreateCustomerController() {
+  const useCase = makeCreateCustomerUseCase();
   return async function CreateCustomerController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -13,7 +14,6 @@ export function makeCreateCustomerController() {
     try {
       const data = createCustomerSchema.parse(request.body);
 
-      const useCase = makeCreateCustomerUseCase();
       const customer = await useCase.execute(data);
 
       return reply.status(201).send(CustomerHttpPresenter.toHTTP(customer));

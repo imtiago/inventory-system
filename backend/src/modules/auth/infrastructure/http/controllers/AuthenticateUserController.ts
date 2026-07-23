@@ -6,6 +6,7 @@ import { AuthenticateUser } from "../../../application/useCases/AuthenticateUser
 import { loginSchema } from "../../../interfaces/http/schemas/loginSchema";
 
 export function makeAuthenticateUserController(repository: UserRepository) {
+  const useCase = new AuthenticateUser(repository);
   return async function AuthenticateUserController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -13,7 +14,6 @@ export function makeAuthenticateUserController(repository: UserRepository) {
     try {
       const data = loginSchema.parse(request.body);
 
-      const useCase = new AuthenticateUser(repository);
       const result = await useCase.execute(data);
 
       return reply.send(result);

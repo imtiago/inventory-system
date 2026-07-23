@@ -4,6 +4,7 @@ import { updateProductSchema } from "@catalog/interfaces/http/schemas/productSch
 import { makeUpdateProductUseCase } from "../factories/UpdateProductFactory";
 
 export function makeUpdateProductController() {
+  const useCase = makeUpdateProductUseCase();
   return async function UpdateProductController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -12,7 +13,6 @@ export function makeUpdateProductController() {
       const { id } = request.params as { id: string };
       const data = updateProductSchema.parse(request.body);
 
-      const useCase = makeUpdateProductUseCase();
       const updatedProduct = await useCase.execute(id, data);
 
       return reply.status(200).send(updatedProduct);

@@ -10,7 +10,7 @@ import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/P
 export async function userRoutes(app: FastifyInstance) {
   const userRepository = new PrismaUserRepository();
 
-  app.post("/users", makeCreateUserController(userRepository));
+  app.post("/users", makeCreateUserController());
   app.post("/auth/login", makeAuthenticateUserController(userRepository));
 
   // rota protegida

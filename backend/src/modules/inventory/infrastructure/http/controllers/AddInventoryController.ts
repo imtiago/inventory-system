@@ -3,14 +3,13 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { makeAddInventory } from "../factories/AddInventoryFactory";
 
 export function makeAddInventoryController() {
+  const useCase = makeAddInventory();
   return async function AddInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
     try {
       const data = addInventorySchema.parse(request.body);
-
-      const useCase = makeAddInventory();
 
       const inventory = await useCase.execute(data);
 

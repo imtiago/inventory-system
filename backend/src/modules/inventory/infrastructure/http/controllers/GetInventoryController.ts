@@ -3,6 +3,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { makeGetInventory } from "../factories/GetInventoryFactory";
 
 export function makeGetInventoryController() {
+  const useCase = makeGetInventory();
   return async function GetInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -10,7 +11,6 @@ export function makeGetInventoryController() {
     try {
       const { variantId } = getInventorySchema.parse(request.params);
 
-      const useCase = makeGetInventory();
       const inventory = await useCase.execute(variantId);
 
       if (!inventory) {

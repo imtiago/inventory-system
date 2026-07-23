@@ -4,6 +4,7 @@ import { createVariantSchema } from "../../../interfaces/http/schemas/createVari
 import { makeCreateVariantUseCase } from "../factories/CreateVariantFactory";
 
 export function makeCreateVariantController() {
+  const useCase = makeCreateVariantUseCase();
   return async function CreateVariantController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -12,7 +13,6 @@ export function makeCreateVariantController() {
       const productId = request.params["productId"] as string;
       const data = createVariantSchema.parse(request.body);
 
-      const useCase = makeCreateVariantUseCase();
       const variant = await useCase.execute({ productId, ...data });
 
       return reply.status(201).send(variant);

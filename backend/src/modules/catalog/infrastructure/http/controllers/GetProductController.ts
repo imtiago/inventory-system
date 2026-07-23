@@ -3,12 +3,12 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { makeGetProductUseCase } from "../factories/GetProductFactory";
 
 export function makeGetProductController() {
+  const useCase = makeGetProductUseCase();
   return async function GetProductController(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
     const { id } = request.params as { id: string };
-    const useCase = makeGetProductUseCase();
     const product = await useCase.execute(id);
     return reply.send(product);
   };

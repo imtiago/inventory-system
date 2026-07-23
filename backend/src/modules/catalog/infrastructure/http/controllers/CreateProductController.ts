@@ -4,14 +4,13 @@ import { createProductSchema } from "../../../interfaces/http/schemas/createProd
 import { makeCreateProductUseCase } from "../factories/CreateProductFactory";
 
 export function makeCreateProductController() {
+  const useCase = makeCreateProductUseCase();
   return async function CreateProductController(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
     try {
       const data = createProductSchema.parse(request.body); // usa seu schema existente
-
-      const useCase = makeCreateProductUseCase();
 
       const product = await useCase.execute(data);
       return reply.status(201).send(product);

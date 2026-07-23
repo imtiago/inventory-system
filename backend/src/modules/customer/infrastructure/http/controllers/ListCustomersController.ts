@@ -11,6 +11,7 @@ const listCustomersQuerySchema = z.object({
 });
 
 export function makeListCustomersController() {
+  const useCase = makeLisCustomerUseCase();
   return async function ListCustomersController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -18,7 +19,6 @@ export function makeListCustomersController() {
     try {
       const { page, limit } = listCustomersQuerySchema.parse(request.query);
 
-      const useCase = makeLisCustomerUseCase();
       // const customers = await useCase.execute(page, limit);
       const customers = await useCase.execute();
 

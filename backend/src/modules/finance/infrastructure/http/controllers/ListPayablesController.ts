@@ -4,11 +4,11 @@ import { PayableRepository } from "modules/finance/domain/repositories/PayableRe
 import { FastifyReply, FastifyRequest } from "fastify";
 
 export function makeListPayablesController(repo: PayableRepository) {
+  const useCase = new ListPayables(repo);
   return async function ListPayablesController(
     req: FastifyRequest,
     reply: FastifyReply,
   ) {
-    const useCase = new ListPayables(repo);
     const list = await useCase.execute();
     return reply.status(200).send(list);
   };

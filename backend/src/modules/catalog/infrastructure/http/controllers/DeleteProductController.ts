@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { makeDeleteProductUseCase } from "../factories/DeleteProductFactory";
 
 export function makeDeleteProductController() {
+  const useCase = makeDeleteProductUseCase();
   return async function DeleteProductController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -9,7 +10,6 @@ export function makeDeleteProductController() {
     try {
       const { id } = request.params as { id: string };
 
-      const useCase = makeDeleteProductUseCase();
       await useCase.execute(id);
 
       return reply.status(204).send(); // 204 No Content

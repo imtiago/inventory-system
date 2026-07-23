@@ -9,6 +9,7 @@ const paramsSchema = z.object({
 });
 
 export function makeGetCustomerController() {
+  const useCase = makeGetCustomerUseCase();
   return async function GetCustomerController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -16,7 +17,6 @@ export function makeGetCustomerController() {
     try {
       const { id } = paramsSchema.parse(request.params);
 
-      const useCase = makeGetCustomerUseCase();
       const customer = await useCase.execute(id);
 
       return reply.send(customer);

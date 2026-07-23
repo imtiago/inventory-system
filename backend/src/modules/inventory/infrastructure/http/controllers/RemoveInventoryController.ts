@@ -2,6 +2,7 @@ import { removeInventorySchema } from "@inventory/interfaces/http/schemas/remove
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeRemoveInventory } from "../factories/RemoveInventoryFactory";
 export function makeRemoveInventoryController() {
+  const useCase = makeRemoveInventory();
   return async function RemoveInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -9,7 +10,6 @@ export function makeRemoveInventoryController() {
     try {
       const data = removeInventorySchema.parse(request.body);
 
-      const useCase = makeRemoveInventory();
       const inventory = await useCase.execute(
         data.productVariantId,
         data.quantity,

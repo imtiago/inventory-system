@@ -10,6 +10,7 @@ const paramsSchema = z.object({
 });
 
 export function makeGetSaleController(repository: SaleRepository) {
+  const useCase = new GetSale(repository);
   return async function GetSaleController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -17,7 +18,6 @@ export function makeGetSaleController(repository: SaleRepository) {
     try {
       const { id } = paramsSchema.parse(request.params);
 
-      const useCase = new GetSale(repository);
       const sale = await useCase.execute(id);
 
       return reply.send(sale);

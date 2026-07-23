@@ -5,13 +5,13 @@ import { createPayableSchema } from "modules/finance/interfaces/http/schemas/cre
 import { FastifyRequest, FastifyReply } from "fastify";
 
 export function makeCreatePayableController(repo: PayableRepository) {
+  const useCase = new CreatePayable(repo);
   return async function CreatePayableController(
     req: FastifyRequest,
     reply: FastifyReply,
   ) {
     try {
       const data = createPayableSchema.parse(req.body);
-      const useCase = new CreatePayable(repo);
       const payable = await useCase.execute(
         data.purchaseId,
         data.totalAmount,
