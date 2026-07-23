@@ -1,6 +1,6 @@
 //src/modules/auth/infrastructure/mappers/UserMapper.ts
 
-import { User } from "../../domain/entities/User";
+import { User } from "@auth/domain/entities/User";
 import { User as PrismaUser, Prisma } from "@prisma/client";
 
 export class UserMapper {

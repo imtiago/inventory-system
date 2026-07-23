@@ -185,12 +185,12 @@ model Customer {
 }
 
 model User {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  email     String    @unique
+  email     String   @unique
   password  String
-  role      UserRole?
-  createdAt DateTime  @default(now())
+  role      UserRole
+  createdAt DateTime @default(now())
 
   @@map("users") // opcional: nome da tabela no banco
 }

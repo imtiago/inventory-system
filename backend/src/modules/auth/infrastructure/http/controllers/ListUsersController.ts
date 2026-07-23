@@ -1,16 +1,16 @@
 // src/modules/users/infrastructure/http/controllers/ListUsersController.ts
 
 import { FastifyRequest, FastifyReply } from "fastify";
-import { UserRepository } from "../../../domain/repositories/UserRepository";
-import { ListUsers } from "../../../application/useCases/ListUsers";
 import { z } from "zod";
+import { makeListUserUseCase } from "../factories/ListUserFactory";
 
 const listUsersQuerySchema = z.object({
   page: z.coerce.number().default(1),
   limit: z.coerce.number().default(10),
 });
 
-export function makeListUsersController(repository: UserRepository) {
+export function makeListUsersController() {
+  const useCase = makeListUserUseCase();
   return async function ListUsersController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -18,8 +18,9 @@ export function makeListUsersController(repository: UserRepository) {
     try {
       const { page, limit } = listUsersQuerySchema.parse(request.query);
 
-      const useCase = new ListUsers(repository);
-      const users = await useCase.execute(page, limit);
+      // const useCase = new ListUsers(repository);
+      // const users = await useCase.execute(page, limit);
+      const users = await useCase.execute();
 
       return reply.send(users);
     } catch (err: any) {

@@ -1,9 +1,11 @@
-import { UserRepository } from "../../domain/repositories/UserRepository";
+import { UserReadRepository } from "../contracts/UserReadRepository";
 
 export class ListUsers {
-  constructor(private userRepo: UserRepository) {}
+  constructor(private userRepo: UserReadRepository) {}
 
-  async execute(page: number, limit: number) {
-    return this.userRepo.list(page, limit);
+  async execute() {
+    return this.userRepo.list();
+    // async execute(page: number, limit: number) {
+    //   return this.userRepo.list(page, limit);
   }
 }

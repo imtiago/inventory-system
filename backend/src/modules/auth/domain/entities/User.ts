@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "../enums/UserRole";
 
 // src/modules/auth/domain/entities/User.ts
 export class User {

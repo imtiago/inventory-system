@@ -1,7 +1,7 @@
-import { prisma } from "../../../../shared/prisma";
-import { UserRepository } from "../../domain/repositories/UserRepository";
-import { User } from "../../domain/entities/User";
+import { User } from "@auth/domain/entities/User";
 import { UserMapper } from "../mappers/UserMapper";
+import { prisma } from "@shared/prisma";
+import { UserRepository } from "@auth/domain/repositories/UserRepository";
 
 export class PrismaUserRepository implements UserRepository {
   async create(user: User): Promise<User> {
