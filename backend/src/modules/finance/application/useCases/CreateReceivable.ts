@@ -12,7 +12,7 @@ import { TransactionalUseCase } from "@shared/application/useCases/Transactional
 import { TransactionManager } from "@shared/domain/TransactionManager";
 
 interface CreateReceivableRequest {
-  saleId: string;
+  originId: string;
   customerId: string;
   totalAmount: number;
   originType: FinancialOriginType;
@@ -39,7 +39,7 @@ export class CreateReceivable extends TransactionalUseCase<
   ) {
     const document = new FinancialDocument({
       type: FinancialType.RECEIVABLE,
-      originId: props.saleId,
+      originId: props.originId,
       originType: props.originType,
       partyId: props.customerId,
       partyType: FinancialPartyType.CUSTOMER,

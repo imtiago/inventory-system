@@ -11,6 +11,7 @@ import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
+import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 
 interface CreateSaleRequest {
   customerId: string;
@@ -54,7 +55,9 @@ export class CreateSale extends TransactionalUseCase<CreateSaleRequest, Sale> {
       const variant = await this.catalogService.getProductVariant(
         item.productVariantId,
       );
-      if (variant == null) continue;
+      if (!variant) {
+        throw new Error(`Variant ${item.productVariantId} not found`);
+      }
       saleItems.push(
         new SaleItem({
           variantName: variant.name,
@@ -89,9 +92,12 @@ export class CreateSale extends TransactionalUseCase<CreateSaleRequest, Sale> {
     for (const item of request.items) {
       // const inventory =
       await this.inventoryService.consumeStock(
-        item.productVariantId,
-        item.quantity,
-        "SALE",
+        {
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+          reason: "SALE",
+        },
+        tx,
       );
 
       // if (!inventory) {
@@ -130,12 +136,16 @@ export class CreateSale extends TransactionalUseCase<CreateSaleRequest, Sale> {
     //     "SALE",
     //   );
     // }
-    await this.financialService.createReceivable({
-      saleId: sale.id,
-      customerId: sale.customerId,
-      totalAmount: sale.total,
-      // installments: request.installments,
-    });
+    await this.financialService.createReceivable(
+      {
+        customerId: sale.customerId,
+        originId: sale.id,
+        originType: FinancialOriginType.SALE,
+        parcels: [],
+        totalAmount: 500,
+      },
+      tx,
+    );
     return createdSale;
 
     // return {

@@ -1,9 +1,9 @@
-import { SaleRepository } from "../../domain/repositories/SaleRepository";
+import { SaleReadRepository } from "../contracts/SaleReadRepository";
 
 export class GetSale {
-  constructor(private saleRepo: SaleRepository) {}
+  constructor(private saleRepo: SaleReadRepository) {}
 
   async execute(id: string) {
-    return this.saleRepo.findById(id);
+    return this.saleRepo.getById(id);
   }
 }

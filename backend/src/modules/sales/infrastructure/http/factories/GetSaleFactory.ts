@@ -1,9 +1,9 @@
-import { GetCustomer } from "@customer/application/useCases/GetCustomer";
-import { PrismaCustomerReadRepository } from "@customer/infrastructure/prisma/contracts/PrismaCustomerReadRepository";
+import { GetSale } from "@sales/application/useCases/GetSale";
+import { PrismaSaleReadRepository } from "@sales/infrastructure/prisma/contracts/PrismaSaleReadRepository";
 
-export function makeGetCustomerUseCase() {
-  const repository = new PrismaCustomerReadRepository();
-  const useCase = new GetCustomer(repository);
+export function makeGetSaleUseCase() {
+  const repository = new PrismaSaleReadRepository();
+  const useCase = new GetSale(repository);
 
   return useCase;
 }

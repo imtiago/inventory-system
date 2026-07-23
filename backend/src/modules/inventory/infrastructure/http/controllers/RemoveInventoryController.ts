@@ -10,10 +10,10 @@ export function makeRemoveInventoryController() {
     try {
       const data = removeInventorySchema.parse(request.body);
 
-      const inventory = await useCase.execute(
-        data.productVariantId,
-        data.quantity,
-      );
+      const inventory = await useCase.execute({
+        productVariantId: data.productVariantId,
+        quantity: data.quantity,
+      });
 
       return reply.send(inventory);
     } catch (err: any) {

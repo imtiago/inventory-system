@@ -1,16 +1,15 @@
 // src/modules/sales/infrastructure/http/controllers/GetSaleController.ts
 
 import { FastifyRequest, FastifyReply } from "fastify";
-import { SaleRepository } from "../../../domain/repositories/SaleRepository";
-import { GetSale } from "../../../application/useCases/GetSale";
 import { z } from "zod";
+import { makeGetSaleUseCase } from "../factories/GetSaleFactory";
 
 const paramsSchema = z.object({
   id: z.string(),
 });
 
-export function makeGetSaleController(repository: SaleRepository) {
-  const useCase = new GetSale(repository);
+export function makeGetSaleController() {
+  const useCase = makeGetSaleUseCase();
   return async function GetSaleController(
     request: FastifyRequest,
     reply: FastifyReply,

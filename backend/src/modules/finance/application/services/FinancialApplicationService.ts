@@ -1,17 +1,26 @@
-import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { CreateReceivable } from "../useCases/CreateReceivable";
-import { FinancialService } from "./FinacialService";
+import {
+  CreateFinancialServicenput,
+  FinancialService,
+} from "./FinacialService";
+import { Prisma } from "@prisma/client";
 
 export class FinancialApplicationService implements FinancialService {
   constructor(private readonly createReceivableUseCase: CreateReceivable) {}
 
-  async createReceivable(input: CreateReceivableInput): Promise<void> {
-    await this.createReceivableUseCase.execute({
-      ...input,
-      customerId: "c449284f-cc53-494b-86a0-79ece4b4e9a1",
-      originType: FinancialOriginType.SALE,
-      totalAmount: 500,
-      parcels: [],
-    });
+  async createReceivable(
+    input: CreateFinancialServicenput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await this.createReceivableUseCase.execute(
+      {
+        customerId: input.customerId,
+        originType: input.originType,
+        parcels: input.parcels,
+        originId: input.originId,
+        totalAmount: input.totalAmount,
+      },
+      tx,
+    );
   }
 }
