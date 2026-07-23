@@ -7,23 +7,23 @@ import { makeListReceivablesController } from "../../../../finance/infrastructur
 import { makeMarkParcelPaidController } from "../controllers/MarkParcelPaidController";
 
 export async function receivableRoutes(app: FastifyInstance) {
-  const repo = new PrismaReceivableRepository();
+  // const repo = new PrismaReceivableRepository();
 
   app.post(
-    "/receivables",
+    "/",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeCreateReceivableController(),
   );
 
   app.get(
-    "/receivables",
+    "/",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeListReceivablesController(repo),
+    makeListReceivablesController(),
   );
 
-  app.patch(
-    "/receivables/parcels/:parcelId/pay",
-    { preHandler: [authorize(["admin", "vendedor"])] },
-    makeMarkParcelPaidController(repo),
-  );
+  // app.patch(
+  //   "/parcels/:parcelId/pay",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeMarkParcelPaidController(repo),
+  // );
 }

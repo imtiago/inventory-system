@@ -9,11 +9,6 @@ import { PrismaReceivableRepository } from "modules/finance/infrastructure/repos
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
 export async function saleRoutes(app: FastifyInstance) {
-  const inventoryRepo = new PrismaInventoryRepository();
-  const saleRepo = new PrismaSaleRepository();
-  const receivableRepository = new PrismaReceivableRepository();
-  const transaction = new PrismaTransactionManager();
-
   // app.post(
   //   "/",
   //   { preHandler: [authorize(["admin", "vendedor"])] },

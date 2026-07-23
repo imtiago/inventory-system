@@ -1,6 +1,4 @@
-// src/modules/finance/application/mappers/PaymentMapper.ts
-
-import { Payment } from "../../domain/entities/Payment";
+import { Payment } from "@finance/domain/entities/Payment";
 import { Payment as PrismaPayment, Prisma } from "@prisma/client";
 
 export class PaymentMapper {

@@ -6,11 +6,13 @@ import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FinancialDocumentRepository } from "@finance/domain/repositories/FinancialDocumentRepository";
+import { FinancialParcelRepository } from "@finance/domain/repositories/FinancialParcelRepository";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 
 export class CreateReceivable {
   constructor(
     private repo: FinancialDocumentRepository,
+    private repositoryParcels: FinancialParcelRepository,
     private transaction: TransactionManager,
   ) {}
 
@@ -40,11 +42,15 @@ export class CreateReceivable {
           new FinancialParcel({
             amount: parcel.amount,
             dueDate: parcel.dueDate,
+            financialDocumentId: document.id,
           }),
         );
       });
 
-      return this.repo.create(document, tx);
+      await this.repo.create(document, tx);
+      await this.repositoryParcels.createMany(parcels, tx);
+
+      return document;
     });
   }
 }

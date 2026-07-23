@@ -2,6 +2,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createReceivableSchema } from "modules/finance/interfaces/http/schemas/createReceivableSchema";
 import { makeCreateReceivableUseCase } from "../factories/CreateReceivableFactory";
+import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 
 export function makeCreateReceivableController() {
   const useCase = makeCreateReceivableUseCase();
@@ -12,16 +13,16 @@ export function makeCreateReceivableController() {
     try {
       const data = createReceivableSchema.parse(req.body);
       // const useCase = new CreateReceivable(repo);
-      const data = {
-        data.saleId,
-        data.totalAmount,
-
-        data.parcels.map((p) => ({
+      const receivable = await useCase.execute({
+        customerId: data.saleId,
+        originType: FinancialOriginType.SALE,
+        saleId: data.saleId,
+        totalAmount: data.totalAmount,
+        parcels: data.parcels.map((p) => ({
           amount: p.amount,
           dueDate: new Date(p.dueDate),
         })),
-    }
-      const receivable = await useCase.execute(data);
+      });
       return reply.status(201).send(receivable);
     } catch (err: any) {
       return reply.status(400).send({ message: err.message });

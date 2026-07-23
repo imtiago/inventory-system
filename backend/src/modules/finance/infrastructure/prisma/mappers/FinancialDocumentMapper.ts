@@ -1,9 +1,9 @@
-import { FinancialDocument } from "../../domain/entities/FinancialDocument";
 import {
   FinancialDocument as PrismaFinancialDocument,
   Prisma,
 } from "@prisma/client";
 import { FinancialParcelMapper } from "./FinancialParcelMapper";
+import { FinancialDocument } from "@finance/domain/entities/FinancialDocument";
 
 export class FinancialDocumentMapper {
   static toDomain(

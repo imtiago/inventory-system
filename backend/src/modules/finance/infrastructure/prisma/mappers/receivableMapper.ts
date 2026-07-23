@@ -1,4 +1,4 @@
-import { Receivable } from "../../domain/entities/Receivable";
+import { Receivable } from "@finance/domain/entities/Receivable";
 
 export function toDomain(receivable: any): Receivable {
   return {

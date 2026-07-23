@@ -1,4 +1,4 @@
-import { FinancialParcel } from "../../domain/entities/FinancialParcel";
+import { FinancialParcel } from "@finance/domain/entities/FinancialParcel";
 import {
   FinancialParcel as PrismaFinancialParcel,
   Prisma,
@@ -19,15 +19,12 @@ export class FinancialParcelMapper {
 
   static toCreatePersistence(
     parcel: FinancialParcel,
-  ): Prisma.FinancialParcelCreateWithoutDocumentInput {
+  ): Prisma.FinancialParcelCreateManyInput {
     return {
       id: parcel.id,
-
       amount: parcel.amount,
-
       dueDate: parcel.dueDate,
-
-      paidAt: parcel.paidAt,
+      financialDocumentId: parcel.financialDocumentId,
     };
   }
 }

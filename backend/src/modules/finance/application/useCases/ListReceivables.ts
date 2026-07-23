@@ -1,12 +1,10 @@
-// src/modules/receivables/application/useCases/ListReceivables.ts
-
-import { Receivable } from "@receivables/domain/entities/Receivable";
-import { ReceivableRepository } from "modules/finance/domain/repositories/ReceivableRepository";
+import { FinancialDocumentReadRepository } from "../contracts/FinancialDocumentReadRepository";
+import { FinancialDocumentDTO } from "../dto/FinancialDocumentDTO";
 
 export class ListReceivables {
-  constructor(private repo: ReceivableRepository) {}
+  constructor(private repo: FinancialDocumentReadRepository) {}
 
-  async execute(): Promise<Receivable[]> {
-    return this.repo.list();
+  async execute(): Promise<FinancialDocumentDTO[]> {
+    return this.repo.listReceivables();
   }
 }
