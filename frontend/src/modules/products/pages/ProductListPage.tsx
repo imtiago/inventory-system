@@ -1,44 +1,72 @@
 import { Link } from "react-router-dom";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+import { Plus, Pencil, Trash2 } from "lucide-react";
+
+import { useProducts } from "../hooks/useProducts";
 
 export function ProductListPage() {
-  const products = [
-    {
-      id: "1",
-      name: "Notebook Dell Inspiron",
-      sku: "NB-DELL-001",
-      category: "Informática",
-      stock: 15,
-      price: 3500,
-    },
-    {
-      id: "2",
-      name: "Mouse Logitech",
-      sku: "MS-LOG-002",
-      category: "Periféricos",
-      stock: 50,
-      price: 120,
-    },
-  ];
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, error, isFetching } = useProducts(page);
+
+  if (isLoading) {
+    return <div>Carregando produtos...</div>;
+  }
+
+  if (error) {
+    return <div>Erro ao carregar produtos</div>;
+  }
+
+  const products = data?.data ?? [];
 
   return (
-    <div className="space-y-6">
+    <div
+      className="
+        h-full
+        flex
+        flex-col
+        gap-6
+      "
+    >
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Produtos</h1>
 
-          <p className="text-gray-500">Gerencie seu catálogo de produtos</p>
+      <div
+        className="
+          flex
+          justify-between
+          items-center
+        "
+      >
+        <div>
+          <h1 className="text-2xl font-bold">
+            Produtos
+            {isFetching && (
+              <span
+                className="
+                    text-sm
+                    text-gray-400
+                    ml-2
+                  "
+              >
+                Atualizando...
+              </span>
+            )}
+          </h1>
+
+          <p className="text-gray-500">Gerencie seu catálogo</p>
         </div>
 
         <Link
           to="/products/new"
           className="
-            flex items-center gap-2
-            bg-black text-white
-            px-4 py-2
+            bg-black
+            text-white
+            px-4
+            py-2
             rounded-lg
-            hover:bg-gray-800
+            flex
+            gap-2
           "
         >
           <Plus size={18} />
@@ -46,149 +74,195 @@ export function ProductListPage() {
         </Link>
       </div>
 
-      {/* Filtros */}
+      {/* Tabela + Paginação */}
+
       <div
         className="
           bg-white
           rounded-xl
-          shadow-sm
-          p-4
-          flex
-          gap-4
-        "
-      >
-        <div
-          className="
-          flex
-          items-center
-          gap-2
-          border
-          rounded-lg
-          px-3
+          shadow
           flex-1
-        "
-        >
-          <Search size={18} className="text-gray-400" />
-
-          <input
-            placeholder="Buscar produto..."
-            className="
-              outline-none
-              w-full
-              py-2
-            "
-          />
-        </div>
-
-        <select
-          className="
-            border
-            rounded-lg
-            px-3
-          "
-        >
-          <option>Todas categorias</option>
-
-          <option>Informática</option>
-        </select>
-      </div>
-
-      {/* Tabela */}
-      <div
-        className="
-          bg-white
-          rounded-xl
-          shadow-sm
+          min-h-0
+          flex
+          flex-col
           overflow-hidden
         "
       >
-        <table
+        {/* Área com scroll */}
+
+        <div
           className="
-            w-full
+            overflow-y-auto
+            flex-1
+            min-h-0
           "
         >
-          <thead
+          <table className="w-full">
+            <thead
+              className="
+                bg-gray-100
+                sticky
+                top-0
+                z-10
+              "
+            >
+              <tr>
+                <th className="p-4 text-left">Código</th>
+
+                <th className="p-4 text-left">Produto</th>
+
+                <th className="p-4 text-left">Marca</th>
+
+                <th className="p-4 text-left">Categoria</th>
+
+                <th className="p-4 text-left">Variantes</th>
+
+                <th className="p-4 text-center">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {products.map((product) => (
+                <tr
+                  key={product.id}
+                  className="
+                      border-t
+                      hover:bg-gray-50
+                    "
+                >
+                  <td className="p-4">{product.code}</td>
+
+                  <td className="p-4">
+                    <Link
+                      to={`/products/${product.id}`}
+                      className="
+                          font-medium
+                          hover:underline
+                        "
+                    >
+                      {product.name}
+                    </Link>
+
+                    <div
+                      className="
+                          text-sm
+                          text-gray-500
+                        "
+                    >
+                      {product.description}
+                    </div>
+                  </td>
+
+                  <td className="p-4">{product.brand.name}</td>
+
+                  <td className="p-4">{product.category.name}</td>
+
+                  <td className="p-4">
+                    <span
+                      className="
+                          bg-blue-100
+                          text-blue-700
+                          px-3
+                          py-1
+                          rounded-full
+                          text-sm
+                        "
+                    >
+                      {product.variantsCount}
+                    </span>
+                  </td>
+
+                  <td
+                    className="
+                        p-4
+                        flex
+                        justify-center
+                        gap-3
+                      "
+                  >
+                    <Link
+                      to={`/products/${product.id}/edit`}
+                      className="text-blue-600"
+                    >
+                      <Pencil size={18} />
+                    </Link>
+
+                    <button className="text-red-600">
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginação fixa */}
+
+        <div
+          className="
+            border-t
+            flex
+            justify-between
+            items-center
+            px-4
+            py-3
+          "
+        >
+          <span
             className="
-              bg-gray-100
+              text-sm
+              text-gray-500
             "
           >
-            <tr>
-              <th className="text-left p-4">Produto</th>
+            Total: {data?.pagination.totalItems} produtos
+          </span>
 
-              <th className="text-left p-4">SKU</th>
+          <div
+            className="
+              flex
+              items-center
+              gap-4
+            "
+          >
+            <span
+              className="
+                text-sm
+                text-gray-500
+              "
+            >
+              Página {data?.pagination.page} de {data?.pagination.totalPages}
+            </span>
 
-              <th className="text-left p-4">Categoria</th>
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((old) => old - 1)}
+              className="
+                px-3
+                py-1
+                border
+                rounded
+                disabled:opacity-50
+              "
+            >
+              Anterior
+            </button>
 
-              <th className="text-left p-4">Estoque</th>
-
-              <th className="text-left p-4">Preço</th>
-
-              <th className="text-center p-4">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {products.map((product) => (
-              <tr
-                key={product.id}
-                className="
-                  border-t
-                  hover:bg-gray-50
-                "
-              >
-                <td className="p-4 font-medium">{product.name}</td>
-
-                <td className="p-4">{product.sku}</td>
-
-                <td className="p-4">{product.category}</td>
-
-                <td className="p-4">
-                  <span
-                    className="
-                      px-3 py-1
-                      rounded-full
-                      text-sm
-                      bg-green-100
-                      text-green-700
-                    "
-                  >
-                    {product.stock}
-                  </span>
-                </td>
-
-                <td className="p-4">R$ {product.price.toFixed(2)}</td>
-
-                <td
-                  className="
-                  p-4
-                  flex
-                  justify-center
-                  gap-3
-                "
-                >
-                  <Link
-                    to={`/products/${product.id}/edit`}
-                    className="
-                      text-blue-600
-                      hover:text-blue-800
-                    "
-                  >
-                    <Pencil size={18} />
-                  </Link>
-
-                  <button
-                    className="
-                      text-red-600
-                      hover:text-red-800
-                    "
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            <button
+              disabled={page === data?.pagination.totalPages}
+              onClick={() => setPage((old) => old + 1)}
+              className="
+                px-3
+                py-1
+                border
+                rounded
+                disabled:opacity-50
+              "
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

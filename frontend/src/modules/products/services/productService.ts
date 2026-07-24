@@ -1,13 +1,16 @@
 import { api } from "@/shared/services/api";
-import type { Product } from "../types";
+import type { Product, ProductListResponse, ProductVariant } from "../types";
 
-export const getProducts = async (search = "") => {
-  const { data } = await api.get(`/products?search=${search}`);
-  return data.map((p: Product) => ({
-    ...p,
-    stock: p.stock ?? 0, // fallback se não houver estoque
-  }));
-};
+export async function getProducts(page = 1): Promise<ProductListResponse> {
+  const response = await api.get("/products", {
+    params: {
+      page,
+      limit: 10,
+    },
+  });
+
+  return response.data;
+}
 
 export const createProduct = async (input: {
   name: string;
@@ -23,12 +26,20 @@ export const deleteProduct = async (id: string) => {
   await api.delete(`/products/${id}`);
 };
 
-export const getProductById = async (id: string): Promise<Product> => {
-  const { data } = await api.get(`/products/${id}`);
-  return data;
-};
+export async function getProductById(id: string): Promise<Product> {
+  const response = await api.get(`/products/${id}`);
 
+  return response.data;
+}
 export const updateProduct = async (id: string, input: any) => {
   const { data } = await api.put(`/products/${id}`, input);
   return data;
 };
+
+export async function getProductVariants(
+  productId: string,
+): Promise<ProductVariant[]> {
+  const response = await api.get(`/products/${productId}/variants`);
+
+  return response.data;
+}

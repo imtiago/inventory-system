@@ -44,14 +44,13 @@ export function Sidebar() {
   return (
     <aside
       className="
-    w-64
-    h-screen
-    flex-shrink-0
-    bg-slate-900
-    text-white
-    flex
-    flex-col
-  "
+        w-64
+        h-screen
+        bg-slate-900
+        text-white
+        flex
+        flex-col
+      "
     >
       <div className="p-6 text-xl font-bold">Inventory System</div>
 

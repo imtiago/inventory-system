@@ -3,8 +3,6 @@ export interface ProductVariantDTO {
 
   productId: string;
 
-  productName: string;
-
   code: string;
 
   name: string;
@@ -12,4 +10,6 @@ export interface ProductVariantDTO {
   barcode: string | null;
 
   salePrice: number;
+
+  createdAt: Date;
 }
