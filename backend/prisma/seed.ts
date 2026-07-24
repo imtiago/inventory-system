@@ -10,9 +10,21 @@ async function main() {
     },
   });
 
+  await prisma.brand.create({
+    data: {
+      name: "Boticario",
+    },
+  });
+
   await prisma.category.create({
     data: {
       name: "Perfumes",
+    },
+  });
+
+  await prisma.category.create({
+    data: {
+      name: "Maquiagens",
     },
   });
 

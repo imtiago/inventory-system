@@ -2,12 +2,12 @@
 
 import { CatalogApplicationService } from "@catalog/application/services/CatalogApplicationService";
 import { PrismaProductVariantRepository } from "../../prisma/repositories/PrismaProductVariantRepository";
-import { GetProductVariantUseCase } from "@catalog/application/useCases/GetProductVariantUseCase";
+import { GetProductVariantByIdUseCase } from "@catalog/application/useCases/GetProductVariantByIdUseCase";
 
 export function makeCatalogService() {
   const repository = new PrismaProductVariantRepository();
 
-  const getProductVariant = new GetProductVariantUseCase(repository);
+  const getProductVariant = new GetProductVariantByIdUseCase(repository);
 
   return new CatalogApplicationService(getProductVariant);
 }

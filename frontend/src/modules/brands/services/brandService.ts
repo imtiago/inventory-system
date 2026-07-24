@@ -1,6 +1,12 @@
 import { api } from "@/shared/services/api";
+import type { Brand } from "../types";
 
-export const getBrands = async () => {
-  const { data } = await api.get("/brands");
-  return data;
+interface BrandResponse {
+  data: Brand[];
+}
+
+export const getBrands = async (): Promise<Brand[]> => {
+  const response = await api.get<BrandResponse>("/brands");
+
+  return response.data.data;
 };

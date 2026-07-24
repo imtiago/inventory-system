@@ -1,5 +1,5 @@
 import { ProductVariantDTO } from "../dto/ProductVariantDTO";
-import { GetProductVariantUseCase } from "../useCases/GetProductVariantUseCase";
+import { GetProductVariantUseCase } from "../useCases/GetProductVariantByIdUseCase";
 import { CatalogService } from "./CatalogService";
 
 export class CatalogApplicationService implements CatalogService {

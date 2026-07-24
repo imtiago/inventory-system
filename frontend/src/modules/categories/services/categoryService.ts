@@ -1,9 +1,14 @@
 import { api } from "@/shared/services/api";
 import type { Category } from "../types";
 
-export const getCategories = async (search = ""): Promise<Category[]> => {
-  const { data } = await api.get(`/categories?search=${search}`);
-  return data;
+interface CategoryResponse {
+  data: Category[];
+}
+
+export const getCategories = async (): Promise<Category[]> => {
+  const response = await api.get<CategoryResponse>("/categories");
+
+  return response.data.data;
 };
 
 export const getCategoryById = async (id: string): Promise<Category> => {

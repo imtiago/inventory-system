@@ -1,10 +1,10 @@
 // modules/products/routes.tsx
 import { ProductListPage } from "./pages/ProductListPage";
-import { ProductFormPage } from "./pages/ProductFormPage";
 import { ProductEditPage } from "./pages/ProductEditPage";
 import { ProductDetailsPage } from "./pages/ProductDetailsPage";
 
 import type { AppRoute } from "@/routes/types";
+import { ProductCreatePage } from "./pages/ProductCreatePage";
 
 export const productRoutes: AppRoute[] = [
   {
@@ -22,7 +22,7 @@ export const productRoutes: AppRoute[] = [
   {
     path: "/products/new",
     label: "Novo Produto",
-    component: ProductFormPage,
+    component: ProductCreatePage,
     guard: "auth",
   },
   {

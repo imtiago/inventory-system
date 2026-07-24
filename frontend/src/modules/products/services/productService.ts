@@ -2,6 +2,17 @@ import { api } from "@/shared/services/api";
 import type { Product, ProductListResponse, ProductVariant } from "../types";
 import type { ProductFormData } from "../components/ProductForm";
 
+export interface CreateVariantDTO {
+  name: string;
+  barcode?: string;
+}
+
+export async function createVariant(productId: string, data: CreateVariantDTO) {
+  const response = await api.post(`/products/${productId}/variants`, data);
+
+  return response.data.data;
+}
+
 export async function getProducts(page = 1): Promise<ProductListResponse> {
   const response = await api.get("/products", {
     params: {
@@ -16,7 +27,7 @@ export async function getProducts(page = 1): Promise<ProductListResponse> {
 export async function createProduct(data: ProductFormData) {
   const response = await api.post("/products", data);
 
-  return response.data;
+  return response.data.data;
 }
 
 export const deleteProduct = async (id: string) => {
@@ -38,5 +49,5 @@ export async function getProductVariants(
 ): Promise<ProductVariant[]> {
   const response = await api.get(`/products/${productId}/variants`);
 
-  return response.data;
+  return response.data.data; // se a API retorna { data: [...] }
 }

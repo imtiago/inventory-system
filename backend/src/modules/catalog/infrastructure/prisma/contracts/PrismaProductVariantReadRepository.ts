@@ -89,7 +89,7 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
       name: variant.name,
       barcode: variant.barcode,
       code: variant.code,
-      productName: variant.product.name,
+      // productName: variant.product.name,
       productId: variant.product.id,
       salePrice: variant.salePrice,
     };
