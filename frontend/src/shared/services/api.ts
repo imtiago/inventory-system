@@ -1,7 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: "http://192.168.100.3:3000", // sua API
+  // baseURL: "http://192.168.100.3:3000", // sua API
+  baseURL: "http://localhost:3000", // sua API
 });
 
 api.interceptors.request.use((config) => {

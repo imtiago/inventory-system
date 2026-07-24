@@ -1,142 +1,132 @@
-import { useForm, Controller } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import type { Brand, Category } from "../types";
 
-import { useCreateProduct } from "../hooks/useCreateProduct";
-import { useUpdateProduct } from "../hooks/useUpdateProduct";
+export interface ProductFormData {
+  name: string;
+  description?: string;
+  brandId: string;
+  categoryId: string;
+}
 
-import { useBrands } from "@/modules/brands/hooks/useBrands";
-import { useCategories } from "@/modules/categories/hooks/useCategories";
+interface Props {
+  title: string;
+  description: string;
 
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
+  brands: Brand[];
 
-const schema = z.object({
-  name: z.string().min(1, "Nome obrigatório"),
-  // sku: z.string().min(1, "SKU obrigatório"),
-  // barcode: z.string().min(1, "Código de barras obrigatório"), // novo campo
-  brandId: z.string().optional(),
-  categoryId: z.string().optional(),
-});
+  categories: Category[];
 
-type FormData = z.infer<typeof schema>;
+  initialValues?: Partial<ProductFormData>;
 
-type Props = {
-  defaultValues?: FormData;
-  productId?: string;
-  onSuccess?: () => void;
-  useScanner?: boolean; // opção de usar scanner
-};
+  onSubmit(data: ProductFormData): void;
+
+  onCancel(): void;
+}
 
 export function ProductForm({
-  defaultValues,
-  productId,
-  onSuccess,
-  useScanner,
+  title,
+  description,
+  brands,
+  categories,
+  initialValues,
+  onSubmit,
+  onCancel,
 }: Props) {
-  const { data: brands } = useBrands();
-  const { data: categories } = useCategories();
-
-  const [showScanner, setShowScanner] = useState(false);
-
-  const { mutate: create } = useCreateProduct();
-  const { mutate: update } = useUpdateProduct();
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues,
+  const { register, handleSubmit } = useForm<ProductFormData>({
+    defaultValues: initialValues,
   });
 
-  const onSubmit = (data: FormData) => {
-    if (productId) {
-      update({ id: productId, input: data }, { onSuccess });
-    } else {
-      create(data, { onSuccess });
-    }
-  };
-
-  const handleBarcodeDetected = (code: string) => {
-    form.setValue("barcode", code);
-    setShowScanner(false);
-  };
-
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-md">
-      {/* Scanner */}
-      {/* {useScanner && !showScanner && (
-        <Button onClick={() => setShowScanner(true)}>
-          Ler código de barras
-        </Button>
-      )} */}
-      {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} />}
-      {/* Nome */}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
-        <label>Nome</label>
-        <Input {...form.register("name")} placeholder="Ex: Perfume Kaiak" />
-        {form.formState.errors.name && (
-          <p className="text-red-500">{form.formState.errors.name.message}</p>
-        )}
+        <h1 className="text-3xl font-bold">{title}</h1>
+
+        <p className="text-gray-500">{description}</p>
       </div>
 
-      {/* SKU */}
-      {/* <div>
-        <label>SKU</label>
-        <Input {...form.register("sku")} placeholder="Ex: KAI-100" />
-        {form.formState.errors.sku && (
-          <p className="text-red-500">{form.formState.errors.sku.message}</p>
-        )}
-      </div> */}
+      <div className="bg-white rounded-xl shadow p-6 space-y-6">
+        <section>
+          <h2 className="font-semibold text-lg mb-4">Informações Gerais</h2>
 
-      {/* Marca */}
-      <div>
-        <label>Marca</label>
-        <Controller
-          control={form.control}
-          name="brandId"
-          render={({ field }) => (
-            <select
-              {...field}
-              className="border border-gray-300 rounded px-2 py-1 w-full"
-            >
-              <option value="">Selecione a marca</option>
-              {brands?.map((b: any) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          )}
-        />
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1">Nome</label>
+
+              <input
+                {...register("name")}
+                className="w-full border rounded-lg p-3"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1">Descrição</label>
+
+              <textarea
+                {...register("description")}
+                rows={4}
+                className="w-full border rounded-lg p-3"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="font-semibold text-lg mb-4">Classificação</h2>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="block mb-1">Marca</label>
+
+              <select
+                {...register("brandId")}
+                className="w-full border rounded-lg p-3"
+              >
+                <option value="">Selecione...</option>
+
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block mb-1">Categoria</label>
+
+              <select
+                {...register("categoryId")}
+                className="w-full border rounded-lg p-3"
+              >
+                <option value="">Selecione...</option>
+
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Categoria */}
-      <div>
-        <label>Categoria</label>
-        <Controller
-          control={form.control}
-          name="categoryId"
-          render={({ field }) => (
-            <select
-              {...field}
-              className="border border-gray-300 rounded px-2 py-1 w-full"
-            >
-              <option value="">Selecione a categoria</option>
-              {categories?.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-        />
-      </div>
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="border rounded-lg px-6 py-3"
+        >
+          Cancelar
+        </button>
 
-      {/* Botão */}
-      <Button type="submit" className="w-full">
-        {form.formState.isSubmitting ? "Salvando..." : "Salvar"}
-      </Button>
+        <button
+          type="submit"
+          className="bg-black text-white rounded-lg px-6 py-3"
+        >
+          Salvar Produto
+        </button>
+      </div>
     </form>
   );
 }

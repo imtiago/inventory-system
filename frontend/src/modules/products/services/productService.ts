@@ -1,5 +1,6 @@
 import { api } from "@/shared/services/api";
 import type { Product, ProductListResponse, ProductVariant } from "../types";
+import type { ProductFormData } from "../components/ProductForm";
 
 export async function getProducts(page = 1): Promise<ProductListResponse> {
   const response = await api.get("/products", {
@@ -12,15 +13,11 @@ export async function getProducts(page = 1): Promise<ProductListResponse> {
   return response.data;
 }
 
-export const createProduct = async (input: {
-  name: string;
-  sku: string;
-  brandId?: string;
-  categoryId?: string;
-}) => {
-  const { data } = await api.post("/products", input);
-  return data;
-};
+export async function createProduct(data: ProductFormData) {
+  const response = await api.post("/products", data);
+
+  return response.data;
+}
 
 export const deleteProduct = async (id: string) => {
   await api.delete(`/products/${id}`);
