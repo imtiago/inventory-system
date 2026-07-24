@@ -5,6 +5,7 @@ import { ProductDetailsPage } from "./pages/ProductDetailsPage";
 
 import type { AppRoute } from "@/routes/types";
 import { ProductCreatePage } from "./pages/ProductCreatePage";
+import { VariantCreatePage } from "./pages/VariantCreatePage";
 
 export const productRoutes: AppRoute[] = [
   {
@@ -17,6 +18,12 @@ export const productRoutes: AppRoute[] = [
     path: "/products/:id",
     label: "Detalhes do Produto",
     component: ProductDetailsPage,
+    guard: "auth",
+  },
+  {
+    path: "/products/:id/variants/new",
+    label: "Nova Variante",
+    component: VariantCreatePage,
     guard: "auth",
   },
   {
