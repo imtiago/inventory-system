@@ -4,43 +4,66 @@ import { ProductReadRepository } from "@catalog/application/contracts/ProductRea
 import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
 import { prisma } from "@shared/prisma";
 
+interface FindManyProductsParams {
+  page: number;
+  limit: number;
+}
+interface FindManyProductsResult {
+  data: ProductListDTO[];
+  total: number;
+}
 export class PrismaProductReadRepository implements ProductReadRepository {
-  async list(): Promise<ProductListDTO[]> {
-    const products = await prisma.product.findMany({
-      include: {
-        brand: true,
-        category: true,
-        _count: {
-          select: {
-            variants: true,
+  async list({
+    limit,
+    page,
+  }: FindManyProductsParams): Promise<FindManyProductsResult> {
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        skip,
+        take: limit,
+        include: {
+          brand: true,
+          category: true,
+          _count: {
+            select: {
+              variants: true,
+            },
           },
         },
-      },
 
-      orderBy: {
-        name: "asc",
-      },
-    });
+        orderBy: {
+          name: "asc",
+        },
+      }),
 
-    return products.map((product) => ({
-      id: product.id,
+      prisma.product.count(),
+    ]);
 
-      name: product.name,
+    return {
+      data: products.map((product) => ({
+        id: product.id,
 
-      description: product.description,
+        name: product.name,
+        code: product.code,
 
-      brand: {
-        id: product.brand.id,
-        name: product.brand.name,
-      },
+        description: product.description,
 
-      category: {
-        id: product.category.id,
-        name: product.category.name,
-      },
+        brand: {
+          id: product.brand.id,
+          name: product.brand.name,
+        },
 
-      variantsCount: product._count.variants,
-    }));
+        category: {
+          id: product.category.id,
+          name: product.category.name,
+        },
+
+        variantsCount: product._count.variants,
+      })),
+      total,
+    };
   }
 
   async getById(id: string): Promise<ProductListDTO | null> {

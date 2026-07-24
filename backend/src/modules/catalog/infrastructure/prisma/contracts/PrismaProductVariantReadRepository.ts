@@ -4,7 +4,7 @@ import { ProductVariantReadRepository } from "@catalog/application/contracts/Pro
 import { ProductVariantDTO } from "@catalog/application/dto/ProductVariantDTO";
 import { prisma } from "@shared/prisma";
 
-export class PrismaProductReadRepository implements ProductVariantReadRepository {
+export class PrismaProductVariantReadRepository implements ProductVariantReadRepository {
   async getByProductId(productId: string): Promise<ProductVariantDTO[]> {
     const productsVariant = await prisma.productVariant.findMany({
       where: {
