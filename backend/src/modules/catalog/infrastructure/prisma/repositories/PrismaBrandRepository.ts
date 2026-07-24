@@ -12,7 +12,7 @@ export class PrismaBrandRepository implements BrandRepository {
     return BrandMapper.toDomain(created);
   }
 
-  async list(page: number, limit: number): Promise<Brand[]> {
+  async list({ limit, page }: FindManyProductsParams): Promise<Brand[]> {
     const skip = (page - 1) * limit;
 
     const brands = await prisma.brand.findMany({

@@ -2,7 +2,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeListProductsUseCase } from "../factories/ListProductsFactory";
 import { ProductHttpPresenter } from "@catalog/interfaces/http/presenters/ProductHttpPresenter";
-import { querySchema } from "@catalog/interfaces/http/schemas/listProductSchema";
+import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
 export function makeListProductsController() {
   const useCase = makeListProductsUseCase();
@@ -10,7 +10,7 @@ export function makeListProductsController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    const { page, limit } = querySchema.parse(request.query);
+    const { page, limit } = paginationSchema.parse(request.query);
 
     const products = await useCase.execute({ page, limit });
     return reply.send(products);

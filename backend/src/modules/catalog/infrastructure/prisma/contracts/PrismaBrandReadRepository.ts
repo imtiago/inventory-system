@@ -2,21 +2,34 @@
 
 import { BrandReadRepository } from "@catalog/application/contracts/BrandReadRepository";
 import { BrandListDTO } from "@catalog/application/dto/BrandListDTO";
+import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
+import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { prisma } from "@shared/prisma";
 
 export class PrismaBrandReadRepository implements BrandReadRepository {
-  async list(): Promise<BrandListDTO[]> {
-    const brands = await prisma.brand.findMany({
-      orderBy: {
-        name: "asc",
-      },
-    });
+  async list(
+    pagination: PaginationRequest,
+  ): Promise<PaginatedResult<BrandListDTO>> {
+    const paginationOptions = buildPagination(pagination);
 
-    return brands.map((brand) => ({
+    const [brands, total] = await prisma.$transaction([
+      prisma.brand.findMany({
+        ...paginationOptions,
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      prisma.brand.count(),
+    ]);
+
+    const dt = brands.map((brand) => ({
       id: brand.id,
 
       name: brand.name,
     }));
+    return buildPaginatedResult(dt, total, pagination);
   }
 
   async getById(id: string): Promise<BrandListDTO | null> {

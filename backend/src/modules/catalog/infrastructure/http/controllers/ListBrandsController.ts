@@ -1,6 +1,7 @@
 // src/modules/catalog/infrastructure/http/controllers/ListBrandsController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeListBrandsUseCase } from "../factories/ListBrandsFactory";
+import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
 export function makeListBrandsController() {
   const useCase = makeListBrandsUseCase();
@@ -8,9 +9,10 @@ export function makeListBrandsController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    const { page = 1, limit = 10 } = request.query as any;
-    // const brands = await useCase.execute(Number(page), Number(limit));
-    const brands = await useCase.execute();
+    const { page, limit } = paginationSchema.parse(request.query);
+
+    const brands = await useCase.execute({ page, limit });
+
     return reply.send(brands);
   };
 }

@@ -2,27 +2,22 @@
 
 import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
 import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
+import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
+import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { prisma } from "@shared/prisma";
 
-interface FindManyProductsParams {
-  page: number;
-  limit: number;
-}
-interface FindManyProductsResult {
-  data: ProductListDTO[];
-  total: number;
-}
 export class PrismaProductReadRepository implements ProductReadRepository {
-  async list({
-    limit,
-    page,
-  }: FindManyProductsParams): Promise<FindManyProductsResult> {
-    const skip = (page - 1) * limit;
+  async list(
+    pagination: PaginationRequest,
+  ): Promise<PaginatedResult<ProductListDTO>> {
+    const paginationOptions = buildPagination(pagination);
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
-        skip,
-        take: limit,
+        ...paginationOptions,
+
         include: {
           brand: true,
           category: true,
@@ -41,29 +36,27 @@ export class PrismaProductReadRepository implements ProductReadRepository {
       prisma.product.count(),
     ]);
 
-    return {
-      data: products.map((product) => ({
-        id: product.id,
+    const dt = products.map((product) => ({
+      id: product.id,
 
-        name: product.name,
-        code: product.code,
+      name: product.name,
+      code: product.code,
 
-        description: product.description,
+      description: product.description,
 
-        brand: {
-          id: product.brand.id,
-          name: product.brand.name,
-        },
+      brand: {
+        id: product.brand.id,
+        name: product.brand.name,
+      },
 
-        category: {
-          id: product.category.id,
-          name: product.category.name,
-        },
+      category: {
+        id: product.category.id,
+        name: product.category.name,
+      },
 
-        variantsCount: product._count.variants,
-      })),
-      total,
-    };
+      variantsCount: product._count.variants,
+    }));
+    return buildPaginatedResult(dt, total, pagination);
   }
 
   async getById(id: string): Promise<ProductListDTO | null> {

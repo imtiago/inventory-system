@@ -2,23 +2,39 @@
 
 import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
 import { ProductVariantDTO } from "@catalog/application/dto/ProductVariantDTO";
+import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
+import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { prisma } from "@shared/prisma";
 
 export class PrismaProductVariantReadRepository implements ProductVariantReadRepository {
-  async getByProductId(productId: string): Promise<ProductVariantDTO[]> {
-    const productsVariant = await prisma.productVariant.findMany({
-      where: {
-        productId,
-      },
-      include: {
-        product: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
+  async getByProductId(
+    productId: string,
+    pagination: PaginationRequest,
+  ): Promise<PaginatedResult<ProductVariantDTO>> {
+    const paginationOptions = buildPagination(pagination);
 
-    return productsVariant.map((variant) => ({
+    const [productsVariant, total] = await prisma.$transaction([
+      prisma.productVariant.findMany({
+        ...paginationOptions,
+        where: {
+          productId,
+        },
+        include: {
+          product: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      prisma.productVariant.count({
+        where: {
+          productId,
+        },
+      }),
+    ]);
+    const dt = productsVariant.map((variant) => ({
       id: variant.id,
       name: variant.name,
       barcode: variant.barcode,
@@ -26,27 +42,36 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
       productId: variant.product.id,
       salePrice: variant.salePrice,
     }));
+    return buildPaginatedResult(dt, total, pagination);
   }
 
-  async list(): Promise<ProductVariantDTO[]> {
-    const productsVariant = await prisma.productVariant.findMany({
-      include: {
-        product: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
+  async list(
+    pagination: PaginationRequest,
+  ): Promise<PaginatedResult<ProductVariantDTO>> {
+    const paginationOptions = buildPagination(pagination);
 
-    return productsVariant.map((variant) => ({
+    const [productsVariant, total] = await prisma.$transaction([
+      prisma.productVariant.findMany({
+        ...paginationOptions,
+        include: {
+          product: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      prisma.productVariant.count(),
+    ]);
+    const dt = productsVariant.map((variant) => ({
       id: variant.id,
       name: variant.name,
       barcode: variant.barcode,
       code: variant.code,
-      productName: variant.product.name,
       productId: variant.product.id,
       salePrice: variant.salePrice,
     }));
+
+    return buildPaginatedResult(dt, total, pagination);
   }
 
   async getById(id: string): Promise<ProductVariantDTO | null> {

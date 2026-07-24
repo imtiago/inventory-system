@@ -2,17 +2,28 @@
 
 import { CustomerReadRepository } from "@customer/application/contracts/CustomerReadRepository";
 import { CustomerDetailsDTO } from "@customer/application/dto/CustomerDetailsDTO";
+import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
+import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { prisma } from "@shared/prisma";
 
 export class PrismaCustomerReadRepository implements CustomerReadRepository {
-  async list(): Promise<CustomerDetailsDTO[]> {
-    const customers = await prisma.customer.findMany({
-      orderBy: {
-        name: "asc",
-      },
-    });
+  async list(
+    pagination: PaginationRequest,
+  ): Promise<PaginatedResult<CustomerDetailsDTO>> {
+    const paginationOptions = buildPagination(pagination);
 
-    return customers.map((customer) => ({
+    const [customers, total] = await prisma.$transaction([
+      prisma.customer.findMany({
+        ...paginationOptions,
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      prisma.customer.count(),
+    ]);
+    const dt = customers.map((customer) => ({
       id: customer.id,
 
       name: customer.name,
@@ -21,6 +32,7 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
       email: customer.email,
       phone: customer.phone,
     }));
+    return buildPaginatedResult(dt, total, pagination);
   }
 
   async getById(id: string): Promise<CustomerDetailsDTO | null> {

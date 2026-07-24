@@ -1,26 +1,43 @@
 import { FinancialDocumentReadRepository } from "@finance/application/contracts/FinancialDocumentReadRepository";
 import { FinancialDocumentDTO } from "@finance/application/dto/FinancialDocumentDTO";
+import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
+import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { prisma } from "@shared/prisma";
 
 export class PrismaFinancialDocumentReadRepository implements FinancialDocumentReadRepository {
-  async listReceivables(): Promise<FinancialDocumentDTO[]> {
-    const financialDocuments = await prisma.financialDocument.findMany({
-      where: {
-        type: "RECEIVABLE",
-      },
-      include: {
-        parcels: {
-          include: {
-            payments: true,
+  async listReceivables(
+    pagination: PaginationRequest,
+  ): Promise<PaginatedResult<FinancialDocumentDTO>> {
+    const paginationOptions = buildPagination(pagination);
+
+    const [financialDocuments, total] = await prisma.$transaction([
+      prisma.financialDocument.findMany({
+        ...paginationOptions,
+
+        where: {
+          type: "RECEIVABLE",
+        },
+        include: {
+          parcels: {
+            include: {
+              payments: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
+        orderBy: {
+          createdAt: "asc",
+        },
+      }),
+      prisma.financialDocument.count({
+        where: {
+          type: "RECEIVABLE",
+        },
+      }),
+    ]);
 
-    return financialDocuments.map((financialDocument) => {
+    const dt = financialDocuments.map((financialDocument) => {
       const totalAmount = financialDocument.parcels.reduce(
         (total, parcel) => total + Number(parcel.amount),
         0,
@@ -89,5 +106,6 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
         }),
       };
     });
+    return buildPaginatedResult(dt, total, pagination);
   }
 }

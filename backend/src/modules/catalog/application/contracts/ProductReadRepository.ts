@@ -1,19 +1,11 @@
 // application/queries/ProductQuery.ts
 
+import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { ProductListDTO } from "../dto/ProductListDTO";
-
-interface FindManyProductsParams {
-  page: number;
-  limit: number;
-}
-
-interface FindManyProductsResult {
-  data: ProductListDTO[];
-  total: number;
-}
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 
 export interface ProductReadRepository {
-  list({}: FindManyProductsParams): Promise<FindManyProductsResult>;
+  list(pagination: PaginationRequest): Promise<PaginatedResult<ProductListDTO>>;
 
   getById(id: string): Promise<ProductListDTO | null>;
 }
