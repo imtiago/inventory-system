@@ -9,14 +9,27 @@ export interface VariantFormData {
 }
 
 interface Props {
+  title: string;
+
+  submitLabel: string;
+
+  initialValues?: Partial<VariantFormData>;
+
   onSubmit(data: VariantFormData): void;
 
   onCancel(): void;
 }
 
-export function VariantForm({ onSubmit, onCancel }: Props) {
-  const { register, handleSubmit, setValue } = useForm<VariantFormData>();
-
+export function VariantForm({
+  title,
+  submitLabel,
+  initialValues,
+  onSubmit,
+  onCancel,
+}: Props) {
+  const { register, handleSubmit, setValue } = useForm<VariantFormData>({
+    defaultValues: initialValues,
+  });
   const [scannerOpen, setScannerOpen] = useState(false);
 
   function handleBarcodeRead(barcode: string) {
@@ -33,7 +46,7 @@ export function VariantForm({ onSubmit, onCancel }: Props) {
       "
     >
       <div>
-        <h1 className="text-3xl font-bold">Nova Variante</h1>
+        <h1 className="text-3xl font-bold">{title}</h1>
 
         <p className="text-gray-500">
           Cadastre uma unidade comercial do produto.
@@ -144,15 +157,9 @@ export function VariantForm({ onSubmit, onCancel }: Props) {
 
         <button
           type="submit"
-          className="
-            bg-black
-            text-white
-            px-6
-            py-3
-            rounded-lg
-          "
+          className="bg-black text-white rounded-lg px-6 py-3"
         >
-          Salvar Variante
+          {submitLabel}
         </button>
       </div>
     </form>

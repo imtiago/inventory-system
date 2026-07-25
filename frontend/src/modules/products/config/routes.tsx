@@ -1,11 +1,12 @@
 // modules/products/routes.tsx
-import { ProductListPage } from "./pages/ProductListPage";
-import { ProductEditPage } from "./pages/ProductEditPage";
-import { ProductDetailsPage } from "./pages/ProductDetailsPage";
+import { ProductListPage } from "../pages/ProductListPage";
+import { ProductEditPage } from "../pages/ProductEditPage";
+import { ProductDetailsPage } from "../pages/ProductDetailsPage";
 
 import type { AppRoute } from "@/routes/types";
-import { ProductCreatePage } from "./pages/ProductCreatePage";
-import { VariantCreatePage } from "./pages/VariantCreatePage";
+import { ProductCreatePage } from "../pages/ProductCreatePage";
+import { VariantCreatePage } from "../pages/VariantCreatePage";
+import { VariantEditPage } from "../pages/VariantEditPage";
 
 export const productRoutes: AppRoute[] = [
   {
@@ -24,6 +25,12 @@ export const productRoutes: AppRoute[] = [
     path: "/products/:id/variants/new",
     label: "Nova Variante",
     component: VariantCreatePage,
+    guard: "auth",
+  },
+  {
+    label: "Editar Variante",
+    path: "/variants/:variantId/edit",
+    component: VariantEditPage,
     guard: "auth",
   },
   {

@@ -1,16 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProduct } from "../services/productService";
 
-export function useCreateProduct() {
-  const queryClient = useQueryClient();
+import { queryKeys } from "@/shared/react-query/keys";
+import { useCrudMutation } from "@/shared/react-query/useCrudMutation";
 
-  return useMutation({
+export function useCreateProduct() {
+  return useCrudMutation({
     mutationFn: createProduct,
 
-    onSuccess() {
-      queryClient.invalidateQueries({
-        queryKey: ["products"],
-      });
-    },
+    invalidateKeys: [queryKeys.products],
+
+    successMessage: "Produto cadastrado com sucesso.",
+
+    errorMessage: "Erro ao cadastrar produto.",
   });
 }

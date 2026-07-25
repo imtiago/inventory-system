@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { RouteGuard } from "./RouteGuard";
 import { useAuth } from "../shared/hooks/useAuth";
 
-import { productRoutes } from "../modules/products/routes";
+import { productRoutes } from "../modules/products/config/routes";
 import { salesRoutes } from "../modules/sales/routes";
 import { authRoutes } from "../modules/auth/routes";
 import type { AppRoute } from "./types";

@@ -25,6 +25,8 @@ export function VariantCreatePage() {
       "
     >
       <VariantForm
+        title="Nova Variante"
+        submitLabel="Salvar Variante"
         onSubmit={handleSubmit}
         onCancel={() => navigate(`/products/${id}`)}
       />

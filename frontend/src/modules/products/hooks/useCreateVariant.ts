@@ -1,20 +1,21 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { productMessages } from "../config/messages";
+import { productQueryKeys } from "../config/queryKeys";
+import { createVariant, type SaveVariantDTO } from "../services/variantService";
 
-import {
-  createVariant,
-  type CreateVariantDTO,
-} from "../services/productService";
+import { useCrudMutation } from "@/shared/react-query/useCrudMutation";
 
 export function useCreateVariant(productId: string) {
-  const queryClient = useQueryClient();
+  return useCrudMutation({
+    mutationFn: (payload: SaveVariantDTO) => createVariant(productId, payload),
 
-  return useMutation({
-    mutationFn: (data: CreateVariantDTO) => createVariant(productId, data),
+    invalidateKeys: [
+      productQueryKeys.products,
+      productQueryKeys.product(productId),
+      productQueryKeys.variants(productId),
+    ],
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["product", productId, "variants"],
-      });
-    },
+    successMessage: productMessages.variant.created,
+
+    errorMessage: "Erro ao criar variante.",
   });
 }

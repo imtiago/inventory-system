@@ -1,13 +1,19 @@
 import { useParams, Link } from "react-router-dom";
 
-import { ArrowLeft, Plus } from "lucide-react";
-
+import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { useProductDetails } from "../hooks/useProductDetails";
+import { useDeleteVariant } from "../hooks/useDeleteVariant";
+import { useState } from "react";
+import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
+import type { Variant } from "../services/variantService";
 
 export function ProductDetailsPage() {
   const { id } = useParams();
 
+  const [variantToDelete, setVariantToDelete] = useState<Variant | null>(null);
   const { product, variants, isLoading, isError } = useProductDetails(id!);
+
+  const deleteVariant = useDeleteVariant(id!);
 
   if (isLoading) {
     return <div>Carregando produto...</div>;
@@ -16,7 +22,15 @@ export function ProductDetailsPage() {
   if (isError || !product) {
     return <div>Erro ao carregar produto</div>;
   }
+  async function handleDelete() {
+    if (!variantToDelete) {
+      return;
+    }
 
+    await deleteVariant.mutateAsync(variantToDelete.id);
+
+    setVariantToDelete(null);
+  }
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
@@ -135,6 +149,7 @@ export function ProductDetailsPage() {
               <th className="p-3 text-left">Nome</th>
 
               <th className="p-3 text-left">Código de barras</th>
+              <th className="p-3 text-center">Ações</th>
             </tr>
           </thead>
 
@@ -142,7 +157,7 @@ export function ProductDetailsPage() {
             {variants.length === 0 ? (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={4}
                   className="
                       text-center
                       p-6
@@ -166,12 +181,37 @@ export function ProductDetailsPage() {
                   <td className="p-3 font-medium">{variant.name}</td>
 
                   <td className="p-3">{variant.barcode ?? "Não informado"}</td>
+                  <td className="p-3">
+                    <div className="flex justify-center gap-3">
+                      <Link
+                        to={`/variants/${variant.id}/edit`}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <Pencil size={18} />
+                      </Link>
+
+                      <button
+                        onClick={() => setVariantToDelete(variant)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        open={!!variantToDelete}
+        title="Excluir variante"
+        description={`Deseja realmente excluir a variante "${variantToDelete?.name}"? Esta ação não poderá ser desfeita.`}
+        loading={deleteVariant.isPending}
+        onCancel={() => setVariantToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
