@@ -5,6 +5,6 @@ export class GetProductVariantByIdUseCase {
   constructor(private productVariantRepo: ProductVariantReadRepository) {}
 
   async execute(id: string): Promise<ProductVariantDTO | null> {
-    return this.productVariantRepo.getById(id);
+    return this.productVariantRepo.findById(id);
   }
 }

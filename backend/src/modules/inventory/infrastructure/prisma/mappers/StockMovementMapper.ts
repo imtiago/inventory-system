@@ -1,6 +1,6 @@
-import { StockMovement } from "../../domain/entities/StockMovement";
 import { StockMovement as PrismaStockMovement, Prisma } from "@prisma/client";
 import { StockMovementTypeMapper } from "./StockMovementTypeMapper";
+import { StockMovement } from "@inventory/domain/entities/StockMovement";
 
 export class StockMovementMapper {
   static toDomain(prisma: PrismaStockMovement): StockMovement {

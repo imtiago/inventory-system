@@ -1,6 +1,4 @@
-// src/modules/inventory/infrastructure/mappers/StockMovementTypeMapper.ts
-
-import { StockMovementType } from "../../domain/entities/StockMovement";
+import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { StockMovementType as PrismaStockMovementType } from "@prisma/client";
 
 export class StockMovementTypeMapper {

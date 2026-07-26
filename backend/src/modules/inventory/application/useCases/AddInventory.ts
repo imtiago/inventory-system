@@ -37,7 +37,7 @@ export class AddInventory extends TransactionalUseCase<
       const variant = await this.catalogoService.getProductVariant(
         request.productVariantId,
       );
-      if (!variant) return new Error("varainte não encontrada");
+      if (!variant) return new Error("variante não encontrada");
       inventory = new Inventory({
         productVariantId: request.productVariantId,
       });

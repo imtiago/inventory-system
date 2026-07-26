@@ -1,16 +1,29 @@
 import { useParams, Link } from "react-router-dom";
+import { VariantStock } from "../components/VariantStock";
+import {
+  ArrowLeft,
+  Pencil,
+  Plus,
+  Trash2,
+  Package,
+  Layers,
+  History,
+} from "lucide-react";
 
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+
 import { useProductDetails } from "../hooks/useProductDetails";
 import { useDeleteVariant } from "../hooks/useDeleteVariant";
-import { useState } from "react";
+
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
+
 import type { Variant } from "../services/variantService";
 
 export function ProductDetailsPage() {
   const { id } = useParams();
 
   const [variantToDelete, setVariantToDelete] = useState<Variant | null>(null);
+
   const { product, variants, isLoading, isError } = useProductDetails(id!);
 
   const deleteVariant = useDeleteVariant(id!);
@@ -22,15 +35,15 @@ export function ProductDetailsPage() {
   if (isError || !product) {
     return <div>Erro ao carregar produto</div>;
   }
+
   async function handleDelete() {
-    if (!variantToDelete) {
-      return;
-    }
+    if (!variantToDelete) return;
 
     await deleteVariant.mutateAsync(variantToDelete.id);
 
     setVariantToDelete(null);
   }
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
@@ -49,9 +62,26 @@ export function ProductDetailsPage() {
           <ArrowLeft size={18} />
           Voltar
         </Link>
+
+        <Link
+          to={`/products/${product.id}/edit`}
+          className="
+            flex
+            items-center
+            gap-2
+            bg-black
+            text-white
+            px-4
+            py-2
+            rounded-lg
+          "
+        >
+          <Pencil size={18} />
+          Editar Produto
+        </Link>
       </div>
 
-      {/* Dados do produto */}
+      {/* Informações do produto */}
 
       <div
         className="
@@ -61,40 +91,56 @@ export function ProductDetailsPage() {
           p-6
         "
       >
-        <div>
-          <h1 className="text-2xl font-bold">{product.name}</h1>
+        <h1 className="text-3xl font-bold">{product.name}</h1>
 
-          <p className="text-gray-500">
-            {product.description || "Sem descrição"}
-          </p>
-        </div>
+        <p className="text-gray-500 mt-1">
+          {product.description ?? "Sem descrição"}
+        </p>
 
         <div
           className="
             grid
-            grid-cols-3
+            grid-cols-4
             gap-6
-            mt-6
+            mt-8
           "
         >
-          <div>
-            <span className="text-gray-500">Código</span>
+          <InfoItem label="Código" value={product.code} />
 
-            <p className="font-medium">{product.code}</p>
-          </div>
+          <InfoItem label="Marca" value={product.brand.name} />
 
-          <div>
-            <span className="text-gray-500">Marca</span>
+          <InfoItem label="Categoria" value={product.category.name} />
 
-            <p className="font-medium">{product.brand.name}</p>
-          </div>
-
-          <div>
-            <span className="text-gray-500">Categoria</span>
-
-            <p className="font-medium">{product.category.name}</p>
-          </div>
+          <InfoItem label="Variantes" value={String(variants.length)} />
         </div>
+      </div>
+
+      {/* Resumo */}
+
+      <div
+        className="
+          grid
+          grid-cols-3
+          gap-6
+        "
+      >
+        <SummaryCard
+          title="Variantes"
+          value={variants.length}
+          icon={<Layers size={22} />}
+        />
+
+        <SummaryCard
+          title="Estoque atual"
+          value="--"
+          icon={<Package size={22} />}
+        />
+
+        <SummaryCard
+          title="Movimentações"
+          value="--"
+          icon={<History size={22} />}
+        />
       </div>
 
       {/* Variantes */}
@@ -116,7 +162,14 @@ export function ProductDetailsPage() {
           "
         >
           <div>
-            <h2 className="text-xl font-bold">Variantes ({variants.length})</h2>
+            <h2
+              className="
+                text-xl
+                font-bold
+              "
+            >
+              Variantes ({variants.length})
+            </h2>
 
             <p className="text-gray-500 text-sm">
               Unidades comercializadas deste produto
@@ -149,6 +202,7 @@ export function ProductDetailsPage() {
               <th className="p-3 text-left">Nome</th>
 
               <th className="p-3 text-left">Código de barras</th>
+              <th className="p-3 text-left">Estoque</th>
               <th className="p-3 text-center">Ações</th>
             </tr>
           </thead>
@@ -159,10 +213,10 @@ export function ProductDetailsPage() {
                 <td
                   colSpan={4}
                   className="
-                      text-center
-                      p-6
-                      text-gray-500
-                    "
+                  text-center
+                  p-6
+                  text-gray-500
+                "
                 >
                   Nenhuma variante cadastrada
                 </td>
@@ -172,9 +226,9 @@ export function ProductDetailsPage() {
                 <tr
                   key={variant.id}
                   className="
-                    border-t
-                    hover:bg-gray-50
-                  "
+                  border-t
+                  hover:bg-gray-50
+                "
                 >
                   <td className="p-3">{variant.code}</td>
 
@@ -182,17 +236,32 @@ export function ProductDetailsPage() {
 
                   <td className="p-3">{variant.barcode ?? "Não informado"}</td>
                   <td className="p-3">
-                    <div className="flex justify-center gap-3">
+                    <VariantStock variantId={variant.id} />
+                  </td>
+                  <td className="p-3">
+                    <div
+                      className="
+                      flex
+                      justify-center
+                      gap-3
+                    "
+                    >
                       <Link
                         to={`/variants/${variant.id}/edit`}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="
+                        text-blue-600
+                        hover:text-blue-800
+                      "
                       >
                         <Pencil size={18} />
                       </Link>
 
                       <button
                         onClick={() => setVariantToDelete(variant)}
-                        className="text-red-600 hover:text-red-800"
+                        className="
+                        text-red-600
+                        hover:text-red-800
+                      "
                       >
                         <Trash2 size={18} />
                       </button>
@@ -204,6 +273,7 @@ export function ProductDetailsPage() {
           </tbody>
         </table>
       </div>
+
       <ConfirmDialog
         open={!!variantToDelete}
         title="Excluir variante"
@@ -212,6 +282,48 @@ export function ProductDetailsPage() {
         onCancel={() => setVariantToDelete(null)}
         onConfirm={handleDelete}
       />
+    </div>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-gray-500 text-sm">{label}</span>
+
+      <p className="font-medium">{value}</p>
+    </div>
+  );
+}
+
+function SummaryCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div
+      className="
+        bg-white
+        rounded-xl
+        shadow
+        p-5
+        flex
+        items-center
+        gap-4
+      "
+    >
+      {icon}
+
+      <div>
+        <p className="text-gray-500 text-sm">{title}</p>
+
+        <p className="text-2xl font-bold">{value}</p>
+      </div>
     </div>
   );
 }

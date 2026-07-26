@@ -4,6 +4,7 @@ import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeAddInventoryController } from "../controllers/AddInventoryController";
 import { makeRemoveInventoryController } from "../controllers/RemoveInventoryController";
 import { makeGetInventoryController } from "../controllers/GetInventoryController";
+import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   app.post(
@@ -23,5 +24,10 @@ export async function inventoryRoutes(app: FastifyInstance) {
     "/:variantId",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGetInventoryController(),
+  );
+  app.get(
+    "/variants/:variantId",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeGetInventoryByVariantIdController(),
   );
 }
