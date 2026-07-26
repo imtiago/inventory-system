@@ -9,7 +9,7 @@ export function useProductDetails(productId: string) {
   return {
     product: productQuery.data,
 
-    variants: variantsQuery.data ?? [],
+    variants: variantsQuery.data,
 
     isLoading: productQuery.isLoading || variantsQuery.isLoading,
 

@@ -38,3 +38,13 @@ export interface ProductListResponse {
     totalPages: number;
   };
 }
+export interface ProductVariantListResponse {
+  data: ProductVariant[];
+
+  pagination: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}

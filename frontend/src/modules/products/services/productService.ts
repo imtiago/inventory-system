@@ -1,5 +1,9 @@
 import { api } from "@/shared/services/api";
-import type { Product, ProductListResponse, ProductVariant } from "../types";
+import type {
+  Product,
+  ProductListResponse,
+  ProductVariantListResponse,
+} from "../types";
 import type { ProductFormData } from "../components/ProductForm";
 
 export interface CreateVariantDTO {
@@ -46,8 +50,7 @@ export const updateProduct = async (id: string, input: any) => {
 
 export async function getProductVariants(
   productId: string,
-): Promise<ProductVariant[]> {
+): Promise<ProductVariantListResponse> {
   const response = await api.get(`/products/${productId}/variants`);
-
-  return response.data.data; // se a API retorna { data: [...] }
+  return response.data; // se a API retorna { data: [...] }
 }
