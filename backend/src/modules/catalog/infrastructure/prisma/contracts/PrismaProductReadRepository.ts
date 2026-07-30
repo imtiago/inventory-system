@@ -2,6 +2,7 @@
 
 import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
 import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
+import { ProductReadMapper } from "@catalog/application/mappers/ProductReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -36,26 +37,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
       prisma.product.count(),
     ]);
 
-    const dt = products.map((product) => ({
-      id: product.id,
-
-      name: product.name,
-      code: product.code,
-
-      description: product.description,
-
-      brand: {
-        id: product.brand.id,
-        name: product.brand.name,
-      },
-
-      category: {
-        id: product.category.id,
-        name: product.category.name,
-      },
-
-      variantsCount: product._count.variants,
-    }));
+    const dt = products.map((product) => ProductReadMapper.toDTO(product));
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -71,24 +53,6 @@ export class PrismaProductReadRepository implements ProductReadRepository {
 
     if (!product) return null;
 
-    return {
-      id: product.id,
-
-      name: product.name,
-
-      description: product.description,
-
-      createdAt: product.createdAt,
-
-      brand: {
-        id: product.brand.id,
-        name: product.brand.name,
-      },
-
-      category: {
-        id: product.category.id,
-        name: product.category.name,
-      },
-    };
+    return ProductReadMapper.toDTO(product);
   }
 }

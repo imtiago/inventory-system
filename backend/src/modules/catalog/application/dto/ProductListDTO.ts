@@ -4,6 +4,7 @@ export interface ProductListDTO {
   code: string;
 
   name: string;
+  description?: string;
 
   brand: {
     id: string;

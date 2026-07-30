@@ -1,5 +1,6 @@
 import { SaleReadRepository } from "@sales/application/contracts/SaleReadRepository";
 import { SaleDetailsDTO } from "@sales/application/dto/SaleDTO";
+import { SaleReadMapper } from "@sales/application/mappers/SaleReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -26,25 +27,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       prisma.sale.count(),
     ]);
 
-    const dt = sales.map((sale) => ({
-      id: sale.id,
-      createdAt: sale.createdAt,
-      totalAmount: sale.totalAmount,
-      status: sale.status,
-
-      customer: {
-        id: sale.customer.id,
-        name: sale.customer.name,
-      },
-
-      items: sale.items.map((item) => ({
-        id: item.id,
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        totalPrice: item.quantity * item.price,
-      })),
-    }));
+    const dt = sales.map((sale) => SaleReadMapper.toDTO(sale));
 
     return buildPaginatedResult(dt, total, pagination);
   }
@@ -66,24 +49,6 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       return null;
     }
 
-    return {
-      id: sale.id,
-      createdAt: sale.createdAt,
-      totalAmount: sale.totalAmount,
-      status: sale.status,
-
-      customer: {
-        id: sale.customer.id,
-        name: sale.customer.name,
-      },
-
-      items: sale.items.map((item) => ({
-        id: item.id,
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        totalPrice: item.quantity * item.price,
-      })),
-    };
+    return SaleReadMapper.toDTO(sale);
   }
 }

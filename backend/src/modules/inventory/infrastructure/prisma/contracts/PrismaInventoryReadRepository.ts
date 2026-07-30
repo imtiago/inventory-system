@@ -1,5 +1,6 @@
 import { InventoryReadRepository } from "@inventory/application/contracts/InventoryReadRepository";
 import { InventoryDTO } from "@inventory/application/dto/InventoryDTO";
+import { InventoryReadMapper } from "@inventory/application/mappers/InventoryReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -26,22 +27,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
       prisma.inventory.count(),
     ]);
 
-    const dt = data.map((d) => ({
-      id: d.id,
-      availableQuantity: d.quantity - d.reservedQuantity,
-      createdAt: d.createdAt,
-      minimumStock: d.minimumStock,
-      productVariant: {
-        id: d.productVariant.id,
-        name: d.productVariant.name,
-        barcode: d.productVariant.barcode,
-        code: d.productVariant.code,
-        productId: d.productVariant.productId,
-        salePrice: d.productVariant.salePrice,
-      },
-      quantity: d.quantity,
-      reservedQuantity: d.reservedQuantity,
-    }));
+    const dt = data.map((d) => InventoryReadMapper.toDTO(d));
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -52,15 +38,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
 
     if (!data) return null;
 
-    return {
-      id: data.id,
-      availableQuantity: data.quantity - data.reservedQuantity,
-      createdAt: data.createdAt,
-      minimumStock: data.minimumStock,
-      productVariantId: data.productVariantId,
-      quantity: data.quantity,
-      reservedQuantity: data.reservedQuantity,
-    };
+    return InventoryReadMapper.toDTO(data);
   }
 
   async getByVariantId(id: string): Promise<InventoryDTO | null> {
@@ -72,14 +50,6 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
 
     if (!data) return null;
 
-    return {
-      id: data.id,
-      availableQuantity: data.quantity - data.reservedQuantity,
-      createdAt: data.createdAt,
-      minimumStock: data.minimumStock,
-      productVariantId: data.productVariantId,
-      quantity: data.quantity,
-      reservedQuantity: data.reservedQuantity,
-    };
+    return InventoryReadMapper.toDTO(data);
   }
 }

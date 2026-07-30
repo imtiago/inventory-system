@@ -155,11 +155,11 @@ model StockMovement {
 
   quantity Int
 
-  previousQuantity Int
+  // previousQuantity Int
 
-  currentQuantity Int
+  // currentQuantity Int
 
-  averageCost Decimal?
+  // averageCost Decimal?
 
   originId String?
 

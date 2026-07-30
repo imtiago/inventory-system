@@ -1,7 +1,6 @@
-// infrastructure/prisma/queries/PrismaProductQuery.ts
-
 import { CustomerReadRepository } from "@customer/application/contracts/CustomerReadRepository";
 import { CustomerDetailsDTO } from "@customer/application/dto/CustomerDetailsDTO";
+import { CustomerReadMapper } from "@customer/application/mappers/CustomerReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -23,15 +22,7 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
       }),
       prisma.customer.count(),
     ]);
-    const dt = customers.map((customer) => ({
-      id: customer.id,
-
-      name: customer.name,
-      address: customer.address,
-      createdAt: customer.createdAt,
-      email: customer.email,
-      phone: customer.phone,
-    }));
+    const dt = customers.map((customer) => CustomerReadMapper.toDTO(customer));
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -42,14 +33,6 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
 
     if (!customer) return null;
 
-    return {
-      id: customer.id,
-
-      name: customer.name,
-      address: customer.address,
-      createdAt: customer.createdAt,
-      email: customer.email,
-      phone: customer.phone,
-    };
+    return CustomerReadMapper.toDTO(customer);
   }
 }

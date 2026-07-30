@@ -2,6 +2,7 @@
 
 import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
 import { ProductVariantDTO } from "@catalog/application/dto/ProductVariantDTO";
+import { ProductVariantReadMapper } from "@catalog/application/mappers/ProductVariantReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -34,14 +35,9 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
         },
       }),
     ]);
-    const dt = productsVariant.map((variant) => ({
-      id: variant.id,
-      name: variant.name,
-      barcode: variant.barcode,
-      code: variant.code,
-      productId: variant.product.id,
-      salePrice: variant.salePrice,
-    }));
+    const dt = productsVariant.map((variant) =>
+      ProductVariantReadMapper.toDTO(variant),
+    );
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -62,14 +58,9 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
       }),
       prisma.productVariant.count(),
     ]);
-    const dt = productsVariant.map((variant) => ({
-      id: variant.id,
-      name: variant.name,
-      barcode: variant.barcode,
-      code: variant.code,
-      productId: variant.product.id,
-      salePrice: variant.salePrice,
-    }));
+    const dt = productsVariant.map((variant) =>
+      ProductVariantReadMapper.toDTO(variant),
+    );
 
     return buildPaginatedResult(dt, total, pagination);
   }
@@ -84,14 +75,6 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
 
     if (!variant) return null;
 
-    return {
-      id: variant.id,
-      name: variant.name,
-      barcode: variant.barcode,
-      code: variant.code,
-      // productName: variant.product.name,
-      productId: variant.product.id,
-      salePrice: variant.salePrice,
-    };
+    return ProductVariantReadMapper.toDTO(variant);
   }
 }

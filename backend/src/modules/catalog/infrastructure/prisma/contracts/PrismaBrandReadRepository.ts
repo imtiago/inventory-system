@@ -1,7 +1,6 @@
-// infrastructure/prisma/queries/PrismaProductQuery.ts
-
 import { BrandReadRepository } from "@catalog/application/contracts/BrandReadRepository";
 import { BrandListDTO } from "@catalog/application/dto/BrandListDTO";
+import { BrandReadMapper } from "@catalog/application/mappers/BrandReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -24,11 +23,7 @@ export class PrismaBrandReadRepository implements BrandReadRepository {
       prisma.brand.count(),
     ]);
 
-    const dt = brands.map((brand) => ({
-      id: brand.id,
-
-      name: brand.name,
-    }));
+    const dt = brands.map((brand) => BrandReadMapper.toDTO(brand));
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -39,10 +34,6 @@ export class PrismaBrandReadRepository implements BrandReadRepository {
 
     if (!brand) return null;
 
-    return {
-      id: brand.id,
-
-      name: brand.name,
-    };
+    return BrandReadMapper.toDTO(brand);
   }
 }

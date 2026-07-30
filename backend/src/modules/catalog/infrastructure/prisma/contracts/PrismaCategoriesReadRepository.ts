@@ -1,5 +1,6 @@
 import { CategoriesReadRepository } from "@catalog/application/contracts/CategoriesReadRepository";
 import { CategoriesListDTO } from "@catalog/application/dto/CategoriesListDTO";
+import { CategoriesReadMapper } from "@catalog/application/mappers/CategoriesReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -22,10 +23,9 @@ export class PrismaCategoriesReadRepository implements CategoriesReadRepository 
       prisma.category.count(),
     ]);
 
-    const dt = categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-    }));
+    const dt = categories.map((category) =>
+      CategoriesReadMapper.toDTO(category),
+    );
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -36,10 +36,6 @@ export class PrismaCategoriesReadRepository implements CategoriesReadRepository 
 
     if (!category) return null;
 
-    return {
-      id: category.id,
-
-      name: category.name,
-    };
+    return CategoriesReadMapper.toDTO(category);
   }
 }
