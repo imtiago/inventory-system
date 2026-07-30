@@ -1,14 +1,12 @@
-import { v4 as uuid } from "uuid";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
 // src/modules/catalog/domain/entities/Product.ts
-export class Product {
-  private _id: string;
+export class Product extends BaseEntity {
   private _name: string;
   private _code: string;
   private _description: string | null;
   private _brandId: string;
   private _categoryId: string;
-  private _createdAt: Date;
 
   constructor(props: {
     id?: string;
@@ -19,17 +17,15 @@ export class Product {
     categoryId: string;
     createdAt?: Date;
   }) {
-    this._id = props.id || uuid();
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     this._name = props.name;
     this._code = props.code;
     this._description = props.description ?? null; // garante null
     this._brandId = props.brandId;
     this._categoryId = props.categoryId;
-    this._createdAt = props.createdAt ?? new Date();
-  }
-
-  get id() {
-    return this._id;
   }
 
   get name() {
@@ -50,9 +46,5 @@ export class Product {
 
   get categoryId() {
     return this._categoryId;
-  }
-
-  get createdAt() {
-    return this._createdAt;
   }
 }

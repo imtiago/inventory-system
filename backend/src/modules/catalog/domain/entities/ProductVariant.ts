@@ -1,10 +1,8 @@
 // src/modules/catalog/domain/entities/ProductVariant.ts
 
-import { v4 as uuid } from "uuid";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-export class ProductVariant {
-  private _id: string;
-
+export class ProductVariant extends BaseEntity {
   private _productId: string;
 
   private _code: string;
@@ -15,8 +13,6 @@ export class ProductVariant {
 
   private _salePrice: number;
 
-  private _createdAt: Date;
-
   constructor(props: {
     id?: string;
     productId: string;
@@ -26,6 +22,10 @@ export class ProductVariant {
     salePrice?: number;
     createdAt?: Date;
   }) {
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     if (!props.productId.trim()) {
       throw new Error("Product id is required.");
     }
@@ -42,8 +42,6 @@ export class ProductVariant {
       throw new Error("Sale price cannot be negative.");
     }
 
-    this._id = props.id ?? uuid();
-
     this._productId = props.productId;
 
     this._code = props.code;
@@ -53,12 +51,6 @@ export class ProductVariant {
     this._barcode = props.barcode ?? null;
 
     this._salePrice = props.salePrice ?? 0;
-
-    this._createdAt = props.createdAt ?? new Date();
-  }
-
-  get id(): string {
-    return this._id;
   }
 
   get productId(): string {
@@ -79,10 +71,6 @@ export class ProductVariant {
 
   get salePrice(): number {
     return this._salePrice;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt;
   }
 
   rename(name: string): void {

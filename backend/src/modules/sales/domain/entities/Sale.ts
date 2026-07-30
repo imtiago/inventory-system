@@ -1,14 +1,12 @@
-import { v4 as uuid } from "uuid";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { SaleStatus } from "../enums/SaleStatus";
 import { SaleItem } from "./SaleItem";
 
-export class Sale {
-  private _id: string;
+export class Sale extends BaseEntity {
   private _customerId: string;
   private _items: SaleItem[];
   private _totalAmount: number;
   private _status: SaleStatus;
-  private _createdAt: Date;
 
   constructor(props: {
     id?: string;
@@ -17,11 +15,13 @@ export class Sale {
     status?: SaleStatus;
     createdAt?: Date;
   }) {
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     // if (props.items.length === 0) {
     //   throw new Error("Sale must have items");
     // }
-
-    this._id = props.id ?? uuid();
 
     this._customerId = props.customerId;
 
@@ -30,16 +30,10 @@ export class Sale {
     this._totalAmount = this.calculateTotal();
 
     this._status = props.status ?? SaleStatus.COMPLETED;
-
-    this._createdAt = props.createdAt ?? new Date();
   }
 
   private calculateTotal() {
     return this._items.reduce((total, item) => total + item.total, 0);
-  }
-
-  get id() {
-    return this._id;
   }
 
   get customerId() {
@@ -56,10 +50,6 @@ export class Sale {
 
   get status() {
     return this._status;
-  }
-
-  get createdAt() {
-    return this._createdAt;
   }
 
   cancel() {

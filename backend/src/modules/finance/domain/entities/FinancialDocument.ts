@@ -1,12 +1,11 @@
-import { v4 as uuid } from "uuid";
 import { FinancialType } from "../enums/FinancialType";
 import { FinancialParcel } from "./FinancialParcel";
 import { FinancialStatus } from "../enums/FinancialStatus";
 import { FinancialPartyType } from "../enums/FinancialPartyType";
 import { FinancialOriginType } from "../enums/FinancialOriginType";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-export class FinancialDocument {
-  private _id: string;
+export class FinancialDocument extends BaseEntity {
   private _type: FinancialType;
   private _originId: string;
   private _originType: FinancialOriginType;
@@ -15,7 +14,6 @@ export class FinancialDocument {
   private _partyType: FinancialPartyType;
 
   private _status: FinancialStatus;
-  private _createdAt: Date;
 
   private _parcels: FinancialParcel[];
 
@@ -34,8 +32,10 @@ export class FinancialDocument {
 
     parcels?: FinancialParcel[];
   }) {
-    this._id = props.id ?? uuid();
-
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     this._type = props.type;
 
     this._originId = props.originId;
@@ -45,15 +45,9 @@ export class FinancialDocument {
 
     this._partyType = props.partyType;
 
-    this._createdAt = props.createdAt ?? new Date();
-
     this._parcels = props.parcels ?? [];
 
     this._status = props.status ?? FinancialStatus.OPEN;
-  }
-
-  get id(): string {
-    return this._id;
   }
 
   get type(): FinancialType {
@@ -66,10 +60,6 @@ export class FinancialDocument {
 
   get partyType(): FinancialPartyType {
     return this._partyType;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt;
   }
 
   get parcels(): FinancialParcel[] {

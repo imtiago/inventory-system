@@ -1,9 +1,8 @@
-import { v4 as uuid } from "uuid";
 import { Payment } from "./Payment";
 import { ParcelStatus } from "../enums/ParcelStatus";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-export class FinancialParcel {
-  private _id: string;
+export class FinancialParcel extends BaseEntity {
   private _financialDocumentId: string;
   private _amount: number;
   private _dueDate: Date;
@@ -18,10 +17,14 @@ export class FinancialParcel {
     dueDate: Date;
     financialDocumentId: string;
     payments?: Payment[];
+    createdAt?: Date;
+
     // paidAt?: Date | null;
   }) {
-    this._id = props.id ?? uuid();
-
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     this._amount = props.amount;
 
     this._dueDate = props.dueDate;
@@ -29,10 +32,6 @@ export class FinancialParcel {
     this._payments = props.payments ?? [];
 
     // this._paidAt = props.paidAt ?? null;
-  }
-
-  get id() {
-    return this._id;
   }
 
   get amount() {

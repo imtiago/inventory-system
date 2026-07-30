@@ -1,10 +1,8 @@
 // src/modules/sales/domain/entities/SaleItem.ts
 
-import { v4 as uuid } from "uuid";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-export class SaleItem {
-  private _id: string;
-
+export class SaleItem extends BaseEntity {
   // referência
   private _variantId: string;
 
@@ -31,7 +29,12 @@ export class SaleItem {
 
     quantity: number;
     unitPrice: number;
+    createdAt?: Date;
   }) {
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     if (!props.variantId.trim()) {
       throw new Error("Variant id is required.");
     }
@@ -48,8 +51,6 @@ export class SaleItem {
       throw new Error("Unit price cannot be negative.");
     }
 
-    this._id = props.id ?? uuid();
-
     this._variantId = props.variantId;
 
     this._variantName = props.variantName;
@@ -61,10 +62,6 @@ export class SaleItem {
     this._quantity = props.quantity;
 
     this._unitPrice = props.unitPrice;
-  }
-
-  get id(): string {
-    return this._id;
   }
 
   get variantId(): string {

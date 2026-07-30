@@ -1,71 +1,101 @@
-import { v4 as uuid } from "uuid";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { StockMovementOrigin } from "../enums/StockMovementOrigin";
 import { StockMovementType } from "../enums/StockMovementType";
-import { StockMovementOrigin } from "../enums/StockMovementOrigin ";
 
-export class StockMovement {
-  private _id: string;
+interface StockMovementProps {
+  id?: string;
+
+  inventoryId: string;
+
+  productVariantId: string;
+
+  type: StockMovementType;
+
+  origin: StockMovementOrigin;
+
+  quantity: number;
+
+  originId?: string | null;
+
+  userId: string;
+
+  notes?: string | null;
+
+  createdAt?: Date;
+}
+
+export class StockMovement extends BaseEntity {
+  private _inventoryId: string;
+
   private _productVariantId: string;
-  private _type: StockMovementType;
-  private _origin: StockMovementOrigin;
-  private _originId: string;
-  private _quantity: number;
-  private _notes?: string;
-  private userId: string;
-  private _createdAt: Date;
 
-  constructor(props: {
-    id?: string;
-    productVariantId: string;
-    type: StockMovementType;
-    quantity: number;
-    notes?: string;
-    createdAt?: Date;
-  }) {
+  private _type: StockMovementType;
+
+  private _origin: StockMovementOrigin;
+
+  private _quantity: number;
+
+  private _originId?: string | null;
+
+  private _userId: string;
+
+  private _notes?: string | null;
+
+  constructor(props: StockMovementProps) {
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     if (props.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new Error("Stock movement quantity must be greater than zero");
     }
 
-    this._id = props.id ?? uuid();
+    this._inventoryId = props.inventoryId;
+
     this._productVariantId = props.productVariantId;
+
     this._type = props.type;
+
+    this._origin = props.origin;
+
     this._quantity = props.quantity;
-    this._reason = props.reason;
-    this._createdAt = props.createdAt ?? new Date();
+
+    this._originId = props.originId ?? null;
+
+    this._userId = props.userId;
+
+    this._notes = props.notes ?? null;
   }
 
-  get id(): string {
-    return this._id;
+  public get inventoryId() {
+    return this._inventoryId;
   }
 
-  get productVariantId(): string {
+  public get productVariantId() {
     return this._productVariantId;
   }
 
-  get type(): StockMovementType {
+  public get type() {
     return this._type;
   }
 
-  get quantity(): number {
+  public get origin() {
+    return this._origin;
+  }
+
+  public get quantity() {
     return this._quantity;
   }
 
-  get reason(): string | undefined {
-    return this._reason;
+  public get originId() {
+    return this._originId;
   }
 
-  get createdAt(): Date {
-    return this._createdAt;
+  public get userId() {
+    return this._userId;
   }
 
-  isEntry(): boolean {
-    return this._type === StockMovementType.IN;
-  }
-
-  isExit(): boolean {
-    return this._type === StockMovementType.OUT;
-  }
-
-  isAdjustment(): boolean {
-    return this._type === StockMovementType.ADJUSTMENT;
+  public get notes() {
+    return this._notes;
   }
 }

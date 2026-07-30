@@ -1,9 +1,7 @@
-import { v4 as uuid } from "uuid";
 import { PaymentMethod } from "../enums/PaymentMethod";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-export class Payment {
-  private _id: string;
-
+export class Payment extends BaseEntity {
   private _parcelId: string;
 
   private _reference: string | null;
@@ -21,9 +19,12 @@ export class Payment {
     method: PaymentMethod;
     reference: string | null;
     paymentDate?: Date;
+    createdAt?: Date;
   }) {
-    this._id = props.id ?? uuid();
-
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     this._parcelId = props.parcelId;
 
     this._amount = props.amount;
@@ -36,10 +37,6 @@ export class Payment {
     if (props.amount <= 0) {
       throw new Error("Payment amount must be greater than zero");
     }
-  }
-
-  get id() {
-    return this._id;
   }
 
   get parcelId() {

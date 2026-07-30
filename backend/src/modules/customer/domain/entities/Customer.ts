@@ -1,13 +1,11 @@
-import { v4 as uuid } from "uuid";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
 // src/modules/customer/domain/entities/Customer.ts
-export class Customer {
-  private _id: string;
+export class Customer extends BaseEntity {
   private _name: string;
   private _email: string | null;
   private _phone: string | null;
   private _address: string | null;
-  private _createdAt: Date;
 
   constructor(props: {
     id?: string;
@@ -17,16 +15,14 @@ export class Customer {
     address?: string | null;
     createdAt?: Date;
   }) {
-    this._id = props.id ?? uuid();
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     this._name = props.name;
     this._email = props.email ?? null;
     this._phone = props.phone ?? null;
     this._address = props.address ?? null;
-    this._createdAt = props.createdAt ?? new Date();
-  }
-
-  get id(): string {
-    return this._id;
   }
 
   get name(): string {
@@ -43,10 +39,6 @@ export class Customer {
 
   get address(): string | null {
     return this._address;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt;
   }
 
   rename(name: string): void {

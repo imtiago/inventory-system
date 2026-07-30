@@ -1,14 +1,12 @@
-import { v4 as uuid } from "uuid";
 import { UserRole } from "../enums/UserRole";
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
 // src/modules/auth/domain/entities/User.ts
-export class User {
-  private _id: string;
+export class User extends BaseEntity {
   private _name: string;
   private _email: string;
   private _password: string;
   private _role: UserRole;
-  private _createdAt: Date;
 
   constructor(props: {
     id?: string;
@@ -18,16 +16,15 @@ export class User {
     role?: UserRole;
     createdAt?: Date;
   }) {
-    this._id = props.id ?? uuid();
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
+    
     this._name = props.name;
     this._email = props.email;
     this._password = props.password;
     this._role = props.role ?? UserRole.VENDEDOR;
-    this._createdAt = props.createdAt ?? new Date();
-  }
-
-  get id(): string {
-    return this._id;
   }
 
   get name(): string {
@@ -44,10 +41,6 @@ export class User {
 
   get role(): UserRole {
     return this._role;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt;
   }
 
   rename(name: string): void {

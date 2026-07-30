@@ -1,142 +1,188 @@
-// backend/src/modules/inventory/domain/entities/Inventory.ts
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-import { v4 as uuid } from "uuid";
-import { StockMovement } from "./StockMovement";
-import { StockMovementType } from "../enums/StockMovementType";
+interface InventoryProps {
+  id?: string;
 
-export class Inventory {
-  private _id: string;
+  productVariantId: string;
+
+  quantity?: number;
+
+  reservedQuantity?: number;
+
+  minimumStock?: number;
+
+  averageCost?: number;
+
+  createdAt?: Date;
+
+  updatedAt?: Date;
+}
+
+export class Inventory extends BaseEntity {
   private _productVariantId: string;
+
   private _quantity: number;
+
   private _reservedQuantity: number;
+
   private _minimumStock: number;
-  private _createdAt: Date;
 
-  constructor(props: {
-    id?: string;
-    productVariantId: string;
-    quantity?: number;
-    reservedQuantity?: number;
-    minimumStock?: number;
-    createdAt?: Date;
-  }) {
-    this._id = props.id ?? uuid();
+  private _averageCost: number;
+
+  private _updatedAt: Date;
+
+  constructor(props: InventoryProps) {
+    super({
+      id: props.id,
+      createdAt: props.createdAt,
+    });
     this._productVariantId = props.productVariantId;
+
     this._quantity = props.quantity ?? 0;
+
     this._reservedQuantity = props.reservedQuantity ?? 0;
+
     this._minimumStock = props.minimumStock ?? 0;
-    this._createdAt = props.createdAt ?? new Date();
+
+    this._averageCost = props.averageCost ?? 0;
+
+    this._updatedAt = props.updatedAt ?? new Date();
+
+    this.validate();
   }
 
-  get id(): string {
-    return this._id;
+  private validate(): void {
+    if (this._quantity < 0) {
+      throw new Error("Inventory quantity cannot be negative");
+    }
+
+    if (this._reservedQuantity < 0) {
+      throw new Error("Reserved quantity cannot be negative");
+    }
+
+    if (this._reservedQuantity > this._quantity) {
+      throw new Error("Reserved quantity cannot exceed stock");
+    }
   }
 
-  get productVariantId(): string {
+  public get productVariantId() {
     return this._productVariantId;
   }
 
-  get quantity(): number {
+  public get quantity() {
     return this._quantity;
   }
 
-  get reservedQuantity(): number {
+  public get reservedQuantity() {
     return this._reservedQuantity;
   }
 
-  get minimumStock(): number {
+  public get minimumStock() {
     return this._minimumStock;
   }
 
-  get createdAt(): Date {
-    return this._createdAt;
+  public get averageCost() {
+    return this._averageCost;
   }
 
-  get availableQuantity(): number {
+  public get availableQuantity() {
     return this._quantity - this._reservedQuantity;
+  }
+
+  public get updatedAt() {
+    return this._updatedAt;
   }
 
   /**
    * Entrada de estoque
    */
-  addStock(quantity: number, reason?: string): StockMovement {
-    this.increase(quantity);
+  public increase(quantity: number): void {
+    this.validateQuantity(quantity);
 
-    return new StockMovement({
-      productVariantId: this._productVariantId,
-      type: StockMovementType.IN,
-      quantity,
-      reason: reason ?? "Stock addition",
-    });
+    this._quantity += quantity;
+
+    this.touch();
   }
 
   /**
    * Saída de estoque
    */
-  removeStock(quantity: number, reason?: string): StockMovement {
-    this.decrease(quantity);
+  public decrease(quantity: number): void {
+    this.validateQuantity(quantity);
 
-    return new StockMovement({
-      productVariantId: this._productVariantId,
-      type: StockMovementType.OUT,
-      quantity,
-      reason: reason ?? "Stock removal",
-    });
-  }
-
-  private increase(quantity: number): void {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
-    }
-
-    this._quantity += quantity;
-  }
-
-  private decrease(quantity: number): void {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
-    }
-
-    if (this.availableQuantity < quantity) {
-      throw new Error("Insufficient available stock.");
+    if (quantity > this.availableQuantity) {
+      throw new Error("Insufficient available stock");
     }
 
     this._quantity -= quantity;
+
+    this.touch();
   }
 
-  reserve(quantity: number): void {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
-    }
+  /**
+   * Reserva estoque para venda
+   */
+  public reserve(quantity: number): void {
+    this.validateQuantity(quantity);
 
-    if (this.availableQuantity < quantity) {
-      throw new Error("Insufficient available stock.");
+    if (quantity > this.availableQuantity) {
+      throw new Error("Insufficient stock to reserve");
     }
 
     this._reservedQuantity += quantity;
+
+    this.touch();
   }
 
-  releaseReservation(quantity: number): void {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
-    }
+  /**
+   * Libera uma reserva
+   */
+  public release(quantity: number): void {
+    this.validateQuantity(quantity);
 
-    if (this._reservedQuantity < quantity) {
-      throw new Error("Reserved quantity is insufficient.");
+    if (quantity > this._reservedQuantity) {
+      throw new Error("Invalid reserved quantity");
     }
 
     this._reservedQuantity -= quantity;
+
+    this.touch();
   }
 
-  changeMinimumStock(quantity: number): void {
+  /**
+   * Ajuste manual de estoque
+   */
+  public adjust(quantity: number): void {
     if (quantity < 0) {
-      throw new Error("Minimum stock cannot be negative.");
+      throw new Error("Invalid inventory adjustment");
     }
 
-    this._minimumStock = quantity;
+    this._quantity = quantity;
+
+    if (this._reservedQuantity > quantity) {
+      this._reservedQuantity = quantity;
+    }
+
+    this.touch();
   }
 
-  isBelowMinimumStock(): boolean {
-    return this.availableQuantity < this._minimumStock;
+  public updateAverageCost(cost: number) {
+    if (cost < 0) {
+      throw new Error("Invalid average cost");
+    }
+
+    this._averageCost = cost;
+
+    this.touch();
+  }
+
+  private validateQuantity(quantity: number) {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than zero");
+    }
+  }
+
+  private touch() {
+    this._updatedAt = new Date();
   }
 }
