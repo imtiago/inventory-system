@@ -1,12 +1,16 @@
 import { v4 as uuid } from "uuid";
 import { StockMovementType } from "../enums/StockMovementType";
+import { StockMovementOrigin } from "../enums/StockMovementOrigin ";
 
 export class StockMovement {
   private _id: string;
   private _productVariantId: string;
   private _type: StockMovementType;
+  private _origin: StockMovementOrigin;
+  private _originId: string;
   private _quantity: number;
-  private _reason?: string;
+  private _notes?: string;
+  private userId: string;
   private _createdAt: Date;
 
   constructor(props: {
@@ -14,7 +18,7 @@ export class StockMovement {
     productVariantId: string;
     type: StockMovementType;
     quantity: number;
-    reason?: string;
+    notes?: string;
     createdAt?: Date;
   }) {
     if (props.quantity <= 0) {

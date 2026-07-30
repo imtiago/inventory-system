@@ -3,5 +3,5 @@ interface Props {
 }
 
 export function PageContainer({ children }: Props) {
-  return <div className="mx-auto max-w-5xl px-6 py-8">{children}</div>;
+  return <div className="mx-auto max-w-3xl px-6 py-4">{children}</div>;
 }

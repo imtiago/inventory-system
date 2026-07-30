@@ -1,9 +1,9 @@
 import { getInventorySchema } from "@inventory/interfaces/http/schemas/getInventorySchema";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { makeGetInventory } from "../factories/GetInventoryFactory";
+import { makeListInventoryUseCase } from "../factories/ListInventoryFactory";
 
 export function makeGetInventoryController() {
-  const useCase = makeGetInventory();
+  const useCase = makeListInventoryUseCase();
   return async function GetInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,

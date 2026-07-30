@@ -34,7 +34,7 @@ export interface ProductListResponse {
   pagination: {
     page: number;
     limit: number;
-    totalItems: number;
+    total: number;
     totalPages: number;
   };
 }

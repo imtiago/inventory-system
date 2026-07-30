@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { CrudHeader, CrudPage, CrudPagination } from "@/shared/components/crud";
+import { CrudHeader, CrudPagination } from "@/shared/components/crud";
 
 import { DataTable } from "@/shared/components/table";
 
@@ -9,6 +9,7 @@ import { useProductColumns } from "../hooks/useProductColumns";
 import { Section } from "@/shared/components/details/Section";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Page } from "@/shared/components/layout/Page";
 
 export function ProductListPage() {
   const [page, setPage] = useState(1);
@@ -18,7 +19,7 @@ export function ProductListPage() {
   const columns = useProductColumns();
 
   return (
-    <CrudPage>
+    <Page>
       {/* <CrudHeader
         title="Produtos"
         description="Gerencie seu catálogo"
@@ -62,13 +63,13 @@ export function ProductListPage() {
         <CrudPagination
           page={data?.pagination.page ?? 1}
           totalPages={data?.pagination.totalPages ?? 1}
-          totalItems={data?.pagination.totalItems ?? 0}
+          totalItems={data?.pagination.total ?? 0}
           onPrevious={() => setPage((p) => Math.max(1, p - 1))}
           onNext={() =>
             setPage((p) => Math.min(data?.pagination.totalPages ?? 1, p + 1))
           }
         />
       </Section>
-    </CrudPage>
+    </Page>
   );
 }

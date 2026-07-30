@@ -16,3 +16,17 @@ export async function getVariantInventory(
 
   return data.data;
 }
+// export async function listMovements(
+//   variantId: string,
+// ): Promise<VariantInventory> {
+//   const { data } = await api.get(`/inventory/variants/${variantId}`);
+
+//   return data.data;
+// }
+// export async function getVariantInventory(
+//   variantId: string,
+// ): Promise<VariantInventory> {
+//   const { data } = await api.get(`/inventory/variants/${variantId}`);
+
+//   return data.data;
+// }

@@ -15,9 +15,11 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
     const [data, total] = await Promise.all([
       prisma.inventory.findMany({
         ...paginationOptions,
-
         orderBy: {
-          name: "asc",
+          createdAt: "asc",
+        },
+        include: {
+          productVariant: true,
         },
       }),
 
@@ -29,7 +31,14 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
       availableQuantity: d.quantity - d.reservedQuantity,
       createdAt: d.createdAt,
       minimumStock: d.minimumStock,
-      productVariantId: d.productVariantId,
+      productVariant: {
+        id: d.productVariant.id,
+        name: d.productVariant.name,
+        barcode: d.productVariant.barcode,
+        code: d.productVariant.code,
+        productId: d.productVariant.productId,
+        salePrice: d.productVariant.salePrice,
+      },
       quantity: d.quantity,
       reservedQuantity: d.reservedQuantity,
     }));

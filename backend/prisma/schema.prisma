@@ -60,6 +60,16 @@ enum StockMovementType {
   ADJUSTMENT
 }
 
+enum StockMovementOrigin {
+  PURCHASE
+  SALE
+  IMPORT
+  MANUAL
+  INVENTORY
+  TRANSFER
+  RETURN
+}
+
 enum SaleStatus {
   PENDING
   COMPLETED
@@ -112,28 +122,58 @@ model ProductVariant {
 }
 
 model Inventory {
-  id               String   @id @default(uuid())
-  productVariantId String   @unique
-  quantity         Int
-  reservedQuantity Int
-  minimumStock     Int
-  createdAt        DateTime @default(now()) // ✅ adicionado
+  id String @id @default(uuid())
 
-  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+  productVariantId String @unique
+
+  quantity Int @default(0)
+
+  reservedQuantity Int @default(0)
+
+  minimumStock Int @default(0)
+
+  averageCost Decimal @default(0)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  productVariant ProductVariant  @relation(fields: [productVariantId], references: [id])
+  stockMovements StockMovement[]
 }
 
 model StockMovement {
   id String @id @default(uuid())
 
+  inventoryId String
+
   productVariantId String
 
   type StockMovementType
 
+  origin StockMovementOrigin
+
   quantity Int
+
+  previousQuantity Int
+
+  currentQuantity Int
+
+  averageCost Decimal?
+
+  originId String?
+
+  userId String?
+
+  notes String?
 
   createdAt DateTime @default(now())
 
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  user User? @relation(fields: [userId], references: [id])
 }
 
 model Sale {
@@ -185,12 +225,13 @@ model Customer {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole
-  createdAt DateTime @default(now())
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String
+  role           UserRole
+  createdAt      DateTime        @default(now())
+  stockMovements StockMovement[]
 
   @@map("users") // opcional: nome da tabela no banco
 }

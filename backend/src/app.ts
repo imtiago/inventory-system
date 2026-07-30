@@ -14,6 +14,8 @@ import { AppError } from "./shared/errors/AppError";
 
 import cors from "@fastify/cors";
 import { importNfeRoutes } from "modules/nfe-import/infrastructure/http/routes/importNfeRoutes";
+import { receivableRoutes } from "@finance/infrastructure/http/routes/receivableRoutes";
+import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/productVariantsRoutes";
 
 export const app = Fastify({
   logger: true,
@@ -74,12 +76,14 @@ app.addHook("onRequest", async (request, reply) => {
 });
 
 app.register(productRoutes, { prefix: "/products" });
+app.register(productVariantsRoutes, { prefix: "/variants" });
 app.register(brandRoutes, { prefix: "/brands" });
 app.register(categoryRoutes, { prefix: "/categories" });
 app.register(inventoryRoutes, { prefix: "/inventory" });
 
 app.register(saleRoutes, { prefix: "/sales" });
 app.register(customerRoutes, { prefix: "/customers" });
+app.register(receivableRoutes, { prefix: "/receivables" });
 // app.register(inventoryRoutes, { prefix: "/finance" });
 // app.register(payableRoutes);
 app.register(userRoutes);
