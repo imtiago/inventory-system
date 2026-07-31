@@ -3,5 +3,6 @@ import { PrismaProductReadRepository } from "@catalog/infrastructure/prisma/cont
 
 export function makeGetProductUseCase() {
   const repository = new PrismaProductReadRepository();
+
   return new GetProductUseCase(repository);
 }

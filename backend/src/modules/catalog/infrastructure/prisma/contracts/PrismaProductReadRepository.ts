@@ -48,6 +48,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
       include: {
         brand: true,
         category: true,
+        _count: true,
       },
     });
 

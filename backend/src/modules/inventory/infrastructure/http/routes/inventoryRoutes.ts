@@ -6,6 +6,8 @@ import { makeRemoveInventoryController } from "../controllers/RemoveInventoryCon
 import { makeGetInventoryController } from "../controllers/GetInventoryController";
 import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
 import { makeListInventoryController } from "../controllers/ListInventoryController";
+import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
+import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   app.get(
@@ -14,9 +16,14 @@ export async function inventoryRoutes(app: FastifyInstance) {
     makeListInventoryController(),
   );
   app.post(
-    "/add",
+    "/movements",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeAddInventoryController(),
+    makeCreateStockMovementController(),
+  );
+  app.get(
+    "/movements",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeListStockMovementsController(),
   );
 
   app.post(

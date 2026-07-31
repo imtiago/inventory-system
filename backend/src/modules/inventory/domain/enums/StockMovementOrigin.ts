@@ -1,0 +1,9 @@
+export enum StockMovementOrigin {
+  PURCHASE = "PURCHASE",
+  SALE = "SALE",
+  IMPORT = "IMPORT",
+  MANUAL = "MANUAL",
+  INVENTORY = "INVENTORY",
+  TRANSFER = "TRANSFER",
+  RETURN = "RETURN",
+}
