@@ -1,13 +1,20 @@
 // backend/src/modules/inventory/interfaces/http/routes/inventoryRoutes.ts
 import { FastifyInstance } from "fastify";
 import { authorize } from "../../../../../shared/middleware/authorize";
-import { makeAddInventoryController } from "../controllers/AddInventoryController";
-import { makeRemoveInventoryController } from "../controllers/RemoveInventoryController";
-import { makeGetInventoryController } from "../controllers/GetInventoryController";
-import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
+// import { makeAddInventoryController } from "../controllers/ReceiveInventoryController";
+// import { makeGetInventoryController } from "../controllers/GetInventoryController";
+// import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
 import { makeListInventoryController } from "../controllers/ListInventoryController";
-import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
-import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
+import { makeReceiveInventoryController } from "../controllers/ReceiveInventoryController";
+import { makeDispatchInventoryController } from "../controllers/DispatchInventoryController";
+import { makeReserveInventoryController } from "../controllers/ReserveInventoryController";
+import { makeReleaseInventoryController } from "../controllers/ReleaseInventoryController";
+import { makeAdjustInventoryController } from "../controllers/AdjustInventoryController";
+import { makeGetInventoryByIdController } from "../controllers/GetInventoryByIdController";
+import { stockMovementRoutes } from "./stockMovementRoutes";
+import { makeGetInventoryDashboardController } from "../controllers/GetInventoryDashboardController";
+// import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
+// import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   app.get(
@@ -16,29 +23,66 @@ export async function inventoryRoutes(app: FastifyInstance) {
     makeListInventoryController(),
   );
   app.post(
-    "/movements",
+    "/receive",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeCreateStockMovementController(),
+    makeReceiveInventoryController(),
   );
-  app.get(
-    "/movements",
-    { preHandler: [authorize(["admin", "vendedor"])] },
-    makeListStockMovementsController(),
-  );
-
   app.post(
-    "/remove",
+    "/dispatch",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeRemoveInventoryController(),
+    makeDispatchInventoryController(),
+  );
+  app.post(
+    "/reserve",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeReserveInventoryController(),
+  );
+  app.post(
+    "/release",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeReleaseInventoryController(),
+  );
+  app.post(
+    "/adjust",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeAdjustInventoryController(),
   );
   app.get(
-    "/:variantId",
+    "/dashboard",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeGetInventoryController(),
+    makeGetInventoryDashboardController(),
   );
   app.get(
-    "/variants/:variantId",
+    "/:id",
     { preHandler: [authorize(["admin", "vendedor"])] },
-    makeGetInventoryByVariantIdController(),
+    makeGetInventoryByIdController(),
   );
+  app.register(stockMovementRoutes, { prefix: "/movements" });
+
+  // app.post(
+  //   "/movements",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeCreateStockMovementController(),
+  // );
+  // app.get(
+  //   "/movements",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeListStockMovementsController(),
+  // );
+
+  // app.post(
+  //   "/remove",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeRemoveInventoryController(),
+  // );
+  // app.get(
+  //   "/:variantId",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeGetInventoryController(),
+  // );
+  // app.get(
+  //   "/variants/:variantId",
+  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   makeGetInventoryByVariantIdController(),
+  // );
 }

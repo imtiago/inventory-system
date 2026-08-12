@@ -1,11 +1,8 @@
-// infrastructure/repositories/PrismaInventoryRepository.ts
-
+import { Inventory } from "@inventory/domain/entities/Inventory";
+import { InventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { Prisma } from "@prisma/client";
-import { prisma } from "../../../../../shared/prisma";
-
-import { Inventory } from "../../../domain/entities/Inventory";
-import { InventoryRepository } from "../../../domain/repositories/InventoryRepository";
-import { InventoryMapper } from "../mappers/InventoryMapper";
+import { prisma } from "@shared/prisma";
+import { InventoryMapper } from "../prisma/mappers/InventoryMapper";
 
 export class PrismaInventoryRepository implements InventoryRepository {
   async findByVariant(
@@ -15,6 +12,23 @@ export class PrismaInventoryRepository implements InventoryRepository {
     const inventory = await tx.inventory.findUnique({
       where: {
         productVariantId,
+      },
+    });
+
+    if (!inventory) {
+      return null;
+    }
+
+    return InventoryMapper.toDomain(inventory);
+  }
+
+  async findById(
+    id: string,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<Inventory | null> {
+    const inventory = await tx.inventory.findUnique({
+      where: {
+        id,
       },
     });
 
@@ -52,13 +66,4 @@ export class PrismaInventoryRepository implements InventoryRepository {
 
     return InventoryMapper.toDomain(created);
   }
-
-  //   tx: Prisma.TransactionClient = prisma,
-  // ): Promise<StockMovement> {
-  //   const created = await tx.stockMovement.create({
-  //     data: StockMovementMapper.toCreatePersistence(movement),
-  //   });
-
-  //   return StockMovementMapper.toDomain(created);
-  // }
 }

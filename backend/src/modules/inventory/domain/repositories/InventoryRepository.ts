@@ -11,8 +11,8 @@ export interface InventoryRepository {
   ): Promise<Inventory | null>;
 
   save(inventory: Inventory, tx?: Prisma.TransactionClient): Promise<Inventory>;
-  update(
-    inventory: Inventory,
-    tx?: Prisma.TransactionClient,
-  ): Promise<Inventory>;
+  // update(
+  //   inventory: Inventory,
+  //   tx?: Prisma.TransactionClient,
+  // ): Promise<Inventory>;
 }

@@ -6,96 +6,117 @@ interface StockMovementProps {
   id?: string;
 
   inventoryId: string;
+  inventoryLotId?: string | null;
 
   productVariantId: string;
 
   type: StockMovementType;
-
   origin: StockMovementOrigin;
 
   quantity: number;
+
+  previousQuantity: number;
+  currentQuantity: number;
 
   originId?: string | null;
 
   userId: string;
 
-  notes?: string | null;
+  notes?: string;
 
   createdAt?: Date;
 }
 
 export class StockMovement extends BaseEntity {
-  private _inventoryId: string;
-
-  private _productVariantId: string;
-
-  private _type: StockMovementType;
-
-  private _origin: StockMovementOrigin;
-
-  private _quantity: number;
-
-  private _originId?: string | null;
-
-  private _userId: string;
-
-  private _notes?: string | null;
+  private props: StockMovementProps;
 
   constructor(props: StockMovementProps) {
     super({
       id: props.id,
       createdAt: props.createdAt,
     });
-    if (props.quantity <= 0) {
-      throw new Error("Stock movement quantity must be greater than zero");
+
+    this.props = {
+      ...props,
+      inventoryLotId: props.inventoryLotId ?? null,
+      originId: props.originId ?? null,
+      notes: props.notes ?? "",
+    };
+
+    this.validate();
+  }
+
+  get inventoryId() {
+    return this.props.inventoryId;
+  }
+
+  get inventoryLotId() {
+    return this.props.inventoryLotId;
+  }
+
+  get productVariantId() {
+    return this.props.productVariantId;
+  }
+
+  get type() {
+    return this.props.type;
+  }
+
+  get origin() {
+    return this.props.origin;
+  }
+
+  get quantity() {
+    return this.props.quantity;
+  }
+
+  get previousQuantity() {
+    return this.props.previousQuantity;
+  }
+
+  get currentQuantity() {
+    return this.props.currentQuantity;
+  }
+
+  get originId() {
+    return this.props.originId;
+  }
+
+  get userId() {
+    return this.props.userId;
+  }
+
+  get notes() {
+    return this.props.notes;
+  }
+
+  private validate() {
+    if (this.props.quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
     }
 
-    this._inventoryId = props.inventoryId;
+    // switch (this.props.type) {
+    //   case StockMovementType.IN:
+    //     if (
+    //       this.props.currentQuantity !==
+    //       this.props.previousQuantity + this.props.quantity
+    //     ) {
+    //       throw new Error("Invalid IN movement.");
+    //     }
+    //     break;
 
-    this._productVariantId = props.productVariantId;
+    //   case StockMovementType.OUT:
+    //     if (
+    //       this.props.currentQuantity !==
+    //       this.props.previousQuantity - this.props.quantity
+    //     ) {
+    //       throw new Error("Invalid OUT movement.");
+    //     }
+    //     break;
 
-    this._type = props.type;
-
-    this._origin = props.origin;
-
-    this._quantity = props.quantity;
-
-    this._originId = props.originId ?? null;
-
-    this._userId = props.userId;
-
-    this._notes = props.notes ?? null;
-  }
-
-  public get inventoryId() {
-    return this._inventoryId;
-  }
-
-  public get productVariantId() {
-    return this._productVariantId;
-  }
-
-  public get type() {
-    return this._type;
-  }
-
-  public get origin() {
-    return this._origin;
-  }
-
-  public get quantity() {
-    return this._quantity;
-  }
-
-  public get originId() {
-    return this._originId;
-  }
-
-  public get userId() {
-    return this._userId;
-  }
-
-  public get notes() {
-    return this._notes;
+    //   case StockMovementType.ADJUSTMENT:
+    //     // qualquer valor é permitido
+    //     break;
+    // }
   }
 }

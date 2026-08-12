@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 import { HttpResponse } from "@shared/http/response";
 import { makeListStockMovementsUseCase } from "../factories/ListStockMovementsFactory";
+import { listStockMovementsSchema } from "@inventory/interfaces/http/schemas/listStockMovementsSchema";
 
 export function makeListStockMovementsController() {
   const useCase = makeListStockMovementsUseCase();
@@ -10,9 +10,9 @@ export function makeListStockMovementsController() {
     reply: FastifyReply,
   ) {
     try {
-      const { page, limit } = paginationSchema.parse(request.query);
+      const query = listStockMovementsSchema.parse(request.query);
 
-      const data = await useCase.execute({ page, limit });
+      const data = await useCase.execute(query);
 
       return reply.send(HttpResponse.paginated(data));
     } catch (err: any) {

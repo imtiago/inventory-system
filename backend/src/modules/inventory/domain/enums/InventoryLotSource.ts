@@ -1,0 +1,8 @@
+export enum InventoryLotSource {
+  PURCHASE = "PURCHASE",
+  IMPORT = "IMPORT",
+  RETURN = "RETURN",
+  TRANSFER = "TRANSFER",
+  MANUAL = "MANUAL",
+  PRODUCTION = "PRODUCTION",
+}

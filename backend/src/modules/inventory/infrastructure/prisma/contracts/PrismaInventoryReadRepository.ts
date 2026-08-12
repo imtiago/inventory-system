@@ -34,6 +34,9 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
   async getById(id: string): Promise<InventoryDTO | null> {
     const data = await prisma.inventory.findUnique({
       where: { id },
+      include: {
+        productVariant: true,
+      },
     });
 
     if (!data) return null;
@@ -46,10 +49,62 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
       where: {
         productVariantId: id,
       },
+      include: {
+        productVariant: true,
+      },
     });
 
     if (!data) return null;
 
     return InventoryReadMapper.toDTO(data);
+  }
+
+  async getDashboard() {
+    const inventories = await prisma.inventory.findMany({
+      select: {
+        quantity: true,
+        reservedQuantity: true,
+        minimumStock: true,
+        averageCost: true,
+      },
+    });
+
+    let totalQuantity = 0;
+    let totalReserved = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+    let totalStockValue = 0;
+
+    for (const inventory of inventories) {
+      totalQuantity += inventory.quantity;
+
+      totalReserved += inventory.reservedQuantity;
+
+      const available = inventory.quantity - inventory.reservedQuantity;
+
+      if (available <= 0) {
+        outOfStock++;
+      } else if (available <= inventory.minimumStock) {
+        lowStock++;
+      }
+
+      totalStockValue += inventory.quantity * Number(inventory.averageCost);
+    }
+
+    return {
+      totalProducts: inventories.length,
+
+      totalQuantity,
+
+      totalReserved,
+
+      totalAvailable: totalQuantity - totalReserved,
+
+      lowStock,
+
+      outOfStock,
+
+      totalStockValue,
+    };
   }
 }

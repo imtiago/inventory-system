@@ -16,4 +16,21 @@ export class PrismaStockMovementRepository implements StockMovementRepository {
 
     return StockMovementMapper.toDomain(created);
   }
+
+  async findById(
+    id: string,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<StockMovement | null> {
+    const data = await tx.stockMovement.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!data) {
+      return null;
+    }
+
+    return StockMovementMapper.toDomain(data);
+  }
 }

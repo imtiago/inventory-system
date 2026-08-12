@@ -7,6 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum InventoryLotSource {
+  PURCHASE
+  IMPORT
+  MANUAL
+  RETURN
+  TRANSFER
+  PRODUCTION
+}
+
+enum PurchaseStatus {
+  PENDING
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELED
+}
+
+enum PurchaseOrigin {
+  MANUAL
+  XML
+  IMPORT
+  REPLENISHMENT
+}
+
 enum FinancialType {
   PAYABLE
   RECEIVABLE
@@ -58,6 +81,7 @@ enum StockMovementType {
   IN
   OUT
   ADJUSTMENT
+  RESERVE
 }
 
 enum StockMovementOrigin {
@@ -119,6 +143,40 @@ model ProductVariant {
   inventory      Inventory?
   stockMovements StockMovement[]
   saleItems      SaleItem[]
+  purchaseItems  PurchaseItem[]
+  inventoryLots  InventoryLot[]
+}
+
+model InventoryLot {
+  id String @id @default(uuid())
+
+  inventoryId String
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+
+  productVariantId String
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  sourceType InventoryLotSource
+
+  sourceId String?
+
+  initialQuantity Int
+
+  remainingQuantity Int
+
+  unitCost Decimal
+
+  batchNumber String?
+
+  manufacturingDate DateTime?
+
+  expirationDate DateTime?
+
+  createdAt      DateTime      @default(now())
+  purchaseItem   PurchaseItem? @relation(fields: [purchaseItemId], references: [id])
+  purchaseItemId String?
 }
 
 model Inventory {
@@ -138,7 +196,9 @@ model Inventory {
 
   updatedAt DateTime @updatedAt
 
-  productVariant ProductVariant  @relation(fields: [productVariantId], references: [id])
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+  lots           InventoryLot[]
+
   stockMovements StockMovement[]
 }
 
@@ -147,19 +207,17 @@ model StockMovement {
 
   inventoryId String
 
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+
   productVariantId String
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 
   type StockMovementType
 
   origin StockMovementOrigin
 
   quantity Int
-
-  // previousQuantity Int
-
-  // currentQuantity Int
-
-  // averageCost Decimal?
 
   originId String?
 
@@ -168,10 +226,6 @@ model StockMovement {
   notes String?
 
   createdAt DateTime @default(now())
-
-  inventory Inventory @relation(fields: [inventoryId], references: [id])
-
-  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 
   user User? @relation(fields: [userId], references: [id])
 }
@@ -296,4 +350,74 @@ model NumberRange {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Supplier {
+  id String @id @default(uuid())
+
+  name String
+
+  document String @unique
+
+  email String?
+
+  phone String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  purchases Purchase[]
+}
+
+model Purchase {
+  id String @id @default(uuid())
+
+  supplierId String
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  status PurchaseStatus
+
+  origin PurchaseOrigin
+
+  purchaseDate DateTime
+
+  totalAmount Decimal @default(0)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  items PurchaseItem[]
+}
+
+model PurchaseItem {
+  id String @id @default(uuid())
+
+  purchaseId String
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  productVariantId String
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  quantity Int
+
+  receivedQuantity Int @default(0)
+
+  unitPrice Decimal
+
+  discount Decimal @default(0)
+
+  freight Decimal @default(0)
+
+  tax Decimal @default(0)
+
+  total Decimal
+
+  inventoryLots InventoryLot[]
 }

@@ -8,17 +8,13 @@ export class StockMovementMapper {
     return new StockMovement({
       id: prisma.id,
       inventoryId: prisma.inventoryId,
+      originId: prisma.originId,
       origin: prisma.origin,
       notes: prisma.notes,
-      originId: prisma.originId,
       userId: prisma.userId,
-
       productVariantId: prisma.productVariantId,
-
       type: StockMovementTypeMapper.toDomain(prisma.type),
-
       quantity: prisma.quantity,
-
       createdAt: prisma.createdAt,
     });
   }
