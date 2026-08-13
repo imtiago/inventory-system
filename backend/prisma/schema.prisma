@@ -174,9 +174,10 @@ model InventoryLot {
 
   expirationDate DateTime?
 
-  createdAt      DateTime      @default(now())
-  purchaseItem   PurchaseItem? @relation(fields: [purchaseItemId], references: [id])
+  createdAt      DateTime            @default(now())
+  purchaseItem   PurchaseItem?       @relation(fields: [purchaseItemId], references: [id])
   purchaseItemId String?
+  boxStocks      InventoryBoxStock[]
 }
 
 model Inventory {
@@ -420,4 +421,31 @@ model PurchaseItem {
   total Decimal
 
   inventoryLots InventoryLot[]
+}
+
+model InventoryBox {
+  id   String @id @default(uuid())
+  code String @unique
+
+  stocks InventoryBoxStock[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryBoxStock {
+  id String @id @default(uuid())
+
+  inventoryLotId String
+  inventoryLot   InventoryLot @relation(fields: [inventoryLotId], references: [id], onDelete: Cascade)
+
+  boxId String
+  box   InventoryBox @relation(fields: [boxId], references: [id])
+
+  quantity Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([inventoryLotId, boxId])
 }

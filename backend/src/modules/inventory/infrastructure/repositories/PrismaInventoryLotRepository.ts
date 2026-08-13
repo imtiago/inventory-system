@@ -11,8 +11,11 @@ export class PrismaInventoryLotRepository implements InventoryLotRepository {
     productVariantId: string,
     tx: Prisma.TransactionClient = prisma,
   ) {
+    // console.log(productVariantId);
     const inventory = await tx.inventoryLot.findUnique({
       where: {
+        id: "f0739bcc-9556-460f-8960-5c73c829dc28",
+        // productVariantId,
         // productVariantId,
       },
     });

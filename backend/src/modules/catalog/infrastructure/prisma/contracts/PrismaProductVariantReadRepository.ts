@@ -77,4 +77,16 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
 
     return ProductVariantReadMapper.toDTO(variant);
   }
+  async getByBarcode(barcode: string) {
+    const variant = await prisma.productVariant.findUnique({
+      where: { barcode },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!variant) return null;
+
+    return ProductVariantReadMapper.toDTO(variant);
+  }
 }

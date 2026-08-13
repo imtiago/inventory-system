@@ -6,6 +6,7 @@ import { adjustInventorySchema } from "@inventory/interfaces/http/schemas/adjust
 export function makeAdjustInventoryController() {
   const useCase = makeAdjustInventoryFactory();
   const getInventoryByVariantId = makeGetInventoryByVariantId();
+  
 
   return async function AdjustInventoryController(
     request: FastifyRequest,

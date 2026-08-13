@@ -13,4 +13,5 @@ export interface ProductVariantReadRepository {
   ): Promise<PaginatedResult<ProductVariantDTO>>;
 
   getById(id: string): Promise<ProductVariantDTO | null>;
+  getByBarcode(barcode: string): Promise<ProductVariantDTO | null>;
 }
