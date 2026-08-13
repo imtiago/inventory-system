@@ -2,6 +2,7 @@ import {
   InventoryBoxDTO,
   InventoryBoxWithExtendsDTO,
 } from "../dto/InventoryBoxDTO";
+import { InventoryBoxStockReadMapper } from "./InventoryBoxStockReadMapper";
 
 export class InventoryBoxReadMapper {
   static toDTO(data: any): InventoryBoxDTO {
@@ -13,16 +14,13 @@ export class InventoryBoxReadMapper {
     };
   }
   static toDTOWithExtends(data: any): InventoryBoxWithExtendsDTO {
+    const inventoryBox = this.toDTO(data);
+    const stocks = data.stocks.map((stock) =>
+      InventoryBoxStockReadMapper.toDTOWithExtends(stock),
+    );
     return {
-      id: data.id,
-      code: data.code,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
-      stocks: data.stocks.map((s) => ({
-        inventoryLotId: s.inventoryLotId,
-        boxId: s.boxId,
-        quantity: s.quantity,
-      })),
+      ...inventoryBox,
+      stocks,
     };
   }
 }

@@ -1,3 +1,5 @@
+import { InventoryLotDTO } from "./InventoryLotDTO";
+
 export interface InventoryBoxStockDTO {
   id?: string;
   inventoryLotId: string;
@@ -5,4 +7,8 @@ export interface InventoryBoxStockDTO {
   quantity: number;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface InventoryBoxStockWithExtendsDTO extends InventoryBoxStockDTO {
+  inventoryLot: InventoryLotDTO;
 }

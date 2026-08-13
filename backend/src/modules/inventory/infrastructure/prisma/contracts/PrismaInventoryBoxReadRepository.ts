@@ -24,10 +24,13 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
     const data = await prisma.inventoryBox.findUnique({
       where: { code },
       include: {
-        stocks: true,
+        stocks: {
+          include: {
+            inventoryLot: true,
+          },
+        },
       },
     });
-
     if (!data) return null;
 
     return InventoryBoxReadMapper.toDTOWithExtends(data);

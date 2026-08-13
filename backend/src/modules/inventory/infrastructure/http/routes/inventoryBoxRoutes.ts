@@ -8,6 +8,8 @@ import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeCreateInventoryBoxController } from "../controllers/CreateInventoryBoxController ";
 import { makeAddProductToBoxController } from "../controllers/AddProductToBoxController";
 import { makeGetInventoryBoxByCodeController } from "../controllers/GetInventoryBoxByCodeController";
+import { makeGenerateInventoryBoxLabelController } from "../controllers/GenerateInventoryBoxLabelController";
+import { makeGenerateInventoryProductLabelsController } from "../controllers/GenerateInventoryProductLabelsController";
 // import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
 // import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
@@ -22,10 +24,20 @@ export async function inventoryBoxRoutes(app: FastifyInstance) {
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeAddProductToBoxController(),
   );
+  app.post(
+    "/code/:code/product-labels",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeGenerateInventoryProductLabelsController(),
+  );
   app.get(
     "/code/:code",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGetInventoryBoxByCodeController(),
+  );
+  app.get(
+    "/code/:code/label",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeGenerateInventoryBoxLabelController(),
   );
   //   app.get(
   //     "/",

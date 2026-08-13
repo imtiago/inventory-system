@@ -5,7 +5,7 @@ import { makeAddProductToBoxUseCase } from "../factories/AddProductToBoxFactory"
 import {
   addProductToBoxBodySchema,
   addProductToBoxParamsSchema,
-} from "@inventory/interfaces/http/schemas/addProductToBoxSchema ";
+} from "@inventory/interfaces/http/schemas/addProductToBoxSchema";
 
 export function makeAddProductToBoxController() {
   const useCase = makeAddProductToBoxUseCase();
