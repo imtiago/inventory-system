@@ -18,6 +18,10 @@ export const BarcodeScanner = ({
       {
         fps: 10,
         qrbox: 250,
+        // qrbox: {
+        //   width: 300,
+        //   height: 120,
+        // },
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true,
         },
@@ -33,9 +37,12 @@ export const BarcodeScanner = ({
           scanner.clear().catch(() => {});
         }
       },
-      (error) => {
-        console.warn("Erro na leitura do código:", error);
+      () => {
+        // console.warn("Erro na leitura do código:", error);
       },
+      // (error) => {
+      //   console.warn("Erro na leitura do código:", error);
+      // },
     );
 
     return () => {

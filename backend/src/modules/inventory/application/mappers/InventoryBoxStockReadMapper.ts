@@ -17,7 +17,9 @@ export class InventoryBoxStockReadMapper {
   }
   static toDTOWithExtends(data: any): InventoryBoxStockWithExtendsDTO {
     const inventoryBox = this.toDTO(data);
-    const inventoryLot = InventoryLotReadMapper.toDTO(data.inventoryLot);
+    const inventoryLot = InventoryLotReadMapper.toDTOWithExtends(
+      data.inventoryLot,
+    );
     return {
       ...inventoryBox,
       inventoryLot,

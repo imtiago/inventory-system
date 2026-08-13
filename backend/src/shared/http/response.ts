@@ -21,4 +21,10 @@ export class HttpResponse {
       pagination: result.pagination,
     };
   }
+
+  static notFound(message = "Resource not found") {
+    return {
+      message,
+    };
+  }
 }

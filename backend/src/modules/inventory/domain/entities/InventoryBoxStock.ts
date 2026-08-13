@@ -25,6 +25,8 @@ export class InventoryBoxStock extends BaseEntity {
     this._boxId = props.boxId;
     this._quantity = props.quantity;
     this._updatedAt = props.updatedAt ?? new Date();
+
+    this.validate();
   }
 
   get inventoryLotId(): string {
@@ -41,5 +43,37 @@ export class InventoryBoxStock extends BaseEntity {
 
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  public addQuantity(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
+    }
+
+    this._quantity += quantity;
+    this.touch();
+  }
+
+  public removeQuantity(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
+    }
+
+    if (quantity > this._quantity) {
+      throw new Error("Insufficient quantity in box.");
+    }
+
+    this._quantity -= quantity;
+    this.touch();
+  }
+
+  private touch(): void {
+    this._updatedAt = new Date();
+  }
+
+  private validate(): void {
+    if (this._quantity < 0) {
+      throw new Error("Quantity cannot be negative.");
+    }
   }
 }

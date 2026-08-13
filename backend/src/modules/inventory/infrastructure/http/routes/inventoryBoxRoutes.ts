@@ -10,6 +10,7 @@ import { makeAddProductToBoxController } from "../controllers/AddProductToBoxCon
 import { makeGetInventoryBoxByCodeController } from "../controllers/GetInventoryBoxByCodeController";
 import { makeGenerateInventoryBoxLabelController } from "../controllers/GenerateInventoryBoxLabelController";
 import { makeGenerateInventoryProductLabelsController } from "../controllers/GenerateInventoryProductLabelsController";
+import { makeGetInventoryBoxByLotAndProductVariantController } from "../controllers/GetInventoryBoxByLotAndProductVariantController";
 // import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
 // import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
@@ -28,6 +29,11 @@ export async function inventoryBoxRoutes(app: FastifyInstance) {
     "/code/:code/product-labels",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGenerateInventoryProductLabelsController(),
+  );
+  app.get(
+    "/by-lot",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeGetInventoryBoxByLotAndProductVariantController(),
   );
   app.get(
     "/code/:code",

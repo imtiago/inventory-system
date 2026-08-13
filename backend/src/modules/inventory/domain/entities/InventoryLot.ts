@@ -83,6 +83,14 @@ export class InventoryLot extends BaseEntity {
   get consumedQuantity() {
     return this.props.quantity - this.availableQuantity;
   }
+  public addQuantity(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
+    }
+
+    this.props.quantity += quantity;
+    this.props.availableQuantity! += quantity;
+  }
 
   public consume(quantity: number) {
     if (quantity <= 0) {
@@ -136,5 +144,14 @@ export class InventoryLot extends BaseEntity {
     if (this.props.unitCost < 0) {
       throw new Error("Invalid unit cost.");
     }
+  }
+
+  public receive(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
+    }
+
+    this.props.quantity += quantity;
+    this.props.availableQuantity! += quantity;
   }
 }

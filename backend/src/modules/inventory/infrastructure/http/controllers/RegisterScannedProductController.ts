@@ -18,6 +18,7 @@ export function makeRegisterScannedProductController() {
         expirationDate: data.expirationDate
           ? new Date(data.expirationDate)
           : undefined,
+        quantity: data.quantity,
       });
 
       return reply.send(HttpResponse.created(result));

@@ -12,19 +12,26 @@ export class InventoryLotReadMapper {
       reservedQuantity: data.reservedQuantity,
       availableQuantity: data.availableQuantity,
       minimumStock: data.minimumStock,
+      batchNumber: data.batchNumber,
       createdAt: data.createdAt,
+      expirationDate: data.expirationDate,
     };
   }
   static toDTOWithExtends(data: any): InventoryLotWithExtendsDTO {
     const inventoryLot = this.toDTO(data);
 
+    const productVariant = {
+      id: data.productVariant.id,
+      name: data.productVariant.name,
+      code: data.productVariant.code,
+      barcode: data.productVariant.barcode,
+      createdAt: data.productVariant.createdAt,
+      productId: data.productVariant.productId,
+    };
+
     return {
       ...inventoryLot,
-      stocks: data.stocks.map((s) => ({
-        inventoryLotId: s.inventoryLotId,
-        boxId: s.boxId,
-        quantity: s.quantity,
-      })),
+      productVariant,
     };
   }
 }

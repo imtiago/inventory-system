@@ -4,7 +4,7 @@ export interface ProductVariantDTO {
   code: string;
   name: string;
   barcode: string | null;
-  salePrice: number;
+  // salePrice: number;
   createdAt: Date;
 }
 

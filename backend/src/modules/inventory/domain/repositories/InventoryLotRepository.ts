@@ -9,6 +9,11 @@ export interface InventoryLotRepository {
     id: string,
     tx?: Prisma.TransactionClient,
   ): Promise<InventoryLot | null>;
+  findByProductVariantIdAndBatchNumber(
+    productVariantId: string,
+    batchNumber: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<InventoryLot | null>;
 
   save(lot: InventoryLot, tx?: Prisma.TransactionClient): Promise<InventoryLot>;
   // update(

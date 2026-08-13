@@ -5,7 +5,9 @@ import {
 } from "@prisma/client";
 
 export class InventoryBoxStockMapper {
-  // Banco -> Domínio
+  /**
+   * Banco -> Domínio
+   */
   static toDomain(prisma: PrismaInventoryBoxStock): InventoryBoxStock {
     return new InventoryBoxStock({
       id: prisma.id,
@@ -17,36 +19,41 @@ export class InventoryBoxStockMapper {
     });
   }
 
-  // Domínio -> Banco (Create)
+  /**
+   * Domínio -> Banco
+   */
   static toCreatePersistence(
     stock: InventoryBoxStock,
   ): Prisma.InventoryBoxStockCreateInput {
     return {
       id: stock.id,
       quantity: stock.quantity,
-      updatedAt: stock.updatedAt,
       createdAt: stock.createdAt,
-      box: {
-        connect: {
-          id: stock.boxId,
-        },
-      },
+      updatedAt: stock.updatedAt,
+
       inventoryLot: {
         connect: {
           id: stock.inventoryLotId,
         },
       },
+
+      box: {
+        connect: {
+          id: stock.boxId,
+        },
+      },
     };
   }
 
-  // Domínio -> Banco (Update)
+  /**
+   * Domínio -> Banco - Update
+   */
   static toUpdatePersistence(
     stock: InventoryBoxStock,
-  ): Prisma.InventoryBoxUpdateInput {
+  ): Prisma.InventoryBoxStockUpdateInput {
     return {
-      // quantity: box.quantity,
-      // reservedQuantity: box.reservedQuantity,
-      // minimumStock: box.minimumStock,
+      quantity: stock.quantity,
+      updatedAt: stock.updatedAt,
     };
   }
 }

@@ -5,6 +5,10 @@ import { InventoryBoxDTO } from "../dto/InventoryBoxDTO";
 export interface InventoryBoxReadRepository {
   getById(id: string): Promise<InventoryBoxDTO | null>;
   getByCode(code: string): Promise<InventoryBoxDTO | null>;
+  getByLotAndProductVariantId(
+    batchNumber: string,
+    productVariantId: string,
+  ): Promise<InventoryBoxDTO | null>;
   // list(
   //   pagination: PaginationRequest,
   // ): Promise<PaginatedResult<InventoryBoxDTO>>;

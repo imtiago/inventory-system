@@ -2,39 +2,71 @@ import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLot as PrismaInventoryLot, Prisma } from "@prisma/client";
 
 export class InventoryLotMapper {
-  // Banco -> Domínio
+  /**
+   * Banco -> Domínio
+   */
   static toDomain(prisma: PrismaInventoryLot): InventoryLot {
     return new InventoryLot({
       id: prisma.id,
-      inventoryId: prisma.inventoryId,
-      quantity: prisma.quantity,
-      unitCost: prisma.unitCost,
-      // productVariantId: prisma.productVariant.id,
 
-      // productVariantId: prisma.productVariantId,
-      // quantity: prisma.quantity,
-      // reservedQuantity: prisma.reservedQuantity,
-      // minimumStock: prisma.minimumStock,
+      inventoryId: prisma.inventoryId,
+
+      productVariantId: prisma.productVariantId,
+
+      sourceType: prisma.sourceType,
+
+      sourceId: prisma.sourceId,
+
+      quantity: prisma.initialQuantity,
+
+      availableQuantity: prisma.remainingQuantity,
+
+      unitCost: Number(prisma.unitCost),
+
+      batchNumber: prisma.batchNumber,
+
+      manufacturingDate: prisma.manufacturingDate,
+
+      expirationDate: prisma.expirationDate,
+
       createdAt: prisma.createdAt,
     });
   }
 
-  // Domínio -> Banco (Create)
+  /**
+   * Domínio -> Banco
+   * CREATE
+   */
   static toCreatePersistence(
     inventoryLot: InventoryLot,
   ): Prisma.InventoryLotCreateInput {
     return {
       id: inventoryLot.id,
+
       initialQuantity: inventoryLot.quantity,
+
+      remainingQuantity: inventoryLot.availableQuantity,
+
       unitCost: inventoryLot.unitCost,
-      remainingQuantity: inventoryLot.quantity,
-      createdAt: inventoryLot.createdAt,
+
+      batchNumber: inventoryLot.batchNumber,
+
+      manufacturingDate: inventoryLot.manufacturingDate,
+
+      expirationDate: inventoryLot.expirationDate,
+
       sourceType: inventoryLot.sourceType,
+
+      sourceId: inventoryLot.sourceId,
+
+      createdAt: inventoryLot.createdAt,
+
       inventory: {
         connect: {
           id: inventoryLot.inventoryId,
         },
       },
+
       productVariant: {
         connect: {
           id: inventoryLot.productVariantId,
@@ -43,14 +75,29 @@ export class InventoryLotMapper {
     };
   }
 
-  // Domínio -> Banco (Update)
+  /**
+   * Domínio -> Banco
+   * UPDATE
+   */
   static toUpdatePersistence(
-    inventory: InventoryLot,
-  ): Prisma.InventoryUpdateInput {
+    inventoryLot: InventoryLot,
+  ): Prisma.InventoryLotUpdateInput {
     return {
-      quantity: inventory.quantity,
-      reservedQuantity: inventory.reservedQuantity,
-      minimumStock: inventory.minimumStock,
+      initialQuantity: inventoryLot.quantity,
+
+      remainingQuantity: inventoryLot.availableQuantity,
+
+      unitCost: inventoryLot.unitCost,
+
+      batchNumber: inventoryLot.batchNumber,
+
+      manufacturingDate: inventoryLot.manufacturingDate,
+
+      expirationDate: inventoryLot.expirationDate,
+
+      sourceType: inventoryLot.sourceType,
+
+      sourceId: inventoryLot.sourceId,
     };
   }
 }

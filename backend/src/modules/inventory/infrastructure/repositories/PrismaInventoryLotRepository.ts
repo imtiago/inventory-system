@@ -39,6 +39,24 @@ export class PrismaInventoryLotRepository implements InventoryLotRepository {
 
     return InventoryLotMapper.toDomain(inventory);
   }
+  async findByProductVariantIdAndBatchNumber(
+    productVariantId: string,
+    batchNumber: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    const inventory = await tx.inventoryLot.findFirst({
+      where: {
+        productVariantId,
+        batchNumber,
+      },
+    });
+
+    if (!inventory) {
+      return null;
+    }
+
+    return InventoryLotMapper.toDomain(inventory);
+  }
 
   async save(
     inventoryLot: InventoryLot,

@@ -1,13 +1,18 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
+
 import { InventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
+
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
+
 import { CatalogService } from "@catalog/application/services/CatalogService";
+
 import { InventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
+
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 
 export interface RegisterScannedProductInput {
@@ -15,6 +20,7 @@ export interface RegisterScannedProductInput {
   boxCode: string;
   batchNumber?: string;
   expirationDate?: Date;
+  quantity?: number;
 }
 
 export class RegisterScannedProductUseCase extends TransactionalUseCase<
@@ -36,6 +42,18 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     request: RegisterScannedProductInput,
     tx: Prisma.TransactionClient,
   ): Promise<InventoryBox> {
+    /**
+     * Quantidade padrão:
+     *
+     * se quantity não for informada,
+     * registra apenas 1 unidade.
+     */
+    const quantity = request.quantity ?? 1;
+
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than zero.");
+    }
+
     /**
      * 1. Localizar produto pelo código de barras
      */
@@ -72,21 +90,17 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     }
 
     /**
-     * 4. Procurar lote
+     * 4. Localizar lote pelo produto + lote
      */
-    // let lot = await this.inventoryLotRepository.findByBatchNumber(
-    //   productVariant.id,
-    //   request.batchNumber ?? null,
-    // );
-    let lot = await this.inventoryLotRepository.findByVariant(
-      productVariant.id,
-      tx,
-    );
-    // let lot = null;
+    let lot =
+      await this.inventoryLotRepository.findByProductVariantIdAndBatchNumber(
+        productVariant.id,
+        request.batchNumber!,
+        tx,
+      );
 
     /**
-     * 5. Se o lote não existir,
-     * precisamos criar um novo lote.
+     * 5. Criar lote caso ainda não exista
      */
     if (!lot) {
       lot = await this.inventoryLotRepository.save(
@@ -95,8 +109,8 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
           productVariantId: productVariant.id,
           sourceType: "MANUAL",
           sourceId: null,
-          initialQuantity: 0,
-          remainingQuantity: 0,
+          quantity,
+          availableQuantity: quantity,
           unitCost: 0,
           batchNumber: request.batchNumber ?? null,
           manufacturingDate: null,
@@ -104,9 +118,24 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
         }),
         tx,
       );
+    } else {
+      lot.addQuantity(quantity);
+
+      lot = await this.inventoryLotRepository.save(lot, tx);
     }
+
     /**
-     * 6. Adicionar a unidade à caixa
+     * 6. Atualizar estoque geral
+     */
+    inventory.receive({
+      quantity,
+      unitCost: lot.unitCost,
+    });
+
+    await this.inventoryRepository.save(inventory, tx);
+
+    /**
+     * 7. Localizar estoque da caixa
      */
     const stock = await this.inventoryBoxStockRepository.findStock(
       lot.id,
@@ -114,10 +143,15 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
       tx,
     );
 
+    /**
+     * 8. Atualizar ou criar estoque da caixa
+     */
     if (stock) {
+      stock.addQuantity(quantity);
+
       await this.inventoryBoxStockRepository.update(
         stock.id,
-        stock.quantity + 1,
+        stock.quantity,
         tx,
       );
     } else {
@@ -125,21 +159,23 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
         new InventoryBoxStock({
           inventoryLotId: lot.id,
           boxId: box.id,
-          quantity: 1,
+          quantity,
         }),
         tx,
       );
     }
 
     /**
-     * 7. Retornar resumo
+     * 9. Retornar resumo
      */
     return {
       productVariantId: productVariant.id,
       productCode: productVariant.code,
       barcode: productVariant.barcode,
+
       boxId: box.id,
       boxCode: box.code,
+
       inventoryLotId: lot.id,
     };
   }

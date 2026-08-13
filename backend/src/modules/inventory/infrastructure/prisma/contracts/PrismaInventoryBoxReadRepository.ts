@@ -35,6 +35,43 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
 
     return InventoryBoxReadMapper.toDTOWithExtends(data);
   }
+  async getByLotAndProductVariantId(
+    batchNumber: string,
+    productVariantId: string,
+  ) {
+    const data = await prisma.inventoryBox.findFirst({
+      where: {
+        stocks: {
+          some: {
+            inventoryLot: {
+              batchNumber,
+              productVariantId,
+            },
+          },
+        },
+      },
+      include: {
+        stocks: {
+          where: {
+            inventoryLot: {
+              batchNumber,
+              productVariantId,
+            },
+          },
+          include: {
+            inventoryLot: {
+              include: {
+                productVariant: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!data) return null;
+
+    return InventoryBoxReadMapper.toDTOWithExtends(data);
+  }
   // async list(
   //   pagination: PaginationRequest,
   // ): Promise<PaginatedResult<InventoryDTO>> {
