@@ -1,21 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { BarcodeScanner } from '@/components/BarcodeScanner';
 
-import { useProductByBarcode } from "../hooks/useProductByBarcode";
-import { useInventoryBoxByLot } from "../hooks/useInventoryBoxByLot";
+import { useProductByBarcode } from '../hooks/useProductByBarcode';
+import { useInventoryBoxByLot } from '../hooks/useInventoryBoxByLot';
 
-import {
-  InventoryLotForm,
-  type InventoryLotFormData,
-} from "../components/InventoryLotForm";
+import { InventoryLotForm, type InventoryLotFormData } from '../components/InventoryLotForm';
+
+import { ProductVariantRegistration } from '../components/ProductVariantRegistration';
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  code: string;
+  barcode: string | null;
+  productId: string;
+}
 
 export function InitialInventoryPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const [barcode, setBarcode] = useState("");
+  const [barcode, setBarcode] = useState('');
 
-  const [step, setStep] = useState<"scan" | "register-product" | "lot">("scan");
+  const [step, setStep] = useState<'scan' | 'product-choice' | 'register-product' | 'register-variant' | 'lot'>('scan');
+
+  /*
+   * Variante criada durante o fluxo.
+   *
+   * Isso é importante porque, quando o barcode não existe,
+   * o hook useProductByBarcode não terá um "product".
+   */
+  const [createdVariant, setCreatedVariant] = useState<ProductVariant | null>(null);
 
   const [boxCode, setBoxCode] = useState<string | null>(null);
 
@@ -25,33 +40,67 @@ export function InitialInventoryPage() {
 
   const [expirationLocked, setExpirationLocked] = useState(false);
 
-  const { product, notFoundBarcode, loading, findByBarcode, clear } =
-    useProductByBarcode();
-
-  const {
-    loading: boxLoading,
-    error: boxError,
-    findBoxByLot,
-    clearBox,
-  } = useInventoryBoxByLot();
+  /*
+   * Produto encontrado pelo barcode.
+   */
+  const { product, notFoundBarcode, loading, findByBarcode, clear } = useProductByBarcode();
 
   /*
-   * Quando o produto for encontrado,
-   * abre automaticamente o formulário de lote.
+   * Consulta caixa/lote.
+   */
+  const { loading: boxLoading, error: boxError, findBoxByLot, clearBox } = useInventoryBoxByLot();
+
+  /*
+   * ============================================================
+   * VARIÁVEL PRINCIPAL DO FLUXO
+   * ============================================================
+   *
+   * Se a variante foi recém-criada, usamos ela.
+   *
+   * Caso contrário, usamos a variante encontrada pelo barcode.
+   */
+  const currentVariant = createdVariant ?? product;
+
+  /*
+   * ============================================================
+   * QUANDO O PRODUTO FOR ENCONTRADO
+   * ============================================================
+   *
+   * Se o barcode já existir, automaticamente vamos para
+   * o cadastro do lote.
    */
   useEffect(() => {
-    if (step === "scan" && !loading && product) {
-      setStep("lot");
+    if (step === 'scan' && !loading && product) {
+      setStep('lot');
     }
   }, [product, loading, step]);
 
   /*
-   * Barcode encontrado pelo scanner.
+   * ============================================================
+   * BARCODE LIDO
+   * ============================================================
    */
   function handleBarcodeRead(code: string) {
-    setBarcode(code);
+    const normalizedCode = code.trim();
 
+    if (!normalizedCode) {
+      return;
+    }
+
+    /*
+     * Guarda o barcode atual.
+     */
+    setBarcode(normalizedCode);
+
+    /*
+     * Fecha scanner.
+     */
     setScannerOpen(false);
+
+    /*
+     * Limpa informações anteriores.
+     */
+    setCreatedVariant(null);
 
     setBoxCode(null);
     setBoxLocked(false);
@@ -61,27 +110,94 @@ export function InitialInventoryPage() {
 
     clearBox();
 
-    findByBarcode(code);
+    /*
+     * Garante que estamos no fluxo de scanner.
+     */
+    setStep('scan');
+
+    /*
+     * Consulta o backend.
+     */
+    findByBarcode(normalizedCode);
   }
 
   /*
-   * Produto não encontrado.
+   * ============================================================
+   * CONTINUAR CADASTRO
+   * ============================================================
    *
-   * Abre a tela de cadastro do produto.
+   * Barcode não foi encontrado.
    */
   function handleRegisterProduct() {
     if (!notFoundBarcode) {
       return;
     }
 
-    setStep("register-product");
+    setStep('product-choice');
   }
 
   /*
-   * Saiu do campo lote.
+   * ============================================================
+   * PRODUTO JÁ EXISTE
+   * ============================================================
+   *
+   * Vamos pesquisar o Product e criar uma nova ProductVariant.
+   */
+  function handleRegisterVariant() {
+    if (!notFoundBarcode) {
+      return;
+    }
+
+    setStep('register-variant');
+  }
+
+  /*
+   * ============================================================
+   * VARIANTE CRIADA
+   * ============================================================
+   */
+  function handleVariantCreated(variant: ProductVariant) {
+    console.log('Variante criada:', variant);
+
+    /*
+     * Guarda a variante criada.
+     */
+    setCreatedVariant(variant);
+
+    /*
+     * Confirmação para o usuário.
+     */
+    alert(`Variante cadastrada com sucesso!\n\nCódigo: ${variant.code}`);
+
+    /*
+     * Limpa dados antigos de caixa/validade.
+     */
+    setBoxCode(null);
+    setBoxLocked(false);
+
+    setExpirationDate(null);
+    setExpirationLocked(false);
+
+    clearBox();
+
+    /*
+     * Vai para o cadastro do lote.
+     */
+    setStep('lot');
+  }
+
+  /*
+   * ============================================================
+   * CONSULTAR LOTE
+   * ============================================================
    */
   async function handleBatchBlur(batchNumber: string) {
-    if (!product) {
+    /*
+     * Usa a variante recém-criada ou a variante encontrada.
+     */
+    const current = createdVariant ?? product;
+
+    if (!current) {
       return;
     }
 
@@ -91,6 +207,9 @@ export function InitialInventoryPage() {
       return;
     }
 
+    /*
+     * Limpa informações anteriores.
+     */
     setBoxCode(null);
     setBoxLocked(false);
 
@@ -99,10 +218,15 @@ export function InitialInventoryPage() {
 
     clearBox();
 
-    const foundBox = await findBoxByLot(product.id, normalizedBatch);
+    /*
+     * Consulta a caixa relacionada ao lote.
+     */
+    const foundBox = await findBoxByLot(current.id, normalizedBatch);
 
     /*
-     * Lote não encontrado.
+     * Lote ainda não existe.
+     *
+     * O usuário poderá informar a caixa e a validade.
      */
     if (!foundBox) {
       return;
@@ -115,14 +239,13 @@ export function InitialInventoryPage() {
     setBoxLocked(true);
 
     /*
-     * Procura o estoque referente ao lote informado.
+     * Procura o estoque correspondente ao lote.
      */
-    const stock = foundBox.stocks.find(
-      (item) =>
-        item.productVariant.id === product.id &&
-        item.inventoryLot.batchNumber === normalizedBatch,
-    );
+    const stock = foundBox.stocks.find((item) => item.productVariant.id === current.id && item.inventoryLot.batchNumber === normalizedBatch);
 
+    /*
+     * Existe lote, mas não existe validade.
+     */
     if (!stock || !stock.inventoryLot.expirationDate) {
       setExpirationDate(null);
       setExpirationLocked(false);
@@ -130,39 +253,79 @@ export function InitialInventoryPage() {
       return;
     }
 
-    const formattedDate = new Date(stock.inventoryLot.expirationDate)
-      .toISOString()
-      .split("T")[0];
+    /*
+     * Converte:
+     *
+     * 2027-08-13T00:00:00.000Z
+     *
+     * para:
+     *
+     * 2027-08-13
+     */
+    const formattedDate = new Date(stock.inventoryLot.expirationDate).toISOString().split('T')[0];
 
     setExpirationDate(formattedDate);
     setExpirationLocked(true);
   }
 
   /*
-   * Registro do estoque.
+   * ============================================================
+   * REGISTRAR ESTOQUE
+   * ============================================================
    */
   function handleLotSubmit(data: InventoryLotFormData) {
-    if (!product) {
+    const current = createdVariant ?? product;
+
+    if (!current) {
       return;
     }
 
-    console.log("Produto:", product);
-    console.log("Dados do lote:", data);
+    console.log('=================================');
+    console.log('REGISTRO DE ESTOQUE');
+    console.log('=================================');
+
+    console.log('Variante:', current);
+
+    console.log('Variant ID:', current.id);
+
+    console.log('Barcode:', current.barcode ?? barcode);
+
+    console.log('Lote:', data.batchNumber);
+
+    console.log('Validade:', data.expirationDate);
+
+    console.log('Caixa:', data.boxCode);
+
+    console.log('Quantidade:', data.quantity);
 
     /*
-     * Próximo passo:
+     * TODO:
      *
-     * chamar API de inventário inicial.
+     * Chamar API de inventário inicial.
+     *
+     * Exemplo:
+     *
+     * await api.post("/inventory/initial", {
+     *   productVariantId: current.id,
+     *   batchNumber: data.batchNumber,
+     *   expirationDate: data.expirationDate,
+     *   boxCode: data.boxCode,
+     *   quantity: data.quantity,
+     * });
      */
   }
 
   /*
-   * Voltar para o scanner.
+   * ============================================================
+   * VOLTAR PARA O SCANNER
+   * ============================================================
    */
   function handleBackToScan() {
-    setStep("scan");
+    setStep('scan');
 
-    setBarcode("");
+    setBarcode('');
+
+    setCreatedVariant(null);
 
     setBoxCode(null);
     setBoxLocked(false);
@@ -178,65 +341,51 @@ export function InitialInventoryPage() {
   }
 
   /*
-   * Cancelar cadastro do produto.
-   *
-   * Neste momento simplesmente
-   * voltamos para o scanner.
+   * ============================================================
+   * CANCELAR CADASTRO DO PRODUTO
+   * ============================================================
    */
   function handleCancelProductRegistration() {
     handleBackToScan();
   }
 
+  /*
+   * ============================================================
+   * RENDER
+   * ============================================================
+   */
+
   return (
     <div className="space-y-6">
-      {/* ====================================== */}
-      {/* SCANNER                               */}
-      {/* ====================================== */}
+      {/* ====================================================== */}
+      {/* SCANNER                                                */}
+      {/* ====================================================== */}
 
-      {step === "scan" && (
+      {step === 'scan' && (
         <>
           <div>
             <h1 className="text-3xl font-bold">Inventário Inicial</h1>
 
-            <p className="text-gray-500">
-              Escaneie os produtos para realizar a contagem inicial do estoque.
-            </p>
+            <p className="text-gray-500">Escaneie os produtos para realizar a contagem inicial do estoque.</p>
           </div>
 
-          <div
-            className="
-              bg-white
-              rounded-xl
-              shadow
-              p-6
-              space-y-5
-            "
-          >
+          <div className="space-y-5 rounded-xl bg-white p-6 shadow">
             <div>
-              <label className="block mb-1">Código de barras</label>
+              <label className="mb-1 block">Código de barras</label>
 
               <div className="flex gap-3">
-                <input
-                  value={barcode}
-                  readOnly
-                  className="
-                    flex-1
-                    border
-                    rounded-lg
-                    p-3
-                    bg-gray-50
-                  "
-                  placeholder="Escaneie o produto"
-                />
+                <input value={barcode} readOnly className="flex-1 rounded-lg border bg-gray-50 p-3" placeholder="Escaneie o produto" />
 
                 <button
                   type="button"
                   onClick={() => {
-                    setBarcode("");
+                    setBarcode('');
 
                     clear();
 
                     clearBox();
+
+                    setCreatedVariant(null);
 
                     setBoxCode(null);
                     setBoxLocked(false);
@@ -247,13 +396,7 @@ export function InitialInventoryPage() {
                     setScannerOpen(true);
                   }}
                   disabled={loading}
-                  className="
-                    bg-gray-900
-                    text-white
-                    px-4
-                    rounded-lg
-                    disabled:opacity-50
-                  "
+                  className="rounded-lg bg-gray-900 px-4 text-white disabled:opacity-50"
                 >
                   📷 Ler
                 </button>
@@ -261,181 +404,137 @@ export function InitialInventoryPage() {
             </div>
 
             {scannerOpen && (
-              <div
-                className="
-                  border
-                  rounded-lg
-                  p-4
-                "
-              >
+              <div className="rounded-lg border p-4">
                 <BarcodeScanner onDetected={handleBarcodeRead} />
 
-                <button
-                  type="button"
-                  onClick={() => setScannerOpen(false)}
-                  className="
-                    mt-3
-                    text-red-600
-                  "
-                >
+                <button type="button" onClick={() => setScannerOpen(false)} className="mt-3 text-red-600">
                   Cancelar leitura
                 </button>
               </div>
             )}
           </div>
 
-          {loading && (
-            <div
-              className="
-                bg-white
-                rounded-xl
-                shadow
-                p-6
-                text-center
-              "
-            >
-              Consultando produto...
-            </div>
-          )}
+          {/* ================================================== */}
+          {/* LOADING                                             */}
+          {/* ================================================== */}
 
-          {/* ====================================== */}
-          {/* PRODUTO NÃO ENCONTRADO                 */}
-          {/* ====================================== */}
+          {loading && <div className="rounded-xl bg-white p-6 text-center shadow">Consultando produto...</div>}
+
+          {/* ================================================== */}
+          {/* PRODUTO NÃO ENCONTRADO                             */}
+          {/* ================================================== */}
 
           {notFoundBarcode && !loading && (
-            <div
-              className="
-                bg-white
-                rounded-xl
-                shadow
-                p-6
-              "
-            >
+            <div className="rounded-xl bg-white p-6 shadow">
               <p className="text-sm text-gray-500">Produto não encontrado</p>
 
-              <h2 className="text-xl font-bold">
-                Este produto ainda não está cadastrado.
-              </h2>
+              <h2 className="text-xl font-bold">Este código de barras ainda não está cadastrado.</h2>
 
               <p className="mt-2 font-mono">{notFoundBarcode}</p>
 
-              <button
-                type="button"
-                onClick={handleRegisterProduct}
-                className="
-                  mt-6
-                  w-full
-                  bg-black
-                  text-white
-                  rounded-lg
-                  px-6
-                  py-3
-                "
-              >
-                Cadastrar produto
+              <button type="button" onClick={handleRegisterProduct} className="mt-6 w-full rounded-lg bg-black px-6 py-3 text-white">
+                Continuar cadastro
               </button>
             </div>
           )}
         </>
       )}
 
-      {/* ====================================== */}
-      {/* CADASTRO DO PRODUTO                    */}
-      {/* ====================================== */}
+      {/* ====================================================== */}
+      {/* ESCOLHA DO CADASTRO                                    */}
+      {/* ====================================================== */}
 
-      {step === "register-product" && notFoundBarcode && (
+      {step === 'product-choice' && notFoundBarcode && (
+        <>
+          <div>
+            <h1 className="text-3xl font-bold">Produto não encontrado</h1>
+
+            <p className="text-gray-500">O código de barras foi lido, mas nenhuma variante foi encontrada.</p>
+          </div>
+
+          <div className="space-y-6 rounded-xl bg-white p-6 shadow">
+            <div>
+              <p className="text-sm text-gray-500">Código de barras</p>
+
+              <p className="font-mono text-lg font-bold">{notFoundBarcode}</p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold">Esse produto já existe no cadastro?</h2>
+
+              <p className="mt-2 text-gray-500">Se o produto já estiver cadastrado, vamos criar somente uma nova variante para ele.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Produto existente */}
+
+              <button type="button" onClick={handleRegisterVariant} className="rounded-xl border p-6 text-left hover:bg-gray-50">
+                <p className="text-lg font-bold">Sim, o produto existe</p>
+
+                <p className="mt-2 text-sm text-gray-500">Pesquisar o produto e cadastrar somente a nova variante.</p>
+              </button>
+
+              {/* Produto novo */}
+
+              <button type="button" onClick={() => setStep('register-product')} className="rounded-xl border p-6 text-left hover:bg-gray-50">
+                <p className="text-lg font-bold">Não, é um produto novo</p>
+
+                <p className="mt-2 text-sm text-gray-500">Cadastrar o produto e sua primeira variante.</p>
+              </button>
+            </div>
+
+            <button type="button" onClick={handleBackToScan} className="rounded-lg border px-6 py-3">
+              Voltar
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ====================================================== */}
+      {/* CADASTRO DE VARIANTE                                   */}
+      {/* ====================================================== */}
+
+      {step === 'register-variant' && notFoundBarcode && <ProductVariantRegistration barcode={notFoundBarcode} onCancel={() => setStep('product-choice')} onCreated={handleVariantCreated} />}
+
+      {/* ====================================================== */}
+      {/* CADASTRO DE PRODUTO NOVO                               */}
+      {/* ====================================================== */}
+
+      {step === 'register-product' && notFoundBarcode && (
         <>
           <div>
             <h1 className="text-3xl font-bold">Cadastrar produto</h1>
 
-            <p className="text-gray-500">
-              O produto escaneado ainda não está cadastrado.
-            </p>
+            <p className="text-gray-500">O produto escaneado ainda não está cadastrado.</p>
           </div>
 
-          <div
-            className="
-              bg-white
-              rounded-xl
-              shadow
-              p-6
-              space-y-6
-            "
-          >
-            {/* Código de barras */}
+          <div className="space-y-6 rounded-xl bg-white p-6 shadow">
+            {/* Barcode */}
 
             <div>
-              <label className="block mb-1 text-sm text-gray-500">
-                Código de barras
-              </label>
+              <label className="mb-1 block text-sm text-gray-500">Código de barras</label>
 
-              <input
-                value={notFoundBarcode}
-                readOnly
-                className="
-                  w-full
-                  border
-                  rounded-lg
-                  p-3
-                  bg-gray-100
-                  font-mono
-                "
-              />
+              <input value={notFoundBarcode} readOnly className="w-full rounded-lg border bg-gray-100 p-3 font-mono" />
 
-              <p className="mt-2 text-sm text-gray-500">
-                O código foi preenchido automaticamente pelo scanner.
-              </p>
+              <p className="mt-2 text-sm text-gray-500">O código foi preenchido automaticamente pelo scanner.</p>
             </div>
 
             {/* Nome */}
 
             <div>
-              <label className="block mb-1">Nome do produto</label>
+              <label className="mb-1 block">Nome do produto</label>
 
-              <input
-                type="text"
-                placeholder="Ex.: Kaiak 100ml"
-                className="
-                  w-full
-                  border
-                  rounded-lg
-                  p-3
-                "
-              />
+              <input type="text" placeholder="Ex.: Kaiak 100ml" className="w-full rounded-lg border p-3" />
             </div>
 
             {/* Ações */}
 
-            <div
-              className="
-                flex
-                justify-end
-                gap-3
-              "
-            >
-              <button
-                type="button"
-                onClick={handleCancelProductRegistration}
-                className="
-                  border
-                  px-6
-                  py-3
-                  rounded-lg
-                "
-              >
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={handleCancelProductRegistration} className="rounded-lg border px-6 py-3">
                 Voltar
               </button>
 
-              <button
-                type="button"
-                className="
-                  bg-black
-                  text-white
-                  px-6
-                  py-3
-                  rounded-lg
-                "
-              >
+              <button type="button" className="rounded-lg bg-black px-6 py-3 text-white">
                 Cadastrar produto
               </button>
             </div>
@@ -443,61 +542,39 @@ export function InitialInventoryPage() {
         </>
       )}
 
-      {/* ====================================== */}
-      {/* LOTE                                   */}
-      {/* ====================================== */}
+      {/* ====================================================== */}
+      {/* REGISTRO DO LOTE                                      */}
+      {/* ====================================================== */}
 
-      {step === "lot" && product && (
+      {step === 'lot' && currentVariant && (
         <>
           <div>
             <h1 className="text-3xl font-bold">Registrar estoque</h1>
 
-            <p className="text-gray-500">
-              Informe o lote, validade, caixa e quantidade.
-            </p>
+            <p className="text-gray-500">Informe o lote, validade, caixa e quantidade.</p>
           </div>
 
-          <div
-            className="
-              bg-white
-              rounded-xl
-              shadow
-              p-6
-            "
-          >
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-              "
-            >
-              <div>
-                <p className="text-sm text-gray-500">Produto</p>
+          {/* Produto / Variante */}
 
-                <h2 className="text-xl font-bold">{product.name}</h2>
+          <div className="rounded-xl bg-white p-6 shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Produto / Variante</p>
+
+                <h2 className="text-xl font-bold">{currentVariant.name}</h2>
               </div>
 
-              <span
-                className="
-                  bg-gray-100
-                  px-4
-                  py-2
-                  rounded-lg
-                  font-mono
-                  font-bold
-                "
-              >
-                {product.code}
-              </span>
+              <span className="rounded-lg bg-gray-100 px-4 py-2 font-mono font-bold">{currentVariant.code}</span>
             </div>
 
             <div className="mt-4">
               <p className="text-sm text-gray-500">Código de barras</p>
 
-              <p className="font-mono">{product.barcode}</p>
+              <p className="font-mono">{currentVariant.barcode ?? barcode}</p>
             </div>
           </div>
+
+          {/* Formulário do lote */}
 
           <InventoryLotForm
             initialBoxCode={boxCode}
