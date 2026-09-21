@@ -1,32 +1,66 @@
-import { api } from "@/shared/services/api";
+import { api } from '@/shared/services/api';
 
-export interface VariantInventory {
-  id: string;
+/**
+ * =========================
+ * Inventory
+ * =========================
+ */
+
+export async function getVariantInventory(productVariantId: string) {
+  const response = await api.get(`/inventory/variant/${productVariantId}`);
+
+  return response.data.data;
+}
+
+/**
+ * =========================
+ * Inventory Lots
+ * =========================
+ */
+
+export interface CreateInventoryLotDTO {
   productVariantId: string;
+  batchNumber: string;
+  manufacturingDate?: string;
+  expirationDate: string;
   quantity: number;
-  availableQuantity: number;
-  reservedQuantity: number;
-  minimumStock: number;
 }
 
-export async function getVariantInventory(
-  variantId: string,
-): Promise<VariantInventory> {
-  const { data } = await api.get(`/inventory/variants/${variantId}`);
+export async function createInventoryLot(data: CreateInventoryLotDTO) {
+  const response = await api.post('/inventory/lots', data);
 
-  return data.data;
+  return response.data.data;
 }
-// export async function listMovements(
-//   variantId: string,
-// ): Promise<VariantInventory> {
-//   const { data } = await api.get(`/inventory/variants/${variantId}`);
 
-//   return data.data;
-// }
-// export async function getVariantInventory(
-//   variantId: string,
-// ): Promise<VariantInventory> {
-//   const { data } = await api.get(`/inventory/variants/${variantId}`);
+/**
+ * =========================
+ * Inventory Boxes
+ * =========================
+ */
 
-//   return data.data;
-// }
+export interface CreateInventoryBoxDTO {
+  code: string;
+}
+
+export async function createInventoryBox(data: CreateInventoryBoxDTO) {
+  const response = await api.post('/inventory/boxes', data);
+
+  return response.data.data;
+}
+
+/**
+ * =========================
+ * Add Lot to Box
+ * =========================
+ */
+
+export interface AddLotToBoxDTO {
+  inventoryLotId: string;
+  quantity: number;
+}
+
+export async function addLotToBox(boxId: string, data: AddLotToBoxDTO) {
+  const response = await api.post(`/inventory/boxes/${boxId}/items`, data);
+
+  return response.data.data;
+}

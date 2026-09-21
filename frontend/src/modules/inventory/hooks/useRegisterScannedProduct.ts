@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { api } from "@/shared/services/api";
+import { useState } from 'react';
+import { api } from '@/shared/services/api';
 
 export interface RegisterScannedProductInput {
   barcode: string;
   boxCode: string;
   batchNumber?: string;
-  expirationDate?: string;
+  expirationDate?: Date;
   quantity?: number;
 }
 
@@ -22,20 +22,16 @@ export function useRegisterScannedProduct() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function register(
-    data: RegisterScannedProductInput,
-  ): Promise<RegisterScannedProductResponse | null> {
+  async function register(data: RegisterScannedProductInput): Promise<RegisterScannedProductResponse | null> {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.post("/inventory/initial-count", data);
+      const response = await api.post('/inventory/initial-count', data);
 
       return response.data.data ?? null;
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message ??
-        "Não foi possível registrar o produto.";
+      const message = error?.response?.data?.message ?? 'Não foi possível registrar o produto.';
 
       setError(message);
 

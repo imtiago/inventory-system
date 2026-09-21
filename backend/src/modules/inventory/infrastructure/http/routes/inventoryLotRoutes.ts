@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
-// import { authorize } from "../../../../../shared/middleware/authorize";
+import { authorize } from "../../../../../shared/middleware/authorize";
+import { makeCreateInventoryLotController } from "../controllers/CreateInventoryLotController";
 // import { makeAddInventoryController } from "../controllers/ReceiveInventoryController";
 // import { makeRemoveInventoryController } from "../controllers/RemoveInventoryController";
 // import { makeGetInventoryController } from "../controllers/GetInventoryController";
@@ -9,6 +10,11 @@ import { FastifyInstance } from "fastify";
 // import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
 export async function inventoryLotRoutes(app: FastifyInstance) {
+  app.post(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeCreateInventoryLotController(),
+  );
   //   app.get(
   //     "/",
   //     { preHandler: [authorize(["admin", "vendedor"])] },

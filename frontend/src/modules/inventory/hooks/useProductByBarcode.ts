@@ -1,65 +1,55 @@
-import { useState } from "react";
-import { api } from "@/shared/services/api";
+import { useState } from 'react';
 
-export interface ProductByBarcode {
-  id: string;
-  barcode: string;
-  code: string;
-  name: string;
-  productId: string;
-  createdAt: string;
-}
+import { api } from '@/shared/services/api';
 
-interface ProductByBarcodeResponse {
-  data: ProductByBarcode;
-}
+import type { ProductVariant } from '../types/InitialInventoryTypes';
 
 export function useProductByBarcode() {
-  const [product, setProduct] = useState<ProductByBarcode | null>(null);
-
-  const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
+  const [foundVariant, setFoundVariant] = useState<ProductVariant | null>(null);
 
   const [loading, setLoading] = useState(false);
 
-  async function findByBarcode(barcode: string) {
-    setLoading(true);
+  const [error, setError] = useState<string | null>(null);
 
-    setProduct(null);
-    setNotFoundBarcode(null);
-
+  async function searchByBarcode(barcode: string): Promise<ProductVariant | null> {
     try {
-      const response = await api.get<ProductByBarcodeResponse>(
-        `/variants/barcode/${barcode}`,
-      );
+      setLoading(true);
+      setError(null);
 
-      const product = response.data.data;
+      const response = await api.get(`/variants/barcode/${encodeURIComponent(barcode)}`);
 
-      setProduct(product);
+      const variant = response.data.data ?? null;
+
+      setFoundVariant(variant);
+
+      return variant;
     } catch (error: any) {
-      console.error("Erro ao buscar produto por código de barras:", error);
-
-      /*
-       * Se a API retornar 404, significa que
-       * o produto não está cadastrado.
-       */
-      if (error.response?.status === 404) {
-        setNotFoundBarcode(barcode);
+      if (error?.response?.status === 404) {
+        setFoundVariant(null);
+        return null;
       }
+
+      setFoundVariant(null);
+
+      setError(error?.response?.data?.message ?? 'Não foi possível consultar o código de barras.');
+
+      return null;
     } finally {
       setLoading(false);
     }
   }
 
-  function clear() {
-    setProduct(null);
-    setNotFoundBarcode(null);
+  function clearFoundVariant() {
+    setFoundVariant(null);
+    setError(null);
   }
 
   return {
-    product,
-    notFoundBarcode,
+    foundVariant,
     loading,
-    findByBarcode,
-    clear,
+    error,
+
+    searchByBarcode,
+    clearFoundVariant,
   };
 }

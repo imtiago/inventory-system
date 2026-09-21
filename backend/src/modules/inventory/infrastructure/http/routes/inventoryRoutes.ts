@@ -16,6 +16,8 @@ import { makeGetInventoryDashboardController } from "../controllers/GetInventory
 import { inventoryBoxRoutes } from "./inventoryBoxRoutes";
 import { makeRegisterScannedProductController } from "../controllers/RegisterScannedProductController";
 import { makeGetInventoryByProductVariantBarcodeController } from "../controllers/GetInventoryByProductVariantBarcodeController";
+import { inventoryLotRoutes } from "./inventoryLotRoutes";
+import { makeListInventoryLotsByVariantIdController } from "../controllers/GetListInventoryLotsByVariantIdController";
 // import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
 // import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
@@ -66,12 +68,18 @@ export async function inventoryRoutes(app: FastifyInstance) {
     makeGetInventoryDashboardController(),
   );
   app.get(
+    "/variants/:productVariantId/lots",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeListInventoryLotsByVariantIdController(),
+  );
+  app.get(
     "/:id",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGetInventoryByIdController(),
   );
   app.register(stockMovementRoutes, { prefix: "/movements" });
   app.register(inventoryBoxRoutes, { prefix: "/boxes" });
+  app.register(inventoryLotRoutes, { prefix: "/lots" });
 
   // app.post(
   //   "/movements",

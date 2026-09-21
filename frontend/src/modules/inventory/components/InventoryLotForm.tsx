@@ -1,261 +1,123 @@
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm } from 'react-hook-form';
 
 export interface InventoryLotFormData {
   batchNumber: string;
+  manufacturingDate?: string;
   expirationDate: string;
-  boxCode: string;
   quantity: number;
 }
 
 interface Props {
-  initialBoxCode?: string | null;
-
-  initialExpirationDate?: string | null;
-
-  boxLocked?: boolean;
-
-  expirationLocked?: boolean;
-
-  boxLoading?: boolean;
-
+  initialValues?: Partial<InventoryLotFormData>;
   submitting?: boolean;
-
-  boxError?: string | null;
-
   submitError?: string | null;
-
-  onBatchBlur?(batchNumber: string): void;
 
   onSubmit(data: InventoryLotFormData): void;
 
   onCancel(): void;
 }
 
-export function InventoryLotForm({
-  initialBoxCode = "",
-  initialExpirationDate = "",
-  boxLocked = false,
-  expirationLocked = false,
-  boxLoading = false,
-  submitting = false,
-  boxError = null,
-  submitError = null,
-  onBatchBlur,
-  onSubmit,
-  onCancel,
-}: Props) {
-  const { register, handleSubmit, setValue } = useForm<InventoryLotFormData>({
+export function InventoryLotForm({ initialValues, submitting = false, submitError = null, onSubmit, onCancel }: Props) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<InventoryLotFormData>({
     defaultValues: {
-      batchNumber: "",
-      expirationDate: initialExpirationDate ?? "",
-      boxCode: initialBoxCode ?? "",
-      quantity: 1,
+      batchNumber: initialValues?.batchNumber ?? '',
+
+      manufacturingDate: initialValues?.manufacturingDate ?? '',
+
+      expirationDate: initialValues?.expirationDate ?? '',
+
+      quantity: initialValues?.quantity ?? 1,
     },
   });
 
-  useEffect(() => {
-    setValue("boxCode", initialBoxCode ?? "");
-  }, [initialBoxCode, setValue]);
-
-  useEffect(() => {
-    setValue("expirationDate", initialExpirationDate ?? "");
-  }, [initialExpirationDate, setValue]);
-
-  function handleBatchBlur(batchNumber: string) {
-    const normalizedBatch = batchNumber.trim();
-
-    if (!normalizedBatch) {
-      return;
-    }
-
-    onBatchBlur?.(normalizedBatch);
-  }
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div
-        className="
-          bg-white
-          rounded-xl
-          shadow
-          p-6
-          space-y-5
-        "
-      >
-        {/* Lote */}
-
+      <div className="space-y-5 rounded-xl bg-white p-6 shadow">
         <div>
-          <label className="block mb-1">Lote</label>
+          <label htmlFor="batchNumber" className="mb-1 block">
+            Lote
+          </label>
 
           <input
-            {...register("batchNumber", {
-              required: "Informe o lote.",
+            id="batchNumber"
+            type="text"
+            {...register('batchNumber', {
+              required: 'Informe o lote.',
             })}
-            onBlur={(event) => handleBatchBlur(event.target.value)}
-            className="
-              w-full
-              border
-              rounded-lg
-              p-3
-            "
-            placeholder="Ex: 123"
+            className="w-full rounded-lg border p-3"
+            placeholder="Ex: 123456"
           />
 
-          {boxLoading && (
-            <p className="mt-2 text-sm text-gray-500">🔎 Verificando lote...</p>
-          )}
-
-          {boxError && <p className="mt-2 text-sm text-red-600">{boxError}</p>}
+          {errors.batchNumber && <p className="mt-1 text-sm text-red-600">{errors.batchNumber.message}</p>}
         </div>
 
-        {/* Validade */}
+        <div>
+          <label htmlFor="manufacturingDate" className="mb-1 block">
+            Data de fabricação
+          </label>
+
+          <input id="manufacturingDate" type="date" {...register('manufacturingDate')} className="w-full rounded-lg border p-3" />
+        </div>
 
         <div>
-          <label className="block mb-1">Validade</label>
+          <label htmlFor="expirationDate" className="mb-1 block">
+            Validade
+          </label>
 
           <input
+            id="expirationDate"
             type="date"
-            {...register("expirationDate", {
-              required: "Informe a validade.",
+            {...register('expirationDate', {
+              required: 'Informe a validade.',
             })}
-            readOnly={expirationLocked}
-            className={`
-              w-full
-              border
-              rounded-lg
-              p-3
-              ${expirationLocked ? "bg-gray-100" : ""}
-            `}
+            className="w-full rounded-lg border p-3"
           />
 
-          {expirationLocked && (
-            <p className="mt-2 text-sm text-gray-500">
-              🔒 Validade definida pelo lote existente.
-            </p>
-          )}
+          {errors.expirationDate && <p className="mt-1 text-sm text-red-600">{errors.expirationDate.message}</p>}
         </div>
 
-        {/* Caixa */}
-
         <div>
-          <label className="block mb-1">Caixa</label>
+          <label htmlFor="quantity" className="mb-1 block">
+            Quantidade
+          </label>
 
           <input
-            {...register("boxCode")}
-            readOnly={boxLocked}
-            className={`
-              w-full
-              border
-              rounded-lg
-              p-3
-              ${boxLocked ? "bg-gray-100" : ""}
-            `}
-            placeholder={
-              boxLocked
-                ? "Caixa definida"
-                : "Será definida após verificar o lote"
-            }
-          />
-
-          {boxLocked && initialBoxCode && (
-            <div
-              className="
-                  mt-2
-                  bg-gray-100
-                  border
-                  rounded-lg
-                  p-3
-                "
-            >
-              <p className="font-medium">📦 Caixa já definida</p>
-
-              <p className="text-sm text-gray-600">
-                Este produto/lote já está associado à caixa{" "}
-                <strong>{initialBoxCode}</strong>.
-              </p>
-
-              <p className="text-sm text-gray-600 mt-1">
-                A caixa não pode ser alterada.
-              </p>
-            </div>
-          )}
-
-          {!boxLocked && !boxLoading && (
-            <p className="mt-2 text-sm text-gray-500">
-              Informe o lote para verificar a caixa.
-            </p>
-          )}
-        </div>
-
-        {/* Quantidade */}
-
-        <div>
-          <label className="block mb-1">Quantidade</label>
-
-          <input
+            id="quantity"
             type="number"
             min={1}
-            {...register("quantity", {
-              required: "Informe a quantidade.",
+            step={1}
+            {...register('quantity', {
+              required: 'Informe a quantidade.',
+
               valueAsNumber: true,
+
               min: {
                 value: 1,
-                message: "A quantidade deve ser maior que zero.",
+                message: 'A quantidade deve ser maior que zero.',
               },
+
+              validate: (value) => Number.isInteger(value) || 'A quantidade deve ser um número inteiro.',
             })}
-            className="
-              w-full
-              border
-              rounded-lg
-              p-3
-            "
+            className="w-full rounded-lg border p-3"
           />
+
+          {errors.quantity && <p className="mt-1 text-sm text-red-600">{errors.quantity.message}</p>}
         </div>
       </div>
 
-      {/* Ações */}
-      {submitError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-          {submitError}
-        </div>
-      )}
+      {submitError && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{submitError}</div>}
 
-      <div
-        className="
-          flex
-          justify-end
-          gap-3
-        "
-      >
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={boxLoading || submitting}
-          className="
-    border
-    px-6
-    py-3
-    rounded-lg
-    disabled:opacity-50
-  "
-        >
-          Voltar
+      <div className="flex justify-end gap-3">
+        <button type="button" onClick={onCancel} disabled={submitting} className="rounded-lg border px-6 py-3 disabled:opacity-50">
+          Cancelar
         </button>
 
-        <button
-          type="submit"
-          disabled={boxLoading || submitting}
-          className="
-    bg-black
-    text-white
-    rounded-lg
-    px-6
-    py-3
-    disabled:opacity-50
-  "
-        >
-          {submitting ? "Registrando..." : "Registrar"}
+        <button type="submit" disabled={submitting} className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
+          {submitting ? 'Salvando...' : 'Salvar lote'}
         </button>
       </div>
     </form>
