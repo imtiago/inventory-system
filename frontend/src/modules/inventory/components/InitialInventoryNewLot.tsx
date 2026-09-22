@@ -20,7 +20,7 @@ export function InitialInventoryNewLot({ variantName, variantCode, productVarian
       productVariantId,
       batchNumber: data.batchNumber,
       manufacturingDate: data.manufacturingDate || undefined,
-      expirationDate: data.expirationDate,
+      expirationDate: new Date(data.expirationDate).toISOString(),
       quantity: data.quantity,
     });
 

@@ -8,8 +8,11 @@ import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 export interface CreateInventoryLotInput {
   inventoryId: string;
   batchNumber: string;
+  productVariantId: string;
   quantity: number;
   expirationDate: Date;
+  manufacturingDate?: Date;
+  unitCost: number;
 }
 
 export class CreateInventoryLotUseCase extends TransactionalUseCase<
@@ -17,8 +20,7 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
   InventoryLot
 > {
   constructor(
-    private readonly inventoryLotRepository: InventoryLotRepository,
-    // private numberGenerator: NumberGenerator,
+    private readonly repository: InventoryLotRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -28,13 +30,11 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
     request: CreateInventoryLotInput,
     tx: Prisma.TransactionClient,
   ): Promise<InventoryLot> {
-    console.log(request.productVariantId);
     const lot = new InventoryLot({
       inventoryId: request.inventoryId,
       productVariantId: request.productVariantId,
       quantity: request.quantity,
-      // unitCost: request.unitCost,
-      unitCost: 1,
+      unitCost: request.unitCost,
       sourceType: InventoryLotSource.MANUAL,
       availableQuantity: request.availableQuantity,
       batchNumber: request.batchNumber,
@@ -45,6 +45,6 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
       manufacturingDate: request.manufacturingDate,
     });
 
-    return await this.inventoryLotRepository.save(lot, tx);
+    return await this.repository.save(lot, tx);
   }
 }

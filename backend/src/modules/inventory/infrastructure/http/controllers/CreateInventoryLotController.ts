@@ -9,8 +9,8 @@ import { makeReceiveInventory } from "../factories/ReceiveInventoryFactory";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 
 export function makeCreateInventoryLotController() {
-  // const useCase = makeCreateInventoryLotUseCase();
-  const useCase = makeReceiveInventory();
+  const useCase = makeCreateInventoryLotUseCase();
+  // const useCase = makeReceiveInventory();
   const getInventoryByVariantIdUseCase = makeGetInventoryByVariantId();
   const getInventoryLotByIdUseCase = makeGetInventoryLotById();
 

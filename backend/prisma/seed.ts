@@ -1,40 +1,17 @@
 import { PrismaClient } from "@prisma/client";
-import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
+
+import { seedBrands } from "./seeds/brand.seed";
+import { seedCategories } from "./seeds/category.seed";
+import { seedCustomers } from "./seeds/customer.seed";
+import { seedNumberRanges } from "./seeds/number-range.seed";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.brand.create({
-    data: {
-      name: "Natura",
-    },
-  });
-
-  await prisma.brand.create({
-    data: {
-      name: "Boticario",
-    },
-  });
-
-  await prisma.category.create({
-    data: {
-      name: "Perfumes",
-    },
-  });
-
-  await prisma.category.create({
-    data: {
-      name: "Maquiagens",
-    },
-  });
-
-  await prisma.numberRange.createMany({
-    data: Object.values(NumberRangeName).map((name) => ({
-      name,
-      currentValue: 0,
-    })),
-    skipDuplicates: true,
-  });
+  await seedBrands(prisma);
+  await seedCategories(prisma);
+  await seedNumberRanges(prisma);
+  await seedCustomers(prisma);
 
   console.log("Seed executado com sucesso");
 }

@@ -1,10 +1,27 @@
 import { api } from '@/shared/services/api';
 
+export async function getInventory(page = 1): Promise<CustomerListResponse> {
+  const response = await api.get('/inventory', {
+    params: {
+      page,
+      limit: 10,
+    },
+  });
+
+  return response.data;
+}
+
 /**
  * =========================
  * Inventory
  * =========================
  */
+
+export async function getInventoryById(id: string) {
+  const response = await api.get(`/inventory/${id}`);
+
+  return response.data.data;
+}
 
 export async function getVariantInventory(productVariantId: string) {
   const response = await api.get(`/inventory/variant/${productVariantId}`);

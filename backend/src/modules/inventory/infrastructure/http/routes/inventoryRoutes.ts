@@ -18,6 +18,7 @@ import { makeRegisterScannedProductController } from "../controllers/RegisterSca
 import { makeGetInventoryByProductVariantBarcodeController } from "../controllers/GetInventoryByProductVariantBarcodeController";
 import { inventoryLotRoutes } from "./inventoryLotRoutes";
 import { makeListInventoryLotsByVariantIdController } from "../controllers/GetListInventoryLotsByVariantIdController";
+import { makeCreateInventoryController } from "../controllers/CreateInventoryController";
 // import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
 // import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
@@ -26,6 +27,11 @@ export async function inventoryRoutes(app: FastifyInstance) {
     "/",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeListInventoryController(),
+  );
+  app.post(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeCreateInventoryController(),
   );
   app.get(
     "/product-variant/barcode/:barcode",
