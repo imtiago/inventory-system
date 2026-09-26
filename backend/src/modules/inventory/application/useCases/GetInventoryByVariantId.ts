@@ -1,10 +1,10 @@
+import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { Inventory } from "../../domain/entities/Inventory";
-import { InventoryReadRepository } from "../contracts/InventoryReadRepository";
 
 export class GetInventoryByVariantId {
-  constructor(private repository: InventoryReadRepository) {}
+  constructor(private repository: IInventoryRepository) {}
 
   async execute(productVariantId: string): Promise<Inventory | null> {
-    return this.repository.getByVariantId(productVariantId);
+    return this.repository.findByProductVariantId(productVariantId);
   }
 }

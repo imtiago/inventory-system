@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { api } from '@/shared/services/api';
 
 export interface InventoryBoxStock {
@@ -30,32 +31,43 @@ export interface InventoryBox {
   stocks: InventoryBoxStock[];
 }
 
+interface InventoryBoxResponse {
+  data: InventoryBox[];
+
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export function useInventoryBoxByLot() {
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
-  async function findBoxByLot(productVariantId: string, batchNumber: string): Promise<InventoryBox | null> {
+  async function findBoxByLot(productVariantId: string, batchNumber: string): Promise<InventoryBox[]> {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get('/inventory/boxes/by-lot', {
+      const response = await api.get<InventoryBoxResponse>('/inventory/boxes/by-lot', {
         params: {
           productVariantId,
           batchNumber,
         },
       });
 
-      return response.data.data ?? null;
+      return response.data.data ?? [];
     } catch (error: any) {
       if (error?.response?.status === 404) {
-        return null;
+        return [];
       }
 
-      setError(error?.response?.data?.message ?? 'Não foi possível verificar a caixa.');
+      setError(error?.response?.data?.message ?? 'Não foi possível verificar as caixas.');
 
-      return null;
+      return [];
     } finally {
       setLoading(false);
     }

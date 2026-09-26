@@ -12,12 +12,9 @@ export function makeGetInventoryBoxByLotAndProductVariantController() {
     try {
       const { batchNumber, productVariantId } =
         getInventoryBoxByLotAndProductVariantSchema.parse(request.query);
-      const box = await useCase.execute({ batchNumber, productVariantId });
-      if (!box) {
-        return reply.status(404).send({ message: "InventoryBox not found" });
-      }
+      const boxs = await useCase.execute({ batchNumber, productVariantId });
 
-      return reply.send(HttpResponse.ok(box));
+      return reply.send(HttpResponse.paginated(boxs));
     } catch (err: any) {
       return reply.status(400).send({ message: err.message });
     }

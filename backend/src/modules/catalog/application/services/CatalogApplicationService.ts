@@ -10,11 +10,11 @@ export class CatalogApplicationService implements CatalogService {
   ) {}
 
   async getProductVariant(id: string): Promise<ProductVariantDTO | null> {
-    return this.getProductVariantUseCase.execute(id);
+    return await this.getProductVariantUseCase.execute(id);
   }
   async getProductVariantByBarcode(
     barcode: string,
   ): Promise<ProductVariantDTO | null> {
-    return this.getProductVariantByBarcodeUseCase.execute(barcode);
+    return await this.getProductVariantByBarcodeUseCase.execute(barcode);
   }
 }

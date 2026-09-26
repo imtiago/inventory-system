@@ -5,10 +5,12 @@ export const createInventoryLotSchema = z.object({
 
   batchNumber: z.string().min(1, "Batch number is required."),
 
-  expirationDate: z.date("Invalid ISO datetime"),
+  expirationDate: z.string("Invalid ISO datetime"),
+  // expirationDate: z.date("Invalid ISO datetime"),
   // expirationDate: z.date("Invalid ISO datetime").datetime("Invalid ISO datetime"),
 
-  manufacturingDate: z.date().optional(),
+  manufacturingDate: z.string().optional(),
+  // manufacturingDate: z.date().optional(),
   // manufacturingDate: z
   //   .string()
   //   .datetime("Invalid ISO datetime")

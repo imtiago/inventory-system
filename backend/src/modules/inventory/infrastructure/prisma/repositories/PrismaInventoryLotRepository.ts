@@ -1,17 +1,100 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "../../../../../shared/prisma";
 
-import { Inventory } from "../../../domain/entities/Inventory";
 import { InventoryMapper } from "../mappers/InventoryMapper";
-import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
+import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotMapper } from "../mappers/InventoryLotMapper";
 
-export class PrismaInventoryLotRepository implements InventoryLotRepository {
-  async findByVariant(
+export class PrismaInventoryLotRepository implements IInventoryLotRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async create(entity: InventoryLot): Promise<InventoryLot> {
+    console.log(entity);
+    const dataCreated = await this.prisma.inventoryLot.create({
+      data: InventoryLotMapper.toCreatePersistence(entity),
+    });
+
+    return InventoryLotMapper.toDomain(dataCreated);
+  }
+
+  async update(entity: InventoryLot): Promise<InventoryLot> {
+    const dataCreated = await this.prisma.inventoryLot.update({
+      where: {
+        id: entity.id,
+      },
+      data: InventoryLotMapper.toUpdatePersistence(entity),
+    });
+
+    return InventoryLotMapper.toDomain(dataCreated);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.inventoryLot.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async findById(id: string, tx: Prisma.TransactionClient = prisma) {
+    const inventory = await tx.inventoryLot.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!inventory) {
+      return null;
+    }
+
+    return InventoryLotMapper.toDomain(inventory);
+  }
+
+  async findByProductVariantIdAndBatchNumber(
+    productVariantId: string,
+    batchNumber: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    const inventory = await tx.inventoryLot.findFirst({
+      where: {
+        productVariantId,
+        batchNumber,
+      },
+    });
+
+    if (!inventory) {
+      return null;
+    }
+
+    return InventoryLotMapper.toDomain(inventory);
+  }
+
+  async findAvailableByInventory(
+    inventoryId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    const data = await tx.inventoryLot.findMany({
+      where: {
+        inventoryId,
+
+        remainingQuantity: {
+          gt: 0,
+        },
+      },
+
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    return data.map((d) => InventoryLotMapper.toDomain(d));
+  }
+
+  async findByProductVariantId(
     productVariantId: string,
     tx: Prisma.TransactionClient = prisma,
-  ): Promise<Inventory | null> {
+  ) {
     const inventory = await tx.inventory.findUnique({
       where: {
         productVariantId,
@@ -24,41 +107,4 @@ export class PrismaInventoryLotRepository implements InventoryLotRepository {
 
     return InventoryMapper.toDomain(inventory);
   }
-
-  async save(
-    inventory: InventoryLot,
-    tx: Prisma.TransactionClient = prisma,
-  ): Promise<InventoryLot> {
-    // const exists = await tx.inventoryLot.findUnique({
-    //   where: {
-    //     id: inventory.id,
-    //   },
-    // });
-
-    // if (exists) {
-    //   const updated = await tx.inventory.update({
-    //     where: {
-    //       id: inventory.id,
-    //     },
-    //     data: InventoryMapper.toUpdatePersistence(inventory),
-    //   });
-
-    //   return InventoryMapper.toDomain(updated);
-    // }
-
-    const created = await tx.inventoryLot.create({
-      data: InventoryLotMapper.toCreatePersistence(inventory),
-    });
-
-    return InventoryLotMapper.toDomain(created);
-  }
-
-  //   tx: Prisma.TransactionClient = prisma,
-  // ): Promise<StockMovement> {
-  //   const created = await tx.stockMovement.create({
-  //     data: StockMovementMapper.toCreatePersistence(movement),
-  //   });
-
-  //   return StockMovementMapper.toDomain(created);
-  // }
 }

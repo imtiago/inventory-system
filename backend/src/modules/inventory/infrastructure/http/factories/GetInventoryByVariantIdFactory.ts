@@ -1,8 +1,9 @@
 import { GetInventoryByVariantId } from "@inventory/application/useCases/GetInventoryByVariantId";
-import { PrismaInventoryReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryReadRepository";
+import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
+import { prisma } from "@shared/prisma";
 
 export function makeGetInventoryByVariantId() {
-  const inventoryReadRepository = new PrismaInventoryReadRepository();
+  const inventoryReadRepository = new PrismaInventoryRepository(prisma);
 
   return new GetInventoryByVariantId(inventoryReadRepository);
 }

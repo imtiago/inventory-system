@@ -7,6 +7,8 @@ import { InitialInventoryVariantRegistration } from '../components/InitialInvent
 import { InitialInventoryLotStep } from '../components/InitialInventoryLotStep';
 import { InitialInventoryNewLot } from '../components/InitialInventoryNewLot';
 import { InitialInventoryBoxStep } from '../components/InitialInventoryBoxStep';
+import { InitialInventoryLabelChoice } from '../components/InitialInventoryLabelChoice';
+import { InitialInventoryLabelQuantity } from '../components/InitialInventoryLabelQuantity';
 
 import { useInitialInventoryFlow } from '../hooks/useInitialInventoryFlow';
 
@@ -84,13 +86,27 @@ export function InitialInventoryPage() {
       {flow.step === 'box' && flow.selectedLot && (
         <InitialInventoryBoxStep
           lot={flow.selectedLot}
-          existingBox={flow.existingBox}
-          boxLoading={flow.boxLoading}
-          boxError={flow.boxError}
-          boxCode={flow.boxCode}
-          boxLocked={flow.boxLocked}
+          boxes={flow.boxes}
+          boxesLoading={flow.boxLoading}
+          boxesError={flow.boxError}
+          selectedBox={flow.selectedBox}
+          onSelectBox={flow.handleSelectBox}
           onCreateBox={flow.handleCreateBox}
           onContinue={flow.handleContinueWithBox}
+        />
+      )}
+
+      {flow.step === 'label-choice' && flow.selectedLot && flow.selectedBox && (
+        <InitialInventoryLabelChoice boxCode={flow.selectedBox.code} labelQuantity={flow.labelQuantity} onGenerateLabel={flow.handleGenerateLabel} onSkipLabel={flow.handleSkipLabel} />
+      )}
+
+      {flow.step === 'label-quantity' && flow.selectedBox && (
+        <InitialInventoryLabelQuantity
+          boxCode={flow.selectedBox.code}
+          quantity={flow.labelQuantity}
+          onChange={flow.handleLabelQuantityChange}
+          onConfirm={flow.handleConfirmLabelQuantity}
+          onCancel={() => flow.setStep('label-choice')}
         />
       )}
     </div>

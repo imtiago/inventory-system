@@ -6,7 +6,10 @@ import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { prisma } from "@shared/prisma";
-
+interface InventoryBoxParams {
+  batchNumber: string;
+  productVariantId: string;
+}
 export class PrismaInventoryBoxReadRepository implements InventoryBoxReadRepository {
   async getById(id: string) {
     const data = await prisma.inventoryBox.findUnique({
@@ -36,41 +39,56 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
     return InventoryBoxReadMapper.toDTOWithExtends(data);
   }
   async getByLotAndProductVariantId(
-    batchNumber: string,
-    productVariantId: string,
+    pagination: PaginationRequest,
+    params: InventoryBoxParams,
   ) {
-    const data = await prisma.inventoryBox.findFirst({
-      where: {
-        stocks: {
-          some: {
-            inventoryLot: {
-              batchNumber,
-              productVariantId,
-            },
+    const paginationOptions = buildPagination(pagination);
+    const { batchNumber, productVariantId } = params;
+
+    const where = {
+      stocks: {
+        some: {
+          inventoryLot: {
+            batchNumber,
+            productVariantId,
           },
         },
       },
-      include: {
-        stocks: {
-          where: {
-            inventoryLot: {
-              batchNumber,
-              productVariantId,
+    };
+
+    const [data, total] = await Promise.all([
+      prisma.inventoryBox.findMany({
+        ...paginationOptions,
+        orderBy: {
+          createdAt: "asc",
+        },
+        where,
+        include: {
+          stocks: {
+            where: {
+              inventoryLot: {
+                batchNumber,
+                productVariantId,
+              },
             },
-          },
-          include: {
-            inventoryLot: {
-              include: {
-                productVariant: true,
+            include: {
+              inventoryLot: {
+                include: {
+                  productVariant: true,
+                },
               },
             },
           },
         },
-      },
-    });
-    if (!data) return null;
+      }),
 
-    return InventoryBoxReadMapper.toDTOWithExtends(data);
+      prisma.inventoryBox.count({
+        where,
+      }),
+    ]);
+
+    const dt = data.map((d) => InventoryBoxReadMapper.toDTOWithExtends(d));
+    return buildPaginatedResult(dt, total, pagination);
   }
   // async list(
   //   pagination: PaginationRequest,

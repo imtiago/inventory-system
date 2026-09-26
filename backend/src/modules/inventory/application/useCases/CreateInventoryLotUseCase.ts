@@ -1,7 +1,7 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
+import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 
@@ -20,7 +20,7 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
   InventoryLot
 > {
   constructor(
-    private readonly repository: InventoryLotRepository,
+    private readonly repository: IInventoryLotRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -45,6 +45,6 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
       manufacturingDate: request.manufacturingDate,
     });
 
-    return await this.repository.save(lot, tx);
+    return await this.repository.create(lot);
   }
 }

@@ -20,13 +20,12 @@ export function makeCreateInventoryLotController() {
   ) {
     try {
       const data = createInventoryLotSchema.parse(request.body);
-
-      // const inventory = await getInventoryByVariantIdUseCase.execute(
-      //   data.productVariantId,
-      // );
-      // if (!inventory) {
-      //   return reply.status(404).send({ message: "Inventory not found" });
-      // }
+      const inventory = await getInventoryByVariantIdUseCase.execute(
+        data.productVariantId,
+      );
+      if (!inventory) {
+        return reply.status(404).send({ message: "Inventory not found" });
+      }
 
       // const lot = await useCase.execute({
       //   // inventoryId: inventory.id,
@@ -37,12 +36,12 @@ export function makeCreateInventoryLotController() {
 
       // });
       const lot = await useCase.execute({
-        // inventoryId: inventory.id,
+        inventoryId: inventory.id,
         productVariantId: data.productVariantId,
         expirationDate: new Date(data.expirationDate),
         batchNumber: data.batchNumber,
         quantity: data.quantity,
-        unitCost: 0,
+        unitCost: data.unitCost,
         origin: StockMovementOrigin.MANUAL,
         userId: "852da500-e5e3-41ac-baa3-da283139ecd5",
       });

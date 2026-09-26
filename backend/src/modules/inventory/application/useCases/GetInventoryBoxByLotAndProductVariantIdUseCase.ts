@@ -1,5 +1,4 @@
 import { InventoryBoxReadRepository } from "../contracts/InventoryBoxReadRepository";
-import { InventoryBoxDTO } from "../dto/InventoryBoxDTO";
 interface IGetInventoryBoxByLotAndProductVariantId {
   batchNumber: string;
   productVariantId: string;
@@ -7,12 +6,16 @@ interface IGetInventoryBoxByLotAndProductVariantId {
 export class GetInventoryBoxByLotAndProductVariantId {
   constructor(private repository: InventoryBoxReadRepository) {}
 
-  async execute(
-    input: IGetInventoryBoxByLotAndProductVariantId,
-  ): Promise<InventoryBoxDTO | null> {
+  async execute(input: IGetInventoryBoxByLotAndProductVariantId) {
     return this.repository.getByLotAndProductVariantId(
-      input.batchNumber,
-      input.productVariantId,
+      {
+        page: 1,
+        limit: 10,
+      },
+      {
+        batchNumber: input.batchNumber,
+        productVariantId: input.productVariantId,
+      },
     );
   }
 }

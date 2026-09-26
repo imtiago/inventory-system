@@ -1,18 +1,10 @@
-// domain/repositories/StockMovementRepository.ts
-
 import { Prisma } from "@prisma/client";
 import { StockMovement } from "../entities/StockMovement";
+import { ICrudRepository } from "@shared/domain/repositories/CrudRepository";
 
-export interface StockMovementRepository {
-  create(
-    movement: StockMovement,
-    tx?: Prisma.TransactionClient,
-  ): Promise<StockMovement>;
-  findById(id: string, tx?: Prisma.TransactionClient): Promise<StockMovement>;
+export interface IStockMovementRepository extends ICrudRepository<StockMovement> {
   findByProductVariantId(
     productVariantId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<StockMovement[]>;
-
-  // findByProductVariantId(productVariantId: string): Promise<StockMovement[]>;
 }

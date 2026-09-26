@@ -41,6 +41,7 @@ export interface CreateInventoryLotDTO {
   manufacturingDate?: string;
   expirationDate: string;
   quantity: number;
+  unitCost: number;
 }
 
 export async function createInventoryLot(data: CreateInventoryLotDTO) {
