@@ -60,8 +60,10 @@ export interface CreateInventoryBoxDTO {
   code: string;
 }
 
-export async function createInventoryBox(data: CreateInventoryBoxDTO) {
-  const response = await api.post('/inventory/boxes', data);
+export async function createInventoryBox() {
+  // export async function createInventoryBox(data: CreateInventoryBoxDTO) {
+  // const response = await api.post('/inventory/boxes', data);
+  const response = await api.post('/inventory/boxes');
 
   return response.data.data;
 }

@@ -1,9 +1,9 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { InventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
+import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
-import { InventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
+import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 
 export interface AddProductToBoxInput {
@@ -17,8 +17,8 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
   InventoryBoxStock
 > {
   constructor(
-    private readonly inventoryBoxRepository: InventoryBoxRepository,
-    private readonly inventoryBoxStockRepository: InventoryBoxStockRepository,
+    private readonly inventoryBoxRepository: IInventoryBoxRepository,
+    private readonly inventoryBoxStockRepository: IInventoryBoxStockRepository,
     private readonly inventoryLotRepository: InventoryLotRepository,
     transactionManager: TransactionManager,
   ) {
@@ -53,11 +53,8 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     );
 
     if (existingStock) {
-      return this.inventoryBoxStockRepository.update(
-        existingStock.id,
-        existingStock.quantity + request.quantity,
-        tx,
-      );
+      existingStock.addQuantity(request.quantity);
+      return this.inventoryBoxStockRepository.update(existingStock);
     }
 
     const stock = new InventoryBoxStock({

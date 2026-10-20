@@ -1,10 +1,43 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@shared/prisma";
-import { InventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
+import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStockMapper } from "../mappers/InventoryBoxStockMapper";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 
-export class PrismaInventoryBoxStockRepository implements InventoryBoxStockRepository {
+export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async create(entity: InventoryBoxStock): Promise<InventoryBoxStock> {
+    const created = await this.prisma.inventoryBoxStock.create({
+      data: InventoryBoxStockMapper.toCreatePersistence(entity),
+    });
+
+    return InventoryBoxStockMapper.toDomain(created);
+  }
+
+  async update(entity: InventoryBoxStock): Promise<InventoryBoxStock> {
+    const data = await this.prisma.inventoryBoxStock.update({
+      where: { id: entity.id },
+      data: InventoryBoxStockMapper.toUpdatePersistence(entity),
+    });
+
+    return InventoryBoxStockMapper.toDomain(data);
+  }
+
+  async findById(id: string): Promise<InventoryBoxStock | null> {
+    const data = await this.prisma.inventoryBoxStock.findUnique({
+      where: { id },
+    });
+
+    return InventoryBoxStockMapper.toDomain(data);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.inventoryBoxStock.delete({
+      where: { id },
+    });
+  }
+
   async findStock(
     inventoryLotId: string,
     boxId: string,
@@ -22,30 +55,6 @@ export class PrismaInventoryBoxStockRepository implements InventoryBoxStockRepos
     if (!data) {
       return null;
     }
-
-    return InventoryBoxStockMapper.toDomain(data);
-  }
-
-  async create(
-    stock: InventoryBoxStock,
-    tx: Prisma.TransactionClient = prisma,
-  ) {
-    const created = await tx.inventoryBoxStock.create({
-      data: InventoryBoxStockMapper.toCreatePersistence(stock),
-    });
-
-    return InventoryBoxStockMapper.toDomain(created);
-  }
-
-  async update(
-    id: string,
-    quantity: number,
-    tx: Prisma.TransactionClient = prisma,
-  ) {
-    const data = await tx.inventoryBoxStock.update({
-      where: { id },
-      data: { quantity },
-    });
 
     return InventoryBoxStockMapper.toDomain(data);
   }

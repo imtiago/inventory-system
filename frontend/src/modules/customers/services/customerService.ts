@@ -1,18 +1,5 @@
 import { api } from '@/shared/services/api';
-import type { CustomerListResponse } from '../types';
-// import type { Product, ProductListResponse, ProductVariantListResponse } from '../types';
-// import type { ProductFormData } from '../components/ProductForm';
-
-// export interface CreateVariantDTO {
-//   name: string;
-//   barcode?: string;
-// }
-
-// export async function createVariant(productId: string, data: CreateVariantDTO) {
-//   const response = await api.post(`/products/${productId}/variants`, data);
-
-//   return response.data.data;
-// }
+import type { CustomerListResponse, ICreateCustomerDTO, ICustomer } from '../types';
 
 export async function getCustomers(page = 1): Promise<CustomerListResponse> {
   const response = await api.get('/customers', {
@@ -25,27 +12,24 @@ export async function getCustomers(page = 1): Promise<CustomerListResponse> {
   return response.data;
 }
 
-// export async function createProduct(data: ProductFormData) {
-//   const response = await api.post('/products', data);
+export async function createCustomer(data: ICreateCustomerDTO) {
+  const response = await api.post('/customers', data);
 
-//   return response.data.data;
-// }
+  return response.data.data;
+}
 
-// export const deleteProduct = async (id: string) => {
-//   await api.delete(`/products/${id}`);
-// };
+export const updateCustomer = async (id: string, input: any) => {
+  const { data } = await api.put(`/customers/${id}`, input);
+  // return response.data.data;
+  return data;
+};
 
-// export async function getProductById(id: string): Promise<Product> {
-//   const response = await api.get(`/products/${id}`);
+export async function getCustomerById(id: string): Promise<ICustomer> {
+  const response = await api.get(`/customers/${id}`);
 
-//   return response.data;
-// }
-// export const updateProduct = async (id: string, input: any) => {
-//   const { data } = await api.put(`/products/${id}`, input);
-//   return data;
-// };
+  return response.data;
+}
 
-// export async function getProductVariants(productId: string): Promise<ProductVariantListResponse> {
-//   const response = await api.get(`/products/${productId}/variants`);
-//   return response.data; // se a API retorna { data: [...] }
-// }
+export const deleteProduct = async (id: string) => {
+  await api.delete(`/customers/${id}`);
+};

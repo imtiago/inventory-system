@@ -12,7 +12,9 @@ export function makeRegisterScannedProductFactory() {
   const inventoryRepository = new PrismaInventoryRepository(prisma);
   const inventoryLotRepository = new PrismaInventoryLotRepository(prisma);
   const inventoryBoxRepository = new PrismaInventoryBoxRepository();
-  const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository();
+  const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository(
+    prisma,
+  );
   const transactionManager = new PrismaTransactionManager();
 
   return new RegisterScannedProductUseCase(

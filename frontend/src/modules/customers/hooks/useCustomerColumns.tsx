@@ -5,9 +5,11 @@ import type { DataTableColumn } from '@/shared/components/table';
 import { CrudBadge } from '@/shared/components/crud';
 
 import type { ICustomer } from '../types';
+import { formatPhone } from '@/shared/utils/formatPhone';
+import { formatName } from '@/shared/utils/formatName';
 // import { useDeleteProduct } from './useDeleteProduct';
 
-export function useCustomerColumns(): DataTableColumn<ICustomer>[] {
+export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataTableColumn<ICustomer>[] {
   // const deleteProduct = useDeleteProduct();
 
   return [
@@ -24,8 +26,8 @@ export function useCustomerColumns(): DataTableColumn<ICustomer>[] {
 
       cell: (data) => (
         <div>
-          <Link to={`/products/${data.id}`} className="font-medium hover:underline">
-            {data.name}
+          <Link to={`/customers/${data.id}`} className="font-medium hover:underline">
+            {formatName(data.name)}
           </Link>
 
           <div className="text-sm text-gray-500">{data.description}</div>
@@ -37,7 +39,7 @@ export function useCustomerColumns(): DataTableColumn<ICustomer>[] {
       id: 'phone',
       header: 'Telefone',
 
-      cell: (data) => data.phone,
+      cell: (data) => formatPhone(data.phone),
     },
     {
       id: 'email',
@@ -61,22 +63,22 @@ export function useCustomerColumns(): DataTableColumn<ICustomer>[] {
     //   cell: (product) => <CrudBadge>{product.variantsCount}</CrudBadge>,
     // },
 
-    // {
-    //   id: 'actions',
-    //   header: 'Ações',
-    //   align: 'center',
+    {
+      id: 'actions',
+      header: 'Ações',
+      align: 'center',
 
-    //   cell: (product) => (
-    //     <div className="flex justify-center gap-3">
-    //       <Link to={`/products/${product.id}/edit`} className="text-blue-600 hover:text-blue-800">
-    //         <Pencil size={18} />
-    //       </Link>
+      cell: (data) => (
+        <div className="flex justify-center gap-3">
+          <button type="button" onClick={() => onEdit(data)} className="text-blue-600 hover:text-blue-800" aria-label={`Editar ${data.name}`}>
+            <Pencil size={18} />
+          </button>
 
-    //       <button className="text-red-600 hover:text-red-800" onClick={() => deleteProduct.mutate(product.id)}>
-    //         <Trash2 size={18} />
-    //       </button>
-    //     </div>
-    //   ),
-    // },
+          {/* <button className="text-red-600 hover:text-red-800" onClick={() => deleteProduct.mutate(product.id)}>
+            <Trash2 size={18} />
+          </button> */}
+        </div>
+      ),
+    },
   ];
 }

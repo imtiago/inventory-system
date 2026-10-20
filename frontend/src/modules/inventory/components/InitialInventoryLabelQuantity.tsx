@@ -1,12 +1,16 @@
 interface Props {
   boxCode: string;
   quantity: number;
+
+  loading: boolean;
+  error: string | null;
+
   onChange(quantity: number): void;
   onConfirm(): void;
   onCancel(): void;
 }
 
-export function InitialInventoryLabelQuantity({ boxCode, quantity, onChange, onConfirm, onCancel }: Props) {
+export function InitialInventoryLabelQuantity({ boxCode, quantity, onChange, onConfirm, onCancel, loading, error }: Props) {
   return (
     <div className="space-y-6">
       <div className="rounded-xl bg-white p-6 shadow">
@@ -27,13 +31,14 @@ export function InitialInventoryLabelQuantity({ boxCode, quantity, onChange, onC
         <input id="label-quantity" type="number" min={1} step={1} value={quantity} onChange={(event) => onChange(Number(event.target.value))} className="w-full rounded-lg border p-3" />
 
         <div className="mt-6 flex gap-3">
-          <button type="button" onClick={onConfirm} disabled={quantity < 1} className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
-            Gerar etiquetas
+          <button type="button" onClick={onConfirm} disabled={quantity < 1 || loading} className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
+            {loading ? 'Gerando etiquetas...' : 'Gerar etiquetas'}
           </button>
 
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-6 py-3">
             Voltar
           </button>
+          {error && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>}
         </div>
       </div>
     </div>

@@ -1,37 +1,43 @@
 interface InitialInventoryProductChoiceProps {
-  barcode: string;
+  barcode?: string | null;
   onRegisterVariant: () => void;
   onRegisterProduct: () => void;
   onBack: () => void;
 }
 
 export function InitialInventoryProductChoice({ barcode, onRegisterVariant, onRegisterProduct, onBack }: InitialInventoryProductChoiceProps) {
+  const hasBarcode = Boolean(barcode);
+
   return (
     <>
       <div>
-        <h1 className="text-3xl font-bold">Produto não encontrado</h1>
+        <h1 className="text-3xl font-bold">{hasBarcode ? 'Produto não encontrado' : 'Cadastro do produto'}</h1>
 
-        <p className="text-gray-500">O código de barras foi lido, mas nenhuma variante foi encontrada.</p>
+        <p className="text-gray-500">
+          {hasBarcode ? 'O código de barras foi lido, mas nenhuma variante foi encontrada.' : 'Informe se o produto já existe no cadastro ou se será necessário criar um novo produto.'}
+        </p>
       </div>
 
       <div className="space-y-6 rounded-xl bg-white p-6 shadow">
-        <div>
-          <p className="text-sm text-gray-500">Código de barras</p>
+        {hasBarcode && (
+          <div>
+            <p className="text-sm text-gray-500">Código de barras</p>
 
-          <p className="font-mono text-lg font-bold">{barcode}</p>
-        </div>
+            <p className="font-mono text-lg font-bold">{barcode}</p>
+          </div>
+        )}
 
         <div>
           <h2 className="text-xl font-bold">Esse produto já existe no cadastro?</h2>
 
-          <p className="mt-2 text-gray-500">Se o produto já estiver cadastrado, vamos criar somente uma nova variante para ele.</p>
+          <p className="mt-2 text-gray-500">Se o produto já estiver cadastrado, vamos localizar o produto e cadastrar somente uma nova variante.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <button type="button" onClick={onRegisterVariant} className="rounded-xl border p-6 text-left hover:bg-gray-50">
             <p className="text-lg font-bold">Sim, o produto existe</p>
 
-            <p className="mt-2 text-sm text-gray-500">Pesquisar o produto e cadastrar somente a nova variante.</p>
+            <p className="mt-2 text-sm text-gray-500">Pesquisar o produto e cadastrar somente uma nova variante.</p>
           </button>
 
           <button type="button" onClick={onRegisterProduct} className="rounded-xl border p-6 text-left hover:bg-gray-50">

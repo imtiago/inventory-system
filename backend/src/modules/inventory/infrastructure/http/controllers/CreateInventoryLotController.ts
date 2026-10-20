@@ -1,18 +1,21 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
 import { makeGetInventoryBoxByIdUseCase } from "../factories/GetInventoryBoxByIdFactory";
-import { makeCreateInventoryLotUseCase } from "../factories/CreateInventoryLotFactory";
 import { createInventoryLotSchema } from "@inventory/interfaces/http/schemas/createInventoryLotSchema";
 import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
 import { makeGetInventoryLotById } from "../factories/GetInventoryLotByIdFactory";
 import { makeReceiveInventory } from "../factories/ReceiveInventoryFactory";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
+import { makeGenerateInventoryByProductVariandIdUseCase } from "../factories/GenerateInventoryByProductVariandIdFactory";
+import { makeCreateInventoryLot1UseCase } from "../factories/CreateInventoryLotFactory1";
 
 export function makeCreateInventoryLotController() {
-  const useCase = makeCreateInventoryLotUseCase();
+  const useCase = makeCreateInventoryLot1UseCase();
   // const useCase = makeReceiveInventory();
   const getInventoryByVariantIdUseCase = makeGetInventoryByVariantId();
   const getInventoryLotByIdUseCase = makeGetInventoryLotById();
+  const generateInventoryByProductVariandIdUseCase =
+    makeGenerateInventoryByProductVariandIdUseCase();
 
   return async function CreateInventoryLotController(
     request: FastifyRequest,
@@ -20,11 +23,14 @@ export function makeCreateInventoryLotController() {
   ) {
     try {
       const data = createInventoryLotSchema.parse(request.body);
-      const inventory = await getInventoryByVariantIdUseCase.execute(
+      let inventory = await getInventoryByVariantIdUseCase.execute(
         data.productVariantId,
       );
       if (!inventory) {
-        return reply.status(404).send({ message: "Inventory not found" });
+        // return reply.status(404).send({ message: "Inventory not found" });
+        inventory = await generateInventoryByProductVariandIdUseCase.handle({
+          productVariantId: data.productVariantId,
+        });
       }
 
       // const lot = await useCase.execute({

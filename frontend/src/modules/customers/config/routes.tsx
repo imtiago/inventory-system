@@ -1,3 +1,4 @@
+import { CustomerDetailsPage } from '../pages/CustomerDetailsPage';
 import { CustomerListPage } from '../pages/CustomerListPage';
 // import { ProductEditPage } from '../pages/ProductEditPage';
 // import { ProductDetailsPage } from '../pages/ProductDetailsPage';
@@ -14,12 +15,12 @@ export const customersRoutes: AppRoute[] = [
     component: CustomerListPage,
     guard: 'auth',
   },
-  // {
-  //   path: '/products/:id',
-  //   label: 'Detalhes do Produto',
-  //   component: ProductDetailsPage,
-  //   guard: 'auth',
-  // },
+  {
+    path: '/customers/:id',
+    label: 'Detalhes do Cliente',
+    component: CustomerDetailsPage,
+    guard: 'auth',
+  },
   // {
   //   path: '/products/:id/variants/new',
   //   label: 'Nova Variante',
@@ -33,8 +34,8 @@ export const customersRoutes: AppRoute[] = [
   //   guard: 'auth',
   // },
   // {
-  //   path: '/products/new',
-  //   label: 'Novo Produto',
+  //   path: '/customers/new',
+  //   label: 'Novo Cliente',
   //   component: ProductCreatePage,
   //   guard: 'auth',
   // },

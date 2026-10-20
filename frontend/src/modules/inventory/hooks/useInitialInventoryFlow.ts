@@ -4,57 +4,95 @@ import { useProductByBarcode } from './useProductByBarcode';
 import { useInventoryLotsByVariant } from './useInventoryLotsByVariant';
 import { useInventoryBoxByLot, type InventoryBox } from './useInventoryBoxByLot';
 import { useInventoryBox } from './useInventoryBox';
-import { useGenerateProductLabels } from './useGenerateProductLabels';
+import { useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
 
 import type { InventoryLot, Product, ProductVariant } from '../types/InitialInventoryTypes';
+import { useSearchProducts } from './useSearchProducts';
+import { useCreateInventoryLot } from './useCreateInventoryLot';
+import type { InventoryLotFormData } from '../components/InventoryLotForm';
 
-type FlowStep = 'scan' | 'product-choice' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
+type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
+
+type InventoryModalType = 'new-product' | 'product-selection' | 'new-lot' | 'label-quantity' | null;
 
 export function useInitialInventoryFlow() {
-  const [step, setStep] = useState<FlowStep>('scan');
+  const [step, setStep] = useState<FlowStep>('start');
 
+  const [modal, setModal] = useState<InventoryModalType>(null);
+
+  function closeModal() {
+    setModal(null);
+  }
+  function openModal(type: Exclude<InventoryModalType, null>) {
+    setModal(type);
+  }
+  /**
+   * Código de barras atualmente utilizado no fluxo.
+   */
   const [barcode, setBarcode] = useState('');
 
+  /**
+   * Código de barras que não foi encontrado.
+   */
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
 
+  /**
+   * Produto selecionado/encontrado.
+   */
   const [product, setProduct] = useState<Product | null>(null);
 
+  /**
+   * Variante criada durante o fluxo.
+   */
   const [createdVariant, setCreatedVariant] = useState<ProductVariant | null>(null);
 
-  const [newProductModalOpen, setNewProductModalOpen] = useState(false);
-
-  const [newLotModalOpen, setNewLotModalOpen] = useState(false);
-
+  /**
+   * Scanner.
+   *
+   * Importante:
+   * entrar na etapa "scan" NÃO abre a câmera.
+   * A câmera somente abre quando handleOpenScanner()
+   * for chamado pelo componente.
+   */
   const [scannerOpen, setScannerOpen] = useState(false);
 
+  /**
+   * Lote.
+   */
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
-
   const [lotConfirmed, setLotConfirmed] = useState(false);
 
   /**
-   * Caixas encontradas para o lote atual.
+   * Caixas disponíveis para o lote selecionado.
    */
   const [boxes, setBoxes] = useState<InventoryBox[]>([]);
 
   /**
-   * Caixa selecionada pelo usuário.
+   * Caixa escolhida pelo usuário.
    */
   const [selectedBox, setSelectedBox] = useState<InventoryBox | null>(null);
 
   /**
-   * Caixa utilizada para a unidade atual.
+   * Dados da caixa atualmente utilizada.
    */
   const [boxId, setBoxId] = useState<string | null>(null);
-
   const [boxCode, setBoxCode] = useState('');
 
+  /**
+   * Quantidade adicionada ao estoque.
+   *
+   * Atualmente o fluxo adiciona 1 unidade por operação.
+   */
   const [inventoryQuantity, setInventoryQuantity] = useState<number | null>(null);
 
   /**
-   * Quantidade de etiquetas que o usuário deseja gerar.
+   * Quantidade de etiquetas solicitadas.
    */
   const [labelQuantity, setLabelQuantity] = useState(1);
 
+  /**
+   * Hooks de domínio.
+   */
   const { foundVariant, loading, searchByBarcode, clearFoundVariant } = useProductByBarcode();
 
   const { lots, loading: lotsLoading, error: lotsError, findLots, clearLots } = useInventoryLotsByVariant();
@@ -63,14 +101,27 @@ export function useInitialInventoryFlow() {
 
   const { createBox, addLot, loading: boxMutationLoading, error: boxMutationError, clearError: clearBoxMutationError } = useInventoryBox();
 
-  const { generateProductLabels, loading: labelLoading, error: labelError } = useGenerateProductLabels();
+  const { generate: generateProductLabels, loading: labelLoading, error: labelError, clearError: clearLabelError } = useGenerateInventoryProductLabels();
 
+  const { products, loading: productsLoading, error: productsError, pagination: productsPagination, searchProducts, clearProducts } = useSearchProducts();
+
+  const { create: createLot, loading: createLotLoading, error: createLotError } = useCreateInventoryLot();
+
+  /**
+   * A variante atual pode ser:
+   *
+   * - uma variante encontrada pelo código de barras;
+   * - uma variante criada durante o fluxo.
+   */
   const currentVariant = createdVariant ?? foundVariant;
 
+  /**
+   * Lote atualmente selecionado.
+   */
   const selectedLot = lots.find((lot) => lot.id === selectedLotId) ?? null;
 
-  /*
-   * Carrega os lotes quando a variante muda.
+  /**
+   * Carrega os lotes sempre que a variante atual mudar.
    */
   useEffect(() => {
     if (!currentVariant) {
@@ -81,9 +132,9 @@ export function useInitialInventoryFlow() {
     findLots(currentVariant.id);
   }, [currentVariant?.id]);
 
-  /*
-   * Quando encontra uma variante pelo código de barras,
-   * vai para a etapa de lote.
+  /**
+   * Quando uma variante é encontrada pelo código de barras,
+   * avançamos automaticamente para a etapa de lote.
    */
   useEffect(() => {
     if (!foundVariant) {
@@ -108,101 +159,38 @@ export function useInitialInventoryFlow() {
     setStep('lot');
   }, [foundVariant]);
 
-  async function handleBarcodeRead(scannedBarcode: string) {
-    const normalizedBarcode = scannedBarcode.trim();
+  /**
+   * ============================================================
+   * INÍCIO DO FLUXO
+   * ============================================================
+   */
 
-    if (!normalizedBarcode) {
-      return;
-    }
+  /**
+   * Usuário escolheu:
+   * "Ler código de barras".
+   *
+   * Aqui NÃO abrimos a câmera.
+   * Apenas mostramos a tela com o botão da câmera.
+   */
+  function handleStartWithBarcode() {
+    resetProductFlow();
 
-    setBarcode(normalizedBarcode);
-    setNotFoundBarcode(null);
-
-    setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-
-    clearFoundVariant();
-    clearLots();
-    clearBox();
-    clearBoxMutationError();
-
-    const variant = await searchByBarcode(normalizedBarcode);
-
-    if (!variant) {
-      setNotFoundBarcode(normalizedBarcode);
-      setStep('product-choice');
-      return;
-    }
-
-    setStep('lot');
-  }
-
-  function handleOpenScanner() {
-    setScannerOpen(true);
-  }
-
-  function handleCloseScanner() {
-    setScannerOpen(false);
-  }
-
-  function handleRegisterProduct() {
-    if (!notFoundBarcode) {
-      return;
-    }
-
-    setStep('product-choice');
-  }
-
-  function handleOpenNewProductModal() {
-    setNewProductModalOpen(true);
-  }
-
-  function handleCloseNewProductModal() {
-    setNewProductModalOpen(false);
-  }
-
-  function handleNewProductSuccess(createdProduct: Product) {
-    setProduct(createdProduct);
-
-    setNewProductModalOpen(false);
-
-    setStep('register-variant');
-  }
-
-  function handleRegisterVariant() {
-    setStep('register-variant');
-  }
-
-  function handleVariantCreated(variant: ProductVariant) {
-    setCreatedVariant(variant);
-
-    setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-
-    setStep('lot');
-  }
-
-  function handleBackToScan() {
     setStep('scan');
+  }
 
+  function handleProductSelected(product: ProductListItem) {
+    setProduct(product);
+
+    setStep('register-variant');
+  }
+
+  /**
+   * Usuário escolheu:
+   * "Cadastrar sem código de barras".
+   *
+   * O próximo passo é perguntar se o produto já existe.
+   */
+  function handleStartWithoutBarcode() {
     setBarcode('');
     setNotFoundBarcode(null);
 
@@ -221,12 +209,171 @@ export function useInitialInventoryFlow() {
     setInventoryQuantity(null);
     setLabelQuantity(1);
 
+    closeModal();
+    setScannerOpen(false);
+
     clearFoundVariant();
     clearLots();
     clearBox();
     clearBoxMutationError();
+    clearLabelError();
+
+    setStep('product-exists-choice');
   }
 
+  /**
+   * ============================================================
+   * SCANNER
+   * ============================================================
+   */
+
+  /**
+   * Abre a câmera.
+   *
+   * Esta função deve ser chamada somente pelo botão
+   * "Abrir câmera" do InitialInventoryScanner.
+   */
+  function handleOpenScanner() {
+    setScannerOpen(true);
+  }
+
+  /**
+   * Fecha a câmera.
+   */
+  function handleCloseScanner() {
+    setScannerOpen(false);
+  }
+
+  /**
+   * Resultado da leitura do código de barras.
+   */
+  async function handleBarcodeRead(scannedBarcode: string) {
+    const normalizedBarcode = scannedBarcode.trim();
+
+    if (!normalizedBarcode) {
+      return;
+    }
+
+    setScannerOpen(false);
+
+    setBarcode(normalizedBarcode);
+    setNotFoundBarcode(null);
+
+    resetLotAndBoxState();
+
+    clearFoundVariant();
+    clearLots();
+    clearBox();
+    clearBoxMutationError();
+    clearLabelError();
+
+    const variant = await searchByBarcode(normalizedBarcode);
+
+    /**
+     * Variante não encontrada.
+     *
+     * Nesse caso perguntamos se o produto existe.
+     */
+    if (!variant) {
+      setNotFoundBarcode(normalizedBarcode);
+      setStep('product-exists-choice');
+      return;
+    }
+
+    /**
+     * Variante encontrada.
+     *
+     * O useEffect acima cuidará de avançar para "lot".
+     */
+    setStep('lot');
+  }
+
+  /**
+   * ============================================================
+   * PRODUTO
+   * ============================================================
+   */
+
+  /**
+   * Produto já existe.
+   *
+   * Vai para a tela de pesquisa/seleção do produto.
+   */
+  function handleProductExists() {
+    setStep('product-search');
+  }
+
+  /**
+   * Compatibilidade com o componente atual,
+   * caso ele ainda use esse nome.
+   */
+  function handleRegisterProduct() {
+    // if (barcode) {
+    //   setStep('product-exists-choice');
+    //   return;
+    // }
+
+    setStep('product-exists-choice');
+  }
+
+  /**
+   * Produto criado com sucesso.
+   */
+  function handleNewProductSuccess(createdProduct: Product) {
+    setProduct(createdProduct);
+    closeModal();
+
+    setStep('register-variant');
+  }
+
+  /**
+   * ============================================================
+   * VARIANTE
+   * ============================================================
+   */
+
+  /**
+   * Usuário escolheu cadastrar uma variante
+   * para um produto existente.
+   */
+  function handleRegisterVariant() {
+    setStep('register-variant');
+  }
+  function handleSearchProduct() {
+    setStep('product-search');
+    openModal('product-selection');
+  }
+
+  /**
+   * Variante criada.
+   */
+  function handleVariantCreated(variant: ProductVariant) {
+    setCreatedVariant(variant);
+
+    setSelectedLotId(null);
+    setLotConfirmed(false);
+
+    setBoxes([]);
+    setSelectedBox(null);
+
+    setBoxId(null);
+    setBoxCode('');
+
+    setInventoryQuantity(null);
+    setLabelQuantity(1);
+
+    setStep('lot');
+  }
+
+  /**
+   * ============================================================
+   * LOTE
+   * ============================================================
+   */
+
+  /**
+   * Seleciona um lote.
+   */
   function handleSelectLot(lotId: string) {
     if (lotConfirmed) {
       return;
@@ -243,6 +390,9 @@ export function useInitialInventoryFlow() {
     setLotConfirmed(false);
   }
 
+  /**
+   * Confirma o lote e busca as caixas relacionadas.
+   */
   async function handleConfirmLot() {
     if (!currentVariant) {
       return;
@@ -267,6 +417,10 @@ export function useInitialInventoryFlow() {
 
     const batchNumber = selectedLot.batchNumber;
 
+    /**
+     * Se o lote não possui número,
+     * ainda podemos continuar para caixa.
+     */
     if (!batchNumber) {
       setStep('box');
       return;
@@ -280,6 +434,12 @@ export function useInitialInventoryFlow() {
     setStep('box');
   }
 
+  /**
+   * ============================================================
+   * NOVO LOTE
+   * ============================================================
+   */
+
   function handleOpenNewLotModal() {
     if (!currentVariant) {
       return;
@@ -289,23 +449,36 @@ export function useInitialInventoryFlow() {
       return;
     }
 
-    setNewLotModalOpen(true);
+    openModal('new-lot');
   }
 
-  function handleCloseNewLotModal() {
-    setNewLotModalOpen(false);
-  }
-
+  /**
+   * Novo lote criado.
+   */
   async function handleNewLotSuccess(createdLot: InventoryLot) {
+    const result = await createLot({
+      productVariantId: currentVariant.id,
+      batchNumber: createdLot.batchNumber,
+      manufacturingDate: createdLot.manufacturingDate || undefined,
+      unitCost: createdLot.unitCost,
+      // expirationDate: data.expirationDate,
+      expirationDate: new Date(createdLot.expirationDate).toUTCString(),
+      quantity: createdLot.quantity,
+    });
+
+    if (!result) {
+      return;
+    }
+
     if (!currentVariant) {
       return;
     }
 
-    setNewLotModalOpen(false);
+    closeModal();
 
     const updatedLots = await findLots(currentVariant.id);
 
-    const newLot = updatedLots.find((lot) => lot.id === createdLot.id) ?? createdLot;
+    const newLot = updatedLots.find((lot) => lot.id === result.id) ?? createdLot;
 
     setSelectedLotId(newLot.id);
     setLotConfirmed(true);
@@ -332,22 +505,30 @@ export function useInitialInventoryFlow() {
   }
 
   /**
-   * Cria somente a caixa.
-   *
-   * A unidade ainda NÃO é adicionada ao estoque.
+   * ============================================================
+   * CAIXA
+   * ============================================================
    */
-  async function handleCreateBox(code: string): Promise<boolean> {
+
+  /**
+   * Cria somente uma nova caixa.
+   *
+   * A unidade ainda não é adicionada.
+   */
+  async function handleCreateBox(): Promise<boolean> {
+    // async function handleCreateBox(code: string): Promise<boolean> {
     clearBoxMutationError();
 
-    const normalizedCode = code.trim();
+    // const normalizedCode = code.trim();
 
-    if (!normalizedCode) {
-      return false;
-    }
+    // if (!normalizedCode) {
+    //   return false;
+    // }
 
-    const createdBox = await createBox({
-      code: normalizedCode,
-    });
+    const createdBox = await createBox();
+    // const createdBox = await createBox({
+    //   code: normalizedCode,
+    // });
 
     if (!createdBox) {
       return false;
@@ -363,6 +544,9 @@ export function useInitialInventoryFlow() {
     return true;
   }
 
+  /**
+   * Seleciona uma caixa existente.
+   */
   function handleSelectBox(box: InventoryBox) {
     setSelectedBox(box);
 
@@ -375,8 +559,8 @@ export function useInitialInventoryFlow() {
   }
 
   /**
-   * Adiciona exatamente 1 unidade
-   * do lote selecionado à caixa selecionada.
+   * Adiciona uma unidade do lote
+   * à caixa selecionada.
    */
   async function handleContinueWithBox() {
     if (!selectedLot) {
@@ -404,32 +588,39 @@ export function useInitialInventoryFlow() {
     setInventoryQuantity(1);
     setLabelQuantity(1);
 
-    /*
-     * A unidade foi adicionada.
+    /**
+     * Unidade adicionada com sucesso.
      *
-     * Agora perguntamos se o usuário
-     * deseja gerar etiqueta.
+     * Agora perguntamos se deseja gerar etiqueta.
      */
     setStep('label-choice');
   }
 
   /**
-   * Usuário escolheu gerar etiqueta.
+   * ============================================================
+   * ETIQUETAS
+   * ============================================================
+   */
+
+  /**
+   * Usuário deseja gerar etiquetas.
    */
   function handleGenerateLabel() {
     setLabelQuantity(1);
+    clearLabelError();
+
     setStep('label-quantity');
   }
 
   /**
-   * Usuário não quer gerar etiqueta.
+   * Usuário não deseja gerar etiqueta.
    */
   function handleSkipLabel() {
     handleFinishUnit();
   }
 
   /**
-   * Altera a quantidade de etiquetas.
+   * Altera quantidade de etiquetas.
    */
   function handleLabelQuantityChange(quantity: number) {
     if (!Number.isInteger(quantity)) {
@@ -444,14 +635,7 @@ export function useInitialInventoryFlow() {
   }
 
   /**
-   * Envia a solicitação de geração das etiquetas.
-   *
-   * Exemplo:
-   *
-   * {
-   *   productCode: "V000002",
-   *   quantity: 5
-   * }
+   * Gera as etiquetas.
    */
   async function handleConfirmLabelQuantity() {
     if (!selectedBox) {
@@ -466,30 +650,59 @@ export function useInitialInventoryFlow() {
       return;
     }
 
-    const result = await generateProductLabels({
-      boxCode: selectedBox.code,
-      productCode: currentVariant.code,
-      quantity: labelQuantity,
-    });
+    clearLabelError();
+
+    const result = await generateProductLabels(selectedBox.code, currentVariant.code, labelQuantity);
 
     if (!result) {
       return;
     }
 
-    /*
-     * Depois de gerar as etiquetas,
-     * encerramos a unidade atual
-     * e voltamos para o scanner.
+    /**
+     * Etiquetas geradas.
+     *
+     * Finaliza o cadastro da unidade.
      */
     handleFinishUnit();
   }
 
   /**
+   * ============================================================
+   * FINALIZAÇÃO
+   * ============================================================
+   */
+
+  /**
    * Finaliza o cadastro da unidade atual
-   * e prepara o fluxo para o próximo produto.
+   * e prepara o fluxo para outro produto.
    */
   function handleFinishUnit() {
-    setStep('scan');
+    resetProductFlow();
+
+    setScannerOpen(false);
+
+    /**
+     * Voltamos para o início.
+     *
+     * O usuário poderá escolher:
+     *
+     * - Ler código de barras
+     * - Cadastrar sem código de barras
+     */
+    setStep('start');
+  }
+
+  /**
+   * ============================================================
+   * NAVEGAÇÃO
+   * ============================================================
+   */
+
+  /**
+   * Volta para a tela inicial do fluxo.
+   */
+  function handleBackToStart() {
+    setStep('start');
 
     setBarcode('');
     setNotFoundBarcode(null);
@@ -509,19 +722,90 @@ export function useInitialInventoryFlow() {
     setInventoryQuantity(null);
     setLabelQuantity(1);
 
+    closeModal();
+    closeModal();
+    setScannerOpen(false);
+
     clearFoundVariant();
     clearLots();
     clearBox();
     clearBoxMutationError();
+    clearLabelError();
   }
 
-  return {
-    step,
+  /**
+   * Volta para a tela de leitura.
+   *
+   * Mantido para compatibilidade com componentes
+   * que ainda utilizam onBack.
+   */
+  function handleBackToScan() {
+    resetProductFlow();
 
+    setScannerOpen(false);
+    setStep('scan');
+  }
+
+  /**
+   * ============================================================
+   * RESET
+   * ============================================================
+   */
+
+  /**
+   * Limpa estado relacionado ao produto atual.
+   */
+  function resetProductFlow() {
+    setBarcode('');
+    setNotFoundBarcode(null);
+
+    setProduct(null);
+    setCreatedVariant(null);
+
+    resetLotAndBoxState();
+
+    clearFoundVariant();
+    clearLots();
+    clearBox();
+    clearBoxMutationError();
+    clearLabelError();
+  }
+
+  /**
+   * Limpa lote, caixa e etiquetas.
+   */
+  function resetLotAndBoxState() {
+    setSelectedLotId(null);
+    setLotConfirmed(false);
+
+    setBoxes([]);
+    setSelectedBox(null);
+
+    setBoxId(null);
+    setBoxCode('');
+
+    setInventoryQuantity(null);
+    setLabelQuantity(1);
+  }
+
+  /**
+   * ============================================================
+   * RETORNO
+   * ============================================================
+   */
+
+  return {
+    /**
+     * Fluxo
+     */
+    step,
+    setStep,
+
+    /**
+     * Produto / barcode
+     */
     barcode,
     loading,
-
-    scannerOpen,
 
     product,
     currentVariant,
@@ -529,9 +813,36 @@ export function useInitialInventoryFlow() {
 
     notFoundBarcode,
 
-    newProductModalOpen,
-    newLotModalOpen,
+    /**
+     * Scanner
+     */
+    scannerOpen,
 
+    handleStartWithBarcode,
+    handleStartWithoutBarcode,
+
+    handleBarcodeRead,
+    handleOpenScanner,
+    handleCloseScanner,
+
+    /**
+     * Produto
+     */
+    handleRegisterProduct,
+    handleProductExists,
+
+    handleRegisterVariant,
+
+    handleNewProductSuccess,
+
+    /**
+     * Variante
+     */
+    handleVariantCreated,
+
+    /**
+     * Lotes
+     */
     lots,
     lotsLoading,
     lotsError,
@@ -540,6 +851,15 @@ export function useInitialInventoryFlow() {
     selectedLot,
     lotConfirmed,
 
+    handleSelectLot,
+    handleConfirmLot,
+
+    handleOpenNewLotModal,
+    handleNewLotSuccess,
+
+    /**
+     * Caixas
+     */
     boxes,
     selectedBox,
 
@@ -548,47 +868,48 @@ export function useInitialInventoryFlow() {
 
     inventoryQuantity,
 
-    labelQuantity,
-    labelLoading,
-    labelError,
-
     boxLoading: boxLookupLoading || boxMutationLoading,
 
     boxError: boxLookupError ?? boxMutationError,
 
-    handleBarcodeRead,
-    handleOpenScanner,
-    handleCloseScanner,
-
-    handleRegisterProduct,
-    handleRegisterVariant,
-
-    handleOpenNewProductModal,
-    handleCloseNewProductModal,
-    handleNewProductSuccess,
-
-    handleVariantCreated,
-
-    handleBackToScan,
-
-    handleSelectLot,
-    handleConfirmLot,
-
-    handleOpenNewLotModal,
-    handleCloseNewLotModal,
-    handleNewLotSuccess,
-
     handleSelectBox,
     handleCreateBox,
     handleContinueWithBox,
+
+    /**
+     * Etiquetas
+     */
+    labelQuantity,
+    labelLoading,
+    labelError,
 
     handleGenerateLabel,
     handleSkipLabel,
     handleLabelQuantityChange,
     handleConfirmLabelQuantity,
 
+    /**
+     * Navegação
+     */
+    handleBackToStart,
+    handleBackToScan,
+
+    /**
+     * Finalização
+     */
     handleFinishUnit,
 
-    setStep,
+    products,
+    productsLoading,
+    productsError,
+    productsPagination,
+    searchProducts,
+    clearProducts,
+    handleSearchProduct,
+    modal,
+    openModal,
+    closeModal,
+    createLotLoading,
+    createLotError,
   };
 }

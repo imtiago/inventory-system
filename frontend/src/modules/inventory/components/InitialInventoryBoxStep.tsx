@@ -28,19 +28,20 @@ export function InitialInventoryBoxStep({ lot, boxes, boxesLoading, boxesError, 
   const [createError, setCreateError] = useState<string | null>(null);
 
   async function handleCreateBox() {
-    const code = boxCode.trim();
+    // const code = boxCode.trim();
 
-    if (!code) {
-      setCreateError('Informe o código da caixa.');
+    // if (!code) {
+    //   setCreateError('Informe o código da caixa.');
 
-      return;
-    }
+    //   return;
+    // }
 
     setCreatingBox(true);
     setCreateError(null);
 
     try {
-      const created = await onCreateBox(code);
+      // const created = await onCreateBox(code);
+      const created = await onCreateBox();
 
       if (!created) {
         setCreateError('Não foi possível criar a caixa.');
@@ -126,7 +127,7 @@ export function InitialInventoryBoxStep({ lot, boxes, boxesLoading, boxesError, 
 
           <p className="mt-1 text-sm text-gray-500">Caso o produto ainda não esteja em nenhuma das caixas acima.</p>
 
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <label htmlFor="box-code" className="mb-1 block text-sm font-medium">
               Código da caixa
             </label>
@@ -140,11 +141,11 @@ export function InitialInventoryBoxStep({ lot, boxes, boxesLoading, boxesError, 
               placeholder="Ex: B000020"
               className="w-full rounded-lg border p-3 disabled:bg-gray-100"
             />
-          </div>
+          </div> */}
 
           {createError && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{createError}</div>}
 
-          <button type="button" onClick={handleCreateBox} disabled={creatingBox || !boxCode.trim()} className="mt-4 rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
+          <button type="button" onClick={handleCreateBox} disabled={creatingBox} className="mt-4 rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
             {creatingBox ? 'Criando...' : 'Criar caixa'}
           </button>
         </div>

@@ -1,7 +1,7 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { InventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
+import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 
 export interface RemoveProductFromBoxInput {
@@ -15,7 +15,7 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
   InventoryBoxStock
 > {
   constructor(
-    private readonly inventoryBoxStockRepository: InventoryBoxStockRepository,
+    private readonly inventoryBoxStockRepository: IInventoryBoxStockRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -42,8 +42,8 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
       throw new Error("Insufficient quantity in the box.");
     }
 
-    const newQuantity = stock.quantity - request.quantity;
+    stock.addQuantity(request.quantity);
 
-    return this.inventoryBoxStockRepository.update(stock.id, newQuantity, tx);
+    return this.inventoryBoxStockRepository.update(stock);
   }
 }

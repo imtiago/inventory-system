@@ -11,6 +11,7 @@ export function useInventoryLotsByVariant() {
   const [error, setError] = useState<string | null>(null);
 
   async function findLots(productVariantId: string) {
+    console.log(productVariantId);
     try {
       setLoading(true);
       setError(null);

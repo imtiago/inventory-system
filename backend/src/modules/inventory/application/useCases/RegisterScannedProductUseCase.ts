@@ -2,7 +2,7 @@ import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 
-import { InventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
+import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
 
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
@@ -10,7 +10,7 @@ import { InventoryRepository } from "@inventory/domain/repositories/InventoryRep
 
 import { CatalogService } from "@catalog/application/services/CatalogService";
 
-import { InventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
+import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
@@ -31,8 +31,8 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     private readonly catalogService: CatalogService,
     private readonly inventoryRepository: InventoryRepository,
     private readonly inventoryLotRepository: InventoryLotRepository,
-    private readonly inventoryBoxRepository: InventoryBoxRepository,
-    private readonly inventoryBoxStockRepository: InventoryBoxStockRepository,
+    private readonly inventoryBoxRepository: IInventoryBoxRepository,
+    private readonly inventoryBoxStockRepository: IInventoryBoxStockRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -149,11 +149,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     if (stock) {
       stock.addQuantity(quantity);
 
-      await this.inventoryBoxStockRepository.update(
-        stock.id,
-        stock.quantity,
-        tx,
-      );
+      await this.inventoryBoxStockRepository.update(stock);
     } else {
       await this.inventoryBoxStockRepository.create(
         new InventoryBoxStock({
@@ -161,7 +157,6 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
           boxId: box.id,
           quantity,
         }),
-        tx,
       );
     }
 

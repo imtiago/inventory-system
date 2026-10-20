@@ -15,3 +15,10 @@ export interface CustomerListResponse {
     totalPages: number;
   };
 }
+
+export interface ICreateCustomerDTO {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}

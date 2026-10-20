@@ -1,6 +1,6 @@
-import { InventoryRepository } from "../../domain/repositories/InventoryRepository";
+import { IInventoryRepository } from "../../domain/repositories/InventoryRepository";
 import { TransactionManager } from "@shared/domain/TransactionManager";
-import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
+import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
@@ -24,8 +24,8 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
   StockMovement
 > {
   constructor(
-    private readonly inventoryRepository: InventoryRepository,
-    private readonly stockMovementRepository: StockMovementRepository,
+    private readonly inventoryRepository: IInventoryRepository,
+    private readonly stockMovementRepository: IStockMovementRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -35,7 +35,7 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
     request: AdjustInventoryRequest,
     tx: Prisma.TransactionClient,
   ): Promise<StockMovement> {
-    let inventory = await this.inventoryRepository.findByVariant(
+    let inventory = await this.inventoryRepository.findByProductVariantId(
       request.productVariantId,
       tx,
     );
@@ -47,7 +47,7 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
 
     inventory.adjust(request.quantity);
 
-    await this.inventoryRepository.save(inventory, tx);
+    await this.inventoryRepository.create(inventory);
 
     const movement = new StockMovement({
       inventoryId: inventory.id!,
@@ -67,7 +67,7 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       notes: request.notes ?? null,
     });
 
-    await this.stockMovementRepository.create(movement, tx);
+    await this.stockMovementRepository.create(movement);
 
     return movement;
   }

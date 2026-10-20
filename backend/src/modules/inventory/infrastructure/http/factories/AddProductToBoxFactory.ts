@@ -7,8 +7,10 @@ import { prisma } from "@shared/prisma";
 
 export function makeAddProductToBoxUseCase() {
   const inventoryLotRepository = new PrismaInventoryLotRepository(prisma);
-  const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository();
-  const inventoryBoxRepository = new PrismaInventoryBoxRepository();
+  const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository(
+    prisma,
+  );
+  const inventoryBoxRepository = new PrismaInventoryBoxRepository(prisma);
   const transactionManager = new PrismaTransactionManager();
 
   return new AddProductToBoxUseCase(

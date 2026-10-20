@@ -7,12 +7,14 @@ export function useInventoryBox() {
 
   const [error, setError] = useState<string | null>(null);
 
-  async function createBox(data: CreateInventoryBoxDTO) {
+  async function createBox() {
+    // async function createBox(data: CreateInventoryBoxDTO) {
     try {
       setLoading(true);
       setError(null);
 
-      const result = await createInventoryBox(data);
+      // const result = await createInventoryBox(data);
+      const result = await createInventoryBox();
 
       return result;
     } catch (error: any) {

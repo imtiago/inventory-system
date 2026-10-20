@@ -1,7 +1,7 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { InventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
+import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
@@ -13,7 +13,7 @@ export class CreateInventoryBoxUseCase extends TransactionalUseCase<
   InventoryBox
 > {
   constructor(
-    private readonly inventoryBoxRepository: InventoryBoxRepository,
+    private readonly inventoryBoxRepository: IInventoryBoxRepository,
     private numberGenerator: NumberGenerator,
     transactionManager: TransactionManager,
   ) {
@@ -33,6 +33,6 @@ export class CreateInventoryBoxUseCase extends TransactionalUseCase<
       code: boxCode,
     });
 
-    return await this.inventoryBoxRepository.save(lot, tx);
+    return await this.inventoryBoxRepository.create(lot);
   }
 }
