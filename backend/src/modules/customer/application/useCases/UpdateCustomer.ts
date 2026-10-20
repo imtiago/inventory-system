@@ -17,6 +17,13 @@ export class UpdateCustomer extends TransactionalUseCase<Customer, Customer> {
     request: Customer,
     tx: Prisma.TransactionClient,
   ): Promise<Customer> {
-    return this.customerRepo.update(request);
+    const customer = new Customer({
+      id: request.id,
+      address: request.address,
+      name: request.name,
+      email: request.email,
+      phone: request.phone,
+    });
+    return await this.customerRepo.update(customer);
   }
 }

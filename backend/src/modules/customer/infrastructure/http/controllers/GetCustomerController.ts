@@ -18,6 +18,7 @@ export function makeGetCustomerController() {
       const { id } = paramsSchema.parse(request.params);
 
       const customer = await useCase.execute(id);
+      if (!customer) return reply.status(404).send();
 
       return reply.send(customer);
     } catch (err: any) {

@@ -13,7 +13,6 @@ export function makeCreateCustomerController() {
   ) {
     try {
       const data = createCustomerSchema.parse(request.body);
-
       const customer = await useCase.execute(data);
 
       return reply.status(201).send(CustomerHttpPresenter.toHTTP(customer));
