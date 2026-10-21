@@ -9,3 +9,14 @@ export interface InventoryBoxDTO {
 export interface InventoryBoxWithExtendsDTO extends InventoryBoxDTO {
   stocks: InventoryBoxStockDTO;
 }
+
+export interface ICreateInventoryBoxInput {}
+export interface IGenerateInventoryBoxLabelInput {
+  code: string;
+}
+
+export interface IGenerateInventoryProductLabelsInput {
+  boxCode: string;
+  productCode: string;
+  quantity: number;
+}

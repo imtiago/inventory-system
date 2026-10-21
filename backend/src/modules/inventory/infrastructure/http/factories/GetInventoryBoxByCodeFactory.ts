@@ -1,4 +1,4 @@
-import { GetInventoryBoxByCode } from "@inventory/application/useCases/GetInventoryBoxByCodeUseCase";
+import { GetInventoryBoxByCode } from "@inventory/application/useCases/queries/GetInventoryBoxByCodeUseCase";
 import { PrismaInventoryBoxReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryBoxReadRepository";
 
 export function makeGetInventoryBoxByCodeUseCase() {

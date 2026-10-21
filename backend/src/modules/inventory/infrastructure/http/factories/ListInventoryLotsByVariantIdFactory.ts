@@ -1,4 +1,4 @@
-import { GetInventoryLotsByVariantIdUseCase } from "@inventory/application/useCases/GetInventoryLotsByVariantIdUseCase";
+import { GetInventoryLotsByVariantIdUseCase } from "@inventory/application/useCases/queries/GetInventoryLotsByVariantIdUseCase";
 import { PrismaInventoryLotReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryLotReadRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 

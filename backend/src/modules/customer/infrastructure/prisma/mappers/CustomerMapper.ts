@@ -6,6 +6,7 @@ export class CustomerMapper {
     return new Customer({
       id: prisma.id,
       name: prisma.name,
+      code: prisma.code,
       email: prisma.email,
       phone: prisma.phone,
       address: prisma.address,
@@ -19,6 +20,7 @@ export class CustomerMapper {
     return {
       id: customer.id,
       name: customer.name,
+      code: customer.code,
       email: customer.email,
       phone: customer.phone,
       address: customer.address,

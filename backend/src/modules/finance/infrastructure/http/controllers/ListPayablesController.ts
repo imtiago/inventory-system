@@ -1,5 +1,5 @@
 // src/modules/payables/infrastructure/http/controllers/ListPayablesController.ts
-import { ListPayables } from "modules/finance/application/useCases/ListPayables";
+import { ListPayables } from "@finance/application/useCases/queries/ListPayablesUseCase";
 import { PayableRepository } from "modules/finance/domain/repositories/PayableRepository";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";

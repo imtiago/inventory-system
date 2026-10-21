@@ -1,4 +1,4 @@
-import { GetCustomer } from "@customer/application/useCases/GetCustomer";
+import { GetCustomer } from "@customer/application/useCases/queries/GetCustomerUseCase";
 import { PrismaCustomerReadRepository } from "@customer/infrastructure/prisma/contracts/PrismaCustomerReadRepository";
 
 export function makeGetCustomerUseCase() {

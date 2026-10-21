@@ -16,3 +16,22 @@ export interface SaleDTO {
 
   createdAt: Date;
 }
+
+export interface ICancelSaleInput {
+  id: string;
+}
+
+export interface ICreateSaleInput {
+  customerId: string;
+
+  items: {
+    productVariantId: string;
+    quantity: number;
+    price: number;
+  }[];
+
+  installments?: {
+    amount: number;
+    dueDate: Date;
+  }[];
+}

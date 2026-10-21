@@ -1,4 +1,4 @@
-import { ListBrandsUseCase } from "@catalog/application/useCases/ListBrandsUseCase";
+import { ListBrandsUseCase } from "@catalog/application/useCases/queries/ListBrandsUseCase";
 import { PrismaBrandReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaBrandReadRepository";
 
 export function makeListBrandsUseCase() {

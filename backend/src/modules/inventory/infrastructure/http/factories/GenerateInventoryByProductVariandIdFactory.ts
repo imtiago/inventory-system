@@ -1,7 +1,7 @@
 import { makeCatalogService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
-import { CreateInventoryUseCase } from "@inventory/application/useCases/CreateInventoryUseCase";
-import { CreateProductVariantInventoryUseCase } from "@inventory/application/useCases/CreateProductVariantInventoryUseCase";
-import { GetInventoryByVariantId } from "@inventory/application/useCases/GetInventoryByVariantId";
+import { CreateInventoryUseCase } from "@inventory/application/useCases/commands/CreateInventoryUseCase";
+import { CreateProductVariantInventoryUseCase } from "@inventory/application/useCases/commands/CreateProductVariantInventoryUseCase";
+import { GetInventoryByVariantId } from "@inventory/application/useCases/queries/GetInventoryByVariantIdUseCase";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { prisma } from "@shared/prisma";

@@ -1,4 +1,4 @@
-import { ReceiveInventoryUseCase } from "@inventory/application/useCases/ReceiveInventoryUseCase";
+import { ReceiveInventoryUseCase } from "@inventory/application/useCases/commands/ReceiveInventoryUseCase";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaStockMovementRepository } from "@inventory/infrastructure/prisma/repositories/PrismaStockMovementRepository";

@@ -11,3 +11,15 @@ export interface UserDTO {
 
   createdAt: Date;
 }
+
+export interface IAuthRequestInput {
+  email: string;
+  password: string;
+}
+
+export interface ICreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  role?: UserRole;
+}

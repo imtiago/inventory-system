@@ -14,3 +14,13 @@ export interface InventoryLotDTO {
 export interface InventoryLotWithExtendsDTO extends InventoryLotDTO {
   productVariant: ProductVariantDTO;
 }
+
+export interface ICreateInventoryLotInput {
+  inventoryId: string;
+  batchNumber: string;
+  productVariantId: string;
+  quantity: number;
+  expirationDate: Date;
+  manufacturingDate?: Date;
+  unitCost: number;
+}

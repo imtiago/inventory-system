@@ -1,4 +1,4 @@
-import { CustomerDetailsDTO } from "../dto/CustomerDetailsDTO";
+import { CustomerDetailsDTO } from "../dto/CustomerDTO";
 
 export interface CustomerService {
   getCustomer(id: string): Promise<CustomerDetailsDTO | null>;

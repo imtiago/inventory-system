@@ -1,7 +1,7 @@
 import { Product } from "@catalog/domain/entities/Product";
 
 import { ProductMapper } from "../mappers/ProductMapper";
-import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
+import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 import { prisma } from "@shared/prisma";
 

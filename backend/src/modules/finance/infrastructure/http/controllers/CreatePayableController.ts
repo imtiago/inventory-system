@@ -1,5 +1,5 @@
 // src/modules/payables/infrastructure/http/controllers/CreatePayableController.ts
-import { CreatePayable } from "modules/finance/application/useCases/CreatePayable";
+import { CreatePayable } from "@finance/application/useCases/commands/CreatePayableUseCase";
 import { PayableRepository } from "modules/finance/domain/repositories/PayableRepository";
 import { createPayableSchema } from "modules/finance/interfaces/http/schemas/createPayableSchema";
 import { FastifyRequest, FastifyReply } from "fastify";

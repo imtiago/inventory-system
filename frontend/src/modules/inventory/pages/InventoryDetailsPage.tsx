@@ -61,17 +61,17 @@ export function InventoryDetailsPage() {
         </button>
 
         <div>
-          <h1 className="text-2xl font-semibold">{variant.name}</h1>
+          <h1 className="text-2xl font-semibold">{variant?.name}</h1>
 
           <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <span className="inline-flex items-center gap-2">
               <Package size={15} />
-              Código: {variant.code}
+              Código: {variant?.code}
             </span>
 
             <span className="inline-flex items-center gap-2">
               <Barcode size={15} />
-              Código de barras: {variant.barcode ?? 'Não informado'}
+              Código de barras: {variant?.barcode ?? 'Não informado'}
             </span>
           </div>
         </div>

@@ -21,18 +21,24 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
     // },
 
     {
-      id: 'name',
-      header: 'Nome',
+      id: 'code',
+      header: 'Código',
 
       cell: (data) => (
         <div>
           <Link to={`/customers/${data.id}`} className="font-medium hover:underline">
-            {formatName(data.name)}
+            {data.code}
           </Link>
 
-          <div className="text-sm text-gray-500">{data.description}</div>
+          {/* <div className="text-sm text-gray-500">{data.productVariant.code}</div> */}
         </div>
       ),
+    },
+    {
+      id: 'name',
+      header: 'Nome',
+
+      cell: (data) => formatName(data.name),
     },
 
     {

@@ -1,4 +1,4 @@
-import { CreateInventoryLotUseCase } from "@inventory/application/useCases/CreateInventoryLotUseCase";
+import { CreateInventoryLotUseCase } from "@inventory/application/useCases/commands/CreateInventoryLotUseCase";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { prisma } from "@shared/prisma";

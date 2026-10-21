@@ -1,4 +1,4 @@
-import { ListInvetoryUseCase } from "@inventory/application/useCases/ListInvetoryUseCase";
+import { ListInvetoryUseCase } from "@inventory/application/useCases/queries/ListInvetoryUseCase";
 import { PrismaInventoryReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryReadRepository";
 
 export function makeListInventoryUseCase() {

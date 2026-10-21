@@ -1,5 +1,5 @@
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { ProductListDTO } from "../dto/ProductListDTO";
+import { ProductListDTO } from "../dto/ProductDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { ProductListFilters } from "./ProductListFilters";
 

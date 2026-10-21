@@ -1,5 +1,5 @@
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
-import { CreateUser } from "@auth/application/useCases/CreateUser";
+import { CreateUser } from "@auth/application/useCases/CreateUserUseCase";
 import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/PrismaUserRepository";
 export function makeCreateUserUseCase() {
   const repository = new PrismaUserRepository();

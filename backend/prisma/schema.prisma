@@ -272,6 +272,7 @@ model SaleItem {
 model Customer {
   id        String   @id @default(uuid())
   name      String
+  code      String   @unique
   email     String?
   phone     String?
   address   String?

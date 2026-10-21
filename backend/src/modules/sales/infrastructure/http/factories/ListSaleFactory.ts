@@ -1,4 +1,4 @@
-import { ListSales } from "@sales/application/useCases/ListSales";
+import { ListSales } from "@sales/application/useCases/queries/ListSalesUseCase";
 import { PrismaSaleReadRepository } from "@sales/infrastructure/prisma/contracts/PrismaSaleReadRepository";
 
 export function makeListSaleUseCase() {

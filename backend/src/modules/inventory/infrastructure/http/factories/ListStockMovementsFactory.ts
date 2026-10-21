@@ -1,4 +1,4 @@
-import { ListStockMovementsUseCase } from "@inventory/application/useCases/ListStockMovementsUseCase";
+import { ListStockMovementsUseCase } from "@inventory/application/useCases/queries/ListStockMovementsUseCase";
 import { PrismaStockMovementReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaStockMovementReadRepository";
 
 export function makeListStockMovementsUseCase() {

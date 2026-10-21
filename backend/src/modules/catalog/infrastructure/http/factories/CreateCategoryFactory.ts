@@ -1,4 +1,4 @@
-import { CreateCategoryUseCase } from "@catalog/application/useCases/CreateCategoryUseCase";
+import { CreateCategoryUseCase } from "@catalog/application/useCases/commands/CreateCategoryUseCase";
 import { PrismaCategoryRepository } from "@catalog/infrastructure/prisma/repositories/PrismaCategoryRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 

@@ -1,4 +1,4 @@
-import { ListProductVariantsUseCase } from "@catalog/application/useCases/ListProductVariantsUseCase";
+import { ListProductVariantsUseCase } from "@catalog/application/useCases/queries/ListProductVariantsUseCase";
 import { PrismaProductVariantReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaProductVariantReadRepository";
 import { PrismaProductRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductRepository";
 

@@ -2,7 +2,7 @@
 
 import { ProductListFilters } from "@catalog/application/contracts/ProductListFilters";
 import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
-import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
+import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
 import { ProductReadMapper } from "@catalog/application/mappers/ProductReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";

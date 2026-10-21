@@ -3,6 +3,7 @@ import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 // src/modules/customer/domain/entities/Customer.ts
 export class Customer extends BaseEntity {
   private _name: string;
+  private _code: string;
   private _email: string | null;
   private _phone: string | null;
   private _address: string | null;
@@ -10,6 +11,7 @@ export class Customer extends BaseEntity {
   constructor(props: {
     id?: string;
     name: string;
+    code: string;
     email?: string | null;
     phone?: string | null;
     address?: string | null;
@@ -20,6 +22,7 @@ export class Customer extends BaseEntity {
       createdAt: props.createdAt,
     });
     this._name = props.name;
+    this._code = props.code;
     this._email = props.email ?? null;
     this._phone = props.phone ?? null;
     this._address = props.address ?? null;
@@ -27,6 +30,9 @@ export class Customer extends BaseEntity {
 
   get name(): string {
     return this._name;
+  }
+  get code(): string {
+    return this._code;
   }
 
   get email(): string | null {

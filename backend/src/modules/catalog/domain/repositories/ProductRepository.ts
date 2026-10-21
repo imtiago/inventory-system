@@ -3,7 +3,7 @@ import { Product } from "../entities/Product";
 import { ProductVariant } from "../entities/ProductVariant";
 import { Brand } from "../entities/Brand";
 import { Category } from "../entities/Category";
-import { ProductListDTO } from "@catalog/application/dto/ProductListDTO";
+import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
 
 export interface ProductRepository {
   create(product: Product): Promise<Product>;

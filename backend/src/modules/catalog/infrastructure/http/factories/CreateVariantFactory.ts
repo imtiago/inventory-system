@@ -1,4 +1,4 @@
-import { CreateVariantUseCase } from "@catalog/application/useCases/CreateVariantUseCase";
+import { CreateVariantUseCase } from "@catalog/application/useCases/commands/CreateVariantUseCase";
 import { PrismaProductRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductRepository";
 import { PrismaProductVariantRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductVariantRepository";
 import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";

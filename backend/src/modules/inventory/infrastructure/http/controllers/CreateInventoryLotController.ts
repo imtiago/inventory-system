@@ -22,6 +22,7 @@ export function makeCreateInventoryLotController() {
     reply: FastifyReply,
   ) {
     try {
+      const currentUser = request.user?.sub as string;
       const data = createInventoryLotSchema.parse(request.body);
       let inventory = await getInventoryByVariantIdUseCase.execute(
         data.productVariantId,
@@ -49,7 +50,7 @@ export function makeCreateInventoryLotController() {
         quantity: data.quantity,
         unitCost: data.unitCost,
         origin: StockMovementOrigin.MANUAL,
-        userId: "852da500-e5e3-41ac-baa3-da283139ecd5",
+        userId: currentUser,
       });
       const lotRead = await getInventoryLotByIdUseCase.execute(lot.id);
 

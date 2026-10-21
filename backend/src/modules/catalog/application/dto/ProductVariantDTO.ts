@@ -13,3 +13,14 @@ export interface ProductVariantDTO {
 
   createdAt: Date;
 }
+
+export interface ICreateVariantInput {
+  productId: string;
+  name: string;
+  // sku: string;
+  barcode?: string;
+}
+
+export interface IDeleteProductVariantInput {
+  id: string;
+}

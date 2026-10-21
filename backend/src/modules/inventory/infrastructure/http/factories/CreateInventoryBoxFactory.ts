@@ -1,4 +1,4 @@
-import { CreateInventoryBoxUseCase } from "@inventory/application/useCases/CreateInventoryBoxUseCase";
+import { CreateInventoryBoxUseCase } from "@inventory/application/useCases/commands/CreateInventoryBoxUseCase";
 import { PrismaInventoryBoxRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxRepository";
 import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";

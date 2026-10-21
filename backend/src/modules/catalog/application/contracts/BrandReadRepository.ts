@@ -1,5 +1,5 @@
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { BrandListDTO } from "../dto/BrandListDTO";
+import { BrandListDTO } from "../dto/BrandDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 
 export interface BrandReadRepository {

@@ -1,7 +1,7 @@
 // application/queries/ProductQuery.ts
 
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { CustomerDetailsDTO } from "../dto/CustomerDetailsDTO";
+import { CustomerDetailsDTO } from "../dto/CustomerDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 
 export interface CustomerReadRepository {

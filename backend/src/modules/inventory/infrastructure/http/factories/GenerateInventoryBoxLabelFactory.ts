@@ -1,4 +1,4 @@
-import { GenerateInventoryBoxLabel } from "@inventory/application/useCases/GenerateInventoryBoxLabelUseCase";
+import { GenerateInventoryBoxLabel } from "@inventory/application/useCases/commands/GenerateInventoryBoxLabelUseCase";
 import { InventoryLabelPdfService } from "@inventory/infrastructure/pdf/InventoryLabelPdfService";
 import { PrismaInventoryBoxReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryBoxReadRepository";
 

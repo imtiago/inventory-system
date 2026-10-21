@@ -1,4 +1,4 @@
-import { ProductListDTO } from "../dto/ProductListDTO";
+import { ProductListDTO } from "../dto/ProductDTO";
 
 export class ProductReadMapper {
   static toDTO(data: any): ProductListDTO {

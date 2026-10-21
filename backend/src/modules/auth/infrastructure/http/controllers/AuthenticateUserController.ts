@@ -2,7 +2,7 @@
 
 import { FastifyRequest, FastifyReply } from "fastify";
 import { UserRepository } from "../../../domain/repositories/UserRepository";
-import { AuthenticateUser } from "../../../application/useCases/AuthenticateUser";
+import { AuthenticateUser } from "../../../application/useCases/AuthenticateUserUseCase";
 import { loginSchema } from "../../../interfaces/http/schemas/loginSchema";
 
 export function makeAuthenticateUserController(repository: UserRepository) {

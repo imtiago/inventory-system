@@ -1,5 +1,5 @@
 import { BrandReadRepository } from "@catalog/application/contracts/BrandReadRepository";
-import { BrandListDTO } from "@catalog/application/dto/BrandListDTO";
+import { BrandListDTO } from "@catalog/application/dto/BrandDTO";
 import { BrandReadMapper } from "@catalog/application/mappers/BrandReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";

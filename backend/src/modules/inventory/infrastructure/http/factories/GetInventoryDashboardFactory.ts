@@ -1,4 +1,4 @@
-import { GetInventoryDashboardUseCase } from "@inventory/application/useCases/GetInventoryDashboardUseCase";
+import { GetInventoryDashboardUseCase } from "@inventory/application/useCases/queries/GetInventoryDashboardUseCase";
 import { PrismaInventoryReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryReadRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 

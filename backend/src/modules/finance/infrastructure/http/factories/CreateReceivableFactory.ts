@@ -1,5 +1,5 @@
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
-import { CreateReceivable } from "@finance/application/useCases/CreateReceivable";
+import { CreateReceivable } from "@finance/application/useCases/commands/CreateReceivableUseCase";
 import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
 import { PrismaFinancialParcelRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialParcelRepository";
 export function makeCreateReceivableUseCase() {

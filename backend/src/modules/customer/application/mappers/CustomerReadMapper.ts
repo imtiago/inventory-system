@@ -1,4 +1,4 @@
-import { CustomerDetailsDTO } from "../dto/CustomerDetailsDTO";
+import { CustomerDetailsDTO } from "../dto/CustomerDTO";
 
 export class CustomerReadMapper {
   static toDTO(data: any): CustomerDetailsDTO {
@@ -9,6 +9,7 @@ export class CustomerReadMapper {
       email: data.email,
       phone: data.phone,
       name: data.name,
+      code: data.code,
     };
   }
 }

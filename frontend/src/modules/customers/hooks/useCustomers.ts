@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCustomers } from '../services/customerService.ts';
 
-export function useCustomers(page: number) {
+export function useCustomers(page: number, search: string = '') {
   return useQuery({
-    queryKey: ['customers', page],
+    queryKey: ['customers', page, search],
 
-    queryFn: () => getCustomers(page),
+    queryFn: () => getCustomers(page, search.trim()),
 
     placeholderData: (previousData) => previousData,
   });

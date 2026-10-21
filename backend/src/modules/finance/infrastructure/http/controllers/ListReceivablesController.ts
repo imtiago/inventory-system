@@ -1,5 +1,5 @@
 // src/modules/receivables/infrastructure/http/controllers/ListReceivablesController.ts
-import { ListReceivables } from "modules/finance/application/useCases/ListReceivables";
+import { ListReceivables } from "@finance/application/useCases/queries/ListReceivablesUseCase";
 import { ReceivableRepository } from "modules/finance/domain/repositories/ReceivableRepository";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { makeListReceivableUseCase } from "../factories/ListReceivableFactory";

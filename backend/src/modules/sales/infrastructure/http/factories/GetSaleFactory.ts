@@ -1,4 +1,4 @@
-import { GetSale } from "@sales/application/useCases/GetSale";
+import { GetSale } from "@sales/application/useCases/queries/GetSaleUseCase";
 import { PrismaSaleReadRepository } from "@sales/infrastructure/prisma/contracts/PrismaSaleReadRepository";
 
 export function makeGetSaleUseCase() {

@@ -1,6 +1,6 @@
 import { ProductListFilters } from "@catalog/application/contracts/ProductListFilters";
 import { CustomerReadRepository } from "@customer/application/contracts/CustomerReadRepository";
-import { CustomerDetailsDTO } from "@customer/application/dto/CustomerDetailsDTO";
+import { CustomerDetailsDTO } from "@customer/application/dto/CustomerDTO";
 import { CustomerReadMapper } from "@customer/application/mappers/CustomerReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";

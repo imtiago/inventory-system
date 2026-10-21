@@ -1,7 +1,7 @@
 // inventory/application/services/InventoryApplicationService.ts
 
 import { Prisma } from "@prisma/client";
-import { RemoveInventory } from "../useCases/DispatchInventoryUseCase";
+import { RemoveInventory } from "../useCases/commands/DispatchInventoryUseCase";
 import { ConsumeStockRequest, InventoryService } from "./InventoryService";
 
 export class InventoryApplicationService implements InventoryService {

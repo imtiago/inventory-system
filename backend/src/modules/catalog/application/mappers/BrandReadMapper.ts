@@ -1,4 +1,4 @@
-import { BrandListDTO } from "../dto/BrandListDTO";
+import { BrandListDTO } from "../dto/BrandDTO";
 
 export class BrandReadMapper {
   static toDTO(data: any): BrandListDTO {

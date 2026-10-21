@@ -1,4 +1,4 @@
-import { UpdateProductUseCase } from "@catalog/application/useCases/UpdateProductUseCase";
+import { UpdateProductUseCase } from "@catalog/application/useCases/commands/UpdateProductUseCase";
 import { PrismaProductRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 

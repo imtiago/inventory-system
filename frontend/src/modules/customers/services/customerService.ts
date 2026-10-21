@@ -4,13 +4,24 @@ import type { CustomerListResponse, ICreateCustomerDTO, ICustomer } from '../typ
 const PAGE_SIZE = 10;
 const SEARCH_PAGE_SIZE = 20;
 
-export async function getCustomers(page = 1): Promise<CustomerListResponse> {
-  const response = await api.get('/customers', {
-    params: {
-      page,
-      limit: PAGE_SIZE,
-    },
+export async function getCustomers(page = 1, search = ''): Promise<CustomerListResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
   });
+
+  if (search) {
+    params.set('search', search);
+  }
+
+  const response = await api.get(`/customers?${params.toString()}`);
+
+  // const response = await api.get('/customers', {
+  //   params: {
+  //     page,
+  //     limit: PAGE_SIZE,
+  //     search,
+  //   },
+  // });
 
   return response.data;
 }

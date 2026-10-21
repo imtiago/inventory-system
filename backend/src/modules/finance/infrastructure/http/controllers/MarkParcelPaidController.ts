@@ -1,5 +1,5 @@
 // src/modules/payables/infrastructure/http/controllers/MarkParcelPaidController.ts
-import { MarkParcelPaid } from "modules/finance/application/useCases/MarkParcelPaid";
+import { MarkParcelPaid } from "@finance/application/useCases/commands/MarkParcelPaidUseCase";
 import { PayableRepository } from "modules/finance/domain/repositories/PayableRepository";
 import { FastifyRequest, FastifyReply } from "fastify";
 

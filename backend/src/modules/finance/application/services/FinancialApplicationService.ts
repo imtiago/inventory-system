@@ -1,4 +1,4 @@
-import { CreateReceivable } from "../useCases/CreateReceivable";
+import { CreateReceivable } from "../useCases/commands/CreateReceivableUseCase";
 import {
   CreateFinancialServicenput,
   FinancialService,

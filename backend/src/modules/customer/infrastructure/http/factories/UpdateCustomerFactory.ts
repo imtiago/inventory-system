@@ -1,4 +1,4 @@
-import { UpdateCustomer } from "@customer/application/useCases/UpdateCustomer";
+import { UpdateCustomer } from "@customer/application/useCases/commands/UpdateCustomerUseCase";
 import { PrismaCustomerRepository } from "@customer/infrastructure/prisma/repositories/PrismaCustomerRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 

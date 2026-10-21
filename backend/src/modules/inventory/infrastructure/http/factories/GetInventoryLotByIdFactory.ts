@@ -1,4 +1,4 @@
-import { GetInventoryLotByIdUseCase } from "@inventory/application/useCases/GetInventoryLotByIdUseCase";
+import { GetInventoryLotByIdUseCase } from "@inventory/application/useCases/queries/GetInventoryLotByIdUseCase";
 import { PrismaInventoryLotReadRepository } from "@inventory/infrastructure/prisma/contracts/PrismaInventoryLotReadRepository";
 
 export function makeGetInventoryLotById() {

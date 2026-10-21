@@ -3,7 +3,7 @@ import { PrismaProductRepository } from "@catalog/infrastructure/prisma/reposito
 import { PrismaCategoryRepository } from "@catalog/infrastructure/prisma/repositories/PrismaCategoryRepository";
 import { PrismaProductVariantRepository } from "@catalog/infrastructure/prisma/repositories/PrismaProductVariantRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
-import { CreateProductUseCase } from "@catalog/application/useCases/CreateProductUseCase";
+import { CreateProductUseCase } from "@catalog/application/useCases/commands/CreateProductUseCase";
 import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositories/PrismaBrandRepository";
 import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";
 export function makeCreateProductUseCase() {

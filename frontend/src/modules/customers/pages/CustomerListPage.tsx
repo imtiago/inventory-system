@@ -1,28 +1,28 @@
 import { useState } from 'react';
+import { Plus, Search, Users, LoaderCircle } from 'lucide-react';
 
-import { CrudHeader, CrudPagination } from '@/shared/components/crud';
-
+import { Page } from '@/shared/components/layout/Page';
+import { Section } from '@/shared/components/details/Section';
 import { DataTable } from '@/shared/components/table';
+import { CrudPagination } from '@/shared/components/crud';
+import { Modal } from '@/shared/components/Modal/Modal.tsx';
+import { Button } from '@/components/ui/button.tsx';
 
 import { useCustomers } from '../hooks/useCustomers.ts';
 import { useCustomerColumns } from '../hooks/useCustomerColumns.tsx';
-import { Section } from '@/shared/components/details/Section';
-import { Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Page } from '@/shared/components/layout/Page';
-import { Modal } from '@/shared/components/Modal/Modal.tsx';
-import { Button } from '@/components/ui/button.tsx';
-import { CustomerForm } from '../components/CustomerForm.tsx';
 import { useCreateCustomer } from '../hooks/useCreateCustomer.ts';
-import type { ICreateCustomerDTO, ICustomer } from '../types';
+
+import { CustomerForm } from '../components/CustomerForm.tsx';
 import { CustomerEditForm } from '../components/CustomerEditForm';
+
+import type { ICreateCustomerDTO, ICustomer } from '../types';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue.ts';
 
 const modalConfig = {
   'new-customer': {
     title: 'Cadastrar novo cliente',
     subtitle: 'Informe os dados do cliente.',
   },
-
   'edit-customer': {
     title: 'Editar cliente',
     subtitle: 'Atualize os dados do cliente.',
@@ -33,88 +33,128 @@ type ModalStep = 'list' | keyof typeof modalConfig;
 
 export function CustomerListPage() {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
   const [step, setStep] = useState<ModalStep>('list');
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
 
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   const currentModal = step !== 'list' ? modalConfig[step] : null;
+
+  const { data, isLoading, isFetching, isError } = useCustomers(page, debouncedSearch);
+
+  const { mutateAsync } = useCreateCustomer();
 
   const columns = useCustomerColumns((customer) => {
     setSelectedCustomer(customer);
     setStep('edit-customer');
   });
 
-  const { data, isLoading, isFetching } = useCustomers(page);
-  const { mutateAsync } = useCreateCustomer();
-
   async function handleSubmitCreateCustomer(formData: ICreateCustomerDTO) {
     await mutateAsync(formData);
     setStep('list');
   }
+
+  function handleSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  function closeModal() {
+    setStep('list');
+    setSelectedCustomer(null);
+  }
+
   return (
     <Page>
-      {/* <CrudHeader
-        title="Produtos"
-        description="Gerencie seu catálogo"
-        createPath="/products/new"
-        createLabel="Novo Produto"
-        loading={isFetching}
-      /> */}
-
       <Section
-        title={`Clientes (${data?.pagination.total})`}
-        // description="Unidades comercializadas deste produto"
+        title="Clientes"
+        description="Gerencie os clientes cadastrados no sistema."
         actions={
           <Button
             onClick={() => {
               setSelectedCustomer(null);
               setStep('new-customer');
             }}
-            className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white"
+            className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800"
           >
             <Plus size={18} />
             Novo Cliente
           </Button>
         }
       >
-        {' '}
-        {/* Área da tabela */}
-        <div className="flex-1 overflow-y-auto">
-          <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
-        </div>
-        {/* Paginação fixa */}
-        <CrudPagination
-          page={data?.pagination.page ?? 1}
-          totalPages={data?.pagination.totalPages ?? 1}
-          totalItems={data?.pagination.total ?? 0}
-          onPrevious={() => setPage((p) => Math.max(1, p - 1))}
-          onNext={() => setPage((p) => Math.min(data?.pagination.totalPages ?? 1, p + 1))}
-        />
-      </Section>
-      <Modal
-        open={currentModal !== null}
-        onClose={() => {
-          setStep('list');
-          setSelectedCustomer(null);
-        }}
-        title={currentModal?.title ?? ''}
-        description={currentModal?.subtitle}
-      >
-        {step === 'new-customer' && <CustomerForm onCancel={() => setStep('list')} onSubmit={handleSubmitCreateCustomer} />}
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Resumo e busca */}
+          <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+                <Users size={21} className="text-gray-600" />
+              </div>
 
-        {step === 'edit-customer' && selectedCustomer && (
-          <CustomerEditForm
-            key={selectedCustomer.id}
-            customer={selectedCustomer}
-            onCancel={() => {
-              setStep('list');
-              setSelectedCustomer(null);
-            }}
-            onSuccess={() => {
-              setStep('list');
-              setSelectedCustomer(null);
-            }}
-          />
-        )}
+              <div>
+                <p className="text-sm text-gray-500">Total de clientes</p>
+
+                <p className="text-xl font-bold text-gray-800">{data?.pagination.total ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="relative w-full sm:max-w-sm">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => handleSearch(event.target.value)}
+                placeholder="Buscar clientes..."
+                aria-label="Buscar clientes"
+                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+              />
+            </div>
+          </div>
+
+          {/* Tabela */}
+          <div className="min-h-0 flex-1 overflow-auto">
+            {isError ? (
+              <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
+                <p className="font-medium text-red-600">Não foi possível carregar os clientes.</p>
+
+                <p className="text-sm text-gray-500">Verifique sua conexão e tente novamente.</p>
+              </div>
+            ) : isLoading ? (
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+                <LoaderCircle size={20} className="animate-spin" />
+                Carregando clientes...
+              </div>
+            ) : (
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+            )}
+          </div>
+
+          {/* Indicador de atualização */}
+          {isFetching && !isLoading && (
+            <div className="flex items-center gap-2 border-t border-gray-100 px-5 py-2 text-xs text-gray-500">
+              <LoaderCircle size={14} className="animate-spin" />
+              Atualizando resultados...
+            </div>
+          )}
+
+          {/* Paginação */}
+          <div className="shrink-0 border-t border-gray-100 p-3 sm:p-4">
+            <CrudPagination
+              page={data?.pagination.page ?? page}
+              totalPages={data?.pagination.totalPages ?? 1}
+              totalItems={data?.pagination.total ?? 0}
+              onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+              onNext={() => setPage((current) => Math.min(data?.pagination.totalPages ?? 1, current + 1))}
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Modal open={currentModal !== null} onClose={closeModal} title={currentModal?.title ?? ''} description={currentModal?.subtitle}>
+        {step === 'new-customer' && <CustomerForm onCancel={closeModal} onSubmit={handleSubmitCreateCustomer} />}
+
+        {step === 'edit-customer' && selectedCustomer && <CustomerEditForm key={selectedCustomer.id} customer={selectedCustomer} onCancel={closeModal} onSuccess={closeModal} />}
       </Modal>
     </Page>
   );

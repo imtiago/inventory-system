@@ -1,5 +1,5 @@
 import { makeCatalogService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
-import { RegisterScannedProductUseCase } from "@inventory/application/useCases/RegisterScannedProductUseCase";
+import { RegisterScannedProductUseCase } from "@inventory/application/useCases/commands/RegisterScannedProductUseCase";
 import { PrismaInventoryBoxRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxRepository";
 import { PrismaInventoryBoxStockRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxStockRepository";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";

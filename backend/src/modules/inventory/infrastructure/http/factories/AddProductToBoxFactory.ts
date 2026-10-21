@@ -1,4 +1,4 @@
-import { AddProductToBoxUseCase } from "@inventory/application/useCases/AddProductToBoxUseCase";
+import { AddProductToBoxUseCase } from "@inventory/application/useCases/commands/AddProductToBoxUseCase";
 import { PrismaInventoryBoxRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxRepository";
 import { PrismaInventoryBoxStockRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxStockRepository";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";

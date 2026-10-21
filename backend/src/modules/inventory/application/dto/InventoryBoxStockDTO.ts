@@ -12,3 +12,15 @@ export interface InventoryBoxStockDTO {
 export interface InventoryBoxStockWithExtendsDTO extends InventoryBoxStockDTO {
   inventoryLot: InventoryLotDTO;
 }
+
+export interface IAddProductToBoxInput {
+  inventoryLotId: string;
+  boxId: string;
+  quantity: number;
+}
+
+export interface IRemoveProductFromBoxInput {
+  inventoryLotId: string;
+  boxId: string;
+  quantity: number;
+}

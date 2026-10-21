@@ -10,7 +10,6 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(entity: InventoryLot): Promise<InventoryLot> {
-    console.log(entity);
     const dataCreated = await this.prisma.inventoryLot.create({
       data: InventoryLotMapper.toCreatePersistence(entity),
     });
