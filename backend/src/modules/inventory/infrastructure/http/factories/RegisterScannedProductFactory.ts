@@ -11,7 +11,7 @@ export function makeRegisterScannedProductFactory() {
   const catalogService = makeCatalogService();
   const inventoryRepository = new PrismaInventoryRepository(prisma);
   const inventoryLotRepository = new PrismaInventoryLotRepository(prisma);
-  const inventoryBoxRepository = new PrismaInventoryBoxRepository();
+  const inventoryBoxRepository = new PrismaInventoryBoxRepository(prisma);
   const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository(
     prisma,
   );

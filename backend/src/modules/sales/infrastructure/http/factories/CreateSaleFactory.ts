@@ -2,7 +2,7 @@ import { makeCatalogService } from "@catalog/infrastructure/http/factories/Catal
 import { makeCustomerService } from "@customer/infrastructure/http/factories/CustomerService";
 import { makeFinancialService } from "@finance/infrastructure/http/factories/FinancialServiceFactory";
 import { makeInventoryService } from "@inventory/infrastructure/http/factories/InventoryService_1";
-import { CreateSale } from "@sales/application/useCases/commands/CreateSaleUseCase";
+import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
@@ -19,7 +19,7 @@ export function makeCreateSaleUseCase() {
 
   const financialService = makeFinancialService();
 
-  return new CreateSale(
+  return new CreateSaleUseCase(
     saleRepository,
     transaction,
     customerService,

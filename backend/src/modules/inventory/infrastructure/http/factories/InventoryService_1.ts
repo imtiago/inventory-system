@@ -3,10 +3,11 @@ import { InventoryApplicationService } from "@inventory/application/services/Inv
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaStockMovementRepository } from "@inventory/infrastructure/prisma/repositories/PrismaStockMovementRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
+import { prisma } from "@shared/prisma";
 
 export function makeInventoryService() {
-  const inventoryRepository = new PrismaInventoryRepository();
-  const movementRepository = new PrismaStockMovementRepository();
+  const inventoryRepository = new PrismaInventoryRepository(prisma);
+  const movementRepository = new PrismaStockMovementRepository(prisma);
   const transactionManager = new PrismaTransactionManager();
 
   // const consumeStock = new RemoveInventory(

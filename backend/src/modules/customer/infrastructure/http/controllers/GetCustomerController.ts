@@ -2,7 +2,7 @@
 
 import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { makeGetCustomerUseCase } from "../factories/GetCustomerFactory";
+import { makeGetCustomerUseCase } from "../factories/GetCustomerByIdFactory";
 
 const paramsSchema = z.object({
   id: z.string().uuid().or(z.string()), // ajuste se quiser validar UUID

@@ -1,9 +1,9 @@
 import { UserRole } from "../enums/UserRole";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-// src/modules/auth/domain/entities/User.ts
 export class User extends BaseEntity {
   private _name: string;
+  private _code: string;
   private _email: string;
   private _password: string;
   private _role: UserRole;
@@ -11,6 +11,7 @@ export class User extends BaseEntity {
   constructor(props: {
     id?: string;
     name: string;
+    code: string;
     email: string;
     password: string;
     role?: UserRole;
@@ -20,8 +21,9 @@ export class User extends BaseEntity {
       id: props.id,
       createdAt: props.createdAt,
     });
-    
+
     this._name = props.name;
+    this._code = props.code;
     this._email = props.email;
     this._password = props.password;
     this._role = props.role ?? UserRole.VENDEDOR;
@@ -29,6 +31,10 @@ export class User extends BaseEntity {
 
   get name(): string {
     return this._name;
+  }
+
+  get code(): string {
+    return this._code;
   }
 
   get email(): string {

@@ -1,4 +1,4 @@
-import { GetCategoriesUseCase } from "@catalog/application/useCases/GetCategoriesUseCase";
+import { GetCategoriesUseCase } from "@catalog/application/useCases/queries/GetCategoriesUseCase";
 import { PrismaCategoriesReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaCategoriesReadRepository";
 
 export function makeGetCategoriesUseCase() {

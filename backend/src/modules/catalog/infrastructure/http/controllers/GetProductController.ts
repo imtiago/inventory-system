@@ -1,9 +1,9 @@
 // src/modules/catalog/infrastructure/http/controllers/GetProductController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
-import { makeGetProductUseCase } from "../factories/GetProductFactory";
+import { makeGetProductByIdUseCase } from "../factories/GetProductByIdFactory";
 
 export function makeGetProductController() {
-  const useCase = makeGetProductUseCase();
+  const useCase = makeGetProductByIdUseCase();
   return async function GetProductController(
     request: FastifyRequest,
     reply: FastifyReply,

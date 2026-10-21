@@ -1,9 +1,11 @@
 // src/modules/catalog/infrastructure/http/factories/CatalogServiceFactory.ts
 
 import { CatalogApplicationService } from "@catalog/application/services/CatalogApplicationService";
+import { GetProductVariantByBarcodeUseCase } from "@catalog/application/useCases/queries/GetProductVariantByBarcodeUseCase";
 // import { PrismaProductVariantRepository } from "../../prisma/repositories/PrismaProductVariantRepository";
-import { GetProductVariantByIdUseCase } from "@catalog/application/useCases/GetProductVariantByIdUseCase";
-import { GetProductVariantByBarcodeUseCase } from "@catalog/application/useCases/GetProductVariantByBarcodeUseCase";
+// import { GetProductVariantByIdUseCase } from "@catalog/application/useCases/GetProductVariantByIdUseCase";
+// import { GetProductVariantByBarcodeUseCase } from "@catalog/application/useCases/GetProductVariantByBarcodeUseCase";
+import { GetProductVariantByIdUseCase } from "@catalog/application/useCases/queries/GetProductVariantByIdUseCase";
 import { PrismaProductVariantReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaProductVariantReadRepository";
 
 export function makeCatalogService() {

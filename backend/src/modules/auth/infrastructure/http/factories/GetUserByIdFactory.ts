@@ -1,7 +1,7 @@
-import { GetUserById } from "@auth/application/useCases/GetUserByIdUseCase";
+import { GetUserByIdUseCase } from "@auth/application/useCases/queries/GetUserByIdUseCase";
 import { PrismaUserReadRepository } from "@auth/infrastructure/prisma/contracts/PrismaUserReadRepository";
 export function makeGetUserByIdUseCase() {
   const repository = new PrismaUserReadRepository();
 
-  return new GetUserById(repository);
+  return new GetUserByIdUseCase(repository);
 }

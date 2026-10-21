@@ -1,12 +1,9 @@
-// src/modules/users/infrastructure/http/controllers/AuthenticateUserController.ts
-
 import { FastifyRequest, FastifyReply } from "fastify";
-import { UserRepository } from "../../../domain/repositories/UserRepository";
-import { AuthenticateUser } from "../../../application/useCases/AuthenticateUserUseCase";
 import { loginSchema } from "../../../interfaces/http/schemas/loginSchema";
+import { makeAuthenticateUserUserUseCase } from "../factories/AuthenticateUserFactory";
 
-export function makeAuthenticateUserController(repository: UserRepository) {
-  const useCase = new AuthenticateUser(repository);
+export function makeAuthenticateUserController() {
+  const useCase = makeAuthenticateUserUserUseCase();
   return async function AuthenticateUserController(
     request: FastifyRequest,
     reply: FastifyReply,

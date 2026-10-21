@@ -2,12 +2,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createProductSchema } from "../../../interfaces/http/schemas/createProductSchema";
 import { makeCreateProductUseCase } from "../factories/CreateProductFactory";
-import { makeGetProductUseCase } from "../factories/GetProductFactory";
 import { HttpResponse } from "@shared/http/response";
+import { makeGetProductByIdUseCase } from "../factories/GetProductByIdFactory";
 
 export function makeCreateProductController() {
   const useCase = makeCreateProductUseCase();
-  const useCaseGet = makeGetProductUseCase();
+  const useCaseGet = makeGetProductByIdUseCase();
 
   return async function CreateProductController(
     request: FastifyRequest,

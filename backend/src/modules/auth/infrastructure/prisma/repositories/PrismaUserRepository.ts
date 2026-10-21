@@ -2,8 +2,11 @@ import { User } from "@auth/domain/entities/User";
 import { UserMapper } from "../mappers/UserMapper";
 import { prisma } from "@shared/prisma";
 import { UserRepository } from "@auth/domain/repositories/UserRepository";
+import { PrismaClient } from "@prisma/client";
 
 export class PrismaUserRepository implements UserRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
   async create(user: User): Promise<User> {
     const created = await prisma.user.create({
       data: UserMapper.toCreatePersistence(user),

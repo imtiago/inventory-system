@@ -8,4 +8,5 @@ export enum NumberRangeName {
   BRAND = "BRAND",
   CUSTOMER = "CUSTOMER",
   SALE = "SALE",
+  USER = "USER",
 }

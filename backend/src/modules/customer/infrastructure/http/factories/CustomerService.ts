@@ -1,11 +1,11 @@
 import { CustomerApplicationService } from "@customer/application/services/CustomerApplicationService";
-import { GetCustomer } from "@customer/application/useCases/queries/GetCustomerUseCase";
+import { GetCustomerByIdUseCase } from "@customer/application/useCases/queries/GetCustomerByIdUseCase";
 import { PrismaCustomerReadRepository } from "@customer/infrastructure/prisma/contracts/PrismaCustomerReadRepository";
 
 export function makeCustomerService() {
   const repository = new PrismaCustomerReadRepository();
 
-  const getCustomer = new GetCustomer(repository);
+  const getCustomer = new GetCustomerByIdUseCase(repository);
 
   return new CustomerApplicationService(getCustomer);
 }

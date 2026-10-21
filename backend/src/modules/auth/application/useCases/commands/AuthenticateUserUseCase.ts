@@ -1,10 +1,14 @@
 import { IAuthRequestInput } from "@auth/application/dto/UserDTO";
+import { ITokenService } from "@auth/application/ports/ITokenService";
+import { IPasswordHasher } from "@auth/application/ports/PasswordHasher";
 import { UserRepository } from "@auth/domain/repositories/UserRepository";
-import { compare } from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 export class AuthenticateUserUseCase {
-  constructor(private userRepo: UserRepository) {}
+  constructor(
+    private userRepo: UserRepository,
+    private readonly passwordHasher: IPasswordHasher,
+    private readonly tokenService: ITokenService,
+  ) {}
 
   async execute({
     email,
@@ -13,14 +17,16 @@ export class AuthenticateUserUseCase {
     const user = await this.userRepo.findByEmail(email);
     if (!user) throw new Error("Invalid credentials");
 
-    const passwordMatch = await compare(password, user.password);
+    const passwordMatch = await this.passwordHasher.compare(
+      password,
+      user.password,
+    );
     if (!passwordMatch) throw new Error("Invalid credentials");
 
-    const token = jwt.sign(
-      { sub: user.id, role: user.role },
-      process.env.JWT_SECRET || "secret",
-      { expiresIn: "1d" },
-    );
+    const token = await this.tokenService.sign({
+      sub: user.id,
+      role: user.role,
+    });
 
     return { token };
   }

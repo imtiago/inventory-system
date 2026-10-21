@@ -1,4 +1,4 @@
-import { GetCustomer } from "../useCases/queries/GetCustomerUseCase";
+import { GetCustomer } from "../useCases/queries/GetCustomerByIdUseCase";
 import { CustomerService } from "./CustomerService";
 
 export class CustomerApplicationService implements CustomerService {

@@ -23,3 +23,11 @@ export interface ICreateUserInput {
   password: string;
   role?: UserRole;
 }
+
+export interface IUserOutput {
+  id: string;
+  name: string;
+  code: string;
+  email?: string;
+  role: UserRole;
+}
