@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import type { ISaleDraftItem } from '../types';
+import type { ProductVariant } from '@/modules/initial-inventory/types/InitialInventoryTypes';
 
 export function useSaleCart() {
   const [items, setItems] = useState<ISaleDraftItem[]>([]);
@@ -21,6 +22,16 @@ export function useSaleCart() {
       }
 
       return [...currentItems, item];
+    });
+  }
+
+  function addVariant(variant: ProductVariant) {
+    addItem({
+      productVariantId: variant.id,
+      productName: variant.name,
+      productCode: variant.code,
+      quantity: 1,
+      unitPrice: 0,
     });
   }
 
@@ -47,6 +58,7 @@ export function useSaleCart() {
   return {
     items,
     addItem,
+    addVariant,
     updateQuantity,
     removeItem,
     clearItems,

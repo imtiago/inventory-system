@@ -6,4 +6,5 @@ import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 
 export interface UserReadRepository {
   list(pagination: PaginationRequest): Promise<PaginatedResult<UserDTO[]>>;
+  findById(id: string): Promise<UserDTO | null>;
 }

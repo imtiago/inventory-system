@@ -3,7 +3,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { makeLisCustomerUseCase } from "../factories/ListCustomerFactory";
 import { CustomerHttpPresenter } from "@customer/interfaces/http/presenters/CustomerHttpPresenter";
-import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
+import { listCustomersSchema } from "@customer/interfaces/http/schemas/listCustomersSchema";
 
 export function makeListCustomersController() {
   const useCase = makeLisCustomerUseCase();
@@ -12,10 +12,10 @@ export function makeListCustomersController() {
     reply: FastifyReply,
   ) {
     try {
-      const { page, limit } = paginationSchema.parse(request.query);
+      const { page, limit, search } = listCustomersSchema.parse(request.query);
 
       // const customers = await useCase.execute(page, limit);
-      const customers = await useCase.execute({ page, limit });
+      const customers = await useCase.execute({ page, limit, search });
 
       return reply.send(customers);
       // return reply.send(CustomerHttpPresenter.toHTTPList(customers));

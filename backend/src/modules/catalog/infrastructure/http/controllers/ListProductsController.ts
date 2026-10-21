@@ -12,6 +12,7 @@ export function makeListProductsController() {
     reply: FastifyReply,
   ) {
     const { page, limit, search } = listProductsSchema.parse(request.query);
+    
     const products = await useCase.execute({ page, limit, search });
     return reply.send(products);
     // return reply.send(ProductHttpPresenter.toHTTPList(products));

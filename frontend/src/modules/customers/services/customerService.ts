@@ -1,11 +1,26 @@
 import { api } from '@/shared/services/api';
 import type { CustomerListResponse, ICreateCustomerDTO, ICustomer } from '../types';
 
+const PAGE_SIZE = 10;
+const SEARCH_PAGE_SIZE = 20;
+
 export async function getCustomers(page = 1): Promise<CustomerListResponse> {
   const response = await api.get('/customers', {
     params: {
       page,
-      limit: 10,
+      limit: PAGE_SIZE,
+    },
+  });
+
+  return response.data;
+}
+
+export async function searchCustomers(search: string): Promise<CustomerListResponse> {
+  const response = await api.get('/customers', {
+    params: {
+      page: 1,
+      limit: SEARCH_PAGE_SIZE,
+      search,
     },
   });
 

@@ -6,6 +6,7 @@ import { makeCreateUserController } from "../controllers/CreateUserController";
 import { makeAuthenticateUserController } from "../controllers/AuthenticateUserController";
 import { makeListUsersController } from "../controllers/ListUsersController";
 import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/PrismaUserRepository";
+import { makeGetMeController } from "../controllers/GetMeController";
 
 export async function userRoutes(app: FastifyInstance) {
   const userRepository = new PrismaUserRepository();
@@ -18,5 +19,10 @@ export async function userRoutes(app: FastifyInstance) {
     "/users",
     { preHandler: [authenticate, authorize(["admin", "vendedor"])] },
     makeListUsersController(),
+  );
+  app.get(
+    "/users/me",
+    { preHandler: [authenticate, authorize(["admin", "vendedor"])] },
+    makeGetMeController(),
   );
 }

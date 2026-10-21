@@ -1,9 +1,9 @@
 import { api } from '@/shared/services/api';
-import type { CustomerListResponse, ICreateCustomerDTO, ICustomer } from '../types';
+import type { ICreateSaleDTO, ISalesResponse } from '../types';
 
 const PAGE_SIZE = 10;
 
-export async function getSales(page = 1): Promise<CustomerListResponse> {
+export async function getSales(page = 1): Promise<ISalesResponse> {
   const response = await api.get('/sales', {
     params: {
       page,
@@ -14,11 +14,11 @@ export async function getSales(page = 1): Promise<CustomerListResponse> {
   return response.data;
 }
 
-// export async function createCustomer(data: ICreateCustomerDTO) {
-//   const response = await api.post('/customers', data);
+export async function createSale(data: ICreateSaleDTO) {
+  const response = await api.post('/sales', data);
 
-//   return response.data.data;
-// }
+  return response.data.data;
+}
 
 // export const updateCustomer = async (id: string, input: any) => {
 //   const { data } = await api.put(`/customers/${id}`, input);

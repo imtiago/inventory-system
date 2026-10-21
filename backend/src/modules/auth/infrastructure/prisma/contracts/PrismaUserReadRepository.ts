@@ -1,4 +1,5 @@
 import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
+import { UserDTO } from "@auth/application/dto/UserDTO";
 import { UserReadMapper } from "@auth/application/mappers/UserReadMapper";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -20,5 +21,15 @@ export class PrismaUserReadRepository implements UserReadRepository {
     ]);
     const dt = users.map((user) => UserReadMapper.toDTO(user));
     return buildPaginatedResult(dt, total, pagination);
+  }
+
+  async findById(id: string): Promise<UserDTO | null> {
+    const user = await prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+    const dt = UserReadMapper.toDTO(user);
+    return dt;
   }
 }
