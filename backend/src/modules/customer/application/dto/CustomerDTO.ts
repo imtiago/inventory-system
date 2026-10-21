@@ -1,4 +1,4 @@
-export interface CustomerDetailsDTO {
+export interface ICustomerDTO {
   id: string;
   name: string;
   code: string;

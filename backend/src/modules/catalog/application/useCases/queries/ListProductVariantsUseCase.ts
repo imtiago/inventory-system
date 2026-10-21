@@ -1,5 +1,5 @@
+import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
-import { ProductVariantReadRepository } from "../../contracts/ProductVariantReadRepository";
 import { PaginationParams } from "@shared/application/pagination";
 
 interface ListProductVariantsUseCaseInput extends PaginationParams {

@@ -1,5 +1,5 @@
 import { CategoriesReadRepository } from "@catalog/application/contracts/CategoriesReadRepository";
-import { CategoriesListDTO } from "@catalog/application/dto/CategoriesDTO";
+import { CategoriesListDTO } from "@catalog/application/dto/CategoryDTO";
 import { CategoriesReadMapper } from "@catalog/application/mappers/CategoriesReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";

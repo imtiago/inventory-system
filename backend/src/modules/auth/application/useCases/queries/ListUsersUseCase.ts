@@ -1,5 +1,5 @@
+import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
 import { PaginationParams } from "@shared/application/pagination";
-import { UserReadRepository } from "../../contracts/UserReadRepository";
 
 export class ListUsersUseCase {
   constructor(private userRepo: UserReadRepository) {}

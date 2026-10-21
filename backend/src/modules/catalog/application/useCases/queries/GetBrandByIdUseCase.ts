@@ -1,6 +1,5 @@
-// src/modules/catalog/application/useCases/CreateBrand.ts
-import { BrandRepository } from "../../domain/repositories/BrandRepository";
-import { Brand } from "../../domain/entities/Brand";
+import { Brand } from "@catalog/domain/entities/Brand";
+import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
 export class GetBrandByIdUseCase {
   constructor(private repository: BrandRepository) {}

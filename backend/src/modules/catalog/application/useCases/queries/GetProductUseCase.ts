@@ -1,10 +1,10 @@
-import { ProductReadRepository } from "../contracts/ProductReadRepository";
-import { ProductListDTO } from "../dto/ProductListDTO";
+import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
+import { ProductDTO } from "@catalog/application/dto/ProductDTO";
 
 export class GetProductUseCase {
   constructor(private productRepo: ProductReadRepository) {}
 
-  async execute(id: string): Promise<ProductListDTO | null> {
+  async execute(id: string): Promise<ProductDTO | null> {
     return this.productRepo.getById(id);
   }
 }

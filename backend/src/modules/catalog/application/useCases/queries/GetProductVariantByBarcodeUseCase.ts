@@ -1,5 +1,5 @@
-import { ProductVariantReadRepository } from "../contracts/ProductVariantReadRepository";
-import { ProductVariantDTO } from "../dto/ProductVariantDTO";
+import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
+import { ProductVariantDTO } from "@catalog/application/dto/ProductVariantDTO";
 
 export class GetProductVariantByBarcodeUseCase {
   constructor(private productVariantRepo: ProductVariantReadRepository) {}

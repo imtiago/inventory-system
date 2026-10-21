@@ -1,6 +1,4 @@
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
-import { Product } from "../../../domain/entities/Product";
-import { ProductRepository } from "../../../domain/repositories/ProductRepository";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
@@ -10,6 +8,8 @@ import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { ICreateProductInput } from "@catalog/application/dto/ProductDTO";
+import { Product } from "@catalog/domain/entities/Product";
+import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 
 export class CreateProductUseCase extends TransactionalUseCase<
   ICreateProductInput,

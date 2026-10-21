@@ -1,9 +1,9 @@
-import { BrandRepository } from "../../../domain/repositories/BrandRepository";
-import { Brand } from "../../../domain/entities/Brand";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { ICreateBrandInput } from "@catalog/application/dto/BrandDTO";
+import { Brand } from "@catalog/domain/entities/Brand";
+import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
 export class CreateBrandUseCase extends TransactionalUseCase<
   ICreateBrandInput,

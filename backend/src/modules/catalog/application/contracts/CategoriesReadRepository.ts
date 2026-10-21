@@ -1,5 +1,5 @@
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { CategoriesListDTO } from "../dto/CategoriesDTO";
+import { CategoriesListDTO } from "../dto/CategoryDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 
 export interface CategoriesReadRepository {

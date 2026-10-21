@@ -1,9 +1,9 @@
-import { CustomerRepository } from "../../../domain/repositories/CustomerRepository";
-import { Customer } from "../../../domain/entities/Customer";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { IUpdateCustomerInput } from "@customer/application/dto/CustomerDTO";
+import { Customer } from "@customer/domain/entities/Customer";
+import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 
 export class UpdateCustomerUseCase extends TransactionalUseCase<
   IUpdateCustomerInput,

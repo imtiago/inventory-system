@@ -1,5 +1,5 @@
 import { IAuthRequestInput } from "@auth/application/dto/UserDTO";
-import { UserRepository } from "../../domain/repositories/UserRepository";
+import { UserRepository } from "@auth/domain/repositories/UserRepository";
 import { compare } from "bcryptjs";
 import jwt from "jsonwebtoken";
 

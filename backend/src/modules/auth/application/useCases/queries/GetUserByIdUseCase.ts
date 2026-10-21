@@ -1,4 +1,4 @@
-import { UserReadRepository } from "../contracts/UserReadRepository";
+import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
 
 export class GetUserByIdUseCase {
   constructor(private userRepo: UserReadRepository) {}

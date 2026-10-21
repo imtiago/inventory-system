@@ -1,8 +1,8 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
-import { ProductRepository } from "../../../domain/repositories/ProductRepository";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { IDeleteProductInput } from "@catalog/application/dto/ProductDTO";
+import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 
 export class DeleteProductUseCase extends TransactionalUseCase<
   IDeleteProductInput,

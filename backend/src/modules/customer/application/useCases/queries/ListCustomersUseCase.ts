@@ -1,6 +1,6 @@
+import { CustomerReadRepository } from "@customer/application/contracts/CustomerReadRepository";
+import { ICustomerDTO } from "@customer/application/dto/CustomerDTO";
 import { PaginationParams } from "@shared/application/pagination";
-import { CustomerReadRepository } from "../../contracts/CustomerReadRepository";
-import { CustomerDetailsDTO } from "../../dto/CustomerDTO";
 
 interface ListCustomersParams extends PaginationParams {
   search?: string;
@@ -13,7 +13,7 @@ export class ListCustomersUseCase {
     page,
     limit,
     search,
-  }: ListCustomersParams): Promise<CustomerDetailsDTO[]> {
+  }: ListCustomersParams): Promise<ICustomerDTO[]> {
     return this.customerRepo.list(
       {
         page,

@@ -1,5 +1,5 @@
+import { BrandReadRepository } from "@catalog/application/contracts/BrandReadRepository";
 import { PaginationParams } from "@shared/application/pagination";
-import { BrandReadRepository } from "../../contracts/BrandReadRepository";
 
 export class ListBrandsUseCase {
   constructor(private readonly brandQuery: BrandReadRepository) {}

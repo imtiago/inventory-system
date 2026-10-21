@@ -1,10 +1,10 @@
-import { UserRepository } from "../../domain/repositories/UserRepository";
-import { User } from "../../domain/entities/User";
 import { hash } from "bcryptjs";
 import { Prisma, UserRole } from "@prisma/client";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { ICreateUserInput } from "@auth/application/dto/UserDTO";
+import { User } from "@auth/domain/entities/User";
+import { UserRepository } from "@auth/domain/repositories/UserRepository";
 
 export class CreateUserUseCase extends TransactionalUseCase<
   ICreateUserInput,

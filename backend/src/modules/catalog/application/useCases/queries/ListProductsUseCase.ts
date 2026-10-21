@@ -1,5 +1,5 @@
+import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
 import { PaginationParams } from "@shared/application/pagination";
-import { ProductReadRepository } from "../../contracts/ProductReadRepository";
 interface ListProductsParams extends PaginationParams {
   search?: string;
 }

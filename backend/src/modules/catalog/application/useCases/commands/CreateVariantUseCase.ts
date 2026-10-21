@@ -1,5 +1,3 @@
-import { ProductRepository } from "../../../domain/repositories/ProductRepository";
-import { ProductVariant } from "../../../domain/entities/ProductVariant";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
@@ -7,6 +5,8 @@ import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { ICreateVariantInput } from "@catalog/application/dto/ProductVariantDTO";
+import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
+import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 
 export class CreateVariantUseCase extends TransactionalUseCase<
   ICreateVariantInput,
