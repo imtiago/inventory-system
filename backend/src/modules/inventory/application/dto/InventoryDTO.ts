@@ -1,3 +1,6 @@
+import { Inventory } from "@inventory/domain/entities/Inventory";
+import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
+import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { ProductVariantDTO } from "./CommonDTO";
 
@@ -44,12 +47,18 @@ export interface IReceiveInventoryInput {
   quantity: number;
   unitCost: number;
   batchNumber?: string;
-  expirationDate?: Date;
   manufacturingDate?: Date;
+  expirationDate?: Date;
   origin: StockMovementOrigin;
+  sourceType: InventoryLotSource;
   originReferenceId?: string;
   notes?: string;
-  userId: string;
+  userId?: string;
+}
+
+export interface IReceiveInventoryOutput {
+  inventory: Inventory;
+  lot: InventoryLot;
 }
 
 export interface IRegisterScannedProductInput {
