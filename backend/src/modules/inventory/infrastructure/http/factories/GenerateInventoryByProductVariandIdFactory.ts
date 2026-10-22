@@ -4,10 +4,9 @@ import { CreateProductVariantInventoryUseCase } from "@inventory/application/use
 import { GetInventoryByVariantIdUseCase } from "@inventory/application/useCases/queries/GetInventoryByVariantIdUseCase";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
-import { prisma } from "@shared/prisma";
 
 export function makeGenerateInventoryByProductVariandIdUseCase() {
-  const repository = new PrismaInventoryRepository(prisma);
+  const repository = new PrismaInventoryRepository();
   const transactionManager = new PrismaTransactionManager();
 
   const catalogService = makeCatalogService();

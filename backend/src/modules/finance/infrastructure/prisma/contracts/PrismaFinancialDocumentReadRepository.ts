@@ -5,7 +5,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaFinancialDocumentReadRepository implements FinancialDocumentReadRepository {
   async listReceivables(
@@ -13,8 +13,8 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
   ): Promise<PaginatedResult<FinancialDocumentDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [financialDocuments, total] = await prisma.$transaction([
-      prisma.financialDocument.findMany({
+    const [financialDocuments, total] = await Promise.all([
+      getDb().financialDocument.findMany({
         ...paginationOptions,
 
         where: {
@@ -31,7 +31,7 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
           createdAt: "asc",
         },
       }),
-      prisma.financialDocument.count({
+      getDb().financialDocument.count({
         where: {
           type: "RECEIVABLE",
         },

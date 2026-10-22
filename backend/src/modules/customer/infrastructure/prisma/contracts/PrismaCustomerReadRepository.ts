@@ -6,7 +6,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaCustomerReadRepository implements CustomerReadRepository {
   async list(
@@ -36,8 +36,8 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
         }
       : {};
 
-    const [customers, total] = await prisma.$transaction([
-      prisma.customer.findMany({
+    const [customers, total] = await Promise.all([
+      getDb().customer.findMany({
         where,
 
         ...paginationOptions,
@@ -45,7 +45,7 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
           name: "asc",
         },
       }),
-      prisma.customer.count({
+      getDb().customer.count({
         where,
       }),
     ]);
@@ -54,7 +54,7 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
   }
 
   async getById(id: string): Promise<CustomerDetailsDTO | null> {
-    const customer = await prisma.customer.findUnique({
+    const customer = await getDb().customer.findUnique({
       where: { id },
     });
 

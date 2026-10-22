@@ -7,7 +7,7 @@ import { Prisma } from "@prisma/client";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaStockMovementReadRepository implements StockMovementReadRepository {
   async list(params: IList) {
@@ -29,7 +29,7 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
       where.origin = params.origin as any;
     }
     const [data, total] = await Promise.all([
-      prisma.stockMovement.findMany({
+      getDb().stockMovement.findMany({
         ...paginationOptions,
         where,
         orderBy: {
@@ -42,7 +42,7 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
         },
       }),
 
-      prisma.stockMovement.count(),
+      getDb().stockMovement.count(),
     ]);
 
     const dt = data.map((d) => StockMovementReadMapper.toDTO(d));
@@ -50,7 +50,7 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
   }
 
   async getById(id: string) {
-    const data = await prisma.stockMovement.findUnique({
+    const data = await getDb().stockMovement.findUnique({
       where: { id },
       include: {
         productVariant: true,
@@ -65,7 +65,7 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
   }
 
   async getByVariantId(id: string) {
-    const data = await prisma.stockMovement.findUnique({
+    const data = await getDb().stockMovement.findUnique({
       where: {
         productVariantId: id,
       },

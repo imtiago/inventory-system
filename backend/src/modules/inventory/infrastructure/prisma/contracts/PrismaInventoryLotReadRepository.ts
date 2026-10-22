@@ -7,7 +7,7 @@ import { InventoryLotReadMapper } from "@inventory/application/mappers/Inventory
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaInventoryLotReadRepository implements InventoryLotReadRepository {
   async getByVariantId(
@@ -17,7 +17,7 @@ export class PrismaInventoryLotReadRepository implements InventoryLotReadReposit
     const paginationOptions = buildPagination(pagination);
 
     const [data, total] = await Promise.all([
-      prisma.inventoryLot.findMany({
+      getDb().inventoryLot.findMany({
         ...paginationOptions,
         where: {
           productVariantId: params.producVariantId,
@@ -27,7 +27,7 @@ export class PrismaInventoryLotReadRepository implements InventoryLotReadReposit
         },
       }),
 
-      prisma.inventoryLot.count({
+      getDb().inventoryLot.count({
         where: {
           productVariantId: params.producVariantId,
         },
@@ -38,7 +38,7 @@ export class PrismaInventoryLotReadRepository implements InventoryLotReadReposit
     return buildPaginatedResult(dt, total, pagination);
   }
   async getById(id: string): Promise<InventoryLotDTO | null> {
-    const data = await prisma.inventoryLot.findUnique({
+    const data = await getDb().inventoryLot.findUnique({
       where: { id },
       // include: {
       //   productVariant: true,

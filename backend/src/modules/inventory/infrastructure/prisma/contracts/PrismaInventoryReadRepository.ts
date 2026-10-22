@@ -5,7 +5,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaInventoryReadRepository implements InventoryReadRepository {
   async list(
@@ -14,7 +14,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
     const paginationOptions = buildPagination(pagination);
 
     const [data, total] = await Promise.all([
-      prisma.inventory.findMany({
+      getDb().inventory.findMany({
         ...paginationOptions,
         orderBy: {
           createdAt: "asc",
@@ -24,7 +24,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
         },
       }),
 
-      prisma.inventory.count(),
+      getDb().inventory.count(),
     ]);
 
     const dt = data.map((d) => InventoryReadMapper.toDTO(d));
@@ -32,7 +32,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
   }
 
   async getById(id: string): Promise<InventoryDTO | null> {
-    const data = await prisma.inventory.findUnique({
+    const data = await getDb().inventory.findUnique({
       where: { id },
       include: {
         productVariant: true,
@@ -45,7 +45,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
   }
 
   async getByVariantId(id: string): Promise<InventoryDTO | null> {
-    const data = await prisma.inventory.findUnique({
+    const data = await getDb().inventory.findUnique({
       where: {
         productVariantId: id,
       },
@@ -60,7 +60,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
   }
 
   async getDashboard() {
-    const inventories = await prisma.inventory.findMany({
+    const inventories = await getDb().inventory.findMany({
       select: {
         quantity: true,
         reservedQuantity: true,

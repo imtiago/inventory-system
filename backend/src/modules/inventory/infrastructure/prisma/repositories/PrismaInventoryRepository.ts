@@ -1,17 +1,14 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { prisma } from "../../../../../shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { Inventory } from "../../../domain/entities/Inventory";
 import { IInventoryRepository } from "../../../domain/repositories/InventoryRepository";
 import { InventoryMapper } from "../mappers/InventoryMapper";
 
 export class PrismaInventoryRepository implements IInventoryRepository {
-  constructor(private readonly prisma: PrismaClient) {}
 
   async findByProductVariantId(
-    productVariantId: string,
-    tx: Prisma.TransactionClient = prisma,
+    productVariantId: string
   ) {
-    const inventory = await tx.inventory.findUnique({
+    const inventory = await getDb().inventory.findUnique({
       where: {
         productVariantId,
       },
@@ -25,7 +22,7 @@ export class PrismaInventoryRepository implements IInventoryRepository {
   }
 
   async findById(id: string) {
-    const data = await this.prisma.inventory.findUnique({
+    const data = await getDb().inventory.findUnique({
       where: {
         id,
       },
@@ -39,7 +36,7 @@ export class PrismaInventoryRepository implements IInventoryRepository {
   }
 
   async create(entity: Inventory) {
-    const data = await this.prisma.inventory.create({
+    const data = await getDb().inventory.create({
       data: InventoryMapper.toCreatePersistence(entity),
     });
 
@@ -47,7 +44,7 @@ export class PrismaInventoryRepository implements IInventoryRepository {
   }
 
   async delete(id: string) {
-    await this.prisma.inventory.delete({
+    await getDb().inventory.delete({
       where: {
         id,
       },
@@ -55,7 +52,7 @@ export class PrismaInventoryRepository implements IInventoryRepository {
   }
 
   async update(entity: Inventory): Promise<Inventory> {
-    const updated = await this.prisma.inventory.update({
+    const updated = await getDb().inventory.update({
       where: {
         id: entity.id,
       },

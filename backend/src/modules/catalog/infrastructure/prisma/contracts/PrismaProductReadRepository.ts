@@ -8,7 +8,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaProductReadRepository implements ProductReadRepository {
   async list(
@@ -38,7 +38,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
       : {};
 
     const [products, total] = await Promise.all([
-      prisma.product.findMany({
+      getDb().product.findMany({
         ...paginationOptions,
 
         where,
@@ -58,7 +58,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
         },
       }),
 
-      prisma.product.count({
+      getDb().product.count({
         where,
       }),
     ]);
@@ -68,7 +68,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
   }
 
   async getById(id: string): Promise<ProductListDTO | null> {
-    const product = await prisma.product.findUnique({
+    const product = await getDb().product.findUnique({
       where: { id },
 
       include: {

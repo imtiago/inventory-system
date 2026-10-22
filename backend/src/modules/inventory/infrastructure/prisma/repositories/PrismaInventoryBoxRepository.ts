@@ -1,14 +1,12 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryBoxMapper } from "../mappers/InventoryBoxMapper";
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
 
 export class PrismaInventoryBoxRepository implements IInventoryBoxRepository {
-  constructor(private readonly prisma: PrismaClient) {}
 
   async create(entity: InventoryBox): Promise<InventoryBox> {
-    const created = await this.prisma.inventoryBox.create({
+    const created = await getDb().inventoryBox.create({
       data: InventoryBoxMapper.toCreatePersistence(entity),
     });
 
@@ -16,7 +14,7 @@ export class PrismaInventoryBoxRepository implements IInventoryBoxRepository {
   }
 
   async update(entity: InventoryBox): Promise<InventoryBox> {
-    const updated = await this.prisma.inventoryBox.update({
+    const updated = await getDb().inventoryBox.update({
       where: {
         id: entity.id,
       },
@@ -26,7 +24,7 @@ export class PrismaInventoryBoxRepository implements IInventoryBoxRepository {
     return InventoryBoxMapper.toDomain(updated);
   }
   async findById(id: string): Promise<InventoryBox | null> {
-    const exists = await this.prisma.inventoryBox.findUnique({
+    const exists = await getDb().inventoryBox.findUnique({
       where: {
         id,
       },
@@ -36,15 +34,15 @@ export class PrismaInventoryBoxRepository implements IInventoryBoxRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.inventoryBox.delete({
+    await getDb().inventoryBox.delete({
       where: {
         id,
       },
     });
   }
 
-  async findByCode(code: string, tx: Prisma.TransactionClient = prisma) {
-    const data = await tx.inventoryBox.findUnique({
+  async findByCode(code: string) {
+    const data = await getDb().inventoryBox.findUnique({
       where: {
         code,
       },

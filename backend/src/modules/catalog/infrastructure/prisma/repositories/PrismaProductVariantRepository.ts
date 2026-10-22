@@ -1,11 +1,11 @@
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { ProductVariantMapper } from "../mappers/ProductVariantMapper";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 
 export class PrismaProductVariantRepository implements ProductVariantRepository {
   async create(variant: ProductVariant): Promise<ProductVariant> {
-    const created = await prisma.productVariant.create({
+    const created = await getDb().productVariant.create({
       data: ProductVariantMapper.toCreatePersistence(variant),
     });
 
@@ -13,7 +13,7 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
   }
 
   async update(variant: ProductVariant): Promise<ProductVariant> {
-    const updated = await prisma.productVariant.update({
+    const updated = await getDb().productVariant.update({
       where: {
         id: variant.id,
       },
@@ -24,7 +24,7 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
   }
 
   async findById(id: string): Promise<ProductVariant | null> {
-    const variant = await prisma.productVariant.findUnique({
+    const variant = await getDb().productVariant.findUnique({
       where: {
         id,
       },
@@ -38,7 +38,7 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
   }
 
   async findByProduct(productId: string): Promise<ProductVariant[]> {
-    const variants = await prisma.productVariant.findMany({
+    const variants = await getDb().productVariant.findMany({
       where: {
         productId,
       },
@@ -51,11 +51,11 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
   }
 
   async count(): Promise<number> {
-    return prisma.productVariant.count();
+    return getDb().productVariant.count();
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.productVariant.delete({
+    await getDb().productVariant.delete({
       where: {
         id,
       },
@@ -63,7 +63,7 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
   }
 
   async findByBarcode(barcode: string): Promise<ProductVariant | null> {
-    const variant = await prisma.productVariant.findFirst({
+    const variant = await getDb().productVariant.findFirst({
       where: {
         barcode,
       },
@@ -77,7 +77,7 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
   }
 
   async findByCode(code: string): Promise<ProductVariant | null> {
-    const variant = await prisma.productVariant.findUnique({
+    const variant = await getDb().productVariant.findUnique({
       where: {
         code,
       },

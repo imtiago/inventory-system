@@ -1,19 +1,18 @@
 // src/modules/sales/infrastructure/repositories/PrismaSaleRepository.ts
 
-import { Prisma, SaleStatus } from "@prisma/client";
+import { SaleStatus } from "@prisma/client";
 
 import { SaleMapper } from "../mappers/SaleMapper";
 import { SaleStatusMapper } from "../mappers/SaleStatusMapper";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { Sale } from "@sales/domain/entities/Sale";
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 
 export class PrismaSaleRepository implements SaleRepository {
   async create(
-    sale: Sale,
-    tx: Prisma.TransactionClient = prisma,
+    sale: Sale
   ): Promise<Sale> {
-    const created = await tx.sale.create({
+    const created = await getDb().sale.create({
       data: SaleMapper.toCreatePersistence(sale),
       include: {
         items: true,
@@ -24,7 +23,7 @@ export class PrismaSaleRepository implements SaleRepository {
   async list(page: number, limit: number): Promise<Sale[]> {
     const skip = (page - 1) * limit;
 
-    const sales = await prisma.sale.findMany({
+    const sales = await getDb().sale.findMany({
       skip,
       take: limit,
       include: {
@@ -36,10 +35,9 @@ export class PrismaSaleRepository implements SaleRepository {
   }
 
   async findById(
-    id: string,
-    tx: Prisma.TransactionClient = prisma,
+    id: string
   ): Promise<Sale | null> {
-    const sale = await tx.sale.findUnique({
+    const sale = await getDb().sale.findUnique({
       where: { id },
       include: {
         items: true,
@@ -55,10 +53,9 @@ export class PrismaSaleRepository implements SaleRepository {
 
   async updateStatus(
     id: string,
-    status: SaleStatus,
-    tx: Prisma.TransactionClient = prisma,
+    status: SaleStatus
   ): Promise<Sale> {
-    const updated = await tx.sale.update({
+    const updated = await getDb().sale.update({
       where: { id },
       data: {
         status: SaleStatusMapper.toPrisma(status),

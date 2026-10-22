@@ -1,25 +1,20 @@
-import { Prisma } from "@prisma/client";
 import { InventoryLot } from "../entities/InventoryLot";
 import { ICrudRepository } from "@shared/domain/repositories/CrudRepository";
 export interface IInventoryLotRepository extends ICrudRepository<InventoryLot> {
   findByProductVariantId(
-    productVariantId: string,
-    tx?: Prisma.TransactionClient,
+    productVariantId: string
   ): Promise<InventoryLot | null>;
 
   findByProductVariantIdAndBatchNumber(
     productVariantId: string,
-    batchNumber: string,
-    tx?: Prisma.TransactionClient,
+    batchNumber: string
   ): Promise<InventoryLot | null>;
 
-  // save(lot: InventoryLot, tx?: Prisma.TransactionClient): Promise<InventoryLot>;
+  // save(lot: InventoryLot): Promise<InventoryLot>;
   // update(
   //   inventory: InventoryLot,
-  //   tx?: Prisma.TransactionClient,
   // ): Promise<InventoryLot>;
   findAvailableByInventory(
-    inventoryId: string,
-    tx?: Prisma.TransactionClient,
+    inventoryId: string
   ): Promise<InventoryLot[]>;
 }
