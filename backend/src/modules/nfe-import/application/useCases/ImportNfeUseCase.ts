@@ -1,3 +1,4 @@
+import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 import { NfeItem } from "../../domain/entities/NfeItem";
 import { ParseXmlService } from "./ParseXmlService";
 import { ParsePdfService } from "./ParsePdfService";
@@ -26,7 +27,7 @@ export class ImportNfeUseCase {
     } else if (ext === "pdf") {
       items = await new ParsePdfService().parseBuffer(buffer);
     } else {
-      throw new Error("Unsupported file format");
+      throw new BusinessRuleError("Formato de arquivo não suportado.", ErrorCodes.UNSUPPORTED_FILE_FORMAT);
     }
 
     for (const item of items) {

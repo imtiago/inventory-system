@@ -1,3 +1,4 @@
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 // src/modules/nfe-import/application/services/ParseXmlService.ts
 import { NfeItem } from "../../domain/entities/NfeItem";
 import * as xml2js from "xml2js";
@@ -6,7 +7,7 @@ export class ParseXmlService {
   parse(filePath: string): NfeItem[] {
     // código antigo que lê do path
     // fs.readFileSync(filePath)...
-    throw new Error("Old parse not implemented here");
+    throw new InternalInvariantError("Old parse not implemented here", InternalErrorCodes.NOT_IMPLEMENTED);
   }
 
   parseBuffer(buffer: Buffer): NfeItem[] {

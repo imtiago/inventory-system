@@ -134,3 +134,10 @@ test("InternalInvariantError → 500 sem vazar mensagem", async () => {
   assert.equal(r.status, 500);
   assert.deepEqual(r.body, { message: "Erro interno do servidor.", code: "INTERNAL_ERROR" });
 });
+
+test("ValidationError aceita código customizado", async () => {
+  const errors = [{ field: "file", message: "Arquivo obrigatório." }];
+  const r = await call(() => new ValidationError("Arquivo obrigatório.", errors, "FILE_REQUIRED"));
+  assert.equal(r.status, 400);
+  assert.equal(r.body.code, "FILE_REQUIRED");
+});

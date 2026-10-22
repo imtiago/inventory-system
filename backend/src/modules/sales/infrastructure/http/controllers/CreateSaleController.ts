@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { parseInput } from "@shared/http/parseInput";
 import { createSaleSchema } from "../../../interfaces/http/schemas/createSaleSchema";
 import { makeCreateSaleUseCase } from "../factories/CreateSaleFactory";
 
@@ -8,14 +9,10 @@ export function makeCreateSaleController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createSaleSchema.parse(request.body);
+    const data = parseInput(createSaleSchema, request.body);
 
-      const sale = await useCase.execute(data);
+    const sale = await useCase.execute(data);
 
-      return reply.status(201).send(sale);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.status(201).send(sale);
   };
 }

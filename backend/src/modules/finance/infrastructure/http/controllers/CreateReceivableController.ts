@@ -1,3 +1,4 @@
+import { parseInput } from "@shared/http/parseInput";
 // src/modules/receivables/infrastructure/http/controllers/CreateReceivableController.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createReceivableSchema } from "modules/finance/interfaces/http/schemas/createReceivableSchema";
@@ -10,22 +11,18 @@ export function makeCreateReceivableController() {
     req: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createReceivableSchema.parse(req.body);
-      // const useCase = new CreateReceivable(repo);
-      const receivable = await useCase.execute({
-        customerId: data.saleId,
-        originType: FinancialOriginType.SALE,
-        saleId: data.saleId,
-        totalAmount: data.totalAmount,
-        parcels: data.parcels.map((p) => ({
-          amount: p.amount,
-          dueDate: new Date(p.dueDate),
-        })),
-      });
-      return reply.status(201).send(receivable);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    const data = parseInput(createReceivableSchema, req.body);
+    // const useCase = new CreateReceivable(repo);
+    const receivable = await useCase.execute({
+      customerId: data.saleId,
+      originType: FinancialOriginType.SALE,
+      saleId: data.saleId,
+      totalAmount: data.totalAmount,
+      parcels: data.parcels.map((p) => ({
+        amount: p.amount,
+        dueDate: new Date(p.dueDate),
+      })),
+    });
+    return reply.status(201).send(receivable);
   };
 }

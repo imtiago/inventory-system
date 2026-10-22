@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
+import { parseInput } from "@shared/http/parseInput";
 import { makeGetSaleByIdUseCase } from "../factories/GetSaleByIdFactory";
 
 const paramsSchema = z.object({
@@ -12,18 +13,10 @@ export function makeGetSaleController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { id } = paramsSchema.parse(request.params);
+    const { id } = parseInput(paramsSchema, request.params);
 
-      const sale = await useCase.execute(id);
+    const sale = await useCase.execute(id);
 
-      return reply.send(sale);
-    } catch (err: any) {
-      if (err.message === "Venda não encontrada") {
-        return reply.status(404).send({ message: err.message });
-      }
-
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.send(sale);
   };
 }

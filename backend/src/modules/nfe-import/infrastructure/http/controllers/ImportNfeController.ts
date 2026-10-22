@@ -1,3 +1,4 @@
+import { ErrorCodes, ValidationError } from "@shared/domain/errors";
 import { FastifyRequest, FastifyReply } from "fastify";
 import {
   ImportMode,
@@ -26,41 +27,30 @@ export function makeImportNfeController(
   ) {
     const productRepository = new PrismaProductRepository();
 
-    try {
-      const file = await (req as any).file(); // ✅ correto
-
-      console.log("tiago da silva oliveira");
-      // const files = [];
-      // for await (const file of req.files()) {
-      //   files.push(file);
-      // }
-
-      // if (!files.length) {
-      //   return reply.status(400).send({ error: "File required" });
-      // }
-
-      // const file = files[0];
-      const buffer = await file.toBuffer(); // pega o conteúdo do arquivo
-      const fileName = file.filename;
-
-      const useCase = new ImportNfeUseCase(
-        productRepository,
-        nfeImportRepository,
+    const file = await (req as any).file();
+    if (!file) {
+      throw new ValidationError(
+        "Arquivo obrigatório.",
+        [{ field: "file", message: "Arquivo obrigatório." }],
+        ErrorCodes.FILE_REQUIRED,
       );
-      const mode = ((req.query as any).mode as ImportMode) || ImportMode.UPSERT;
-      console.log(mode);
-
-      const items = await useCase.executeBuffer(buffer, fileName, mode);
-
-      return reply.status(200).send({
-        message: "Import successful",
-        imported: items.length,
-        items,
-        fileName, // path retornado para o front-end
-      });
-    } catch (err: any) {
-      console.error(err);
-      return reply.status(500).send({ error: err.message });
     }
+    const buffer = await file.toBuffer(); // pega o conteúdo do arquivo
+    const fileName = file.filename;
+
+    const useCase = new ImportNfeUseCase(
+      productRepository,
+      nfeImportRepository,
+    );
+    const mode = ((req.query as any).mode as ImportMode) || ImportMode.UPSERT;
+
+    const items = await useCase.executeBuffer(buffer, fileName, mode);
+
+    return reply.status(200).send({
+      message: "Import successful",
+      imported: items.length,
+      items,
+      fileName, // path retornado para o front-end
+    });
   };
 }

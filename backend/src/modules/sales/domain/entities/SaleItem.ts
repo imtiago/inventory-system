@@ -1,3 +1,4 @@
+import { BusinessRuleError, ErrorCodes, InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 // src/modules/sales/domain/entities/SaleItem.ts
 
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
@@ -36,19 +37,19 @@ export class SaleItem extends BaseEntity {
       createdAt: props.createdAt,
     });
     if (!props.variantId.trim()) {
-      throw new Error("Variant id is required.");
+      throw new InternalInvariantError("Variant id is required.", InternalErrorCodes.SALE_ITEM_INVALID);
     }
 
     if (!props.variantName.trim()) {
-      throw new Error("Variant name is required.");
+      throw new InternalInvariantError("Variant name is required.", InternalErrorCodes.SALE_ITEM_INVALID);
     }
 
     if (props.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (props.unitPrice < 0) {
-      throw new Error("Unit price cannot be negative.");
+      throw new InternalInvariantError("Unit price cannot be negative.", InternalErrorCodes.SALE_ITEM_INVALID);
     }
 
     this._variantId = props.variantId;
