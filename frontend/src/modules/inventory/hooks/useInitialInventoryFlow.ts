@@ -1,1040 +1,415 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-import { useProductByBarcode } from './useProductByBarcode';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/shared/react-query/keys';
-import { getInventoryLots } from '../services/inventoryService';
-import { useInventoryLots } from './useInventoryLots';
-import { useInventoryBoxByLot, type InventoryBox } from './useInventoryBoxByLot';
-import { useInventoryBox } from './useInventoryBox';
-import { useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
-
-import type { InventoryLot, Product, ProductVariant } from '../types/InitialInventoryTypes';
-import { useSearchProducts } from './useSearchProducts';
-import { useCreateInventoryLot } from './useCreateInventoryLot';
+import type { InventoryBox, InventoryLot, ProductVariant } from '../types';
 import type { InventoryLotFormData } from '../components/InventoryLotForm';
-import { getInventoryByVariant, createInventory } from '../services/inventoryService';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
+import { useProductByBarcode } from './useProductByBarcode';
+import { useInventoryLots } from './useInventoryLots';
+import { useInventoryBox } from './useInventoryBox';
+import { useCreateInventoryLot } from './useCreateInventoryLot';
+import { useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
+import { useSearchProducts } from './useSearchProducts';
 
-type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
+export type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
 
-type InventoryModalType = 'new-product' | 'product-selection' | 'new-lot' | 'label-quantity' | null;
+export type InventoryModalType = 'new-product' | 'product-selection' | 'new-lot' | null;
 
-type InventoryData = {
+/** Minimal product data the wizard needs (search result or newly created product). */
+export interface WizardProduct {
   id: string;
-  productVariantId: string;
-  quantity: number;
-  availableQuantity: number;
-  reservedQuantity: number;
-  minimumStock: number;
-  createdAt: string;
-};
+  name: string;
+}
 
-type InventoryPrompt = 'create' | 'confirm-cancel' | null;
+interface Placement {
+  quantity: number;
+  boxCode: string;
+}
+
+/** Units of a lot that can still go into boxes. Sales may push allocated above remaining (known, deferred): never negative. */
+export function availableForBoxes(lot: Pick<InventoryLot, 'remainingQuantity' | 'allocatedQuantity'> | null): number {
+  if (!lot) return 0;
+
+  return Math.max(0, lot.remainingQuantity - lot.allocatedQuantity);
+}
+
+export function placementMessage({ quantity, boxCode }: Placement): string {
+  return `${quantity} unidade(s) colocada(s) na caixa ${boxCode}.`;
+}
 
 export function useInitialInventoryFlow() {
   const [step, setStep] = useState<FlowStep>('start');
-
-  // Dentro de useInitialInventoryFlow():
-  const [inventory, setInventory] = useState<InventoryData | null>(null);
-  const [inventoryPrompt, setInventoryPrompt] = useState<InventoryPrompt>(null);
-  const [inventoryLoading, setInventoryLoading] = useState(false);
-  const [inventoryCreating, setInventoryCreating] = useState(false);
-  const [inventoryError, setInventoryError] = useState<string | null>(null);
-
+  const [stepBeforeSearch, setStepBeforeSearch] = useState<FlowStep>('product-exists-choice');
   const [modal, setModal] = useState<InventoryModalType>(null);
 
-  function closeModal() {
-    setModal(null);
-  }
-  function openModal(type: Exclude<InventoryModalType, null>) {
-    setModal(type);
-  }
-  /**
-   * Código de barras atualmente utilizado no fluxo.
-   */
   const [barcode, setBarcode] = useState('');
-
-  /**
-   * Código de barras que não foi encontrado.
-   */
-  const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
-
-  /**
-   * Produto selecionado/encontrado.
-   */
-  const [product, setProduct] = useState<Product | null>(null);
-
-  /**
-   * Variante criada durante o fluxo.
-   */
-  const [createdVariant, setCreatedVariant] = useState<ProductVariant | null>(null);
-
-  /**
-   * Scanner.
-   *
-   * Importante:
-   * entrar na etapa "scan" NÃO abre a câmera.
-   * A câmera somente abre quando handleOpenScanner()
-   * for chamado pelo componente.
-   */
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  /**
-   * Lote.
-   */
+  const [product, setProduct] = useState<WizardProduct | null>(null);
+  const [variant, setVariant] = useState<ProductVariant | null>(null);
+
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
-  const [lotConfirmed, setLotConfirmed] = useState(false);
+  /** Lot returned by the API on creation, used until the lots query refetches. */
+  const [createdLot, setCreatedLot] = useState<InventoryLot | null>(null);
 
-  /**
-   * Caixas disponíveis para o lote selecionado.
-   */
-  const [boxes, setBoxes] = useState<InventoryBox[]>([]);
-
-  /**
-   * Caixa escolhida pelo usuário.
-   */
   const [selectedBox, setSelectedBox] = useState<InventoryBox | null>(null);
+  const [boxValidationError, setBoxValidationError] = useState<string | null>(null);
 
-  /**
-   * Dados da caixa atualmente utilizada.
-   */
-  const [boxId, setBoxId] = useState<string | null>(null);
-  const [boxCode, setBoxCode] = useState('');
+  const [placement, setPlacement] = useState<Placement | null>(null);
 
-  /**
-   * Quantidade adicionada ao estoque.
-   *
-   * Atualmente o fluxo adiciona 1 unidade por operação.
-   */
-  const [inventoryQuantity, setInventoryQuantity] = useState<number | null>(null);
+  const [labelQuantity, setLabelQuantity] = useState('1');
+  const [labelValidationError, setLabelValidationError] = useState<string | null>(null);
 
-  /**
-   * Quantidade de etiquetas solicitadas.
-   */
-  const [labelQuantity, setLabelQuantity] = useState(1);
+  const barcodeLookup = useProductByBarcode();
+  const { lots, isLoading: lotsLoading, error: lotsQueryError } = useInventoryLots(variant?.id, { limit: 100 });
+  const boxMutations = useInventoryBox();
+  const lotCreation = useCreateInventoryLot();
+  const labels = useGenerateInventoryProductLabels();
+  const productSearch = useSearchProducts();
 
-  /**
-   * Hooks de domínio.
-   */
-  const { foundVariant, loading, searchByBarcode, clearFoundVariant } = useProductByBarcode();
+  const lotsError = lotsQueryError ? apiErrorMessage(lotsQueryError, 'Não foi possível carregar os lotes.') : null;
 
-  const queryClient = useQueryClient();
-  const [lotsVariantId, setLotsVariantId] = useState<string | undefined>();
-  const { lots, isLoading: lotsLoading, error: lotsQueryError } = useInventoryLots(lotsVariantId, { limit: 100 });
-  const lotsError = lotsQueryError ? 'Não foi possível carregar os lotes.' : null;
+  const selectedLot = lots.find((lot) => lot.id === selectedLotId) ?? (createdLot?.id === selectedLotId ? createdLot : null);
+  const lotAvailableForBoxes = availableForBoxes(selectedLot);
 
-  async function findLots(variantId: string) {
-    setLotsVariantId(variantId);
-    const result = await queryClient.fetchQuery({
-      queryKey: [...queryKeys.inventoryLots(variantId), { page: 1, limit: 100 }],
-      queryFn: () => getInventoryLots(variantId, { page: 1, limit: 100 }),
-      staleTime: 0,
-    });
-    return result.data;
-  }
-
-  function clearLots() {
-    setLotsVariantId(undefined);
-  }
-
-  const { findBoxByLot, loading: boxLookupLoading, error: boxLookupError, clearBox } = useInventoryBoxByLot();
-
-  const { createBox, addLot, loading: boxMutationLoading, error: boxMutationError, clearError: clearBoxMutationError } = useInventoryBox();
-
-  const { generate: generateProductLabels, loading: labelLoading, error: labelError, clearError: clearLabelError } = useGenerateInventoryProductLabels();
-
-  const { products, loading: productsLoading, error: productsError, pagination: productsPagination, searchProducts, clearProducts } = useSearchProducts();
-
-  const { create: createLot, loading: createLotLoading, error: createLotError } = useCreateInventoryLot();
-
-  /**
-   * A variante atual pode ser:
-   *
-   * - uma variante encontrada pelo código de barras;
-   * - uma variante criada durante o fluxo.
-   */
-  const currentVariant = createdVariant ?? foundVariant;
-
-  /**
-   * Lote atualmente selecionado.
-   */
-  const selectedLot = lots.find((lot) => lot.id === selectedLotId) ?? null;
-
-  async function validateInventoryForVariant(variant: ProductVariant) {
-    setInventoryLoading(true);
-    setInventoryError(null);
-    setInventory(null);
-    setInventoryPrompt(null);
-
-    try {
-      const result = await getInventoryByVariant(variant.id);
-
-      if (result?.id) {
-        setInventory(result);
-        setInventoryPrompt(null);
-        setStep('lot');
-        return;
-      }
-
-      setInventoryPrompt('create');
-    } catch {
-      setInventoryError('Não foi possível consultar o inventory. Tente novamente.');
-    } finally {
-      setInventoryLoading(false);
-    }
-  }
-
-  async function handleCreateInventory() {
-    const variant = createdVariant ?? foundVariant;
-
-    if (!variant || inventoryCreating) {
-      return;
-    }
-
-    setInventoryCreating(true);
-    setInventoryError(null);
-
-    try {
-      const created = await createInventory(variant.id);
-
-      if (!created?.id) {
-        setInventoryError('A API não retornou o inventory criado.');
-        return;
-      }
-
-      setInventory(created);
-      setInventoryPrompt(null);
-      setStep('lot');
-    } catch {
-      setInventoryError('Não foi possível criar o inventory. Tente novamente.');
-    } finally {
-      setInventoryCreating(false);
-    }
-  }
-
-  function handleDeclineInventoryCreation() {
-    setInventoryPrompt('confirm-cancel');
-  }
-
-  function handleConfirmInventoryCancellation() {
-    setInventoryPrompt(null);
-    handleBackToStart();
-  }
-
-  function handleResumeInventoryCreation() {
-    setInventoryPrompt('create');
-  }
-
-  /**
-   * Carrega os lotes sempre que a variante atual mudar.
-   */
-  useEffect(() => {
-    if (!currentVariant) {
-      clearLots();
-      return;
-    }
-
-    findLots(currentVariant.id);
-  }, [currentVariant?.id]);
-
-  /**
-   * Quando uma variante é encontrada pelo código de barras,
-   * avançamos automaticamente para a etapa de lote.
-   */
-  useEffect(() => {
-    if (!foundVariant) {
-      return;
-    }
-
-    setBarcode(foundVariant.barcode ?? '');
-    setNotFoundBarcode(null);
-
+  function resetLotAndBox() {
     setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
+    setCreatedLot(null);
     setSelectedBox(null);
-    setBoxId(null);
-    setBoxCode('');
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
+    setBoxValidationError(null);
+    boxMutations.clearError();
+    lotCreation.clearError();
+  }
 
-    void validateInventoryForVariant(foundVariant);
-  }, [foundVariant]);
+  function resetAll() {
+    setModal(null);
+    setScannerOpen(false);
+    setBarcode('');
+    setProduct(null);
+    setVariant(null);
+    resetLotAndBox();
+    setLabelQuantity('1');
+    setLabelValidationError(null);
+    labels.clearError();
+    barcodeLookup.clearFoundVariant();
+    productSearch.clearProducts();
+  }
 
-  /**
-   * ============================================================
-   * INÍCIO DO FLUXO
-   * ============================================================
-   */
+  /* ---------------------------------------------------------------- início */
 
-  /**
-   * Usuário escolheu:
-   * "Ler código de barras".
-   *
-   * Aqui NÃO abrimos a câmera.
-   * Apenas mostramos a tela com o botão da câmera.
-   */
   function handleStartWithBarcode() {
-    resetProductFlow();
-
+    resetAll();
+    setPlacement(null);
     setStep('scan');
   }
 
-  function handleProductSelected(product: ProductListItem) {
-    setProduct(product);
-
-    setStep('register-variant');
-  }
-
-  /**
-   * Usuário escolheu:
-   * "Cadastrar sem código de barras".
-   *
-   * O próximo passo é perguntar se o produto já existe.
-   */
   function handleStartWithoutBarcode() {
-    setBarcode('');
-    setNotFoundBarcode(null);
-
-    setProduct(null);
-    setCreatedVariant(null);
-
-    setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-
-    closeModal();
-    setScannerOpen(false);
-
-    clearFoundVariant();
-    clearLots();
-    clearBox();
-    clearBoxMutationError();
-    clearLabelError();
-
+    resetAll();
+    setPlacement(null);
     setStep('product-exists-choice');
   }
 
-  /**
-   * ============================================================
-   * SCANNER
-   * ============================================================
-   */
+  function handleBackToStart() {
+    resetAll();
+    setStep('start');
+  }
 
-  /**
-   * Abre a câmera.
-   *
-   * Esta função deve ser chamada somente pelo botão
-   * "Abrir câmera" do InitialInventoryScanner.
-   */
+  /* ---------------------------------------------------------------- leitura */
+
   function handleOpenScanner() {
     setScannerOpen(true);
   }
 
-  /**
-   * Fecha a câmera.
-   */
   function handleCloseScanner() {
     setScannerOpen(false);
   }
 
-  /**
-   * Resultado da leitura do código de barras.
-   */
-  async function handleBarcodeRead(scannedBarcode: string) {
-    const normalizedBarcode = scannedBarcode.trim();
+  async function handleBarcodeRead(scanned: string) {
+    const code = scanned.trim();
 
-    if (!normalizedBarcode) {
-      return;
-    }
+    if (!code) return;
 
     setScannerOpen(false);
+    setBarcode(code);
+    setVariant(null);
+    resetLotAndBox();
 
-    setBarcode(normalizedBarcode);
-    setNotFoundBarcode(null);
+    const result = await barcodeLookup.lookupBarcode(code);
 
-    resetLotAndBoxState();
-
-    clearFoundVariant();
-    clearLots();
-    clearBox();
-    clearBoxMutationError();
-    clearLabelError();
-
-    const variant = await searchByBarcode(normalizedBarcode);
-
-    /**
-     * Variante não encontrada.
-     *
-     * Nesse caso perguntamos se o produto existe.
-     */
-    if (!variant) {
-      setNotFoundBarcode(normalizedBarcode);
-      setStep('product-exists-choice');
+    if (result.status === 'found') {
+      chooseVariant(result.variant);
       return;
     }
 
-    // /**
-    //  * Variante encontrada.
-    //  *
-    //  * O useEffect acima cuidará de avançar para "lot".
-    //  */
-    // setStep('lot');
+    if (result.status === 'not-found') {
+      setStep('product-exists-choice');
+    }
+
+    // status 'error': stay on 'scan'; the page shows barcodeError.
   }
 
-  /**
-   * ============================================================
-   * PRODUTO
-   * ============================================================
-   */
+  /* ---------------------------------------------------------------- produto */
 
-  /**
-   * Produto já existe.
-   *
-   * Vai para a tela de pesquisa/seleção do produto.
-   */
   function handleProductExists() {
+    setStepBeforeSearch(step === 'product-search' ? stepBeforeSearch : step);
     setStep('product-search');
+    setModal('product-selection');
   }
 
-  /**
-   * Compatibilidade com o componente atual,
-   * caso ele ainda use esse nome.
-   */
-  function handleRegisterProduct() {
-    // if (barcode) {
-    //   setStep('product-exists-choice');
-    //   return;
-    // }
+  function handleOpenNewProduct() {
+    setModal('new-product');
+  }
 
+  function goToVariantStep(selected: WizardProduct) {
+    setProduct({ id: selected.id, name: selected.name });
+    setModal(null);
+    setStep('register-variant');
+  }
+
+  function handleProductSelected(selected: WizardProduct) {
+    goToVariantStep(selected);
+  }
+
+  function handleNewProductSuccess(created: WizardProduct) {
+    goToVariantStep(created);
+  }
+
+  /** Closing a modal never leaves the wizard on an empty step. */
+  function closeModal() {
+    if (modal === 'product-selection' && step === 'product-search') {
+      setStep(stepBeforeSearch);
+    }
+
+    setModal(null);
+  }
+
+  /* ---------------------------------------------------------------- variante */
+
+  function chooseVariant(chosen: ProductVariant) {
+    setVariant(chosen);
+    resetLotAndBox();
+    setStep('lot');
+  }
+
+  function handleVariantChosen(chosen: ProductVariant) {
+    chooseVariant(chosen);
+  }
+
+  function handleBackFromVariant() {
+    setProduct(null);
     setStep('product-exists-choice');
   }
 
-  /**
-   * Produto criado com sucesso.
-   */
-  function handleNewProductSuccess(createdProduct: Product) {
-    setProduct(createdProduct);
-    closeModal();
+  /* ---------------------------------------------------------------- lote */
 
-    setStep('register-variant');
-  }
-
-  /**
-   * ============================================================
-   * VARIANTE
-   * ============================================================
-   */
-
-  /**
-   * Usuário escolheu cadastrar uma variante
-   * para um produto existente.
-   */
-  function handleRegisterVariant() {
-    setStep('register-variant');
-  }
-  function handleSearchProduct() {
-    setStep('product-search');
-    openModal('product-selection');
-  }
-
-  /**
-   * Variante criada.
-   */
-  async function handleVariantCreated(variant: ProductVariant) {
-    setCreatedVariant(variant);
-
-    setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-
-    await validateInventoryForVariant(variant);
-  }
-
-  /**
-   * ============================================================
-   * LOTE
-   * ============================================================
-   */
-
-  /**
-   * Seleciona um lote.
-   */
   function handleSelectLot(lotId: string) {
-    if (lotConfirmed) {
-      return;
-    }
-
-    const lot = lots.find((item) => item.id === lotId);
-
-    if (!lot) {
-      setSelectedLotId(null);
-      return;
-    }
-
-    setSelectedLotId(lot.id);
-    setLotConfirmed(false);
+    setSelectedLotId(lotId || null);
+    setSelectedBox(null);
+    setBoxValidationError(null);
   }
 
-  /**
-   * Confirma o lote e busca as caixas relacionadas.
-   */
-  async function handleConfirmLot() {
-    if (!currentVariant) {
-      return;
-    }
+  function handleConfirmLot() {
+    if (!selectedLot) return;
 
-    if (!selectedLot) {
-      return;
-    }
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-
-    clearBox();
-    clearBoxMutationError();
-
-    setLotConfirmed(true);
-
-    const batchNumber = selectedLot.batchNumber;
-
-    /**
-     * Se o lote não possui número,
-     * ainda podemos continuar para caixa.
-     */
-    if (!batchNumber) {
-      setStep('box');
-      return;
-    }
-
-    const foundBoxes = await findBoxByLot(currentVariant.id, batchNumber);
-
-    setBoxes(foundBoxes);
-    setSelectedBox(null);
-
+    boxMutations.clearError();
+    setBoxValidationError(null);
     setStep('box');
   }
-
-  /**
-   * ============================================================
-   * NOVO LOTE
-   * ============================================================
-   */
 
   function handleOpenNewLotModal() {
-    if (!currentVariant) {
-      return;
-    }
+    if (!variant) return;
 
-    if (selectedLot) {
-      return;
-    }
-
-    openModal('new-lot');
+    lotCreation.clearError();
+    setModal('new-lot');
   }
 
-  /**
-   * Novo lote criado.
-   */
-  async function handleNewLotSuccess(createdLot: InventoryLot) {
-    if (!currentVariant) {
-      return;
-    }
+  async function handleNewLotSubmit(data: InventoryLotFormData) {
+    if (!variant) return;
 
-    const result = await createLot({
-      productVariantId: currentVariant.id,
-      batchNumber: createdLot.batchNumber,
-      manufacturingDate: createdLot.manufacturingDate || undefined,
-      unitCost: createdLot.unitCost,
-      expirationDate: new Date(createdLot.expirationDate).toUTCString(),
-      quantity: createdLot.quantity,
+    const lot = await lotCreation.create({
+      productVariantId: variant.id,
+      batchNumber: data.batchNumber.trim(),
+      quantity: data.quantity,
+      unitCost: data.unitCost,
+      expirationDate: data.expirationDate,
+      manufacturingDate: data.manufacturingDate || undefined,
     });
 
-    if (!result) {
-      return;
+    if (lot) {
+      handleNewLotSuccess(lot);
     }
+  }
 
-    // Atualiza os dados do inventário após criar o lote.
-    await validateInventoryForVariant(currentVariant);
-
-    closeModal();
-
-    const updatedLots = await findLots(currentVariant.id);
-
-    const newLot = updatedLots.find((lot) => lot.id === result.id) ?? createdLot;
-
-    setSelectedLotId(newLot.id);
-    setLotConfirmed(true);
-
-    setBoxes([]);
+  /** The lot returned by the API becomes the selected lot. */
+  function handleNewLotSuccess(lot: InventoryLot) {
+    setCreatedLot(lot);
+    setSelectedLotId(lot.id);
     setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-
-    clearBox();
-    clearBoxMutationError();
-
-    if (newLot.batchNumber) {
-      const foundBoxes = await findBoxByLot(currentVariant.id, newLot.batchNumber);
-
-      setBoxes(foundBoxes);
-    }
-
+    setBoxValidationError(null);
+    boxMutations.clearError();
+    setModal(null);
     setStep('box');
   }
 
-  /**
-   * ============================================================
-   * CAIXA
-   * ============================================================
-   */
+  /* ---------------------------------------------------------------- caixa */
 
-  /**
-   * Cria somente uma nova caixa.
-   *
-   * A unidade ainda não é adicionada.
-   */
-  async function handleCreateBox(): Promise<boolean> {
-    // async function handleCreateBox(code: string): Promise<boolean> {
-    clearBoxMutationError();
-
-    // const normalizedCode = code.trim();
-
-    // if (!normalizedCode) {
-    //   return false;
-    // }
-
-    const createdBox = await createBox();
-    // const createdBox = await createBox({
-    //   code: normalizedCode,
-    // });
-
-    if (!createdBox) {
-      return false;
-    }
-
-    setBoxes((current) => [...current, createdBox]);
-
-    setSelectedBox(createdBox);
-
-    setBoxId(createdBox.id);
-    setBoxCode(createdBox.code);
-
-    return true;
+  function handleBackToLot() {
+    setBoxValidationError(null);
+    boxMutations.clearError();
+    setStep('lot');
   }
 
-  /**
-   * Seleciona uma caixa existente.
-   */
   function handleSelectBox(box: InventoryBox) {
     setSelectedBox(box);
-
-    setBoxId(box.id);
-    setBoxCode(box.code);
-
-    setInventoryQuantity(null);
-
-    clearBoxMutationError();
+    setBoxValidationError(null);
+    boxMutations.clearError();
   }
 
-  /**
-   * Adiciona uma unidade do lote
-   * à caixa selecionada.
-   */
-  async function handleContinueWithBox() {
-    if (!selectedLot) {
+  async function handleCreateBox() {
+    setBoxValidationError(null);
+
+    const box = await boxMutations.createBox();
+
+    if (box) {
+      setSelectedBox(box);
+    }
+  }
+
+  async function handleAddToBox(quantity: number) {
+    if (!selectedLot || !selectedBox || !variant) return;
+
+    const max = lotAvailableForBoxes;
+
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > max) {
+      setBoxValidationError(max > 0 ? `Informe uma quantidade entre 1 e ${max}.` : 'Todo o saldo deste lote já está em caixas.');
       return;
     }
 
-    if (!selectedBox) {
-      return;
-    }
+    setBoxValidationError(null);
 
-    clearBoxMutationError();
+    const item = await boxMutations.addLot(selectedBox.id, { inventoryLotId: selectedLot.id, quantity }, variant.id);
 
-    const addedLot = await addLot(selectedBox.id, {
-      inventoryLotId: selectedLot.id,
-      quantity: 1,
-    });
+    if (!item) return;
 
-    if (!addedLot) {
-      return;
-    }
-
-    setBoxId(selectedBox.id);
-    setBoxCode(selectedBox.code);
-
-    setInventoryQuantity(1);
-    setLabelQuantity(1);
-
-    /**
-     * Unidade adicionada com sucesso.
-     *
-     * Agora perguntamos se deseja gerar etiqueta.
-     */
+    setPlacement({ quantity, boxCode: selectedBox.code });
+    setLabelQuantity('1');
+    setLabelValidationError(null);
+    labels.clearError();
     setStep('label-choice');
   }
 
-  /**
-   * ============================================================
-   * ETIQUETAS
-   * ============================================================
-   */
+  /* ---------------------------------------------------------------- etiquetas */
 
-  /**
-   * Usuário deseja gerar etiquetas.
-   */
   function handleGenerateLabel() {
-    setLabelQuantity(1);
-    clearLabelError();
-
+    setLabelQuantity('1');
+    setLabelValidationError(null);
+    labels.clearError();
     setStep('label-quantity');
   }
 
-  /**
-   * Usuário não deseja gerar etiqueta.
-   */
+  function handleBackToLabelChoice() {
+    setLabelValidationError(null);
+    labels.clearError();
+    setStep('label-choice');
+  }
+
+  function handleLabelQuantityChange(value: string) {
+    setLabelQuantity(value);
+    setLabelValidationError(null);
+  }
+
+  async function handleConfirmLabelQuantity() {
+    if (!selectedBox || !variant) return;
+
+    const quantity = Number(labelQuantity);
+
+    if (labelQuantity.trim() === '' || !Number.isInteger(quantity) || quantity < 1) {
+      setLabelValidationError('Informe uma quantidade de etiquetas válida (mínimo 1).');
+      return;
+    }
+
+    const generated = await labels.generate(selectedBox.code, variant.code, quantity);
+
+    if (generated) {
+      handleFinishUnit();
+    }
+  }
+
   function handleSkipLabel() {
     handleFinishUnit();
   }
 
-  /**
-   * Altera quantidade de etiquetas.
-   */
-  function handleLabelQuantityChange(quantity: number) {
-    if (!Number.isInteger(quantity)) {
-      return;
-    }
-
-    if (quantity < 1) {
-      return;
-    }
-
-    setLabelQuantity(quantity);
-  }
-
-  /**
-   * Gera as etiquetas.
-   */
-  async function handleConfirmLabelQuantity() {
-    if (!selectedBox) {
-      return;
-    }
-
-    if (!currentVariant) {
-      return;
-    }
-
-    if (labelQuantity < 1) {
-      return;
-    }
-
-    clearLabelError();
-
-    const result = await generateProductLabels(selectedBox.code, currentVariant.code, labelQuantity);
-
-    if (!result) {
-      return;
-    }
-
-    /**
-     * Etiquetas geradas.
-     *
-     * Finaliza o cadastro da unidade.
-     */
-    handleFinishUnit();
-  }
-
-  /**
-   * ============================================================
-   * FINALIZAÇÃO
-   * ============================================================
-   */
-
-  /**
-   * Finaliza o cadastro da unidade atual
-   * e prepara o fluxo para outro produto.
-   */
+  /** Back to the start; the last placement message stays visible there. */
   function handleFinishUnit() {
-    resetProductFlow();
-
-    setScannerOpen(false);
-
-    /**
-     * Voltamos para o início.
-     *
-     * O usuário poderá escolher:
-     *
-     * - Ler código de barras
-     * - Cadastrar sem código de barras
-     */
+    resetAll();
     setStep('start');
   }
-
-  /**
-   * ============================================================
-   * NAVEGAÇÃO
-   * ============================================================
-   */
-
-  /**
-   * Volta para a tela inicial do fluxo.
-   */
-  function handleBackToStart() {
-    setStep('start');
-
-    setBarcode('');
-    setNotFoundBarcode(null);
-
-    setProduct(null);
-    setCreatedVariant(null);
-
-    setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-
-    closeModal();
-    closeModal();
-    setScannerOpen(false);
-
-    clearFoundVariant();
-    clearLots();
-    clearBox();
-    clearBoxMutationError();
-    clearLabelError();
-
-    setInventory(null);
-    setInventoryPrompt(null);
-    setInventoryError(null);
-  }
-
-  /**
-   * Volta para a tela de leitura.
-   *
-   * Mantido para compatibilidade com componentes
-   * que ainda utilizam onBack.
-   */
-  function handleBackToScan() {
-    resetProductFlow();
-
-    setScannerOpen(false);
-    setStep('scan');
-  }
-
-  /**
-   * ============================================================
-   * RESET
-   * ============================================================
-   */
-
-  /**
-   * Limpa estado relacionado ao produto atual.
-   */
-  function resetProductFlow() {
-    setBarcode('');
-    setNotFoundBarcode(null);
-
-    setProduct(null);
-    setCreatedVariant(null);
-
-    resetLotAndBoxState();
-
-    clearFoundVariant();
-    clearLots();
-    clearBox();
-    clearBoxMutationError();
-    clearLabelError();
-
-    setInventory(null);
-    setInventoryPrompt(null);
-    setInventoryError(null);
-  }
-
-  /**
-   * Limpa lote, caixa e etiquetas.
-   */
-  function resetLotAndBoxState() {
-    setSelectedLotId(null);
-    setLotConfirmed(false);
-
-    setBoxes([]);
-    setSelectedBox(null);
-
-    setBoxId(null);
-    setBoxCode('');
-
-    setInventoryQuantity(null);
-    setLabelQuantity(1);
-  }
-
-  /**
-   * ============================================================
-   * RETORNO
-   * ============================================================
-   */
 
   return {
-    /**
-     * Fluxo
-     */
     step,
-    setStep,
+    modal,
+    closeModal,
 
-    /**
-     * Produto / barcode
-     */
     barcode,
-    loading,
-
-    product,
-    currentVariant,
-    createdVariant,
-
-    notFoundBarcode,
-
-    /**
-     * Scanner
-     */
+    barcodeLoading: barcodeLookup.loading,
+    barcodeError: barcodeLookup.error,
     scannerOpen,
 
-    handleStartWithBarcode,
-    handleStartWithoutBarcode,
+    product,
+    variant,
 
-    handleBarcodeRead,
-    handleOpenScanner,
-    handleCloseScanner,
+    productSearch,
 
-    /**
-     * Produto
-     */
-    handleRegisterProduct,
-    handleProductExists,
-
-    handleRegisterVariant,
-
-    handleNewProductSuccess,
-
-    /**
-     * Variante
-     */
-    handleVariantCreated,
-
-    /**
-     * Lotes
-     */
     lots,
     lotsLoading,
     lotsError,
-
     selectedLotId,
     selectedLot,
-    lotConfirmed,
+    lotAvailableForBoxes,
+    createLotLoading: lotCreation.loading,
+    createLotError: lotCreation.error,
+
+    selectedBox,
+    boxLoading: boxMutations.loading,
+    boxError: boxValidationError ?? boxMutations.error,
+
+    placementMessage: placement ? placementMessage(placement) : null,
+
+    labelQuantity,
+    labelLoading: labels.loading,
+    labelError: labelValidationError ?? labels.error,
+
+    handleStartWithBarcode,
+    handleStartWithoutBarcode,
+    handleBackToStart,
+
+    handleOpenScanner,
+    handleCloseScanner,
+    handleBarcodeRead,
+
+    handleProductExists,
+    handleOpenNewProduct,
+    handleProductSelected,
+    handleNewProductSuccess,
+
+    handleVariantChosen,
+    handleBackFromVariant,
 
     handleSelectLot,
     handleConfirmLot,
-
     handleOpenNewLotModal,
+    handleNewLotSubmit,
     handleNewLotSuccess,
 
-    /**
-     * Caixas
-     */
-    boxes,
-    selectedBox,
-
-    boxId,
-    boxCode,
-
-    inventoryQuantity,
-
-    boxLoading: boxLookupLoading || boxMutationLoading,
-
-    boxError: boxLookupError ?? boxMutationError,
-
+    handleBackToLot,
     handleSelectBox,
     handleCreateBox,
-    handleContinueWithBox,
-
-    /**
-     * Etiquetas
-     */
-    labelQuantity,
-    labelLoading,
-    labelError,
+    handleAddToBox,
 
     handleGenerateLabel,
-    handleSkipLabel,
+    handleBackToLabelChoice,
     handleLabelQuantityChange,
     handleConfirmLabelQuantity,
-
-    /**
-     * Navegação
-     */
-    handleBackToStart,
-    handleBackToScan,
-
-    /**
-     * Finalização
-     */
+    handleSkipLabel,
     handleFinishUnit,
-
-    products,
-    productsLoading,
-    productsError,
-    productsPagination,
-    searchProducts,
-    clearProducts,
-    handleSearchProduct,
-    modal,
-    openModal,
-    closeModal,
-    createLotLoading,
-    createLotError,
-
-    inventory,
-    inventoryPrompt,
-    inventoryLoading,
-    inventoryCreating,
-    inventoryError,
-
-    validateInventoryForVariant,
-    handleCreateInventory,
-    handleDeclineInventoryCreation,
-    handleConfirmInventoryCancellation,
-    handleResumeInventoryCreation,
   };
 }

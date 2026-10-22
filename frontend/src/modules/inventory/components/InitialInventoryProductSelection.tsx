@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import type { ProductListItem } from '../types/ProductTypes';
+import type { InventoryProductSearchResult } from '../hooks/useSearchProducts';
 
 interface Props {
-  barcode: string | null;
-
-  products: ProductListItem[];
+  products: InventoryProductSearchResult[];
 
   loading: boolean;
 
@@ -13,12 +11,12 @@ interface Props {
 
   onSearch(search: string): void;
 
-  onSelect(product: ProductListItem): void;
+  onSelect(product: InventoryProductSearchResult): void;
 
   onBack(): void;
 }
 
-export function InitialInventoryProductSelection({ barcode, products, loading, error, onSearch, onSelect, onBack }: Props) {
+export function InitialInventoryProductSelection({ products, loading, error, onSearch, onSelect, onBack }: Props) {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -27,6 +25,7 @@ export function InitialInventoryProductSelection({ barcode, products, loading, e
     }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onSearch is recreated every render
   }, [search]);
 
   return (
@@ -51,7 +50,7 @@ export function InitialInventoryProductSelection({ barcode, products, loading, e
 
       {loading && <div className="rounded-xl bg-white p-6 text-center shadow">Carregando produtos...</div>}
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>}
+      {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>}
 
       {!loading && !error && products.length === 0 && (
         <div className="rounded-xl bg-white p-6 text-center shadow">
@@ -72,15 +71,17 @@ export function InitialInventoryProductSelection({ barcode, products, loading, e
                   {product.description && <p className="mt-2 text-sm text-gray-500">{product.description}</p>}
                 </div>
 
-                <span className="rounded-lg bg-gray-100 px-3 py-1 text-sm">
-                  {product.variantsCount} {product.variantsCount === 1 ? 'variante' : 'variantes'}
-                </span>
+                {product.variantsCount !== undefined && (
+                  <span className="rounded-lg bg-gray-100 px-3 py-1 text-sm">
+                    {product.variantsCount} {product.variantsCount === 1 ? 'variante' : 'variantes'}
+                  </span>
+                )}
               </div>
 
               <div className="mt-4 flex gap-4 text-sm text-gray-500">
-                <span>Marca: {product.brand.name}</span>
+                {product.brand && <span>Marca: {product.brand.name}</span>}
 
-                <span>Categoria: {product.category.name}</span>
+                {product.category && <span>Categoria: {product.category.name}</span>}
               </div>
 
               <div className="mt-4 text-sm font-medium text-blue-600">Selecionar produto →</div>

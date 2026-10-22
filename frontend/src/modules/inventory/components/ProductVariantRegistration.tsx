@@ -1,17 +1,24 @@
 import { useState } from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import { api } from '@/shared/services/api';
+import { queryKeys } from '@/shared/react-query/keys';
 import { notify } from '@/shared/utils/notify';
+import type { ProductVariant } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 interface ProductVariantRegistrationProps {
-  barcode: string;
+  /** Scanned barcode not found in the catalog; null when registering without barcode. */
+  barcode: string | null;
   productId: string;
   productName: string;
-  onSuccess: (variant: { id: string; name: string; code: string; barcode: string | null; productId: string }) => void;
+  onSuccess: (variant: ProductVariant) => void;
   onCancel: () => void;
 }
 
 export function ProductVariantRegistration({ barcode, productId, productName, onSuccess, onCancel }: ProductVariantRegistrationProps) {
+  const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,22 +33,20 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
     try {
       setLoading(true);
 
-      const response = await api.post(`/products/${productId}/variants`, {
+      const response = await api.post<{ data: ProductVariant }>(`/products/${productId}/variants`, {
         name: name.trim(),
-        barcode,
+        ...(barcode ? { barcode } : {}),
       });
 
-      const variant = response.data.data ?? response.data;
+      const variant = response.data.data;
+
+      void queryClient.invalidateQueries({ queryKey: queryKeys.productVariants(productId) });
 
       notify.success('Variante cadastrada com sucesso!');
 
       onSuccess(variant);
-    } catch (error: any) {
-      console.error('Erro ao cadastrar variante:', error);
-
-      const message = error?.response?.data?.message || 'Não foi possível cadastrar a variante.';
-
-      notify.error(message);
+    } catch (error: unknown) {
+      notify.error(apiErrorMessage(error, 'Não foi possível cadastrar a variante.'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +57,7 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
       <div>
         <h1 className="text-3xl font-bold">Cadastrar variante</h1>
 
-        <p className="mt-1 text-gray-500">O código de barras ainda não está cadastrado.</p>
+        <p className="mt-1 text-gray-500">{barcode ? 'O código de barras ainda não está cadastrado.' : 'Cadastre uma nova variante para o produto.'}</p>
       </div>
 
       <div className="space-y-5 rounded-xl bg-white p-6 shadow">
@@ -64,20 +69,23 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
           <input value={productName} readOnly className="w-full rounded-lg border bg-gray-100 p-3" />
         </div>
 
-        {/* Barcode */}
+        {barcode && (
+          <div>
+            <label className="mb-1 block text-sm text-gray-500">Código de barras</label>
 
-        <div>
-          <label className="mb-1 block text-sm text-gray-500">Código de barras</label>
-
-          <input value={barcode} readOnly className="w-full rounded-lg border bg-gray-100 p-3 font-mono" />
-        </div>
+            <input value={barcode} readOnly className="w-full rounded-lg border bg-gray-100 p-3 font-mono" />
+          </div>
+        )}
 
         {/* Nome da variante */}
 
         <div>
-          <label className="mb-1 block">Nome da variante</label>
+          <label htmlFor="variant-name" className="mb-1 block">
+            Nome da variante
+          </label>
 
           <input
+            id="variant-name"
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}

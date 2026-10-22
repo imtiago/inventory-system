@@ -1,8 +1,13 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { createInventoryLot, type CreateInventoryLotDTO } from '../services/inventoryService';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
+import { invalidateInventoryQueries } from '../utils/invalidateInventoryQueries';
 
 export function useCreateInventoryLot() {
+  const queryClient = useQueryClient();
+
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -14,11 +19,11 @@ export function useCreateInventoryLot() {
 
       const result = await createInventoryLot(data);
 
-      return result;
-    } catch (error: any) {
-      const message = error?.response?.data?.message ?? 'Não foi possível criar o lote.';
+      void invalidateInventoryQueries(queryClient, data.productVariantId);
 
-      setError(typeof message === 'string' ? message : 'Não foi possível criar o lote.');
+      return result;
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err, 'Não foi possível criar o lote.'));
 
       return null;
     } finally {
