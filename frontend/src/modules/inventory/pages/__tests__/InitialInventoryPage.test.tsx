@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { server } from '@/test/server';
@@ -13,9 +13,21 @@ import { InitialInventoryPage } from '../InitialInventoryPage';
 
 vi.mock('@/components/BarcodeScanner', () => ({
   BarcodeScanner: ({ onDetected }: { onDetected: (code: string) => void }) => (
-    <button type="button" onClick={() => onDetected('7891234567890')}>
-      Simular leitura
-    </button>
+    <>
+      <button type="button" onClick={() => onDetected('7891234567890')}>
+        Simular leitura
+      </button>
+      {/* Camera firing twice before it stops: two detections back to back. */}
+      <button
+        type="button"
+        onClick={() => {
+          onDetected('7891234567890');
+          onDetected('7890000000002');
+        }}
+      >
+        Simular duas leituras
+      </button>
+    </>
   ),
 }));
 
@@ -309,5 +321,151 @@ describe('InitialInventoryPage (assistente)', () => {
     await scanBarcode(user);
 
     expect(await screen.findByText('Banco indisponível')).toBeInTheDocument();
+  });
+
+  test('duas leituras: a primeira resposta chega por último e o assistente fica com a segunda variante', async () => {
+    const second = { ...variant, id: 'v-second', code: 'VAR-2', name: 'Variante Dois', barcode: '7890000000002' };
+    const lotsFor: string[] = [];
+    server.use(
+      http.get(`${API_URL}/variants/barcode/:code`, async ({ params }) => {
+        if (params.code === BARCODE) {
+          await delay(150);
+          return HttpResponse.json({ data: variant });
+        }
+        return HttpResponse.json({ data: second });
+      }),
+      http.get(`${API_URL}/inventory/variants/:variantId/lots`, ({ params }) => {
+        lotsFor.push(params.variantId as string);
+        return HttpResponse.json({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /ler código de barras/i }));
+    await user.click(screen.getByRole('button', { name: '📷 Ler' }));
+    await user.click(screen.getByRole('button', { name: 'Simular duas leituras' }));
+
+    expect(await screen.findByText('Variante:')).toBeInTheDocument();
+    expect(screen.getByText('Variante:').parentElement).toHaveTextContent('Variante Dois');
+
+    await new Promise((resolve) => setTimeout(resolve, 250)); // first (slow) response has arrived
+    expect(screen.getByText('Variante:').parentElement).toHaveTextContent('Variante Dois');
+    expect(lotsFor).not.toContain(VARIANT_ID);
+  });
+
+  test("'Voltar' durante a consulta pendente: ao resolver, o assistente continua no início", async () => {
+    let resolved = false;
+    server.use(
+      http.get(`${API_URL}/variants/barcode/:code`, async () => {
+        await delay(150);
+        resolved = true;
+        return HttpResponse.json({ data: variant });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await scanBarcode(user);
+    expect(await screen.findByText('Consultando produto...')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+
+    await waitFor(() => expect(resolved).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole('button', { name: /ler código de barras/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Selecionar lote' })).not.toBeInTheDocument();
+  });
+
+  test('fechar o modal durante a criação do lote: ao resolver, o assistente fica no passo de lote', async () => {
+    let resolved = false;
+    server.use(
+      http.post(`${API_URL}/inventory/lots`, async () => {
+        await delay(150);
+        resolved = true;
+        return HttpResponse.json(inventoryLot, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await scanBarcode(user);
+    await user.click(await screen.findByRole('button', { name: 'Criar novo lote' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Lote'), 'L2026-10-A');
+    await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));
+    await user.click(screen.getByRole('button', { name: 'Fechar modal' }));
+
+    await waitFor(() => expect(resolved).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole('heading', { name: 'Selecionar lote' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Caixa' })).not.toBeInTheDocument();
+  });
+
+  test("código não encontrado (404) abre 'produto existe?' com o código lido", async () => {
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Resource not found' }, { status: 404 })));
+    const user = userEvent.setup();
+    renderPage();
+
+    await scanBarcode(user);
+
+    expect(await screen.findByText('Esse produto já existe no cadastro?')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Produto não encontrado' })).toBeInTheDocument();
+    expect(screen.getByText(BARCODE)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('busca de caixa envia ?search=<código> e o resultado pode ser selecionado', async () => {
+    const searches: (string | null)[] = [];
+    const found = { ...box, id: 'box-found', code: 'B000777' };
+    server.use(
+      http.get(`${API_URL}/inventory/boxes`, ({ request }) => {
+        const search = new URL(request.url).searchParams.get('search');
+        searches.push(search);
+        return HttpResponse.json({ data: search ? [found] : [box], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+
+    await user.type(screen.getByLabelText('Buscar caixa por código'), 'B000777');
+    const result = await screen.findByRole('button', { name: 'B000777' });
+    expect(searches).toContain('B000777');
+
+    await user.click(result);
+    expect(result).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Caixa selecionada:').parentElement).toHaveTextContent('B000777');
+    expect(screen.getByRole('button', { name: 'Adicionar à caixa' })).toBeEnabled();
+  });
+
+  test("'Criar nova caixa' seleciona a caixa criada", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+    expect(screen.getByRole('button', { name: 'Adicionar à caixa' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Criar nova caixa' }));
+
+    await waitFor(() => expect(screen.getByText('Caixa selecionada:').parentElement).toHaveTextContent('B000123'));
+    expect(screen.getByLabelText('Quantidade de unidades')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Adicionar à caixa' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Adicionar à caixa' }));
+    expect(await screen.findByText('1 unidade(s) colocada(s) na caixa B000123.')).toBeInTheDocument();
+    expect(addItemBodies).toEqual([{ inventoryLotId: lotWithRoom.id, quantity: 1 }]);
+  });
+
+  test('erro 400 de limite da caixa é mostrado no passo de caixa', async () => {
+    const message = 'Quantidade excede o saldo do lote disponível para caixas (18).';
+    server.use(http.post(`${API_URL}/inventory/boxes/:boxId/items`, () => HttpResponse.json({ message }, { status: 400 })));
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+
+    await addThreeUnitsToBox(user);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByRole('heading', { name: 'Caixa' })).toBeInTheDocument();
   });
 });

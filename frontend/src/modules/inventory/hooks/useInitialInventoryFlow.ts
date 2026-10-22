@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { InventoryBox, InventoryLot, ProductVariant } from '../types';
 import type { InventoryLotFormData } from '../components/InventoryLotForm';
@@ -59,6 +59,24 @@ export function useInitialInventoryFlow() {
   const [labelQuantity, setLabelQuantity] = useState('1');
   const [labelValidationError, setLabelValidationError] = useState<string | null>(null);
 
+  const [barcodeError, setBarcodeError] = useState<string | null>(null);
+
+  /**
+   * Latest-wins token for async work that moves the wizard (barcode lookup, lot creation).
+   * Navigation and every new request bump it; a result whose token is no longer current is ignored.
+   */
+  const requestToken = useRef(0);
+
+  function nextToken() {
+    requestToken.current += 1;
+
+    return requestToken.current;
+  }
+
+  function isCurrent(token: number) {
+    return token === requestToken.current;
+  }
+
   const barcodeLookup = useProductByBarcode();
   const { lots, isLoading: lotsLoading, error: lotsQueryError } = useInventoryLots(variant?.id, { limit: 100 });
   const boxMutations = useInventoryBox();
@@ -81,6 +99,8 @@ export function useInitialInventoryFlow() {
   }
 
   function resetAll() {
+    nextToken();
+    setBarcodeError(null);
     setModal(null);
     setScannerOpen(false);
     setBarcode('');
@@ -128,23 +148,30 @@ export function useInitialInventoryFlow() {
 
     if (!code) return;
 
+    const token = nextToken();
+
     setScannerOpen(false);
     setBarcode(code);
+    setBarcodeError(null);
     setVariant(null);
     resetLotAndBox();
 
     const result = await barcodeLookup.lookupBarcode(code);
+
+    // A newer scan, "Voltar" or a restart happened meanwhile: this result is stale.
+    if (!isCurrent(token)) return;
+
+    if (result.status === 'error') {
+      setBarcodeError(result.message);
+      return;
+    }
 
     if (result.status === 'found') {
       chooseVariant(result.variant);
       return;
     }
 
-    if (result.status === 'not-found') {
-      setStep('product-exists-choice');
-    }
-
-    // status 'error': stay on 'scan'; the page shows barcodeError.
+    setStep('product-exists-choice');
   }
 
   /* ---------------------------------------------------------------- produto */
@@ -175,6 +202,9 @@ export function useInitialInventoryFlow() {
 
   /** Closing a modal never leaves the wizard on an empty step. */
   function closeModal() {
+    // Cancels pending modal work (e.g. a lot being created) so its result can't move the wizard.
+    nextToken();
+
     if (modal === 'product-selection' && step === 'product-search') {
       setStep(stepBeforeSearch);
     }
@@ -225,6 +255,8 @@ export function useInitialInventoryFlow() {
   async function handleNewLotSubmit(data: InventoryLotFormData) {
     if (!variant) return;
 
+    const token = nextToken();
+
     const lot = await lotCreation.create({
       productVariantId: variant.id,
       batchNumber: data.batchNumber.trim(),
@@ -234,7 +266,7 @@ export function useInitialInventoryFlow() {
       manufacturingDate: data.manufacturingDate || undefined,
     });
 
-    if (lot) {
+    if (lot && isCurrent(token)) {
       handleNewLotSuccess(lot);
     }
   }
@@ -351,7 +383,7 @@ export function useInitialInventoryFlow() {
 
     barcode,
     barcodeLoading: barcodeLookup.loading,
-    barcodeError: barcodeLookup.error,
+    barcodeError,
     scannerOpen,
 
     product,
