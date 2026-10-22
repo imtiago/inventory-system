@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
@@ -42,5 +41,24 @@ describe("Erros HTTP de nfe-import", () => {
     const res = await app.inject({ method: "POST", url: "/nfe-import", ...body });
     assert.equal(res.statusCode, 422, res.body);
     assert.equal(res.json().code, "UNSUPPORTED_FILE_FORMAT");
+  });
+
+  test("nfe-import .xml malformado → 422 INVALID_FILE_CONTENT", async () => {
+    const body = multipart(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="nota.xml"\r\nContent-Type: text/xml\r\n\r\n<nfe><broken\r\n`,
+    );
+    const res = await app.inject({ method: "POST", url: "/nfe-import", ...body });
+    assert.equal(res.statusCode, 422, res.body);
+    assert.equal(res.json().code, "INVALID_FILE_CONTENT");
+  });
+
+  test("nfe-import ?mode=FOO → 400 VALIDATION_ERROR no campo mode", async () => {
+    const body = multipart(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="nota.xml"\r\nContent-Type: text/xml\r\n\r\n<nfe/>\r\n`,
+    );
+    const res = await app.inject({ method: "POST", url: "/nfe-import?mode=FOO", ...body });
+    assert.equal(res.statusCode, 400, res.body);
+    assert.equal(res.json().code, "VALIDATION_ERROR");
+    assert.equal(res.json().errors[0].field, "mode");
   });
 });

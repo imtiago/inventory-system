@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { parseInput } from "@shared/http/parseInput";
 import { ErrorCodes, ValidationError } from "@shared/domain/errors";
 import { FastifyRequest, FastifyReply } from "fastify";
 import {
@@ -16,6 +18,12 @@ interface File {
   filepath: string;
   file: any;
 }
+
+const querySchema = z.object({
+  mode: z
+    .nativeEnum(ImportMode, { message: "Modo de importação inválido." })
+    .optional(),
+});
 
 export function makeImportNfeController(
   // productRepository: ProductRepository,
@@ -42,7 +50,8 @@ export function makeImportNfeController(
       productRepository,
       nfeImportRepository,
     );
-    const mode = ((req.query as any).mode as ImportMode) || ImportMode.UPSERT;
+    const query = parseInput(querySchema, req.query);
+    const mode = query.mode ?? ImportMode.UPSERT;
 
     const items = await useCase.executeBuffer(buffer, fileName, mode);
 

@@ -1,4 +1,4 @@
-import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { BusinessRuleError, ErrorCodes, InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 // src/modules/nfe-import/application/services/ParseXmlService.ts
 import { NfeItem } from "../../domain/entities/NfeItem";
 import * as xml2js from "xml2js";
@@ -13,8 +13,14 @@ export class ParseXmlService {
   parseBuffer(buffer: Buffer): NfeItem[] {
     const xml = buffer.toString("utf-8");
     const items: NfeItem[] = [];
+    let parseError: unknown = null;
+    let parsed = false;
     xml2js.parseString(xml, { explicitArray: false }, (err, result) => {
-      if (err) throw err;
+      if (err) {
+        parseError = err;
+        return;
+      }
+      parsed = true;
 
       // Exemplo de mapeamento, ajuste conforme seu XML
       const products = result.nfe?.products?.product || [];
@@ -30,6 +36,10 @@ export class ParseXmlService {
         );
       }
     });
+
+    if (parseError || !parsed) {
+      throw new BusinessRuleError("Arquivo XML inválido.", ErrorCodes.INVALID_FILE_CONTENT);
+    }
 
     return items;
   }
