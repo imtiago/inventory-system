@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { HttpResponse } from "@shared/http/response";
 import { getInventoryByProductVariantBarcodeSchema } from "@inventory/interfaces/http/schemas/getInventoryByProductVariantBarcodeSchema";
 import { makeGetInventoryByProductVariantBarcode } from "../factories/GetInventoryByProductVariantBarcodeFactory";
@@ -21,8 +22,8 @@ export function makeGetInventoryByProductVariantBarcodeController() {
       }
 
       return reply.send(HttpResponse.ok(data));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

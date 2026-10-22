@@ -1,37 +1,30 @@
-import {
-  InventoryLotDTO,
-  InventoryLotWithExtendsDTO,
-} from "../dto/InventoryLotDTO";
+import { InventoryLotDTO } from "../dto/InventoryLotDTO";
 
 export class InventoryLotReadMapper {
+  /**
+   * `data.boxStocks` (quantidades das caixas do lote) deve vir carregado para
+   * calcular `allocatedQuantity`.
+   */
   static toDTO(data: any): InventoryLotDTO {
+    if (!Array.isArray(data.boxStocks)) {
+      throw new Error("InventoryLotReadMapper: boxStocks not loaded.");
+    }
     return {
       id: data.id,
+      inventoryId: data.inventoryId,
       productVariantId: data.productVariantId,
-      quantity: data.quantity,
-      reservedQuantity: data.reservedQuantity,
-      availableQuantity: data.availableQuantity,
-      minimumStock: data.minimumStock,
-      batchNumber: data.batchNumber,
+      batchNumber: data.batchNumber ?? null,
+      initialQuantity: data.initialQuantity,
+      remainingQuantity: data.remainingQuantity,
+      allocatedQuantity: data.boxStocks.reduce(
+        (sum: number, stock: { quantity: number }) => sum + stock.quantity,
+        0,
+      ),
+      unitCost: Number(data.unitCost),
+      sourceType: data.sourceType,
+      manufacturingDate: data.manufacturingDate ?? null,
+      expirationDate: data.expirationDate ?? null,
       createdAt: data.createdAt,
-      expirationDate: data.expirationDate,
-    };
-  }
-  static toDTOWithExtends(data: any): InventoryLotWithExtendsDTO {
-    const inventoryLot = this.toDTO(data);
-
-    const productVariant = {
-      id: data.productVariant.id,
-      name: data.productVariant.name,
-      code: data.productVariant.code,
-      barcode: data.productVariant.barcode,
-      createdAt: data.productVariant.createdAt,
-      productId: data.productVariant.productId,
-    };
-
-    return {
-      ...inventoryLot,
-      productVariant,
     };
   }
 }

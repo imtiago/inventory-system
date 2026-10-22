@@ -1,4 +1,3 @@
-// backend/src/modules/inventory/interfaces/http/schemas/removeInventorySchema.ts
 import { z } from "zod";
 
 export const dispatchInventorySchema = z.object({
@@ -17,8 +16,6 @@ export const dispatchInventorySchema = z.object({
     .string()
     .max(500, "As observações devem ter no máximo 500 caracteres")
     .optional(),
-
-  userId: z.string().uuid("ID do usuário inválido"),
 });
 
 export type DispatchInventorySchema = z.infer<typeof dispatchInventorySchema>;

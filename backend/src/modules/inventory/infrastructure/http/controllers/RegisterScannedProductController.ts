@@ -1,7 +1,9 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeRegisterScannedProductFactory } from "../factories/RegisterScannedProductFactory";
 import { registerScannedProductSchema } from "@inventory/interfaces/http/schemas/registerScannedProductSchema";
+
 export function makeRegisterScannedProductController() {
   const useCase = makeRegisterScannedProductFactory();
 
@@ -14,16 +16,16 @@ export function makeRegisterScannedProductController() {
       const result = await useCase.execute({
         barcode: data.barcode,
         boxCode: data.boxCode,
-        batchNumber: data.batchNumber,
-        expirationDate: data.expirationDate
-          ? new Date(data.expirationDate)
-          : undefined,
         quantity: data.quantity,
+        batchNumber: data.batchNumber,
+        expirationDate: data.expirationDate,
+        unitCost: data.unitCost,
+        userId: request.user?.sub,
       });
 
       return reply.send(HttpResponse.created(result));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

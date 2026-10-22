@@ -1,12 +1,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { HttpResponse } from "@shared/http/response";
-import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeReserveInventory } from "../factories/ReserveInventoryFactory";
 import { reserveInventorySchema } from "@inventory/interfaces/http/schemas/reserveInventorySchema";
+import { StockMovementOutputMapper } from "@inventory/application/mappers/StockMovementOutputMapper";
+
 export function makeReserveInventoryController() {
   const useCase = makeReserveInventory();
-  const getInventoryByVariantId = makeGetInventoryByVariantId();
 
   return async function ReserveInventoryController(
     request: FastifyRequest,
@@ -14,20 +14,19 @@ export function makeReserveInventoryController() {
   ) {
     try {
       const data = reserveInventorySchema.parse(request.body);
-      const moviment = await useCase.execute({
-        originId: data.originId,
+      const movement = await useCase.execute({
         productVariantId: data.productVariantId,
         quantity: data.quantity,
+        originId: data.originId,
         notes: data.notes,
-        userId: data.userId,
+        userId: request.user?.sub,
       });
-      const movimentRead = await getInventoryByVariantId.execute(
-        moviment.productVariantId,
-      );
 
-      return reply.send(HttpResponse.created(movimentRead));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+      return reply.send(
+        HttpResponse.created(StockMovementOutputMapper.toDTO(movement)),
+      );
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

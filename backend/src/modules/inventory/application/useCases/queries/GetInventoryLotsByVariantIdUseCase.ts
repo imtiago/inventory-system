@@ -20,7 +20,7 @@ export class GetInventoryLotsByVariantIdUseCase {
         page: request.page,
         limit: request.limit,
       },
-      { producVariantId: request.productVariantId },
+      { productVariantId: request.productVariantId },
     );
   }
 }

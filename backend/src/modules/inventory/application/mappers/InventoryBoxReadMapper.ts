@@ -3,6 +3,7 @@ import {
   InventoryBoxWithExtendsDTO,
 } from "../dto/InventoryBoxDTO";
 import { InventoryBoxStockReadMapper } from "./InventoryBoxStockReadMapper";
+import { InventoryReadMapper } from "./InventoryReadMapper";
 
 export class InventoryBoxReadMapper {
   static toDTO(data: any): InventoryBoxDTO {
@@ -13,21 +14,22 @@ export class InventoryBoxReadMapper {
       updatedAt: data.updatedAt,
     };
   }
+
+  /** `stocks[].inventoryLot` deve vir com `productVariant` e `boxStocks`. */
   static toDTOWithExtends(data: any): InventoryBoxWithExtendsDTO {
-    const inventoryBox = this.toDTO(data);
-    const stocks = data.stocks.map((stock) => {
-      const {
-        inventoryLot: { productVariant, ...restLot },
-        boxId,
-      } = InventoryBoxStockReadMapper.toDTOWithExtends(stock);
+    const stocks = data.stocks.map((stock: any) => {
+      const { boxId, inventoryLot } =
+        InventoryBoxStockReadMapper.toDTOWithExtends(stock);
       return {
         boxId,
-        inventoryLot: restLot,
-        productVariant,
+        inventoryLot,
+        productVariant: InventoryReadMapper.toProductVariantSummary(
+          stock.inventoryLot.productVariant,
+        ),
       };
     });
     return {
-      ...inventoryBox,
+      ...this.toDTO(data),
       stocks,
     };
   }

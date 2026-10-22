@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { HttpResponse } from "@shared/http/response";
 import { makeListStockMovementsUseCase } from "../factories/ListStockMovementsFactory";
 import { listStockMovementsSchema } from "@inventory/interfaces/http/schemas/listStockMovementsSchema";
@@ -15,8 +16,8 @@ export function makeListStockMovementsController() {
       const data = await useCase.execute(query);
 
       return reply.send(HttpResponse.paginated(data));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

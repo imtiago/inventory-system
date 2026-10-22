@@ -1,12 +1,14 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { HttpResponse } from "@shared/http/response";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeReceiveInventory } from "../factories/ReceiveInventoryFactory";
 import { receiveInventorySchema } from "@inventory/interfaces/http/schemas/receiveInventorySchema";
-import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
-import { HttpResponse } from "@shared/http/response";
+import { makeGetInventoryByIdUseCase } from "../factories/GetInventoryByIdFactory";
 
 export function makeReceiveInventoryController() {
   const useCase = makeReceiveInventory();
-  const getInventoryByVariantId = makeGetInventoryByVariantId();
+  const getInventoryById = makeGetInventoryByIdUseCase();
+
   return async function ReceiveInventoryController(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -14,14 +16,15 @@ export function makeReceiveInventoryController() {
     try {
       const data = receiveInventorySchema.parse(request.body);
 
-      const inventory = await useCase.execute(data);
-      const inventoryRead = await getInventoryByVariantId.execute(
-        inventory.productVariantId,
-      );
+      const { inventory } = await useCase.execute({
+        ...data,
+        userId: request.user?.sub,
+      });
+      const inventoryRead = await getInventoryById.execute(inventory.id);
 
       return reply.send(HttpResponse.created(inventoryRead));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

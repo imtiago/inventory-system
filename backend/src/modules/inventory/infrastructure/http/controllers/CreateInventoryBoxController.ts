@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeCreateInventoryBoxUseCase } from "../factories/CreateInventoryBoxFactory";
 import { makeGetInventoryBoxByIdUseCase } from "../factories/GetInventoryBoxByIdFactory";
 
@@ -16,8 +17,8 @@ export function makeCreateInventoryBoxController() {
       const boxRead = await getInventoryBoxByIdUseCase.execute(box.id);
 
       return reply.send(HttpResponse.created(boxRead));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

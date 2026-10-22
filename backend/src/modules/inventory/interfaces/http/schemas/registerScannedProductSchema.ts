@@ -7,7 +7,9 @@ export const registerScannedProductSchema = z.object({
 
   batchNumber: z.string().optional(),
 
-  expirationDate: z.string().datetime().optional(),
+  expirationDate: z.coerce.date().optional(),
 
-  quantity: z.number().int().min(1).optional(),
+  quantity: z.number().int().min(1).default(1),
+
+  unitCost: z.number().nonnegative().optional(),
 });

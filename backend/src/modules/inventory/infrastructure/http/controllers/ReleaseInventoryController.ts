@@ -1,11 +1,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
-import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeReleaseInventoryFactory } from "../factories/ReleaseInventoryFactory";
 import { releaseInventorySchema } from "@inventory/interfaces/http/schemas/releaseInventorySchema";
+import { StockMovementOutputMapper } from "@inventory/application/mappers/StockMovementOutputMapper";
+
 export function makeReleaseInventoryController() {
   const useCase = makeReleaseInventoryFactory();
-  const getInventoryByVariantId = makeGetInventoryByVariantId();
 
   return async function ReleaseInventoryController(
     request: FastifyRequest,
@@ -13,23 +14,18 @@ export function makeReleaseInventoryController() {
   ) {
     try {
       const data = releaseInventorySchema.parse(request.body);
-      const moviment = await useCase.execute({
+      const movement = await useCase.execute({
         inventoryId: data.inventoryId,
-
         quantity: data.quantity,
-
-        userId: data.userId,
-
         notes: data.notes,
+        userId: request.user?.sub,
       });
 
-      const movimentRead = await getInventoryByVariantId.execute(
-        moviment.productVariantId,
+      return reply.send(
+        HttpResponse.created(StockMovementOutputMapper.toDTO(movement)),
       );
-
-      return reply.send(HttpResponse.created(movimentRead));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

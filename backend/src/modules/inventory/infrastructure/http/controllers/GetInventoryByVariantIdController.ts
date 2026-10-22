@@ -1,5 +1,6 @@
 import { getInventorySchema } from "@inventory/interfaces/http/schemas/getInventorySchema";
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
 import { HttpResponse } from "@shared/http/response";
 
@@ -19,8 +20,8 @@ export function makeGetInventoryByVariantIdController() {
       }
 
       return reply.send(HttpResponse.ok(inventory));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

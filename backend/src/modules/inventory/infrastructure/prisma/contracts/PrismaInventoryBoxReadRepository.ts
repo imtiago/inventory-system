@@ -1,179 +1,91 @@
-import { InventoryBoxReadRepository } from "@inventory/application/contracts/InventoryBoxReadRepository";
+import {
+  InventoryBoxByLotParams,
+  InventoryBoxListFilters,
+  InventoryBoxReadRepository,
+} from "@inventory/application/contracts/InventoryBoxReadRepository";
+import {
+  InventoryBoxDTO,
+  InventoryBoxWithExtendsDTO,
+} from "@inventory/application/dto/InventoryBoxDTO";
 import { InventoryBoxReadMapper } from "@inventory/application/mappers/InventoryBoxReadMapper";
-import { InventoryReadMapper } from "@inventory/application/mappers/InventoryReadMapper";
+import { Prisma } from "@prisma/client";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
-interface InventoryBoxParams {
-  batchNumber: string;
-  productVariantId: string;
-}
+import { lotBoxStocksInclude } from "./PrismaInventoryLotReadRepository";
+
+const stockLotInclude = {
+  inventoryLot: {
+    include: { productVariant: true, ...lotBoxStocksInclude },
+  },
+} as const;
+
 export class PrismaInventoryBoxReadRepository implements InventoryBoxReadRepository {
-  async getById(id: string) {
-    const data = await getDb().inventoryBox.findUnique({
-      where: { id },
-      include: {
-        stocks: true,
-      },
-    });
+  async getById(id: string): Promise<InventoryBoxDTO | null> {
+    const data = await getDb().inventoryBox.findUnique({ where: { id } });
 
     if (!data) return null;
 
     return InventoryBoxReadMapper.toDTO(data);
   }
-  async getByCode(code: string) {
+
+  async getByCode(code: string): Promise<InventoryBoxWithExtendsDTO | null> {
     const data = await getDb().inventoryBox.findUnique({
       where: { code },
-      include: {
-        stocks: {
-          include: {
-            inventoryLot: true,
-          },
-        },
-      },
+      include: { stocks: { include: stockLotInclude } },
     });
     if (!data) return null;
 
     return InventoryBoxReadMapper.toDTOWithExtends(data);
   }
+
   async getByLotAndProductVariantId(
     pagination: PaginationRequest,
-    params: InventoryBoxParams,
-  ) {
+    params: InventoryBoxByLotParams,
+  ): Promise<PaginatedResult<InventoryBoxWithExtendsDTO>> {
     const paginationOptions = buildPagination(pagination);
     const { batchNumber, productVariantId } = params;
-
-    const where = {
-      stocks: {
-        some: {
-          inventoryLot: {
-            batchNumber,
-            productVariantId,
-          },
-        },
-      },
-    };
+    const lotWhere = { inventoryLot: { batchNumber, productVariantId } };
+    const where = { stocks: { some: lotWhere } };
 
     const [data, total] = await Promise.all([
       getDb().inventoryBox.findMany({
         ...paginationOptions,
-        orderBy: {
-          createdAt: "asc",
-        },
+        orderBy: { createdAt: "asc" },
         where,
         include: {
-          stocks: {
-            where: {
-              inventoryLot: {
-                batchNumber,
-                productVariantId,
-              },
-            },
-            include: {
-              inventoryLot: {
-                include: {
-                  productVariant: true,
-                },
-              },
-            },
-          },
+          stocks: { where: lotWhere, include: stockLotInclude },
         },
       }),
 
-      getDb().inventoryBox.count({
-        where,
-      }),
+      getDb().inventoryBox.count({ where }),
     ]);
 
     const dt = data.map((d) => InventoryBoxReadMapper.toDTOWithExtends(d));
     return buildPaginatedResult(dt, total, pagination);
   }
-  // async list(
-  //   pagination: PaginationRequest,
-  // ): Promise<PaginatedResult<InventoryDTO>> {
-  //   const paginationOptions = buildPagination(pagination);
 
-  //   const [data, total] = await Promise.all([
-  //     getDb().inventory.findMany({
-  //       ...paginationOptions,
-  //       orderBy: {
-  //         createdAt: "asc",
-  //       },
-  //       include: {
-  //         productVariant: true,
-  //       },
-  //     }),
+  async list(
+    pagination: PaginationRequest,
+    filters: InventoryBoxListFilters = {},
+  ): Promise<PaginatedResult<InventoryBoxDTO>> {
+    const paginationOptions = buildPagination(pagination);
+    const where: Prisma.InventoryBoxWhereInput = filters.search
+      ? { code: { contains: filters.search, mode: "insensitive" } }
+      : {};
 
-  //     getDb().inventory.count(),
-  //   ]);
+    const [data, total] = await Promise.all([
+      getDb().inventoryBox.findMany({
+        ...paginationOptions,
+        where,
+        orderBy: [{ createdAt: "desc" }, { code: "asc" }],
+      }),
+      getDb().inventoryBox.count({ where }),
+    ]);
 
-  //   const dt = data.map((d) => InventoryReadMapper.toDTO(d));
-  //   return buildPaginatedResult(dt, total, pagination);
-  // }
-
-  // async getByVariantId(id: string): Promise<InventoryDTO | null> {
-  //   const data = await getDb().inventory.findUnique({
-  //     where: {
-  //       productVariantId: id,
-  //     },
-  //     include: {
-  //       productVariant: true,
-  //     },
-  //   });
-
-  //   if (!data) return null;
-
-  //   return InventoryReadMapper.toDTO(data);
-  // }
-
-  // async getDashboard() {
-  //   const inventories = await getDb().inventory.findMany({
-  //     select: {
-  //       quantity: true,
-  //       reservedQuantity: true,
-  //       minimumStock: true,
-  //       averageCost: true,
-  //     },
-  //   });
-
-  //   let totalQuantity = 0;
-  //   let totalReserved = 0;
-  //   let lowStock = 0;
-  //   let outOfStock = 0;
-  //   let totalStockValue = 0;
-
-  //   for (const inventory of inventories) {
-  //     totalQuantity += inventory.quantity;
-
-  //     totalReserved += inventory.reservedQuantity;
-
-  //     const available = inventory.quantity - inventory.reservedQuantity;
-
-  //     if (available <= 0) {
-  //       outOfStock++;
-  //     } else if (available <= inventory.minimumStock) {
-  //       lowStock++;
-  //     }
-
-  //     totalStockValue += inventory.quantity * Number(inventory.averageCost);
-  //   }
-
-  //   return {
-  //     totalProducts: inventories.length,
-
-  //     totalQuantity,
-
-  //     totalReserved,
-
-  //     totalAvailable: totalQuantity - totalReserved,
-
-  //     lowStock,
-
-  //     outOfStock,
-
-  //     totalStockValue,
-  //   };
-  // }
+    const dt = data.map((d) => InventoryBoxReadMapper.toDTO(d));
+    return buildPaginatedResult(dt, total, pagination);
+  }
 }

@@ -2,7 +2,7 @@ import { Inventory } from "@inventory/domain/entities/Inventory";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
-import { ProductVariantDTO } from "./CommonDTO";
+import { ProductVariantSummaryDTO } from "./CommonDTO";
 
 export interface InventoryDTO {
   id: string;
@@ -11,10 +11,11 @@ export interface InventoryDTO {
   reservedQuantity: number;
   availableQuantity: number;
   minimumStock: number;
+  averageCost: number;
   createdAt: Date;
 }
 export interface InventoryWithExtendsDTO extends InventoryDTO {
-  productVariant: ProductVariantDTO;
+  productVariant: ProductVariantSummaryDTO;
 }
 
 export interface IAdjustInventoryInput {

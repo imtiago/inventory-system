@@ -8,8 +8,6 @@ export const reserveInventorySchema = z.object({
   originId: z.string().uuid(),
 
   notes: z.string().max(500).optional(),
-
-  userId: z.string().uuid(),
 });
 
 export type ReserveInventorySchema = z.infer<typeof reserveInventorySchema>;

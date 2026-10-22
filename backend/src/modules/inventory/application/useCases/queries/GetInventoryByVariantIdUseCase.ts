@@ -1,21 +1,12 @@
-import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
-import { IInventoryOutput } from "@inventory/application/dto/InventoryDTO";
+import { InventoryReadRepository } from "../../contracts/InventoryReadRepository";
+import { InventoryWithExtendsDTO } from "../../dto/InventoryDTO";
 
 export class GetInventoryByVariantIdUseCase {
-  constructor(private repository: IInventoryRepository) {}
+  constructor(private readonly repository: InventoryReadRepository) {}
 
-  async execute(productVariantId: string): Promise<IInventoryOutput | null> {
-    const data = await this.repository.findByProductVariantId(productVariantId);
-    if (!data) return null;
-
-    return {
-      id: data.id,
-      code: data.code,
-      availableQuantity: data.availableQuantity,
-      minimumStock: data.minimumStock,
-      productVariantId: data.productVariantId,
-      quantity: data.quantity,
-      reservedQuantity: data.reservedQuantity,
-    };
+  async execute(
+    productVariantId: string,
+  ): Promise<InventoryWithExtendsDTO | null> {
+    return this.repository.getByVariantId(productVariantId);
   }
 }

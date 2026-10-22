@@ -20,7 +20,7 @@ export interface StockMovementDTO {
 
   originId?: string | null;
 
-  userId: string;
+  userId: string | null;
 
   notes?: string | null;
 
@@ -29,7 +29,7 @@ export interface StockMovementDTO {
 
 export interface StockMovementWithExtendsDTO extends StockMovementDTO {
   productVariant: ProductVariantDTO;
-  user: UserDTO;
+  user: UserDTO | null;
   inventory: InventoryDTO;
 }
 

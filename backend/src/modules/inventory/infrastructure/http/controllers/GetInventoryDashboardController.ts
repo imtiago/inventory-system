@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { HttpResponse } from "@shared/http/response";
 import { makeGetInventoryDashboardUseCase } from "../factories/GetInventoryDashboardFactory";
 
@@ -12,8 +13,8 @@ export function makeGetInventoryDashboardController() {
       const data = await useCase.execute();
 
       return reply.send(HttpResponse.ok(data));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

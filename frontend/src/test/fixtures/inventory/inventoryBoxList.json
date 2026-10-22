@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c41",
+      "code": "B000123",
+      "createdAt": "2026-10-20T14:35:00.000Z",
+      "updatedAt": "2026-10-20T14:35:00.000Z"
+    },
+    {
+      "id": "1b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d52",
+      "code": "B000122",
+      "createdAt": "2026-10-19T16:05:00.000Z",
+      "updatedAt": "2026-10-20T08:12:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
+}

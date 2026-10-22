@@ -1,0 +1,44 @@
+{
+  "data": [
+    {
+      "id": "5f1c2a9e-3b7d-4c1e-9a2f-6d8e0b4c7a11",
+      "productVariantId": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+      "quantity": 42,
+      "reservedQuantity": 2,
+      "availableQuantity": 40,
+      "minimumStock": 5,
+      "averageCost": 18.75,
+      "createdAt": "2026-10-01T13:45:00.000Z",
+      "productVariant": {
+        "id": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+        "code": "CAM-BAS-AZ-M",
+        "name": "Camiseta Básica Azul M",
+        "barcode": "7891234567895",
+        "productId": "c7e8f9a0-1b2c-4d3e-8f4a-5b6c7d8e9f01"
+      }
+    },
+    {
+      "id": "8b2d4f6a-9c1e-4a3b-8d5f-7e9a1c3b5d02",
+      "productVariantId": "d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f72",
+      "quantity": 0,
+      "reservedQuantity": 0,
+      "availableQuantity": 0,
+      "minimumStock": 0,
+      "averageCost": 0,
+      "createdAt": "2026-10-03T09:10:00.000Z",
+      "productVariant": {
+        "id": "d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f72",
+        "code": "CAM-BAS-PR-G",
+        "name": "Camiseta Básica Preta G",
+        "barcode": null,
+        "productId": "c7e8f9a0-1b2c-4d3e-8f4a-5b6c7d8e9f01"
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
+}

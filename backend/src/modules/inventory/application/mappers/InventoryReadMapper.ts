@@ -1,24 +1,34 @@
-import { InventoryWithExtendsDTO } from "../dto/InventoryDTO";
+import { ProductVariantSummaryDTO } from "../dto/CommonDTO";
+import { InventoryDTO, InventoryWithExtendsDTO } from "../dto/InventoryDTO";
 
 export class InventoryReadMapper {
-  static toDTO(data: any): InventoryWithExtendsDTO {
+  static toBaseDTO(data: any): InventoryDTO {
     return {
       id: data.id,
-      availableQuantity: data.quantity - data.reservedQuantity,
-      createdAt: data.createdAt,
-      minimumStock: data.minimumStock,
       productVariantId: data.productVariantId,
-      productVariant: {
-        id: data.productVariant.id,
-        name: data.productVariant.name,
-        barcode: data.productVariant.barcode,
-        code: data.productVariant.code,
-        productId: data.productVariant.productId,
-        salePrice: data.productVariant.salePrice,
-        createdAt: data.productVariant.createdAt,
-      },
       quantity: data.quantity,
       reservedQuantity: data.reservedQuantity,
+      availableQuantity: data.quantity - data.reservedQuantity,
+      minimumStock: data.minimumStock,
+      averageCost: Number(data.averageCost),
+      createdAt: data.createdAt,
+    };
+  }
+
+  static toProductVariantSummary(data: any): ProductVariantSummaryDTO {
+    return {
+      id: data.id,
+      code: data.code,
+      name: data.name,
+      barcode: data.barcode ?? null,
+      productId: data.productId,
+    };
+  }
+
+  static toDTO(data: any): InventoryWithExtendsDTO {
+    return {
+      ...this.toBaseDTO(data),
+      productVariant: this.toProductVariantSummary(data.productVariant),
     };
   }
 }

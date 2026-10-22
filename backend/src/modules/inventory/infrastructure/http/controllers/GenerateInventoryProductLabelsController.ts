@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import {
   generateInventoryBoxLabelParamsSchema,
   generateInventoryProductLabelsBodySchema,
@@ -29,8 +30,8 @@ export function makeGenerateInventoryProductLabelsController() {
           `inline; filename="${code}-${productCode}.pdf"`,
         )
         .send(pdf);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }
