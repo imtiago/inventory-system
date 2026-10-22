@@ -1,25 +1,16 @@
 import { useState } from 'react';
 
 import { api } from '@/shared/services/api';
-import { apiErrorMessage, type MutationResult } from '../utils/apiErrorMessage';
+import { parseApiError } from '@/shared/services/parseApiError';
+import type { MutationResult } from '../utils/apiErrorMessage';
 
 const FALLBACK = 'Não foi possível gerar as etiquetas.';
 
-/** With responseType "blob" the error body arrives as a Blob; read its JSON `{ message }`. */
+/** With responseType "blob" the error body arrives as a Blob; parseApiError reads it. */
 async function labelErrorMessage(error: unknown): Promise<string> {
-  const data = (error as { response?: { data?: unknown } } | null)?.response?.data;
+  const parsed = await parseApiError(error);
 
-  if (data instanceof Blob) {
-    try {
-      const parsed = JSON.parse(await data.text()) as { message?: unknown };
-
-      return typeof parsed.message === 'string' && parsed.message ? parsed.message : FALLBACK;
-    } catch {
-      return FALLBACK;
-    }
-  }
-
-  return apiErrorMessage(error, FALLBACK);
+  return parsed.code === 'UNKNOWN_ERROR' ? FALLBACK : parsed.message;
 }
 
 export function useGenerateInventoryProductLabels() {

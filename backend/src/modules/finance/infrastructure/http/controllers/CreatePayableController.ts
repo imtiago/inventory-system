@@ -1,3 +1,4 @@
+import { parseInput } from "@shared/http/parseInput";
 // src/modules/payables/infrastructure/http/controllers/CreatePayableController.ts
 import { CreatePayable } from "@finance/application/useCases/commands/CreatePayableUseCase";
 import { PayableRepository } from "modules/finance/domain/repositories/PayableRepository";
@@ -10,19 +11,15 @@ export function makeCreatePayableController(repo: PayableRepository) {
     req: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createPayableSchema.parse(req.body);
-      const payable = await useCase.execute(
-        data.purchaseId,
-        data.totalAmount,
-        data.parcels.map((p) => ({
-          amount: p.amount,
-          dueDate: new Date(p.dueDate),
-        })),
-      );
-      return reply.status(201).send(payable);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    const data = parseInput(createPayableSchema, req.body);
+    const payable = await useCase.execute(
+      data.purchaseId,
+      data.totalAmount,
+      data.parcels.map((p) => ({
+        amount: p.amount,
+        dueDate: new Date(p.dueDate),
+      })),
+    );
+    return reply.status(201).send(payable);
   };
 }

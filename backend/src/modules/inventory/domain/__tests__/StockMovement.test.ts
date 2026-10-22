@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
+import { InternalInvariantError } from "@shared/domain/errors";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 
 const make = (
@@ -74,4 +75,9 @@ test("movimentação legada sem saldos é reconstituída", () => {
         quantity: 0,
       }),
   );
+});
+
+test("incoerência de saldo lança InternalInvariantError", () => {
+  assert.throws(() => make(StockMovementType.IN, 5, 10, 14), InternalInvariantError);
+  assert.throws(() => make(StockMovementType.ADJUSTMENT, 2, 10, 7), InternalInvariantError);
 });

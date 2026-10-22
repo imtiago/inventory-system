@@ -1,6 +1,7 @@
 import { InventoryLabelPdfService } from "@inventory/infrastructure/pdf/InventoryLabelPdfService";
 import { InventoryBoxReadRepository } from "../../contracts/InventoryBoxReadRepository";
 import { IGenerateInventoryBoxLabelInput } from "@inventory/application/dto/InventoryBoxDTO";
+import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class GenerateInventoryBoxLabelUseCase {
   constructor(
@@ -12,7 +13,7 @@ export class GenerateInventoryBoxLabelUseCase {
     const box = await this.repository.getByCode(code);
 
     if (!box) {
-      throw new Error(`Inventory box "${code}" not found.`);
+      throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
     return this.pdfService.generateBoxLabel(box.code);

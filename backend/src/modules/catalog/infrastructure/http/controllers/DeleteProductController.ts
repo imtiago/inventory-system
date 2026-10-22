@@ -1,5 +1,9 @@
+import { parseInput } from "@shared/http/parseInput";
+import { z } from "zod";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeDeleteProductUseCase } from "../factories/DeleteProductFactory";
+
+const idParamsSchema = z.object({ id: z.string().uuid("Identificador inválido.") });
 
 export function makeDeleteProductController() {
   const useCase = makeDeleteProductUseCase();
@@ -7,14 +11,10 @@ export function makeDeleteProductController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { id } = request.params as { id: string };
+    const { id } = parseInput(idParamsSchema, request.params);
 
-      await useCase.execute(id);
+    await useCase.execute({ id });
 
-      return reply.status(204).send(); // 204 No Content
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.status(204).send(); // 204 No Content
   };
 }

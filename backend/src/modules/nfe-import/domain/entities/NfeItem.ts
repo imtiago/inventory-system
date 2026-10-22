@@ -1,3 +1,4 @@
+import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 // src/modules/nfe-import/domain/entities/NfeItem.ts
 
 export class NfeItem {
@@ -15,11 +16,11 @@ export class NfeItem {
     price?: number;
   }) {
     if (props.quantity !== undefined && props.quantity < 0) {
-      throw new Error("Quantity cannot be negative.");
+      throw new BusinessRuleError("A quantidade não pode ser negativa.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (props.price !== undefined && props.price < 0) {
-      throw new Error("Price cannot be negative.");
+      throw new BusinessRuleError("O preço não pode ser negativo.", ErrorCodes.INVALID_PRICE);
     }
 
     this._code = props.code;
@@ -51,7 +52,7 @@ export class NfeItem {
 
   updateQuantity(quantity: number): void {
     if (quantity < 0) {
-      throw new Error("Quantity cannot be negative.");
+      throw new BusinessRuleError("A quantidade não pode ser negativa.", ErrorCodes.INVALID_QUANTITY);
     }
 
     this._quantity = quantity;
@@ -59,7 +60,7 @@ export class NfeItem {
 
   updatePrice(price: number): void {
     if (price < 0) {
-      throw new Error("Price cannot be negative.");
+      throw new BusinessRuleError("O preço não pode ser negativo.", ErrorCodes.INVALID_PRICE);
     }
 
     this._price = price;

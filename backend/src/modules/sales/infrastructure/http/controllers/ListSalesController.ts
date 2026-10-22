@@ -3,6 +3,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeListSaleUseCase } from "../factories/ListSaleFactory";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
+import { parseInput } from "@shared/http/parseInput";
 
 export function makeListSalesController() {
   const useCase = makeListSaleUseCase();
@@ -10,15 +11,10 @@ export function makeListSalesController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { page, limit } = paginationSchema.parse(request.query);
+    const { page, limit } = parseInput(paginationSchema, request.query);
 
-      // const sales = await useCase.execute(page, limit);
-      const sales = await useCase.execute({ page, limit });
+    const sales = await useCase.execute({ page, limit });
 
-      return reply.send(sales);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.send(sales);
   };
 }

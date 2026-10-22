@@ -44,8 +44,8 @@ test("add não altera saldo do inventário nem do lote", async () => {
 test("add falha com caixa ou lote inexistente", async () => {
   const s = await build();
   const { lot } = await s.addLot(10);
-  await assert.rejects(s.add.execute({ inventoryLotId: lot.id, boxId: "x", quantity: 1 }), { message: "Inventory box not found." });
-  await assert.rejects(s.add.execute({ inventoryLotId: "x", boxId: s.boxA.id, quantity: 1 }), { message: "Inventory lot not found." });
+  await assert.rejects(s.add.execute({ inventoryLotId: lot.id, boxId: "x", quantity: 1 }), { name: "NotFoundError", code: "BOX_NOT_FOUND" });
+  await assert.rejects(s.add.execute({ inventoryLotId: "x", boxId: s.boxA.id, quantity: 1 }), { name: "NotFoundError", code: "LOT_NOT_FOUND" });
 });
 
 test("remove subtrai", async () => {

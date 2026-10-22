@@ -6,6 +6,7 @@ import {
   IInventoryBoxStockOutput,
   IRemoveProductFromBoxInput,
 } from "@inventory/application/dto/InventoryBoxStockDTO";
+import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
   IRemoveProductFromBoxInput,
@@ -22,7 +23,7 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
     request: IRemoveProductFromBoxInput,
   ): Promise<IInventoryBoxStockOutput> {
     if (request.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     const stock = await this.inventoryBoxStockRepository.findStock(
@@ -31,11 +32,11 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
     );
 
     if (!stock) {
-      throw new Error("Product is not stored in this box.");
+      throw new NotFoundError("Produto não encontrado nesta caixa.", ErrorCodes.PRODUCT_NOT_IN_BOX);
     }
 
     if (stock.quantity < request.quantity) {
-      throw new Error("Insufficient quantity in the box.");
+      throw new BusinessRuleError("Quantidade insuficiente na caixa.", ErrorCodes.INSUFFICIENT_BOX_STOCK);
     }
 
     stock.removeQuantity(request.quantity);

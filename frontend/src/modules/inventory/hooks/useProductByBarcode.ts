@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { api } from '@/shared/services/api';
+import { parseApiErrorSync } from '@/shared/services/parseApiError';
 
 import type { ProductVariant } from '../types/InitialInventoryTypes';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
@@ -29,7 +30,9 @@ export function useProductByBarcode() {
 
       return variant ? { status: 'found', variant } : { status: 'not-found' };
     } catch (err: unknown) {
-      if ((err as { response?: { status?: number } })?.response?.status === 404) {
+      const parsed = parseApiErrorSync(err);
+
+      if (parsed.status === 404 || parsed.code === 'VARIANT_NOT_FOUND') {
         return { status: 'not-found' };
       }
 

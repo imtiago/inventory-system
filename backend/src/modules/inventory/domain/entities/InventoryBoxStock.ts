@@ -1,4 +1,5 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 
 export interface InventoryBoxStockProps {
   id?: string;
@@ -47,7 +48,7 @@ export class InventoryBoxStock extends BaseEntity {
 
   public addQuantity(quantity: number): void {
     if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     this._quantity += quantity;
@@ -56,11 +57,11 @@ export class InventoryBoxStock extends BaseEntity {
 
   public removeQuantity(quantity: number): void {
     if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (quantity > this._quantity) {
-      throw new Error("Insufficient quantity in box.");
+      throw new BusinessRuleError("Quantidade insuficiente na caixa.", ErrorCodes.INSUFFICIENT_BOX_STOCK);
     }
 
     this._quantity -= quantity;
@@ -73,7 +74,7 @@ export class InventoryBoxStock extends BaseEntity {
 
   private validate(): void {
     if (this._quantity < 0) {
-      throw new Error("Quantity cannot be negative.");
+      throw new BusinessRuleError("A quantidade não pode ser negativa.", ErrorCodes.INVALID_QUANTITY);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { api } from '@/shared/services/api';
+import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import type { Inventory, InventoryBox, InventoryLot, Paginated } from '../types';
 
 /**
@@ -17,14 +18,16 @@ export async function getInventoryById(id: string): Promise<Inventory> {
   return response.data.data;
 }
 
-/** Returns null when the variant has no inventory yet (404). */
+/** Returns null when the variant has no inventory yet (404 INVENTORY_NOT_FOUND). */
 export async function getInventoryByVariant(variantId: string): Promise<Inventory | null> {
   try {
     const response = await api.get<{ data: Inventory }>(`/inventory/variants/${variantId}`);
 
     return response.data.data;
   } catch (error: unknown) {
-    if ((error as { response?: { status?: number } }).response?.status === 404) {
+    const parsed = parseApiErrorSync(error);
+
+    if (parsed.status === 404 && parsed.code === 'INVENTORY_NOT_FOUND') {
       return null;
     }
 

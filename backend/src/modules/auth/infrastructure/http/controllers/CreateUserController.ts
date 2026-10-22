@@ -1,5 +1,6 @@
 // src/modules/users/infrastructure/http/controllers/CreateUserController.ts
 
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createUserSchema } from "../../../interfaces/http/schemas/createUserSchema";
 import { makeCreateUserUseCase } from "../factories/CreateUserFactory";
@@ -10,14 +11,10 @@ export function makeCreateUserController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createUserSchema.parse(request.body);
+    const data = parseInput(createUserSchema, request.body);
 
-      const user = await useCase.execute(data);
+    const user = await useCase.execute(data);
 
-      return reply.status(201).send(user);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.status(201).send(user);
   };
 }

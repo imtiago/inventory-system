@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProduct } from "../services/productService";
 import { toast } from "sonner";
+import { handleMutationError } from "@/shared/utils/mutation";
 
 interface UpdateInput {
   id: string;
@@ -29,8 +30,8 @@ export const useUpdateProduct = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
 
-    onError: () => {
-      toast.error("Erro ao atualizar produto");
+    onError: (error) => {
+      handleMutationError(error, "Erro ao atualizar produto");
     },
   });
 };

@@ -6,6 +6,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class ReleaseInventoryUseCase extends TransactionalUseCase<
   IReleaseInventoryInput,
@@ -26,7 +27,7 @@ export class ReleaseInventoryUseCase extends TransactionalUseCase<
       request.inventoryId,
     );
     if (!inventory) {
-      throw new Error("Inventory not found.");
+      throw new NotFoundError("Estoque não encontrado.", ErrorCodes.INVENTORY_NOT_FOUND);
     }
 
     const previousReserved = inventory.reservedQuantity;

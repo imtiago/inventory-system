@@ -1,3 +1,4 @@
+import { ConflictError, NotFoundError } from "@shared/domain/errors";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
@@ -29,7 +30,7 @@ export class CreateVariantUseCase extends TransactionalUseCase<
     // Verifica se o produto existe
     const product = await this.productRepository.findById(request.productId);
     if (!product) {
-      throw new Error("Product not found");
+      throw new NotFoundError("Produto não encontrado.", "PRODUCT_NOT_FOUND");
     }
     if (request.barcode) {
       const barcodeExists = await this.variantRepository.findByBarcode(
@@ -37,7 +38,7 @@ export class CreateVariantUseCase extends TransactionalUseCase<
       );
 
       if (barcodeExists) {
-        throw new Error("Barcode already exists");
+        throw new ConflictError("Código de barras já cadastrado.", "BARCODE_ALREADY_EXISTS");
       }
     }
 

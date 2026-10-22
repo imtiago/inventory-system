@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
+import { keyShape } from "../../../../../test/keyShape";
 import {
   createTestVariant,
   getTestUserId,
@@ -18,21 +19,6 @@ const FIXTURES_DIR = new URL(
 
 function loadFixture(name: string): unknown {
   return JSON.parse(readFileSync(new URL(`${name}.json`, FIXTURES_DIR), "utf8"));
-}
-
-// Shape of keys only: objects → sorted keys (recursively), arrays → shape of the first item.
-function keyShape(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.length > 0 ? [keyShape(value[0])] : [];
-  }
-  if (value !== null && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(value).sort()) {
-      out[key] = keyShape((value as Record<string, unknown>)[key]);
-    }
-    return out;
-  }
-  return null;
 }
 
 // Sem logs de requisição na saída dos testes.
@@ -50,7 +36,7 @@ describe("HTTP de estoque", () => {
     userId = await getTestUserId();
     token = jwt.sign(
       { sub: userId, role: "admin" },
-      process.env.JWT_SECRET || "secret",
+      process.env.JWT_SECRET!,
     );
   });
 
@@ -172,11 +158,11 @@ describe("HTTP de estoque", () => {
     assert.equal(dto.averageCost, 0);
 
     const dup = await request("POST", "/inventory/", { productVariantId: variantId });
-    assert.equal(dup.statusCode, 400);
-    assert.ok(dup.json().message);
+    assert.equal(dup.statusCode, 409);
+    assert.equal(dup.json().code, "INVENTORY_ALREADY_EXISTS");
   });
 
-  test("POST /inventory/boxes/:id/items acima do limite → 400 com mensagem exata", async () => {
+  test("POST /inventory/boxes/:id/items acima do limite → 422 com mensagem exata", async () => {
     const lotRes = await request("POST", "/inventory/lots", lotBody({ quantity: 3 }));
     const lot = lotRes.json().data;
     const box = await createBox();
@@ -186,7 +172,7 @@ describe("HTTP de estoque", () => {
       quantity: 4,
     });
 
-    assert.equal(res.statusCode, 400);
+    assert.equal(res.statusCode, 422);
     assert.equal(
       res.json().message,
       "Quantidade excede o saldo do lote disponível para caixas (3).",
@@ -217,11 +203,12 @@ describe("HTTP de estoque", () => {
     assert.equal(body.pagination.total, 1);
   });
 
-  test("erro Zod retorna message legível", async () => {
+  test("erro Zod retorna VALIDATION_ERROR com errors por campo", async () => {
     const res = await request("POST", "/inventory/lots", lotBody({ quantity: -1 }));
 
     assert.equal(res.statusCode, 400);
-    assert.match(res.json().message, /quantity: /);
+    assert.equal(res.json().code, "VALIDATION_ERROR");
+    assert.equal(res.json().errors[0].field, "quantity");
   });
 
   test("POST /inventory/receive com batchNumber vazio → 400 citando batchNumber", async () => {
@@ -234,19 +221,19 @@ describe("HTTP de estoque", () => {
       sourceType: "PURCHASE",
     });
     assert.equal(res.statusCode, 400, res.body);
-    assert.match(res.json().message, /batchNumber/);
+    assert.equal(res.json().errors[0].field, "batchNumber");
   });
 
   test("POST /inventory/lots com expirationDate null → 400", async () => {
     const res = await request("POST", "/inventory/lots", lotBody({ expirationDate: null }));
     assert.equal(res.statusCode, 400, res.body);
-    assert.match(res.json().message, /expirationDate/);
+    assert.equal(res.json().errors[0].field, "expirationDate");
   });
 
   test("GET /inventory/variants/:id/lots com limit=101 → 400", async () => {
     const res = await request("GET", `/inventory/variants/${variantId}/lots?limit=101`);
     assert.equal(res.statusCode, 400, res.body);
-    assert.match(res.json().message, /limit/);
+    assert.equal(res.json().errors[0].field, "limit");
   });
 
   test("dispatch/reserve/release/adjust/initial-count respondem movimentações com userId do token", async () => {

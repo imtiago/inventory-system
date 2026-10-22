@@ -1,6 +1,7 @@
 import { getInventorySchema } from "@inventory/interfaces/http/schemas/getInventorySchema";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { NotFoundError, ErrorCodes } from "@shared/domain/errors";
+import { parseInput } from "@shared/http/parseInput";
 import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
 import { HttpResponse } from "@shared/http/response";
 
@@ -10,18 +11,14 @@ export function makeGetInventoryByVariantIdController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { variantId } = getInventorySchema.parse(request.params);
+    const { variantId } = parseInput(getInventorySchema, request.params);
 
-      const inventory = await useCase.execute(variantId);
+    const inventory = await useCase.execute(variantId);
 
-      if (!inventory) {
-        return reply.status(404).send({ message: "Inventory not found" });
-      }
-
-      return reply.send(HttpResponse.ok(inventory));
-    } catch (err) {
-      return sendBadRequest(reply, err);
+    if (!inventory) {
+      throw new NotFoundError("Estoque não encontrado.", ErrorCodes.INVENTORY_NOT_FOUND);
     }
+
+    return reply.send(HttpResponse.ok(inventory));
   };
 }

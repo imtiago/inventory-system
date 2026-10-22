@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { parseInput } from "@shared/http/parseInput";
 import { makeAddProductToBoxUseCase } from "../factories/AddProductToBoxFactory";
 import {
   addProductToBoxBodySchema,
@@ -14,17 +14,11 @@ export function makeAddProductToBoxController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { boxId } = addProductToBoxParamsSchema.parse(request.params);
-      const { inventoryLotId, quantity } = addProductToBoxBodySchema.parse(
-        request.body,
-      );
+    const { boxId } = parseInput(addProductToBoxParamsSchema, request.params);
+    const { inventoryLotId, quantity } = parseInput(addProductToBoxBodySchema, request.body);
 
-      const dt = await useCase.execute({ boxId, inventoryLotId, quantity });
+    const dt = await useCase.execute({ boxId, inventoryLotId, quantity });
 
-      return reply.send(HttpResponse.created(dt));
-    } catch (err) {
-      return sendBadRequest(reply, err);
-    }
+    return reply.send(HttpResponse.created(dt));
   };
 }

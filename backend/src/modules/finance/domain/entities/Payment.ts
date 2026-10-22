@@ -1,3 +1,4 @@
+import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 import { PaymentMethod } from "../enums/PaymentMethod";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
@@ -35,7 +36,7 @@ export class Payment extends BaseEntity {
 
     this._paymentDate = props.paymentDate ?? new Date();
     if (props.amount <= 0) {
-      throw new Error("Payment amount must be greater than zero");
+      throw new BusinessRuleError("O valor do pagamento deve ser maior que zero.", ErrorCodes.INVALID_PAYMENT_AMOUNT);
     }
   }
 

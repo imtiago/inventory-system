@@ -1,3 +1,4 @@
+import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import { SaleRepository } from "../../../domain/repositories/SaleRepository";
 import { InventoryRepository } from "../../../../inventory/domain/repositories/InventoryRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
@@ -20,10 +21,10 @@ export class CancelSaleUseCase extends TransactionalUseCase<
     // 1. Buscar venda
     const sale = await this.saleRepo.findById(id);
 
-    if (!sale) throw new Error("Venda não encontrada");
+    if (!sale) throw new NotFoundError("Venda não encontrada.", ErrorCodes.SALE_NOT_FOUND);
 
     if (sale.status === "CANCELED") {
-      throw new Error("Venda já cancelada");
+      throw new ConflictError("Venda já cancelada.", ErrorCodes.SALE_ALREADY_CANCELED);
     }
 
     // 2. Devolver estoque

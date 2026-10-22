@@ -2,16 +2,12 @@ import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/P
 import { AuthenticateUserUseCase } from "@auth/application/useCases/commands/AuthenticateUserUseCase";
 import { BcryptPasswordHasher } from "@auth/infrastructure/security/BcryptPasswordHasher";
 import { JwtTokenService } from "@auth/infrastructure/security/JwtTokenService";
+import { env } from "@shared/config/env";
+
 export function makeAuthenticateUserUserUseCase() {
-  const jwtSecret = process.env.JWT_SECRET;
-
-  if (!jwtSecret) {
-    throw new Error("JWT_SECRET não configurado");
-  }
-
   const userRepository = new PrismaUserRepository();
   const passwordHasher = new BcryptPasswordHasher();
-  const tokenService = new JwtTokenService(jwtSecret);
+  const tokenService = new JwtTokenService(env.JWT_SECRET);
 
   return new AuthenticateUserUseCase(
     userRepository,

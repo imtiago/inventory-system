@@ -2,10 +2,12 @@
 
 import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { NotFoundError } from "@shared/domain/errors";
+import { parseInput } from "@shared/http/parseInput";
 import { makeGetCustomerUseCase } from "../factories/GetCustomerByIdFactory";
 
 const paramsSchema = z.object({
-  id: z.string().uuid().or(z.string()), // ajuste se quiser validar UUID
+  id: z.string().uuid("Identificador inválido."),
 });
 
 export function makeGetCustomerController() {
@@ -14,19 +16,13 @@ export function makeGetCustomerController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { id } = paramsSchema.parse(request.params);
+    const { id } = parseInput(paramsSchema, request.params);
 
-      const customer = await useCase.execute(id);
-      if (!customer) return reply.status(404).send();
-
-      return reply.send(customer);
-    } catch (err: any) {
-      if (err.message === "Cliente não encontrado") {
-        return reply.status(404).send({ message: err.message });
-      }
-
-      return reply.status(400).send({ message: err.message });
+    const customer = await useCase.execute(id);
+    if (!customer) {
+      throw new NotFoundError("Cliente não encontrado.", "CUSTOMER_NOT_FOUND");
     }
+
+    return reply.send(customer);
   };
 }

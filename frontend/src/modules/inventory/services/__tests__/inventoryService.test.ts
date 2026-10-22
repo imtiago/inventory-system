@@ -25,7 +25,7 @@ describe('inventoryService', () => {
   test('getInventoryByVariant 404 → null; 500 → lança', async () => {
     server.use(
       http.get(`${API_URL}/inventory/variants/missing`, () =>
-        HttpResponse.json({ message: 'not found' }, { status: 404 }),
+        HttpResponse.json({ message: 'Estoque não encontrado.', code: 'INVENTORY_NOT_FOUND' }, { status: 404 }),
       ),
       http.get(`${API_URL}/inventory/variants/broken`, () =>
         HttpResponse.json({ message: 'boom' }, { status: 500 }),
@@ -33,6 +33,12 @@ describe('inventoryService', () => {
     );
 
     expect(await getInventoryByVariant('missing')).toBeNull();
+    server.use(
+      http.get(`${API_URL}/inventory/variants/nort`, () =>
+        HttpResponse.json({ message: 'Rota não encontrada.', code: 'ROUTE_NOT_FOUND' }, { status: 404 }),
+      ),
+    );
+    await expect(getInventoryByVariant('nort')).rejects.toThrow();
     await expect(getInventoryByVariant('broken')).rejects.toThrow();
     expect(await getInventoryByVariant(inventory.data.productVariantId)).toEqual(inventory.data);
   });

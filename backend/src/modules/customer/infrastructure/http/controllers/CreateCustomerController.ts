@@ -1,5 +1,6 @@
 // src/modules/customer/infrastructure/http/controllers/CreateCustomerController.ts
 
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { createCustomerSchema } from "../../../interfaces/http/schemas/createCustomerSchema";
 import { makeCreateCustomerUseCase } from "../factories/CreateCustomerFactory";
@@ -11,13 +12,9 @@ export function makeCreateCustomerController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createCustomerSchema.parse(request.body);
-      const customer = await useCase.execute(data);
+    const data = parseInput(createCustomerSchema, request.body);
+    const customer = await useCase.execute(data);
 
-      return reply.status(201).send(CustomerHttpPresenter.toHTTP(customer));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.status(201).send(CustomerHttpPresenter.toHTTP(customer));
   };
 }

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import { renderWithProviders } from '@/test/render';
+import internalError from '@/test/fixtures/errors/internal.json';
 import inventoryLot from '@/test/fixtures/inventory/inventoryLot.json';
 import inventoryLotList from '@/test/fixtures/inventory/inventoryLotList.json';
 import { queryKeys } from '@/shared/react-query/keys';
@@ -61,7 +62,7 @@ beforeEach(() => {
 
   server.use(
     http.get(`${API_URL}/variants/barcode/:code`, ({ params }) =>
-      params.code === BARCODE ? HttpResponse.json({ data: variant }) : HttpResponse.json({ message: 'Resource not found' }, { status: 404 }),
+      params.code === BARCODE ? HttpResponse.json({ data: variant }) : HttpResponse.json({ message: 'Variante não encontrada.', code: 'VARIANT_NOT_FOUND' }, { status: 404 }),
     ),
     http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => {
       lotsRequests += 1;
@@ -150,13 +151,13 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test("erro 500 na leitura mostra erro e não abre 'produto não encontrado'", async () => {
-    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Falha no servidor de produtos' }, { status: 500 })));
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json(internalError, { status: 500 })));
     const user = userEvent.setup();
     renderPage();
 
     await scanBarcode(user);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Falha no servidor de produtos');
+    expect(await screen.findByRole('alert')).toHaveTextContent(internalError.message);
     expect(screen.queryByText('Produto não encontrado')).not.toBeInTheDocument();
     expect(screen.queryByText('Esse produto já existe no cadastro?')).not.toBeInTheDocument();
   });
@@ -251,7 +252,7 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test("não exibe prompt 'criar inventário'", async () => {
-    server.use(http.get(`${API_URL}/inventory/variants/:variantId`, () => HttpResponse.json({ message: 'Inventory not found' }, { status: 404 })));
+    server.use(http.get(`${API_URL}/inventory/variants/:variantId`, () => HttpResponse.json({ message: 'Inventory not found', code: 'NOT_FOUND' }, { status: 404 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -314,7 +315,7 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test('erro ao carregar lotes mostra a mensagem do servidor', async () => {
-    server.use(http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ message: 'Banco indisponível' }, { status: 500 })));
+    server.use(http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ message: 'Banco indisponível', code: 'INTERNAL_ERROR' }, { status: 500 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -402,8 +403,8 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.queryByRole('heading', { name: 'Caixa' })).not.toBeInTheDocument();
   });
 
-  test("código não encontrado (404) abre 'produto existe?' com o código lido", async () => {
-    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Resource not found' }, { status: 404 })));
+  test("404 VARIANT_NOT_FOUND leva a 'produto não encontrado': abre 'produto existe?' com o código lido", async () => {
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Variante não encontrada.', code: 'VARIANT_NOT_FOUND' }, { status: 404 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -413,6 +414,40 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.getByRole('heading', { name: 'Produto não encontrado' })).toBeInTheDocument();
     expect(screen.getByText(BARCODE)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test("status não-404 com code VARIANT_NOT_FOUND também leva a 'produto não encontrado'", async () => {
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Variante não encontrada.', code: 'VARIANT_NOT_FOUND' }, { status: 422 })));
+    const user = userEvent.setup();
+    renderPage();
+
+    await scanBarcode(user);
+
+    expect(await screen.findByText('Esse produto já existe no cadastro?')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Produto não encontrado' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('novo produto no assistente: erro 400 de campo aparece inline no formulário', async () => {
+    server.use(
+      http.get(`${API_URL}/brands`, () => HttpResponse.json({ data: [] })),
+      http.get(`${API_URL}/categories`, () => HttpResponse.json({ data: [] })),
+      http.post(`${API_URL}/products`, () =>
+        HttpResponse.json(
+          { message: 'Dados inválidos.', code: 'VALIDATION_ERROR', errors: [{ field: 'name', message: 'O nome é obrigatório.' }] },
+          { status: 400 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /cadastrar sem código de barras/i }));
+    await user.click(screen.getByRole('button', { name: /não, é um produto novo/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar Produto' }));
+
+    expect(await within(dialog).findByText('O nome é obrigatório.')).toBeInTheDocument();
   });
 
   test('busca de caixa envia ?search=<código> e o resultado pode ser selecionado', async () => {
@@ -458,7 +493,7 @@ describe('InitialInventoryPage (assistente)', () => {
 
   test('erro 400 de limite da caixa é mostrado no passo de caixa', async () => {
     const message = 'Quantidade excede o saldo do lote disponível para caixas (18).';
-    server.use(http.post(`${API_URL}/inventory/boxes/:boxId/items`, () => HttpResponse.json({ message }, { status: 400 })));
+    server.use(http.post(`${API_URL}/inventory/boxes/:boxId/items`, () => HttpResponse.json({ message, code: 'BUSINESS_RULE' }, { status: 400 })));
     const user = userEvent.setup();
     renderPage();
     await goToBoxWithLot(user, lotWithRoom.id);

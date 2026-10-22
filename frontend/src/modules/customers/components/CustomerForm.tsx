@@ -1,3 +1,4 @@
+import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { useForm } from 'react-hook-form';
 import type { ICreateCustomerDTO } from '../types';
 
@@ -29,10 +30,13 @@ function maskPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+const FIELDS = ['name', 'email', 'phone', 'address'] as const;
+
 export function CustomerForm({ loading = false, error = null, mode = 'create', initialData, onSubmit, onCancel }: Props) {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ICreateCustomerDTO>({
     defaultValues: {
@@ -43,8 +47,16 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
     },
   });
 
+  const submit = handleSubmit(async (data) => {
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      if (!applySubmitError(setError, error, FIELDS)) throw error;
+    }
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={submit} className="space-y-6">
       <section className="space-y-5 rounded-xl bg-white p-6 shadow">
         {/* Nome */}
         <div>
@@ -138,6 +150,13 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
           />
         </div>
       </section>
+
+
+      {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
 
       {/* Mensagem de erro */}
       {error && (

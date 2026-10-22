@@ -5,6 +5,7 @@ import { ReserveInventoryUseCase } from "../ReserveInventoryUseCase";
 import { InventoryApplicationService } from "../../../services/InventoryApplicationService";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
+import { InternalInvariantError } from "@shared/domain/errors";
 import { setupStock, snapshot } from "./helpers";
 
 function build() {
@@ -47,14 +48,14 @@ test("dispatch acima do disponível falha sem gravar", async () => {
   const s = build();
   await s.addLot(3);
   const before = await snapshot(s);
-  await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 4 }));
+  await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 4 }), { code: "INSUFFICIENT_STOCK" });
   assert.equal(await snapshot(s), before);
 });
 
 test("dispatch sem inventário falha", async () => {
   const s = build();
   await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 1 }), {
-    message: "Inventory not found.",
+    name: "NotFoundError", code: "INVENTORY_NOT_FOUND",
   });
 });
 
@@ -83,4 +84,12 @@ test("consumeStock chama dispatch com origin SALE", async () => {
       originReferenceId: "sale-1",
     },
   ]);
+});
+
+test("dispatch com lotes inconsistentes lança InternalInvariantError", async () => {
+  const s = build();
+  const { lot } = await s.addLot(5);
+  lot.consume(5); // saldo do estoque diverge dos lotes
+  await s.lots.update(lot);
+  await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 3 }), InternalInvariantError);
 });

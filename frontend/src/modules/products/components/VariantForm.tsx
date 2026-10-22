@@ -1,3 +1,4 @@
+import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 
@@ -15,10 +16,12 @@ interface Props {
 
   initialValues?: Partial<VariantFormData>;
 
-  onSubmit(data: VariantFormData): void;
+  onSubmit(data: VariantFormData): void | Promise<void>;
 
   onCancel(): void;
 }
+
+const FIELDS = ["name", "barcode"] as const;
 
 export function VariantForm({
   title,
@@ -27,7 +30,7 @@ export function VariantForm({
   onSubmit,
   onCancel,
 }: Props) {
-  const { register, handleSubmit, setValue } = useForm<VariantFormData>({
+  const { register, handleSubmit, setValue, setError, formState: { errors } } = useForm<VariantFormData>({
     defaultValues: initialValues,
   });
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -38,9 +41,17 @@ export function VariantForm({
     setScannerOpen(false);
   }
 
+  const submit = handleSubmit(async (data) => {
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      if (!applySubmitError(setError, error, FIELDS)) throw error;
+    }
+  });
+
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={submit}
       className="
         space-y-6
       "
@@ -77,6 +88,7 @@ export function VariantForm({
             "
             placeholder="Ex: Kaiak 100ml"
           />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
         </div>
 
         {/* Código de barras */}
@@ -109,6 +121,7 @@ export function VariantForm({
               📷 Ler
             </button>
           </div>
+          {errors.barcode && <p className="mt-1 text-sm text-red-600">{errors.barcode.message}</p>}
         </div>
 
         {scannerOpen && (
@@ -162,6 +175,11 @@ export function VariantForm({
           {submitLabel}
         </button>
       </div>
+          {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
     </form>
   );
 }

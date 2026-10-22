@@ -9,7 +9,7 @@ const saleDiscountSchema = z
     if (discount.type === "PERCENTAGE" && discount.value > 100) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Percentage discount cannot exceed 100%.",
+        message: "O desconto percentual não pode exceder 100%.",
       });
     }
   });
@@ -40,7 +40,7 @@ export const createSaleSchema = z
       if (ids.has(item.productVariantId)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Duplicate product variant.",
+          message: "Variante duplicada.",
           path: ["items", index, "productVariantId"],
         });
       }

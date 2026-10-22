@@ -5,10 +5,14 @@ interface Props {
 }
 
 export function VariantStock({ variantId }: Props) {
-  const { inventory, loading } = useVariantInventory(variantId);
+  const { inventory, loading, error } = useVariantInventory(variantId);
 
   if (loading) {
     return <span>...</span>;
+  }
+
+  if (error) {
+    return <span className="text-red-600">Erro ao carregar estoque</span>;
   }
 
   if (!inventory) {

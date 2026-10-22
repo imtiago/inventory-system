@@ -4,6 +4,7 @@ import { AdjustInventoryUseCase } from "../AdjustInventoryUseCase";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
+import { InternalInvariantError } from "@shared/domain/errors";
 import { setupStock, snapshot } from "./helpers";
 
 function build() {
@@ -63,10 +64,21 @@ test("adjust para cima cria lote MANUAL com custo médio atual", async () => {
 test("adjust com contagem negativa ou sem inventário falha sem gravar", async () => {
   const s = build();
   await assert.rejects(() => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: 1 }), {
-    message: "Inventory not found.",
+    name: "NotFoundError", code: "INVENTORY_NOT_FOUND",
   });
   await s.addLot(5);
   const before = await snapshot(s);
-  await assert.rejects(() => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: -1 }));
+  await assert.rejects(() => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: -1 }), { code: "INVALID_QUANTITY" });
   assert.equal(await snapshot(s), before);
+});
+
+test("adjust com lotes inconsistentes lança InternalInvariantError", async () => {
+  const s = build();
+  const { lot } = await s.addLot(5);
+  lot.consume(5); // saldo do estoque diverge dos lotes
+  await s.lots.update(lot);
+  await assert.rejects(
+    () => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: 1 }),
+    InternalInvariantError,
+  );
 });

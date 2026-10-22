@@ -1,4 +1,5 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateProductController.ts
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createProductSchema } from "../../../interfaces/http/schemas/createProductSchema";
 import { makeCreateProductUseCase } from "../factories/CreateProductFactory";
@@ -13,15 +14,11 @@ export function makeCreateProductController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createProductSchema.parse(request.body); // usa seu schema existente
+    const data = parseInput(createProductSchema, request.body); // usa seu schema existente
 
-      const productCreated = await useCase.execute(data);
-      const productRead = await useCaseGet.execute(productCreated.id);
+    const productCreated = await useCase.execute(data);
+    const productRead = await useCaseGet.execute(productCreated.id);
 
-      return reply.status(201).send(HttpResponse.created(productRead));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.status(201).send(HttpResponse.created(productRead));
   };
 }

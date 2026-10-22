@@ -8,6 +8,7 @@ import {
   IAddProductToBoxInput,
   IInventoryBoxStockOutput,
 } from "@inventory/application/dto/InventoryBoxStockDTO";
+import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class AddProductToBoxUseCase extends TransactionalUseCase<
   IAddProductToBoxInput,
@@ -26,13 +27,13 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     request: IAddProductToBoxInput,
   ): Promise<IInventoryBoxStockOutput> {
     if (request.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     const box = await this.inventoryBoxRepository.findById(request.boxId);
 
     if (!box) {
-      throw new Error("Inventory box not found.");
+      throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
     const lot = await this.inventoryLotRepository.findById(
@@ -40,7 +41,7 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     );
 
     if (!lot) {
-      throw new Error("Inventory lot not found.");
+      throw new NotFoundError("Lote não encontrado.", ErrorCodes.LOT_NOT_FOUND);
     }
 
     const allocated = await this.inventoryBoxStockRepository.sumAllocatedByLot(
@@ -49,8 +50,9 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     const available = Math.max(0, lot.remainingQuantity - allocated);
 
     if (request.quantity > available) {
-      throw new Error(
+      throw new BusinessRuleError(
         `Quantidade excede o saldo do lote disponível para caixas (${available}).`,
+        ErrorCodes.BOX_LIMIT_EXCEEDED,
       );
     }
 

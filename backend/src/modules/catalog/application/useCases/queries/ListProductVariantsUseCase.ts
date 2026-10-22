@@ -1,3 +1,4 @@
+import { NotFoundError } from "@shared/domain/errors";
 import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 import { PaginationParams } from "@shared/application/pagination";
@@ -15,7 +16,7 @@ export class ListProductVariantsUseCase {
     const product = await this.productRepository.findById(productId);
 
     if (!product) {
-      throw new Error("Product not found");
+      throw new NotFoundError("Produto não encontrado.", "PRODUCT_NOT_FOUND");
     }
 
     return this.variantRepository.getByProductId(productId, { limit, page });

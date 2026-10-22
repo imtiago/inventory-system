@@ -1,3 +1,4 @@
+import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import { SaleRepository } from "../../../domain/repositories/SaleRepository";
 
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
@@ -31,7 +32,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<
   ): Promise<ISaleOutput> {
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {
-      throw new Error(`Customer not found ${request.customerId}`);
+      throw new NotFoundError("Cliente não encontrado.", ErrorCodes.CUSTOMER_NOT_FOUND);
     }
 
     const saleItems: SaleItem[] = [];
@@ -41,7 +42,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<
         item.productVariantId,
       );
       if (!variant) {
-        throw new Error(`Variant ${item.productVariantId} not found`);
+        throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
       }
       saleItems.push(
         new SaleItem({

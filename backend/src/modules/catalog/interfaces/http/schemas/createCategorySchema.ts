@@ -2,5 +2,5 @@
 import { z } from "zod";
 
 export const createCategorySchema = z.object({
-  name: z.string().min(1),
+  name: z.string({ error: "O nome é obrigatório." }).min(1, "O nome é obrigatório."),
 });

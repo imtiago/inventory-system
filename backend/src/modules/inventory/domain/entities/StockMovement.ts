@@ -1,6 +1,7 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { StockMovementOrigin } from "../enums/StockMovementOrigin";
 import { StockMovementType } from "../enums/StockMovementType";
+import { BusinessRuleError, ErrorCodes, InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 
 interface StockMovementProps {
   id?: string;
@@ -101,7 +102,7 @@ export class StockMovement extends BaseEntity {
 
   private validate() {
     if (this.props.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     const { type, quantity, previousQuantity, currentQuantity } = this.props;
@@ -114,26 +115,26 @@ export class StockMovement extends BaseEntity {
     switch (type) {
       case StockMovementType.IN:
         if (currentQuantity !== previousQuantity + quantity) {
-          throw new Error("Invalid IN movement.");
+          throw new InternalInvariantError("Movimentação de entrada inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
 
       case StockMovementType.OUT:
         if (currentQuantity !== previousQuantity - quantity) {
-          throw new Error("Invalid OUT movement.");
+          throw new InternalInvariantError("Movimentação de saída inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
 
       case StockMovementType.RESERVE:
       case StockMovementType.RELEASE:
         if (currentQuantity !== previousQuantity) {
-          throw new Error(`Invalid ${type} movement.`);
+          throw new InternalInvariantError("Movimentação inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
 
       case StockMovementType.ADJUSTMENT:
         if (quantity !== Math.abs(currentQuantity - previousQuantity)) {
-          throw new Error("Invalid ADJUSTMENT movement.");
+          throw new InternalInvariantError("Movimentação de ajuste inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
     }

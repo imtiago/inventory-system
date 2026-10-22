@@ -1,5 +1,6 @@
+import "./shared/config/zod";
 import Fastify from "fastify";
-import { responseInterceptor } from "./shared/http/responseInterceptor";
+import { registerErrorHandling } from "./shared/http/errorHandler";
 import { productRoutes } from "./modules/catalog/infrastructure/http/routes/productRoutes";
 import { brandRoutes } from "./modules/catalog/infrastructure/http/routes/brandRoutes";
 import { categoryRoutes } from "./modules/catalog/infrastructure/http/routes/categoryRoutes";
@@ -9,8 +10,6 @@ import { customerRoutes } from "./modules/customer/infrastructure/http/routes/cu
 import { userRoutes } from "./modules/auth/infrastructure/http/routes/userRoutes";
 import { authenticate } from "./shared/middleware/auth";
 import { payableRoutes } from "modules/finance/infrastructure/http/routes/payableRoutes";
-import { ZodError } from "zod";
-import { AppError } from "./shared/errors/AppError";
 
 import cors from "@fastify/cors";
 import { importNfeRoutes } from "modules/nfe-import/infrastructure/http/routes/importNfeRoutes";
@@ -21,47 +20,12 @@ export const app = Fastify({
   logger: true,
 });
 
-app.register(responseInterceptor);
+registerErrorHandling(app);
 app.register(cors, {
   origin: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 });
 
-app.setErrorHandler((error, request, reply) => {
-  if (error instanceof ZodError) {
-    return reply.status(400).send({
-      success: false,
-      data: null,
-      message: "Erro de validação",
-      errors: error.issues.map((e) => ({
-        field: e.path.join("."),
-        message: e.message,
-        code: e.code,
-      })),
-    });
-  }
-  if (error instanceof AppError) {
-    return reply.status(error.statusCode).send({
-      success: false,
-      data: null,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof Error) {
-    return reply.status(500).send({
-      success: false,
-      data: null,
-      message: error.message,
-    });
-  }
-
-  return reply.status(500).send({
-    success: false,
-    data: null,
-    message: "Erro desconhecido",
-  });
-});
 // Lista de rotas públicas
 const publicRoutes = [
   "/users", // criação de usuário
@@ -70,8 +34,8 @@ const publicRoutes = [
 
 // Middleware global
 app.addHook("onRequest", async (request, reply) => {
-  if (!publicRoutes.includes(request.url)) {
-    await authenticate(request, reply);
+  if (!publicRoutes.includes(request.url.split("?")[0])) {
+    await authenticate(request);
   }
 });
 

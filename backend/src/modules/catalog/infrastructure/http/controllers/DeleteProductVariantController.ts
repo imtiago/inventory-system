@@ -1,5 +1,9 @@
+import { parseInput } from "@shared/http/parseInput";
+import { z } from "zod";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeDeleteProductVariantUseCase } from "../factories/DeleteProductVariantFactory";
+
+const idParamsSchema = z.object({ id: z.string().uuid("Identificador inválido.") });
 
 export function makeDeleteProductVariantController() {
   const useCase = makeDeleteProductVariantUseCase();
@@ -7,15 +11,10 @@ export function makeDeleteProductVariantController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { id } = request.params as { id: string };
-      console.log("object");
+    const { id } = parseInput(idParamsSchema, request.params);
 
-      await useCase.execute({ productVariantId: id });
+    await useCase.execute({ id });
 
-      return reply.status(204).send(); // 204 No Content
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.status(204).send(); // 204 No Content
   };
 }

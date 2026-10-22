@@ -1,3 +1,4 @@
+import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { useForm } from 'react-hook-form';
 
 export interface InventoryLotFormData {
@@ -13,15 +14,19 @@ interface Props {
   submitting?: boolean;
   submitError?: string | null;
 
-  onSubmit(data: InventoryLotFormData): void;
+  /** May resolve with backend field errors (dotted paths) to show on the form. */
+  onSubmit(data: InventoryLotFormData): void | { fieldErrors?: Record<string, string> } | Promise<void | { fieldErrors?: Record<string, string> }>;
 
   onCancel(): void;
 }
+
+const LOT_FIELDS = ['batchNumber', 'manufacturingDate', 'expirationDate', 'quantity', 'unitCost'] as const;
 
 export function InventoryLotForm({ initialValues, submitting = false, submitError = null, onSubmit, onCancel }: Props) {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<InventoryLotFormData>({
     defaultValues: {
@@ -37,8 +42,19 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
     },
   });
 
+  const submit = handleSubmit(async (data) => {
+    const result = await onSubmit(data);
+
+    if (result?.fieldErrors) {
+      const { unmatched } = applyFieldErrors(setError, result.fieldErrors, LOT_FIELDS);
+      const messages = Object.values(unmatched);
+
+      if (messages.length > 0) setError('root.server', { type: 'server', message: messages.join(' ') });
+    }
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={submit} className="space-y-6">
       <div className="space-y-5 rounded-xl bg-white p-6 shadow">
         {/* LOTE */}
         <div>
@@ -66,6 +82,8 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           </label>
 
           <input id="manufacturingDate" type="date" {...register('manufacturingDate')} className="w-full rounded-lg border p-3" />
+
+          {errors.manufacturingDate && <p className="mt-1 text-sm text-red-600">{errors.manufacturingDate.message}</p>}
         </div>
 
         {/* VALIDADE */}
@@ -165,6 +183,11 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           {submitting ? 'Salvando...' : 'Salvar lote'}
         </button>
       </div>
+    {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
     </form>
   );
 }

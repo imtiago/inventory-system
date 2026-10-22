@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { parseInput } from "@shared/http/parseInput";
 import { makeReceiveInventory } from "../factories/ReceiveInventoryFactory";
 import { receiveInventorySchema } from "@inventory/interfaces/http/schemas/receiveInventorySchema";
 import { makeGetInventoryByIdUseCase } from "../factories/GetInventoryByIdFactory";
@@ -13,18 +13,14 @@ export function makeReceiveInventoryController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = receiveInventorySchema.parse(request.body);
+    const data = parseInput(receiveInventorySchema, request.body);
 
-      const { inventory } = await useCase.execute({
-        ...data,
-        userId: request.user?.sub,
-      });
-      const inventoryRead = await getInventoryById.execute(inventory.id);
+    const { inventory } = await useCase.execute({
+      ...data,
+      userId: request.user?.sub,
+    });
+    const inventoryRead = await getInventoryById.execute(inventory.id);
 
-      return reply.send(HttpResponse.created(inventoryRead));
-    } catch (err) {
-      return sendBadRequest(reply, err);
-    }
+    return reply.send(HttpResponse.created(inventoryRead));
   };
 }

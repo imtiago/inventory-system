@@ -2,9 +2,9 @@
 import { z } from "zod";
 
 export const updateProductSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  price: z.number().optional(),
-  brandId: z.string().optional(),
-  categoryId: z.string().optional(),
+  name: z.string({ error: "Nome inválido." }).optional(),
+  description: z.string({ error: "Descrição inválida." }).optional(),
+  price: z.number({ error: "Preço inválido." }).optional(),
+  brandId: z.string({ error: "Marca inválida." }).optional(),
+  categoryId: z.string({ error: "Categoria inválida." }).optional(),
 });

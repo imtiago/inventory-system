@@ -1,3 +1,4 @@
+import { NotFoundError } from "@shared/domain/errors";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
@@ -18,7 +19,7 @@ export class DeleteProductVariantUseCase extends TransactionalUseCase<
     request: IDeleteProductVariantInput,
   ): Promise<void> {
     const existing = await this.repository.findById(request.id);
-    if (!existing) throw new Error("Variante do produto não encontrado");
+    if (!existing) throw new NotFoundError("Variante não encontrada.", "VARIANT_NOT_FOUND");
 
     await this.repository.delete(request.id);
   }

@@ -8,6 +8,7 @@ import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { IRegisterScannedProductInput } from "@inventory/application/dto/InventoryDTO";
 import { ReceiveInventoryUseCase } from "./ReceiveInventoryUseCase";
 import { AddProductToBoxUseCase } from "./AddProductToBoxUseCase";
+import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export interface IRegisterScannedProductOutput {
   boxId: string;
@@ -37,7 +38,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     const quantity = request.quantity ?? 1;
 
     if (!(quantity > 0)) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     const variant = await this.catalogService.getProductVariantByBarcode(
@@ -45,14 +46,14 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     );
 
     if (!variant) {
-      throw new Error("Product not found for the scanned barcode.");
+      throw new NotFoundError("Produto não encontrado para o código de barras lido.", ErrorCodes.VARIANT_NOT_FOUND);
     }
 
     // Resolve the box before receiving so a missing box writes nothing.
     const box = await this.inventoryBoxRepository.findByCode(request.boxCode);
 
     if (!box) {
-      throw new Error(`Inventory box "${request.boxCode}" not found.`);
+      throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
     const unitCost =

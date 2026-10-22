@@ -1,3 +1,4 @@
+import { NotFoundError } from "@shared/domain/errors";
 import {
   IProductOutput,
   IUpdateProductInput,
@@ -24,7 +25,7 @@ export class UpdateProductUseCase extends TransactionalUseCase<
     // 1. Verificar se o produto existe
     const existing = await this.productRepository.findById(request.id);
     if (!existing) {
-      throw new Error("Produto não encontrado");
+      throw new NotFoundError("Produto não encontrado.", "PRODUCT_NOT_FOUND");
     }
 
     // 2. Atualizar produto

@@ -252,7 +252,7 @@ export function useInitialInventoryFlow() {
     setModal('new-lot');
   }
 
-  async function handleNewLotSubmit(data: InventoryLotFormData) {
+  async function handleNewLotSubmit(data: InventoryLotFormData): Promise<{ fieldErrors?: Record<string, string> } | void> {
     if (!variant) return;
 
     const token = nextToken();
@@ -272,7 +272,7 @@ export function useInitialInventoryFlow() {
 
     if (!result.ok) {
       setLotError(result.error);
-      return;
+      return { fieldErrors: result.fieldErrors };
     }
 
     handleNewLotSuccess(result.data);

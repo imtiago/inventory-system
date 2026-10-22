@@ -1,3 +1,4 @@
+import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
 import type { Brand, Category } from "../types";
 
@@ -18,10 +19,12 @@ interface Props {
 
   initialValues?: Partial<ProductFormData>;
 
-  onSubmit(data: ProductFormData): void;
+  onSubmit(data: ProductFormData): void | Promise<void>;
 
   onCancel(): void;
 }
+
+const FIELDS = ["name", "description", "brandId", "categoryId"] as const;
 
 export function ProductForm({
   title,
@@ -32,12 +35,20 @@ export function ProductForm({
   onSubmit,
   onCancel,
 }: Props) {
-  const { register, handleSubmit } = useForm<ProductFormData>({
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<ProductFormData>({
     defaultValues: initialValues,
   });
 
+  const submit = handleSubmit(async (data) => {
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      if (!applySubmitError(setError, error, FIELDS)) throw error;
+    }
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={submit} className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-500">{title}</h1>
 
@@ -56,6 +67,7 @@ export function ProductForm({
                 {...register("name")}
                 className="w-full border rounded-lg p-3"
               />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
             </div>
 
             <div>
@@ -66,6 +78,7 @@ export function ProductForm({
                 rows={4}
                 className="w-full border rounded-lg p-3"
               />
+              {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
             </div>
           </div>
         </section>
@@ -89,6 +102,7 @@ export function ProductForm({
                   </option>
                 ))}
               </select>
+              {errors.brandId && <p className="mt-1 text-sm text-red-600">{errors.brandId.message}</p>}
             </div>
 
             <div>
@@ -106,6 +120,7 @@ export function ProductForm({
                   </option>
                 ))}
               </select>
+              {errors.categoryId && <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>}
             </div>
           </div>
         </section>
@@ -127,6 +142,11 @@ export function ProductForm({
           Salvar Produto
         </button>
       </div>
+          {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
     </form>
   );
 }

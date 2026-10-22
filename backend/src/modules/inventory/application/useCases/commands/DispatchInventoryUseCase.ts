@@ -6,6 +6,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { ErrorCodes, InternalErrorCodes, InternalInvariantError, NotFoundError } from "@shared/domain/errors";
 
 export class DispatchInventoryUseCase extends TransactionalUseCase<
   IDispatchInventoryInput,
@@ -27,7 +28,7 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
       request.productVariantId,
     );
     if (!inventory) {
-      throw new Error("Inventory not found.");
+      throw new NotFoundError("Estoque não encontrado.", ErrorCodes.INVENTORY_NOT_FOUND);
     }
 
     // Valida disponível (considera reservado) antes de qualquer gravação.
@@ -47,7 +48,7 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
       remaining -= quantity;
     }
     if (remaining > 0) {
-      throw new Error("Inventory lots are inconsistent.");
+      throw new InternalInvariantError("Os lotes do estoque estão inconsistentes.", InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT);
     }
 
     await this.inventoryRepository.update(inventory);

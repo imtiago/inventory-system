@@ -12,6 +12,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class ReceiveInventoryUseCase extends TransactionalUseCase<
   IReceiveInventoryInput,
@@ -34,7 +35,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
       request.productVariantId,
     );
     if (!variant) {
-      throw new Error("Variante não encontrada.");
+      throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
     }
 
     let inventory = await this.inventoryRepository.findByProductVariantId(
