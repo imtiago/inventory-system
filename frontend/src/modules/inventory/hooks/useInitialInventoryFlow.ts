@@ -52,18 +52,20 @@ export function useInitialInventoryFlow() {
   const [createdLot, setCreatedLot] = useState<InventoryLot | null>(null);
 
   const [selectedBox, setSelectedBox] = useState<InventoryBox | null>(null);
-  const [boxValidationError, setBoxValidationError] = useState<string | null>(null);
+  const [boxError, setBoxError] = useState<string | null>(null);
 
   const [placement, setPlacement] = useState<Placement | null>(null);
 
   const [labelQuantity, setLabelQuantity] = useState('1');
-  const [labelValidationError, setLabelValidationError] = useState<string | null>(null);
+  const [labelError, setLabelError] = useState<string | null>(null);
+  const [lotError, setLotError] = useState<string | null>(null);
 
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
 
   /**
-   * Latest-wins token for async work that moves the wizard (barcode lookup, lot creation).
-   * Navigation and every new request bump it; a result whose token is no longer current is ignored.
+   * Latest-wins token for async work that moves the wizard or sets its state
+   * (barcode lookup, lot creation, box creation, add to box, labels).
+   * Navigation and every new request bump it; a result (success or error) whose token is no longer current is ignored.
    */
   const requestToken = useRef(0);
 
@@ -93,9 +95,8 @@ export function useInitialInventoryFlow() {
     setSelectedLotId(null);
     setCreatedLot(null);
     setSelectedBox(null);
-    setBoxValidationError(null);
-    boxMutations.clearError();
-    lotCreation.clearError();
+    setBoxError(null);
+    setLotError(null);
   }
 
   function resetAll() {
@@ -108,8 +109,8 @@ export function useInitialInventoryFlow() {
     setVariant(null);
     resetLotAndBox();
     setLabelQuantity('1');
-    setLabelValidationError(null);
-    labels.clearError();
+    setLabelError(null);
+    setLabelError(null);
     barcodeLookup.clearFoundVariant();
     productSearch.clearProducts();
   }
@@ -234,21 +235,20 @@ export function useInitialInventoryFlow() {
   function handleSelectLot(lotId: string) {
     setSelectedLotId(lotId || null);
     setSelectedBox(null);
-    setBoxValidationError(null);
+    setBoxError(null);
   }
 
   function handleConfirmLot() {
     if (!selectedLot) return;
 
-    boxMutations.clearError();
-    setBoxValidationError(null);
+    setBoxError(null);
     setStep('box');
   }
 
   function handleOpenNewLotModal() {
     if (!variant) return;
 
-    lotCreation.clearError();
+    setLotError(null);
     setModal('new-lot');
   }
 
@@ -257,7 +257,9 @@ export function useInitialInventoryFlow() {
 
     const token = nextToken();
 
-    const lot = await lotCreation.create({
+    setLotError(null);
+
+    const result = await lotCreation.tryCreate({
       productVariantId: variant.id,
       batchNumber: data.batchNumber.trim(),
       quantity: data.quantity,
@@ -266,9 +268,14 @@ export function useInitialInventoryFlow() {
       manufacturingDate: data.manufacturingDate || undefined,
     });
 
-    if (lot && isCurrent(token)) {
-      handleNewLotSuccess(lot);
+    if (!isCurrent(token)) return;
+
+    if (!result.ok) {
+      setLotError(result.error);
+      return;
     }
+
+    handleNewLotSuccess(result.data);
   }
 
   /** The lot returned by the API becomes the selected lot. */
@@ -276,8 +283,7 @@ export function useInitialInventoryFlow() {
     setCreatedLot(lot);
     setSelectedLotId(lot.id);
     setSelectedBox(null);
-    setBoxValidationError(null);
-    boxMutations.clearError();
+    setBoxError(null);
     setModal(null);
     setStep('box');
   }
@@ -285,25 +291,32 @@ export function useInitialInventoryFlow() {
   /* ---------------------------------------------------------------- caixa */
 
   function handleBackToLot() {
-    setBoxValidationError(null);
-    boxMutations.clearError();
+    nextToken();
+    setBoxError(null);
     setStep('lot');
   }
 
   function handleSelectBox(box: InventoryBox) {
+    nextToken();
     setSelectedBox(box);
-    setBoxValidationError(null);
-    boxMutations.clearError();
+    setBoxError(null);
   }
 
   async function handleCreateBox() {
-    setBoxValidationError(null);
+    const token = nextToken();
 
-    const box = await boxMutations.createBox();
+    setBoxError(null);
 
-    if (box) {
-      setSelectedBox(box);
+    const result = await boxMutations.createBox();
+
+    if (!isCurrent(token)) return;
+
+    if (!result.ok) {
+      setBoxError(result.error);
+      return;
     }
+
+    setSelectedBox(result.data);
   }
 
   async function handleAddToBox(quantity: number) {
@@ -312,20 +325,28 @@ export function useInitialInventoryFlow() {
     const max = lotAvailableForBoxes;
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > max) {
-      setBoxValidationError(max > 0 ? `Informe uma quantidade entre 1 e ${max}.` : 'Todo o saldo deste lote já está em caixas.');
+      setBoxError(max > 0 ? `Informe uma quantidade entre 1 e ${max}.` : 'Todo o saldo deste lote já está em caixas.');
       return;
     }
 
-    setBoxValidationError(null);
+    const token = nextToken();
 
-    const item = await boxMutations.addLot(selectedBox.id, { inventoryLotId: selectedLot.id, quantity }, variant.id);
+    setBoxError(null);
 
-    if (!item) return;
+    const result = await boxMutations.addLot(selectedBox.id, { inventoryLotId: selectedLot.id, quantity }, variant.id);
+
+    // "Voltar" (or any reset) while the request was pending: don't move the wizard.
+    if (!isCurrent(token)) return;
+
+    if (!result.ok) {
+      setBoxError(result.error);
+      return;
+    }
 
     setPlacement({ quantity, boxCode: selectedBox.code });
     setLabelQuantity('1');
-    setLabelValidationError(null);
-    labels.clearError();
+    setLabelError(null);
+    setLabelError(null);
     setStep('label-choice');
   }
 
@@ -333,20 +354,21 @@ export function useInitialInventoryFlow() {
 
   function handleGenerateLabel() {
     setLabelQuantity('1');
-    setLabelValidationError(null);
-    labels.clearError();
+    setLabelError(null);
+    setLabelError(null);
     setStep('label-quantity');
   }
 
   function handleBackToLabelChoice() {
-    setLabelValidationError(null);
-    labels.clearError();
+    nextToken();
+    setLabelError(null);
+    setLabelError(null);
     setStep('label-choice');
   }
 
   function handleLabelQuantityChange(value: string) {
     setLabelQuantity(value);
-    setLabelValidationError(null);
+    setLabelError(null);
   }
 
   async function handleConfirmLabelQuantity() {
@@ -355,15 +377,24 @@ export function useInitialInventoryFlow() {
     const quantity = Number(labelQuantity);
 
     if (labelQuantity.trim() === '' || !Number.isInteger(quantity) || quantity < 1) {
-      setLabelValidationError('Informe uma quantidade de etiquetas válida (mínimo 1).');
+      setLabelError('Informe uma quantidade de etiquetas válida (mínimo 1).');
       return;
     }
 
-    const generated = await labels.generate(selectedBox.code, variant.code, quantity);
+    const token = nextToken();
 
-    if (generated) {
-      handleFinishUnit();
+    setLabelError(null);
+
+    const result = await labels.generate(selectedBox.code, variant.code, quantity);
+
+    if (!isCurrent(token)) return;
+
+    if (!result.ok) {
+      setLabelError(result.error);
+      return;
     }
+
+    handleFinishUnit();
   }
 
   function handleSkipLabel() {
@@ -398,17 +429,17 @@ export function useInitialInventoryFlow() {
     selectedLot,
     lotAvailableForBoxes,
     createLotLoading: lotCreation.loading,
-    createLotError: lotCreation.error,
+    createLotError: lotError,
 
     selectedBox,
     boxLoading: boxMutations.loading,
-    boxError: boxValidationError ?? boxMutations.error,
+    boxError,
 
     placementMessage: placement ? placementMessage(placement) : null,
 
     labelQuantity,
     labelLoading: labels.loading,
-    labelError: labelValidationError ?? labels.error,
+    labelError,
 
     handleStartWithBarcode,
     handleStartWithoutBarcode,

@@ -468,4 +468,29 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(screen.getByRole('heading', { name: 'Caixa' })).toBeInTheDocument();
   });
+
+  test('Voltar durante adicionar à caixa mantém o passo do lote', async () => {
+    let resolved = false;
+    server.use(
+      http.post(`${API_URL}/inventory/boxes/:boxId/items`, async ({ request, params }) => {
+        const body = (await request.json()) as { inventoryLotId: string; quantity: number };
+        await delay(150);
+        resolved = true;
+        return HttpResponse.json({ data: { id: 'item-1', boxId: params.boxId, ...body } }, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+
+    await addThreeUnitsToBox(user);
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(screen.getByRole('heading', { name: 'Selecionar lote' })).toBeInTheDocument();
+
+    await waitFor(() => expect(resolved).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole('heading', { name: 'Selecionar lote' })).toBeInTheDocument();
+    expect(screen.queryByText(/unidade\(s\) colocada\(s\)/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sim, gerar etiqueta' })).not.toBeInTheDocument();
+  });
 });

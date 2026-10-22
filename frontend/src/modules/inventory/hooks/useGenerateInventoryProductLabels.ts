@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { api } from '@/shared/services/api';
-import { apiErrorMessage } from '../utils/apiErrorMessage';
+import { apiErrorMessage, type MutationResult } from '../utils/apiErrorMessage';
 
 const FALLBACK = 'Não foi possível gerar as etiquetas.';
 
@@ -25,12 +25,9 @@ async function labelErrorMessage(error: unknown): Promise<string> {
 export function useGenerateInventoryProductLabels() {
   const [loading, setLoading] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
-
-  async function generate(boxCode: string, productCode: string, quantity: number): Promise<boolean> {
+  async function generate(boxCode: string, productCode: string, quantity: number): Promise<MutationResult<true>> {
     try {
       setLoading(true);
-      setError(null);
 
       const response = await api.post(
         `/inventory/boxes/code/${encodeURIComponent(boxCode)}/product-labels`,
@@ -44,24 +41,16 @@ export function useGenerateInventoryProductLabels() {
 
       window.open(url, '_blank');
 
-      return true;
+      return { ok: true, data: true };
     } catch (err: unknown) {
-      setError(await labelErrorMessage(err));
-
-      return false;
+      return { ok: false, error: await labelErrorMessage(err) };
     } finally {
       setLoading(false);
     }
   }
 
-  function clearError() {
-    setError(null);
-  }
-
   return {
     generate,
     loading,
-    error,
-    clearError,
   };
 }

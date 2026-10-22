@@ -4,3 +4,6 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
 
   return typeof message === 'string' && message.trim() ? message : fallback;
 }
+
+/** Outcome of a wizard mutation; the caller decides (after a staleness check) whether to show the error. */
+export type MutationResult<T> = { ok: true; data: T } | { ok: false; error: string };
