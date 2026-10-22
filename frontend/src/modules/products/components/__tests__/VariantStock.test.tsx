@@ -25,6 +25,24 @@ describe('VariantStock', () => {
     expect(await screen.findByText('Sem estoque')).toBeInTheDocument();
   });
 
+  test("VariantStock com erro de rede mostra 'Erro ao carregar estoque'", async () => {
+    server.use(http.get(`${API_URL}/inventory/variants/:variantId`, () => HttpResponse.error()));
+    renderWithProviders(<VariantStock variantId="x" />);
+    expect(await screen.findByText('Erro ao carregar estoque')).toBeInTheDocument();
+    expect(screen.queryByText('Sem estoque')).not.toBeInTheDocument();
+  });
+
+  test("VariantStock com 404 ROUTE_NOT_FOUND mostra 'Erro ao carregar estoque'", async () => {
+    server.use(
+      http.get(`${API_URL}/inventory/variants/:variantId`, () =>
+        HttpResponse.json({ message: 'Rota não encontrada.', code: 'ROUTE_NOT_FOUND' }, { status: 404 }),
+      ),
+    );
+    renderWithProviders(<VariantStock variantId="x" />);
+    expect(await screen.findByText('Erro ao carregar estoque')).toBeInTheDocument();
+    expect(screen.queryByText('Sem estoque')).not.toBeInTheDocument();
+  });
+
   test("VariantStock com erro 500 mostra 'Erro ao carregar estoque'", async () => {
     server.use(http.get(`${API_URL}/inventory/variants/:variantId`, () => HttpResponse.json(internalError, { status: 500 })));
     renderWithProviders(<VariantStock variantId="x" />);

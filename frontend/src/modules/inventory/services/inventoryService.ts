@@ -18,7 +18,7 @@ export async function getInventoryById(id: string): Promise<Inventory> {
   return response.data.data;
 }
 
-/** Returns null when the variant has no inventory yet (404). */
+/** Returns null when the variant has no inventory yet (404 INVENTORY_NOT_FOUND). */
 export async function getInventoryByVariant(variantId: string): Promise<Inventory | null> {
   try {
     const response = await api.get<{ data: Inventory }>(`/inventory/variants/${variantId}`);
@@ -27,7 +27,7 @@ export async function getInventoryByVariant(variantId: string): Promise<Inventor
   } catch (error: unknown) {
     const parsed = parseApiErrorSync(error);
 
-    if (parsed.status === 404 || parsed.code === 'INVENTORY_NOT_FOUND') {
+    if (parsed.status === 404 && parsed.code === 'INVENTORY_NOT_FOUND') {
       return null;
     }
 

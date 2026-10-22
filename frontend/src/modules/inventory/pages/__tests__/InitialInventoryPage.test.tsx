@@ -62,7 +62,7 @@ beforeEach(() => {
 
   server.use(
     http.get(`${API_URL}/variants/barcode/:code`, ({ params }) =>
-      params.code === BARCODE ? HttpResponse.json({ data: variant }) : HttpResponse.json({ message: 'Resource not found', code: 'NOT_FOUND' }, { status: 404 }),
+      params.code === BARCODE ? HttpResponse.json({ data: variant }) : HttpResponse.json({ message: 'Variante não encontrada.', code: 'VARIANT_NOT_FOUND' }, { status: 404 }),
     ),
     http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => {
       lotsRequests += 1;
@@ -414,6 +414,40 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.getByRole('heading', { name: 'Produto não encontrado' })).toBeInTheDocument();
     expect(screen.getByText(BARCODE)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test("status não-404 com code VARIANT_NOT_FOUND também leva a 'produto não encontrado'", async () => {
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Variante não encontrada.', code: 'VARIANT_NOT_FOUND' }, { status: 422 })));
+    const user = userEvent.setup();
+    renderPage();
+
+    await scanBarcode(user);
+
+    expect(await screen.findByText('Esse produto já existe no cadastro?')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Produto não encontrado' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('novo produto no assistente: erro 400 de campo aparece inline no formulário', async () => {
+    server.use(
+      http.get(`${API_URL}/brands`, () => HttpResponse.json({ data: [] })),
+      http.get(`${API_URL}/categories`, () => HttpResponse.json({ data: [] })),
+      http.post(`${API_URL}/products`, () =>
+        HttpResponse.json(
+          { message: 'Dados inválidos.', code: 'VALIDATION_ERROR', errors: [{ field: 'name', message: 'O nome é obrigatório.' }] },
+          { status: 400 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /cadastrar sem código de barras/i }));
+    await user.click(screen.getByRole('button', { name: /não, é um produto novo/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar Produto' }));
+
+    expect(await within(dialog).findByText('O nome é obrigatório.')).toBeInTheDocument();
   });
 
   test('busca de caixa envia ?search=<código> e o resultado pode ser selecionado', async () => {
