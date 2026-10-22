@@ -52,4 +52,17 @@ describe('InventoryDetailsPage', () => {
     renderPage();
     expect(await screen.findByText('31/12/2026')).toBeInTheDocument();
   });
+
+  test('detalhes pedem até 100 lotes (cabeçalho e tabela consistentes)', async () => {
+    const limits: (string | null)[] = [];
+    server.use(
+      http.get(`${API_URL}/inventory/variants/:variantId/lots`, ({ request }) => {
+        limits.push(new URL(request.url).searchParams.get('limit'));
+        return HttpResponse.json(inventoryLotList);
+      }),
+    );
+    renderPage();
+    await screen.findByText('L2026-10-A');
+    expect(limits).toEqual(['100']);
+  });
 });

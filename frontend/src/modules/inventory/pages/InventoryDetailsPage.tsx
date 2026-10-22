@@ -11,7 +11,7 @@ export function InventoryDetailsPage() {
 
   const { data: inventory, isLoading: isLoadingInventory, isError: isInventoryError } = useInventoryById(inventoryId || '');
 
-  const { lots, pagination, isLoading: isLoadingLots, error: lotsError } = useInventoryLots(inventory?.productVariantId);
+  const { lots, pagination, isLoading: isLoadingLots, error: lotsError } = useInventoryLots(inventory?.productVariantId, { limit: 100 });
   const isLotsError = Boolean(lotsError);
 
   if (isLoadingInventory) {
