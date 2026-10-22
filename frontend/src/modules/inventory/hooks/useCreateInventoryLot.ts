@@ -11,9 +11,7 @@ export function useCreateInventoryLot() {
 
   const [loading, setLoading] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
-
-  /** Returns the outcome without touching `error` (the wizard owns its error state). */
+  /** Returns the outcome; the wizard owns its error state. */
   async function tryCreate(data: CreateInventoryLotDTO): Promise<MutationResult<InventoryLot>> {
     try {
       setLoading(true);
@@ -30,28 +28,8 @@ export function useCreateInventoryLot() {
     }
   }
 
-  async function create(data: CreateInventoryLotDTO) {
-    setError(null);
-
-    const result = await tryCreate(data);
-
-    if (!result.ok) {
-      setError(result.error);
-      return null;
-    }
-
-    return result.data;
-  }
-
-  function clearError() {
-    setError(null);
-  }
-
   return {
-    create,
     tryCreate,
     loading,
-    error,
-    clearError,
   };
 }

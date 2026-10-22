@@ -23,8 +23,8 @@ export async function getInventoryByVariant(variantId: string): Promise<Inventor
     const response = await api.get<{ data: Inventory }>(`/inventory/variants/${variantId}`);
 
     return response.data.data;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
+  } catch (error: unknown) {
+    if ((error as { response?: { status?: number } }).response?.status === 404) {
       return null;
     }
 
