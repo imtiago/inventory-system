@@ -13,8 +13,8 @@ async function build() {
   const s = setupStock();
   const boxes = new InMemoryInventoryBoxRepository();
   const stocks = new InMemoryInventoryBoxStockRepository();
-  const add = new AddProductToBoxUseCase(boxes, stocks, s.lots, s.tx);
-  const remove = new RemoveProductFromBoxUseCase(stocks, s.tx);
+  const add = new AddProductToBoxUseCase(boxes, stocks, s.lots, s.inventories, s.tx);
+  const remove = new RemoveProductFromBoxUseCase(stocks, s.lots, s.inventories, s.tx);
   const boxA = await boxes.create(new InventoryBox({ code: "A" }));
   const boxB = await boxes.create(new InventoryBox({ code: "B" }));
   return { ...s, boxes, stocks, add, remove, boxA, boxB };

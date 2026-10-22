@@ -28,6 +28,7 @@ export function makeRegisterScannedProductFactory() {
     inventoryBoxRepository,
     inventoryBoxStockRepository,
     inventoryLotRepository,
+    inventoryRepository,
     transactionManager,
   );
 

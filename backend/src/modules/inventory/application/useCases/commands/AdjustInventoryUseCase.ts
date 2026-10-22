@@ -27,7 +27,8 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
   protected async handle(
     request: IAdjustInventoryInput,
   ): Promise<StockMovement | null> {
-    const inventory = await this.inventoryRepository.findByProductVariantId(
+    // Trava a linha da variante antes de ler saldo/lotes (sem criar inventário).
+    const inventory = await this.inventoryRepository.lockExistingByProductVariantId(
       request.productVariantId,
     );
     if (!inventory) {
