@@ -32,3 +32,12 @@ export interface IDeleteProductInput {
 export interface IUpdateProductInput {
   id: string;
 }
+
+export interface IProductOutput {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  brand_id: string;
+  category_id: string;
+}

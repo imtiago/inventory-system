@@ -35,3 +35,15 @@ export interface ICreateSaleInput {
     dueDate: Date;
   }[];
 }
+
+export interface ISaleOutput {
+  id: string;
+
+  customer_id: string;
+
+  items: SaleItemDTO[];
+
+  totalAmount: number;
+
+  status: string;
+}

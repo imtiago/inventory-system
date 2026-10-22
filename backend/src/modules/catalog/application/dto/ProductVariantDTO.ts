@@ -24,3 +24,12 @@ export interface ICreateVariantInput {
 export interface IDeleteProductVariantInput {
   id: string;
 }
+
+export interface IProductVariantOutput {
+  id: string;
+  productId: string;
+  code: string;
+  name: string;
+  barcode: string | null;
+  salePrice: number;
+}

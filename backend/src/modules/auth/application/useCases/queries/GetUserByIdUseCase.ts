@@ -1,11 +1,18 @@
-import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
-import { UserDTO } from "@auth/application/dto/UserDTO";
+import { IUserOutput } from "@auth/application/dto/UserDTO";
+import { UserRepository } from "@auth/domain/repositories/UserRepository";
 
 export class GetUserByIdUseCase {
-  constructor(private userRepo: UserReadRepository) {}
+  constructor(private userRepo: UserRepository) {}
 
-  async execute(id: string): Promise<UserDTO | null> {
+  async execute(id: string): Promise<IUserOutput | null> {
     const user = await this.userRepo.findById(id);
-    return user;
+    if (!user) return null;
+    return {
+      id: user.id,
+      code: user.code,
+      name: user.name,
+      role: user.role,
+      email: user.email,
+    };
   }
 }

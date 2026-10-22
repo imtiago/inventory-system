@@ -3,7 +3,7 @@ import { FastifyInstance } from "fastify";
 import { authorize } from "../../../../../shared/middleware/authorize";
 // import { makeAddInventoryController } from "../controllers/ReceiveInventoryController";
 // import { makeGetInventoryController } from "../controllers/GetInventoryController";
-// import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
+import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
 import { makeListInventoryController } from "../controllers/ListInventoryController";
 import { makeReceiveInventoryController } from "../controllers/ReceiveInventoryController";
 import { makeDispatchInventoryController } from "../controllers/DispatchInventoryController";
@@ -79,6 +79,11 @@ export async function inventoryRoutes(app: FastifyInstance) {
     makeListInventoryLotsByVariantIdController(),
   );
   app.get(
+    "/variants/:variantId",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeGetInventoryByVariantIdController(),
+  );
+  app.get(
     "/:id",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGetInventoryByIdController(),
@@ -107,10 +112,5 @@ export async function inventoryRoutes(app: FastifyInstance) {
   //   "/:variantId",
   //   { preHandler: [authorize(["admin", "vendedor"])] },
   //   makeGetInventoryController(),
-  // );
-  // app.get(
-  //   "/variants/:variantId",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
-  //   makeGetInventoryByVariantIdController(),
   // );
 }

@@ -4,11 +4,10 @@ import { ProductVariant } from "../entities/ProductVariant";
 import { Brand } from "../entities/Brand";
 import { Category } from "../entities/Category";
 import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
+import { ICrudRepository } from "@shared/domain/repositories/CrudRepository";
 
-export interface ProductRepository {
-  create(product: Product): Promise<Product>;
+export interface ProductRepository extends ICrudRepository<Product> {
   list(page: number, limit: number): Promise<Product[]>;
-  findById(id: string): Promise<Product | null>;
   createVariant(variant: ProductVariant): Promise<ProductVariant>;
   listBrands(): Promise<Brand[]>;
   createBrand(brand: Brand): Promise<Brand>;
@@ -16,8 +15,6 @@ export interface ProductRepository {
   createCategory(category: Category): Promise<Category>;
   findAll?(): Promise<Product[]>; // ou opcional
   findVariantsByProductId(productId: string): Promise<ProductVariant[]>;
-  update(id: string, data: Partial<Product>): Promise<Product>;
-  delete(id: string): Promise<void>;
 
   findProductsForList(): Promise<ProductListDTO[]>;
   // ✅ Métodos adicionados para o ImportNfeUseCase

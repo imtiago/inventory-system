@@ -24,3 +24,16 @@ export interface ICreateInventoryLotInput {
   manufacturingDate?: Date;
   unitCost: number;
 }
+
+
+export interface IInventoryLotOutput {
+  id: string;
+  code: string;
+  productVariantId: string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  minimumStock: number;
+  batchNumber: string;
+  expirationDate: Date;
+}

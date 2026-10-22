@@ -1,8 +1,7 @@
 // src/modules/catalog/domain/repositories/BrandRepository.ts
+import { ICrudRepository } from "@shared/domain/repositories/CrudRepository";
 import { Brand } from "../entities/Brand";
 
-export interface BrandRepository {
-  create(brand: Brand): Promise<Brand>;
-  list(page: number, limit: number): Promise<Brand[]>;
-  findById(id: string): Promise<Brand | null>;
+export interface BrandRepository extends ICrudRepository<Brand> {
+  // list(page: number, limit: number): Promise<Brand[]>;
 }

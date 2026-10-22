@@ -1,7 +1,10 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { ICreateBrandInput } from "@catalog/application/dto/BrandDTO";
+import {
+  IBrandOutput,
+  ICreateBrandInput,
+} from "@catalog/application/dto/BrandDTO";
 import { Brand } from "@catalog/domain/entities/Brand";
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
@@ -19,11 +22,16 @@ export class CreateBrandUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateBrandInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Brand> {
+  ): Promise<IBrandOutput> {
     const brand = new Brand({
       name: request.name,
     });
 
-    return this.repository.create(brand);
+    const data = await this.repository.create(brand);
+
+    return {
+      id: data.id,
+      name: data.name,
+    };
   }
 }

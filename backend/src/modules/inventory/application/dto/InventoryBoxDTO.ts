@@ -20,3 +20,7 @@ export interface IGenerateInventoryProductLabelsInput {
   productCode: string;
   quantity: number;
 }
+export interface IInventoryBoxOutput {
+  id: string;
+  code: string;
+}

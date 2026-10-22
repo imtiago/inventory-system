@@ -10,13 +10,33 @@ import type { InventoryLot, Product, ProductVariant } from '../types/InitialInve
 import { useSearchProducts } from './useSearchProducts';
 import { useCreateInventoryLot } from './useCreateInventoryLot';
 import type { InventoryLotFormData } from '../components/InventoryLotForm';
+import { getInventoryByVariant, createInventory } from '../services/inventoryService';
 
 type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
 
 type InventoryModalType = 'new-product' | 'product-selection' | 'new-lot' | 'label-quantity' | null;
 
+type InventoryData = {
+  id: string;
+  productVariantId: string;
+  quantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  minimumStock: number;
+  createdAt: string;
+};
+
+type InventoryPrompt = 'create' | 'confirm-cancel' | null;
+
 export function useInitialInventoryFlow() {
   const [step, setStep] = useState<FlowStep>('start');
+
+  // Dentro de useInitialInventoryFlow():
+  const [inventory, setInventory] = useState<InventoryData | null>(null);
+  const [inventoryPrompt, setInventoryPrompt] = useState<InventoryPrompt>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryCreating, setInventoryCreating] = useState(false);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
 
   const [modal, setModal] = useState<InventoryModalType>(null);
 
@@ -120,6 +140,71 @@ export function useInitialInventoryFlow() {
    */
   const selectedLot = lots.find((lot) => lot.id === selectedLotId) ?? null;
 
+  async function validateInventoryForVariant(variant: ProductVariant) {
+    setInventoryLoading(true);
+    setInventoryError(null);
+    setInventory(null);
+    setInventoryPrompt(null);
+
+    try {
+      const result = await getInventoryByVariant(variant.id);
+
+      if (result?.id) {
+        setInventory(result);
+        setInventoryPrompt(null);
+        setStep('lot');
+        return;
+      }
+
+      setInventoryPrompt('create');
+    } catch {
+      setInventoryError('Não foi possível consultar o inventory. Tente novamente.');
+    } finally {
+      setInventoryLoading(false);
+    }
+  }
+
+  async function handleCreateInventory() {
+    const variant = createdVariant ?? foundVariant;
+
+    if (!variant || inventoryCreating) {
+      return;
+    }
+
+    setInventoryCreating(true);
+    setInventoryError(null);
+
+    try {
+      const created = await createInventory(variant.id);
+
+      if (!created?.id) {
+        setInventoryError('A API não retornou o inventory criado.');
+        return;
+      }
+
+      setInventory(created);
+      setInventoryPrompt(null);
+      setStep('lot');
+    } catch {
+      setInventoryError('Não foi possível criar o inventory. Tente novamente.');
+    } finally {
+      setInventoryCreating(false);
+    }
+  }
+
+  function handleDeclineInventoryCreation() {
+    setInventoryPrompt('confirm-cancel');
+  }
+
+  function handleConfirmInventoryCancellation() {
+    setInventoryPrompt(null);
+    handleBackToStart();
+  }
+
+  function handleResumeInventoryCreation() {
+    setInventoryPrompt('create');
+  }
+
   /**
    * Carrega os lotes sempre que a variante atual mudar.
    */
@@ -149,14 +234,12 @@ export function useInitialInventoryFlow() {
 
     setBoxes([]);
     setSelectedBox(null);
-
     setBoxId(null);
     setBoxCode('');
-
     setInventoryQuantity(null);
     setLabelQuantity(1);
 
-    setStep('lot');
+    void validateInventoryForVariant(foundVariant);
   }, [foundVariant]);
 
   /**
@@ -280,12 +363,12 @@ export function useInitialInventoryFlow() {
       return;
     }
 
-    /**
-     * Variante encontrada.
-     *
-     * O useEffect acima cuidará de avançar para "lot".
-     */
-    setStep('lot');
+    // /**
+    //  * Variante encontrada.
+    //  *
+    //  * O useEffect acima cuidará de avançar para "lot".
+    //  */
+    // setStep('lot');
   }
 
   /**
@@ -347,7 +430,7 @@ export function useInitialInventoryFlow() {
   /**
    * Variante criada.
    */
-  function handleVariantCreated(variant: ProductVariant) {
+  async function handleVariantCreated(variant: ProductVariant) {
     setCreatedVariant(variant);
 
     setSelectedLotId(null);
@@ -362,7 +445,7 @@ export function useInitialInventoryFlow() {
     setInventoryQuantity(null);
     setLabelQuantity(1);
 
-    setStep('lot');
+    await validateInventoryForVariant(variant);
   }
 
   /**
@@ -456,12 +539,15 @@ export function useInitialInventoryFlow() {
    * Novo lote criado.
    */
   async function handleNewLotSuccess(createdLot: InventoryLot) {
+    if (!currentVariant) {
+      return;
+    }
+
     const result = await createLot({
       productVariantId: currentVariant.id,
       batchNumber: createdLot.batchNumber,
       manufacturingDate: createdLot.manufacturingDate || undefined,
       unitCost: createdLot.unitCost,
-      // expirationDate: data.expirationDate,
       expirationDate: new Date(createdLot.expirationDate).toUTCString(),
       quantity: createdLot.quantity,
     });
@@ -470,9 +556,8 @@ export function useInitialInventoryFlow() {
       return;
     }
 
-    if (!currentVariant) {
-      return;
-    }
+    // Atualiza os dados do inventário após criar o lote.
+    await validateInventoryForVariant(currentVariant);
 
     closeModal();
 
@@ -731,6 +816,10 @@ export function useInitialInventoryFlow() {
     clearBox();
     clearBoxMutationError();
     clearLabelError();
+
+    setInventory(null);
+    setInventoryPrompt(null);
+    setInventoryError(null);
   }
 
   /**
@@ -769,6 +858,10 @@ export function useInitialInventoryFlow() {
     clearBox();
     clearBoxMutationError();
     clearLabelError();
+
+    setInventory(null);
+    setInventoryPrompt(null);
+    setInventoryError(null);
   }
 
   /**
@@ -911,5 +1004,17 @@ export function useInitialInventoryFlow() {
     closeModal,
     createLotLoading,
     createLotError,
+
+    inventory,
+    inventoryPrompt,
+    inventoryLoading,
+    inventoryCreating,
+    inventoryError,
+
+    validateInventoryForVariant,
+    handleCreateInventory,
+    handleDeclineInventoryCreation,
+    handleConfirmInventoryCancellation,
+    handleResumeInventoryCreation,
   };
 }

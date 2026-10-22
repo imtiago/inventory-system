@@ -1,8 +1,7 @@
+import { ICrudRepository } from "@shared/domain/repositories/CrudRepository";
 import { User } from "../entities/User";
 
-export interface UserRepository {
-  create(user: User): Promise<User>;
+export interface UserRepository extends ICrudRepository<User> {
   findByEmail(email: string): Promise<User | null>;
-  findById(id: string): Promise<User | null>;
-  list(page: number, limit: number): Promise<User[]>;
+  // list(page: number, limit: number): Promise<User[]>;
 }

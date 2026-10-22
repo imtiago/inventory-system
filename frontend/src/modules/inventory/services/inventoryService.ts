@@ -29,6 +29,28 @@ export async function getVariantInventory(productVariantId: string) {
   return response.data.data;
 }
 
+export async function getInventoryByVariant(variantId: string) {
+  try {
+    const response = await api.get(`/inventory/variants/${variantId}`);
+
+    return response.data.data ?? response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function createInventory(productVariantId: string) {
+  const response = await api.post('/inventory/', {
+    productVariantId,
+  });
+
+  return response.data.data ?? response.data;
+}
+
 /**
  * =========================
  * Inventory Lots

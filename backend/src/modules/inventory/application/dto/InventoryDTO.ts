@@ -77,3 +77,13 @@ export interface IReserveInventoryInput {
   notes?: string;
   userId: string;
 }
+
+export interface IInventoryOutput {
+  id: string;
+  productVariantId: string;
+  code: string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  minimumStock: number;
+}

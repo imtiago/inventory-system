@@ -7,3 +7,7 @@ export interface BrandListDTO {
 export interface ICreateBrandInput {
   name: string;
 }
+export interface IBrandOutput {
+  id: string;
+  name: string;
+}

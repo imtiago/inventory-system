@@ -21,3 +21,12 @@ export interface IUpdateCustomerInput {
   phone?: string | null;
   address?: string | null;
 }
+
+export interface ICustomerOutput {
+  id: string;
+  name: string;
+  code: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+}

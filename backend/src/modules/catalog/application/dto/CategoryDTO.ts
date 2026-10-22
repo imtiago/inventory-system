@@ -7,3 +7,7 @@ export interface CategoryDTO {
 export interface ICreateCategoryInput {
   name: string;
 }
+export interface ICategoryOutput {
+  id: string;
+  name: string;
+}

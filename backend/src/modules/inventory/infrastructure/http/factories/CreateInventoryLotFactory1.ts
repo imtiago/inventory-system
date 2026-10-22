@@ -4,15 +4,19 @@ import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTr
 import { prisma } from "@shared/prisma";
 import { makeAdjustInventoryFactory } from "./AdjustInventoryFactory";
 import { makeCreateInventoryLotUseCase } from "./CreateInventoryLotFactory";
-import { CreateInventoryLotUseCase1 } from "@inventory/application/useCases/commands/CreateInventoryLotUseCase1";
+import { ManagerCreateInventoryLotUseCase } from "@inventory/application/useCases/workflows/ManagerCreateInventoryLotUseCase";
+import { makeGetInventoryByIdUseCase } from "./GetInventoryByIdFactory";
 
 export function makeCreateInventoryLot1UseCase() {
+  const getInventoryByIdUseCase = makeGetInventoryByIdUseCase();
   const createInventoryLotUseCase = makeCreateInventoryLotUseCase();
   const adjustInventoryUseCase = makeAdjustInventoryFactory();
   const transactionManager = new PrismaTransactionManager();
 
-  return new CreateInventoryLotUseCase1(
+  return new ManagerCreateInventoryLotUseCase(
+    getInventoryByIdUseCase,
     createInventoryLotUseCase,
+
     adjustInventoryUseCase,
     transactionManager,
   );
