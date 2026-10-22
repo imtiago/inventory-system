@@ -80,7 +80,6 @@ export class CreateSaleUseCase extends TransactionalUseCase<
         {
           productVariantId: item.productVariantId,
           quantity: item.quantity,
-          reason: "SALE",
         }
       );
 

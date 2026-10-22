@@ -19,14 +19,9 @@ export interface InventoryWithExtendsDTO extends InventoryDTO {
 
 export interface IAdjustInventoryInput {
   productVariantId: string;
-
-  quantity: number;
-
-  origin: StockMovementOrigin;
-
-  userId?: string;
-
+  countedQuantity: number;
   notes?: string;
+  userId?: string;
 }
 
 export interface ICreateInventoryInput {
@@ -39,7 +34,7 @@ export interface IDispatchInventoryInput {
   origin: StockMovementOrigin;
   originReferenceId?: string;
   notes?: string;
-  userId: string;
+  userId?: string;
 }
 
 export interface IReceiveInventoryInput {
@@ -71,20 +66,20 @@ export interface IRegisterScannedProductInput {
 
 export interface IReleaseInventoryInput {
   inventoryId: string;
-
   quantity: number;
-
-  userId: string;
-
+  origin?: StockMovementOrigin;
+  originId?: string;
   notes?: string;
+  userId?: string;
 }
 
 export interface IReserveInventoryInput {
   productVariantId: string;
   quantity: number;
-  originId: string;
+  origin?: StockMovementOrigin;
+  originId?: string;
   notes?: string;
-  userId: string;
+  userId?: string;
 }
 
 export interface IInventoryOutput {
