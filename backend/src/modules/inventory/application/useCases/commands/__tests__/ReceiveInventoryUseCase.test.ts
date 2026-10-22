@@ -73,13 +73,19 @@ test("lote novo: saldo, lote e movimentação IN com prev 0 / cur 10", async () 
 });
 
 test("custo médio ponderado", async () => {
-  const { useCase } = setup();
+  const { useCase, movements } = setup();
   await useCase.execute(input({ quantity: 10, unitCost: 5 }));
   const { inventory } = await useCase.execute(
     input({ quantity: 10, unitCost: 15 }),
   );
   assert.equal(inventory.averageCost, 10);
   assert.equal(inventory.quantity, 20);
+  const second = movements
+    .all()
+    .sort((a, b) => a.currentQuantity! - b.currentQuantity!)[1];
+  assert.equal(second.previousQuantity, 10);
+  assert.equal(second.currentQuantity, 20);
+  assert.equal(second.averageCost, 10);
 });
 
 test("mesmo batchNumber soma no lote existente mantendo unitCost e validade originais", async () => {
@@ -102,7 +108,13 @@ test("mesmo batchNumber soma no lote existente mantendo unitCost e validade orig
   assert.equal(second.lot.remainingQuantity, 14);
   assert.equal(second.lot.unitCost, 5);
   assert.equal(second.lot.expirationDate?.getTime(), exp.getTime());
-  assert.equal(movements.all().length, 2);
+  assert.equal(second.inventory.quantity, 14);
+  const ms = movements
+    .all()
+    .sort((a, b) => a.currentQuantity! - b.currentQuantity!);
+  assert.equal(ms.length, 2);
+  assert.equal(ms[1].previousQuantity, 10);
+  assert.equal(ms[1].currentQuantity, 14);
 });
 
 test("sem batchNumber cria lotes separados", async () => {
@@ -123,4 +135,12 @@ test("movimentação registra inventoryLotId, averageCost, userId", async () => 
   assert.equal(m.userId, "user-1");
   assert.equal(m.originId, "ref-1");
   assert.equal(m.notes, "n");
+});
+
+test("persistência: lote e inventário gravados refletem o estado após o use case", async () => {
+  const { useCase, lots, inventories } = setup();
+  const { lot, inventory } = await useCase.execute(input({ batchNumber: "L1" }));
+  await useCase.execute(input({ batchNumber: "L1", quantity: 5 }));
+  assert.equal((await lots.findById(lot.id))!.remainingQuantity, 15);
+  assert.equal((await inventories.findById(inventory.id))!.quantity, 15);
 });

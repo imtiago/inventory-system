@@ -11,29 +11,60 @@ import { IInventoryBoxRepository } from "@inventory/domain/repositories/Inventor
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 
-abstract class InMemoryRepository<T extends { id: string }> {
-  readonly items = new Map<string, T>();
+function cloneValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(cloneValue);
+  if (value && typeof value === "object" && !(value instanceof Date)) {
+    return cloneEntity(value);
+  }
+  return value;
+}
+
+/** Cópia com o mesmo prototype e cópia do estado próprio (Dates compartilhadas). */
+export function cloneEntity<T extends object>(entity: T): T {
+  const copy = Object.create(Object.getPrototypeOf(entity)) as Record<
+    string,
+    unknown
+  >;
+  for (const key of Object.keys(entity)) {
+    copy[key] = cloneValue((entity as Record<string, unknown>)[key]);
+  }
+  return copy as T;
+}
+
+/**
+ * Armazena snapshots: grava cópia em create/update e devolve cópia em toda
+ * leitura, de modo que mutar uma entidade sem chamar update() não persiste.
+ */
+export abstract class InMemoryRepository<T extends { id: string }> {
+  private readonly store = new Map<string, T>();
 
   async findById(id: string): Promise<T | null> {
-    return this.items.get(id) ?? null;
+    const found = this.store.get(id);
+    return found ? cloneEntity(found) : null;
   }
 
   async create(entity: T): Promise<T> {
-    this.items.set(entity.id, entity);
+    this.store.set(entity.id, cloneEntity(entity));
     return entity;
   }
 
   async update(entity: T): Promise<T> {
-    this.items.set(entity.id, entity);
+    if (!this.store.has(entity.id)) {
+      throw new Error(`Record not found: ${entity.id}`);
+    }
+    this.store.set(entity.id, cloneEntity(entity));
     return entity;
   }
 
   async delete(id: string): Promise<void> {
-    this.items.delete(id);
+    if (!this.store.has(id)) {
+      throw new Error(`Record not found: ${id}`);
+    }
+    this.store.delete(id);
   }
 
   all(): T[] {
-    return [...this.items.values()];
+    return [...this.store.values()].map(cloneEntity);
   }
 }
 
