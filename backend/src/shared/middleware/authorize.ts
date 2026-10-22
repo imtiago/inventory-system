@@ -8,7 +8,12 @@ export function authorize(allowedRoles: string[]) {
       throw new UnauthorizedError("Usuário não autenticado.");
     }
 
-    if (!allowedRoles.includes(request.user.role.toLowerCase())) {
+    const role = request.user.role;
+    if (typeof role !== "string") {
+      throw new UnauthorizedError("Token inválido.", "UNAUTHENTICATED");
+    }
+
+    if (!allowedRoles.includes(role.toLowerCase())) {
       throw new ForbiddenError();
     }
   };

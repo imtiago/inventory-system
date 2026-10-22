@@ -51,7 +51,7 @@ export class ImportNfeUseCase {
       }
     }
 
-    await this.nfeImportRepository.save(filePath, items);
+    await this.nfeImportRepository.save(fileName, items);
     return items;
   }
 }

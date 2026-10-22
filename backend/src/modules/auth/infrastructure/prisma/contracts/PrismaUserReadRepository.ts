@@ -29,7 +29,7 @@ export class PrismaUserReadRepository implements UserReadRepository {
         id,
       },
     });
-    const dt = UserReadMapper.toDTO(user);
-    return dt;
+    if (!user) return null;
+    return UserReadMapper.toDTO(user);
   }
 }

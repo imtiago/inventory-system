@@ -1,4 +1,4 @@
-import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import { SaleRepository } from "../../../domain/repositories/SaleRepository";
 import { InventoryRepository } from "../../../../inventory/domain/repositories/InventoryRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
@@ -24,7 +24,7 @@ export class CancelSaleUseCase extends TransactionalUseCase<
     if (!sale) throw new NotFoundError("Venda não encontrada.", ErrorCodes.SALE_NOT_FOUND);
 
     if (sale.status === "CANCELED") {
-      throw new BusinessRuleError("Venda já cancelada.", ErrorCodes.SALE_ALREADY_CANCELED);
+      throw new ConflictError("Venda já cancelada.", ErrorCodes.SALE_ALREADY_CANCELED);
     }
 
     // 2. Devolver estoque

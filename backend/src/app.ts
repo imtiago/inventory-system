@@ -1,3 +1,4 @@
+import "./shared/config/zod";
 import Fastify from "fastify";
 import { registerErrorHandling } from "./shared/http/errorHandler";
 import { productRoutes } from "./modules/catalog/infrastructure/http/routes/productRoutes";

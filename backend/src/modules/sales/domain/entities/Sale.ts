@@ -1,4 +1,4 @@
-import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes } from "@shared/domain/errors";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { SaleStatus } from "../enums/SaleStatus";
 import { SaleItem } from "./SaleItem";
@@ -55,7 +55,7 @@ export class Sale extends BaseEntity {
 
   cancel() {
     if (this._status === SaleStatus.CANCELLED) {
-      throw new BusinessRuleError("Venda já cancelada.", ErrorCodes.SALE_ALREADY_CANCELED);
+      throw new ConflictError("Venda já cancelada.", ErrorCodes.SALE_ALREADY_CANCELED);
     }
 
     this._status = SaleStatus.CANCELLED;

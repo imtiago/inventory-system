@@ -13,7 +13,7 @@ export function makeDeleteProductVariantController() {
   ) {
     const { id } = parseInput(idParamsSchema, request.params);
 
-    await useCase.execute({ productVariantId: id });
+    await useCase.execute({ id });
 
     return reply.status(204).send(); // 204 No Content
   };

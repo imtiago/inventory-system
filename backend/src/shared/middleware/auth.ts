@@ -12,10 +12,15 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
 
   const token = authHeader.split(" ")[1];
   try {
-    request.user = jwt.verify(token, env.JWT_SECRET) as {
-      sub: string;
-      role: string;
-    };
+    const payload = jwt.verify(token, env.JWT_SECRET);
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      typeof payload.sub !== "string"
+    ) {
+      throw new UnauthorizedError("Token inválido.");
+    }
+    request.user = payload as { sub: string; role: string };
   } catch {
     throw new UnauthorizedError("Token inválido.");
   }

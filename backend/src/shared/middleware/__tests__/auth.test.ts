@@ -28,7 +28,7 @@ test("rota pública com query string continua pública", async () => {
     url: "/auth/login?x=1",
     payload: {},
   });
-  assert.notEqual(res.json().message, "Token ausente.");
+  assert.notEqual(res.statusCode, 401);
 });
 
 test("authorize papel ausente → 403 FORBIDDEN", async () => {
