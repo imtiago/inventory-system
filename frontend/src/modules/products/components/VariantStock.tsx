@@ -5,19 +5,19 @@ interface Props {
 }
 
 export function VariantStock({ variantId }: Props) {
-  const { data, isLoading } = useVariantInventory(variantId);
+  const { inventory, loading } = useVariantInventory(variantId);
 
-  if (isLoading) {
+  if (loading) {
     return <span>...</span>;
   }
 
-  if (!data) {
+  if (!inventory) {
     return <span className="text-gray-400">Sem estoque</span>;
   }
 
   return (
     <div className="text-sm">
-      <p className="font-medium">{data.availableQuantity}</p>
+      <p className="font-medium">{inventory.availableQuantity}</p>
 
       <p className="text-gray-500">Disp.</p>
     </div>

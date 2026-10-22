@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 
 import { useProductByBarcode } from './useProductByBarcode';
-import { useInventoryLotsByVariant } from './useInventoryLotsByVariant';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/react-query/keys';
+import { getInventoryLots } from '../services/inventoryService';
+import { useInventoryLots } from './useInventoryLots';
 import { useInventoryBoxByLot, type InventoryBox } from './useInventoryBoxByLot';
 import { useInventoryBox } from './useInventoryBox';
 import { useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
@@ -115,7 +118,24 @@ export function useInitialInventoryFlow() {
    */
   const { foundVariant, loading, searchByBarcode, clearFoundVariant } = useProductByBarcode();
 
-  const { lots, loading: lotsLoading, error: lotsError, findLots, clearLots } = useInventoryLotsByVariant();
+  const queryClient = useQueryClient();
+  const [lotsVariantId, setLotsVariantId] = useState<string | undefined>();
+  const { lots, isLoading: lotsLoading, error: lotsQueryError } = useInventoryLots(lotsVariantId, { limit: 100 });
+  const lotsError = lotsQueryError ? 'Não foi possível carregar os lotes.' : null;
+
+  async function findLots(variantId: string) {
+    setLotsVariantId(variantId);
+    const result = await queryClient.fetchQuery({
+      queryKey: [...queryKeys.inventoryLots(variantId), { page: 1, limit: 100 }],
+      queryFn: () => getInventoryLots(variantId, { page: 1, limit: 100 }),
+      staleTime: 0,
+    });
+    return result.data;
+  }
+
+  function clearLots() {
+    setLotsVariantId(undefined);
+  }
 
   const { findBoxByLot, loading: boxLookupLoading, error: boxLookupError, clearBox } = useInventoryBoxByLot();
 

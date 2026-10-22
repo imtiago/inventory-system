@@ -6,7 +6,7 @@ import inventoryList from '../fixtures/inventory/inventoryList.json';
 import inventoryLotList from '../fixtures/inventory/inventoryLotList.json';
 import inventoryBoxList from '../fixtures/inventory/inventoryBoxList.json';
 
-export const API_URL = 'http://localhost:3000';
+export const API_URL: string = import.meta.env.VITE_API_URL;
 
 // Fixtures already include the API envelope: { data } / { data, pagination }.
 export const inventoryHandlers = [

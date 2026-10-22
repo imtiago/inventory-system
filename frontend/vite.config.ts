@@ -14,6 +14,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["src/test/setup.ts"],
-    env: { TZ: "America/Sao_Paulo" },
+    env: { TZ: "America/Sao_Paulo", VITE_API_URL: "http://localhost:3000" },
   },
 });
