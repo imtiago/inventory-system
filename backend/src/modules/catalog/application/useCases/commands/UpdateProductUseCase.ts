@@ -4,9 +4,8 @@ import {
 } from "@catalog/application/dto/ProductDTO";
 import { Product } from "@catalog/domain/entities/Product";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
-import { Prisma } from "@prisma/client";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 
 export class UpdateProductUseCase extends TransactionalUseCase<
   IUpdateProductInput,
@@ -21,7 +20,6 @@ export class UpdateProductUseCase extends TransactionalUseCase<
 
   async handle(
     request: IUpdateProductInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IProductOutput> {
     // 1. Verificar se o produto existe
     const existing = await this.productRepository.findById(request.id);

@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import {
@@ -24,7 +23,6 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateCustomerInput,
-    tx: Prisma.TransactionClient,
   ): Promise<ICustomerOutput> {
     const customerCode = await this.numberGenerator.generate(
       NumberRangeName.CUSTOMER,

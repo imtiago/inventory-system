@@ -1,9 +1,8 @@
 import { InventoryRepository } from "../../../domain/repositories/InventoryRepository";
 import { Inventory } from "../../../domain/entities/Inventory";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
@@ -28,11 +27,9 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
 
   async handle(
     request: IDispatchInventoryInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IInventoryOutput> {
     const inventory = await this.inventoryRepository.findByVariant(
-      request.productVariantId,
-      tx,
+      request.productVariantId
     );
     if (!inventory) {
       throw new Error("Inventory not found");
@@ -43,8 +40,7 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
     let remaining = request.quantity;
 
     const lots = await this.inventoryLotRepository.findAvailableByInventory(
-      inventory.id!,
-      tx,
+      inventory.id!
     );
 
     for (const lot of lots) {
@@ -54,14 +50,14 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
 
       lot.consume(consume);
 
-      await this.inventoryLotRepository.save(lot, tx);
+      await this.inventoryLotRepository.save(lot);
 
       remaining -= consume;
     }
 
     if (remaining > 0) throw new Error("Inventory lots are inconsistent.");
 
-    await this.inventoryRepository.save(inventory, tx);
+    await this.inventoryRepository.save(inventory);
     const movement = new StockMovement({
       inventoryId: inventory.id!,
 
@@ -80,7 +76,7 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
       notes: request.notes,
     });
 
-    await this.movementRepository.create(movement, tx);
+    await this.movementRepository.create(movement);
 
     return {
       id: inventory.id,
@@ -95,10 +91,10 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
     // const movement = inventory.removeStock(request.quantity, request.reason);
 
     // // Atualiza o estoque
-    // const updated = await this.inventoryRepository.save(inventory, tx);
+    // const updated = await this.inventoryRepository.save(inventory);
 
     // // Cria movimento de saída
-    // await this.movementRepository.create(movement, tx);
+    // await this.movementRepository.create(movement);
 
     // return updated;
   }

@@ -9,7 +9,6 @@ import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 
 interface CreateProductDTO {
   name: string;
@@ -33,8 +32,7 @@ export class CreatePurchaseUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
   async handle(
-    request: CreateProductDTO,
-    tx: Prisma.TransactionClient,
+    request: CreateProductDTO
   ): Promise<Product> {
     const brandExists = await this.getBrandById.findById(request.brandId);
     if (!brandExists) throw new Error("Brand não encontrada");

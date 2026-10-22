@@ -1,8 +1,7 @@
 import { InventoryRepository } from "../../../domain/repositories/InventoryRepository";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
@@ -23,11 +22,9 @@ export class ReserveInventoryUseCase extends TransactionalUseCase<
 
   async handle(
     request: IReserveInventoryInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IStockMovementOutput> {
     let inventory = await this.inventoryRepository.findByVariant(
-      request.productVariantId,
-      tx,
+      request.productVariantId
     );
 
     if (!inventory) {
@@ -35,7 +32,7 @@ export class ReserveInventoryUseCase extends TransactionalUseCase<
     }
 
     inventory.reserve(request.quantity);
-    await this.inventoryRepository.save(inventory, tx);
+    await this.inventoryRepository.save(inventory);
 
     const movement = new StockMovement({
       inventoryId: inventory.id,
@@ -54,7 +51,7 @@ export class ReserveInventoryUseCase extends TransactionalUseCase<
 
       notes: request.notes,
     });
-    await this.stockMovementRepository.create(movement, tx);
+    await this.stockMovementRepository.create(movement);
     return {
       id: movement.id,
       inventoryId: movement.inventoryId,

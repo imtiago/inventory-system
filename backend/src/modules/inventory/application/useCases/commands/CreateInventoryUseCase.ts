@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { Inventory } from "@inventory/domain/entities/Inventory";
 import {
@@ -21,7 +20,6 @@ export class CreateInventoryUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateInventoryInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IInventoryOutput> {
     const inventory = new Inventory({
       productVariantId: request.productVariantId,

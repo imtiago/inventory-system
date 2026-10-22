@@ -3,7 +3,6 @@ import { BrandRepository } from "../../../domain/repositories/PurchaseRepository
 import { Brand } from "../../domain/entities/Brand";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 
 interface CreateBrandRequest {
   name: string;
@@ -20,8 +19,7 @@ export class CreateBrandUseCase extends TransactionalUseCase<
   }
 
   async handle(
-    request: CreateBrandRequest,
-    tx: Prisma.TransactionClient,
+    request: CreateBrandRequest
   ): Promise<Brand> {
     const brand = new Brand({
       name: request.name,

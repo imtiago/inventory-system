@@ -9,7 +9,7 @@ export function makeGetInventoryDashboardController() {
     reply: FastifyReply,
   ) {
     try {
-      const data = await useCase.execute({});
+      const data = await useCase.execute();
 
       return reply.send(HttpResponse.ok(data));
     } catch (err: any) {

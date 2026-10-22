@@ -1,9 +1,8 @@
 import { prisma } from "../../../../../shared/prisma";
 import { SaleRepository } from "../../../domain/repositories/SaleRepository";
 import { InventoryRepository } from "../../../../inventory/domain/repositories/InventoryRepository";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { ICancelSaleInput } from "@sales/application/dto/SaleDTO";
 
 export class CancelSaleUseCase extends TransactionalUseCase<
@@ -19,8 +18,7 @@ export class CancelSaleUseCase extends TransactionalUseCase<
   }
 
   async handle(
-    { id }: ICancelSaleInput,
-    tx: Prisma.TransactionClient,
+    { id }: ICancelSaleInput
   ): Promise<void> {
     await prisma.$transaction(async (tx) => {
       // 1. Buscar venda

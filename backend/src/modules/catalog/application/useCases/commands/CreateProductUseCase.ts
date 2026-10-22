@@ -1,12 +1,11 @@
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import {
   ICreateProductInput,
   IProductOutput,
@@ -30,7 +29,6 @@ export class CreateProductUseCase extends TransactionalUseCase<
   }
   async handle(
     request: ICreateProductInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IProductOutput> {
     const brandExists = await this.getBrandById.findById(request.brandId);
     if (!brandExists) throw new Error("Brand não encontrada");

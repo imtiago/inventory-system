@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import {
   IBrandOutput,
   ICreateBrandInput,
@@ -21,7 +20,6 @@ export class CreateBrandUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateBrandInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IBrandOutput> {
     const brand = new Brand({
       name: request.name,

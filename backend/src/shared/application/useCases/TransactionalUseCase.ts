@@ -1,6 +1,5 @@
-import { Prisma } from "@prisma/client";
 import { UseCase } from "@shared/domain/UseCase";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 
 export abstract class TransactionalUseCase<
   Request,
@@ -8,20 +7,9 @@ export abstract class TransactionalUseCase<
 > implements UseCase<Request, Response> {
   constructor(protected readonly transactionManager: TransactionManager) {}
 
-  async execute(
-    request: Request,
-    transaction?: Prisma.TransactionClient,
-  ): Promise<Response> {
-    if (transaction) {
-      return this.handle(request, transaction);
-    }
-
-    return this.transactionManager.execute(async (newTx) => {
-      return this.handle(request, newTx);
-    });
+  async execute(request: Request): Promise<Response> {
+    return this.transactionManager.execute(() => this.handle(request));
   }
-  protected abstract handle(
-    request: Request,
-    tx: Prisma.TransactionClient,
-  ): Promise<Response>;
+
+  protected abstract handle(request: Request): Promise<Response>;
 }

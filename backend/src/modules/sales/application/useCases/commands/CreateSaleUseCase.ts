@@ -1,6 +1,6 @@
 import { SaleRepository } from "../../../domain/repositories/SaleRepository";
 
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { CustomerService } from "@customer/application/services/CustomerService";
 import { CatalogService } from "@catalog/application/services/CatalogService";
 import { InventoryService } from "@inventory/application/services/InventoryService";
@@ -8,7 +8,6 @@ import { FinancialService } from "@finance/application/services/FinacialService"
 import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { ICreateSaleInput, ISaleOutput } from "@sales/application/dto/SaleDTO";
 
@@ -29,7 +28,6 @@ export class CreateSaleUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateSaleInput,
-    tx: Prisma.TransactionClient,
   ): Promise<ISaleOutput> {
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {
@@ -83,8 +81,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<
           productVariantId: item.productVariantId,
           quantity: item.quantity,
           reason: "SALE",
-        },
-        tx,
+        }
       );
 
       // if (!inventory) {
@@ -99,7 +96,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<
 
       // await this.inventoryRepo.addMovement(movement);
     }
-    const createdSale = await this.saleRepository.create(sale, tx);
+    const createdSale = await this.saleRepository.create(sale);
     // console.log("createdSale");
 
     /*
@@ -130,8 +127,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<
         originType: FinancialOriginType.SALE,
         parcels: [],
         totalAmount: 500,
-      },
-      tx,
+      }
     );
     // return createdSale;
 

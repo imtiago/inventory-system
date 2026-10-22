@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import {
   ICustomerOutput,
   IUpdateCustomerInput,
@@ -21,7 +20,6 @@ export class UpdateCustomerUseCase extends TransactionalUseCase<
 
   async handle(
     request: IUpdateCustomerInput,
-    tx: Prisma.TransactionClient,
   ): Promise<ICustomerOutput> {
     const customer = new Customer({
       id: request.id,

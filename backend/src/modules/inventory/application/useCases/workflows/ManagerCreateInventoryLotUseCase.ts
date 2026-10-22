@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
@@ -26,7 +25,6 @@ export class ManagerCreateInventoryLotUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateInventoryLotInput,
-    tx: Prisma.TransactionClient,
   ): Promise<InventoryLot> {
     const inventory = await this.getInventoryByIdUseCase.execute(
       request.inventoryId,

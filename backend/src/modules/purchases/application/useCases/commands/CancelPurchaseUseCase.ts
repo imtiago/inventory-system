@@ -5,7 +5,6 @@ import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { ICancelPurchaseInput } from "../../dto/PurchaseDTO";
 
 export class CancelPurchaseUseCase extends TransactionalUseCase<
@@ -22,8 +21,7 @@ export class CancelPurchaseUseCase extends TransactionalUseCase<
   }
 
   async handle(
-    request: ICancelPurchaseInput,
-    tx: Prisma.TransactionClient,
+    request: ICancelPurchaseInput
   ): Promise<ProductVariant> {
     // Verifica se o produto existe
     const product = await this.productRepository.findById(request.productId);
