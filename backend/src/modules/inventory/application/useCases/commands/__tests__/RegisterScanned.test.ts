@@ -18,7 +18,7 @@ async function build() {
   const boxes = new InMemoryInventoryBoxRepository();
   const stocks = new InMemoryInventoryBoxStockRepository();
   const receive = new ReceiveInventoryUseCase(catalog, s.inventories, s.lots, s.movements, s.tx);
-  const add = new AddProductToBoxUseCase(boxes, stocks, s.lots, s.tx);
+  const add = new AddProductToBoxUseCase(boxes, stocks, s.lots, s.inventories, s.tx);
   const uc = new RegisterScannedProductUseCase(catalog, receive, add, s.inventories, boxes, s.tx);
   const box = await boxes.create(new InventoryBox({ code: "BX1" }));
   return { ...s, boxes, stocks, uc, box };

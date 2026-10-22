@@ -3,7 +3,6 @@ import {
   IReceiveInventoryInput,
   IReceiveInventoryOutput,
 } from "@inventory/application/dto/InventoryDTO";
-import { Inventory } from "@inventory/domain/entities/Inventory";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
@@ -38,13 +37,11 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
       throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
     }
 
-    let inventory = await this.inventoryRepository.findByProductVariantId(
+    // Trava a linha da variante (criando o inventário vazio se faltar) antes de
+    // qualquer leitura usada em cálculo; a variante já foi validada acima.
+    const inventory = await this.inventoryRepository.lockByProductVariantId(
       request.productVariantId,
     );
-    const isNewInventory = !inventory;
-    if (!inventory) {
-      inventory = new Inventory({ productVariantId: request.productVariantId });
-    }
 
     const previousQuantity = inventory.quantity;
     inventory.receive({
@@ -52,11 +49,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
       unitCost: request.unitCost,
     });
 
-    if (isNewInventory) {
-      await this.inventoryRepository.create(inventory);
-    } else {
-      await this.inventoryRepository.update(inventory);
-    }
+    await this.inventoryRepository.update(inventory);
 
     let lot = request.batchNumber
       ? await this.inventoryLotRepository.findByProductVariantIdAndBatchNumber(

@@ -180,6 +180,8 @@ model InventoryLot {
   purchaseItemId String?
   boxStocks      InventoryBoxStock[]
   stockMovements StockMovement[]
+
+  @@unique([productVariantId, batchNumber])
 }
 
 model Inventory {

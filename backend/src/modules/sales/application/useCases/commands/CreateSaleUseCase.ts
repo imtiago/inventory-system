@@ -75,7 +75,17 @@ export class CreateSaleUseCase extends TransactionalUseCase<
     /*
      * 1 - Atualizar estoque
      */
-    for (const item of request.items) {
+    // Ordem crescente de productVariantId: vendas simultâneas travam as variantes
+    // sempre na mesma ordem (sem deadlock). Itens repetidos da mesma variante
+    // reentram na trava já obtida por esta transação.
+    const itemsInLockOrder = [...request.items].sort((a, b) =>
+      a.productVariantId < b.productVariantId
+        ? -1
+        : a.productVariantId > b.productVariantId
+          ? 1
+          : 0,
+    );
+    for (const item of itemsInLockOrder) {
       // const inventory =
       await this.inventoryService.consumeStock(
         {

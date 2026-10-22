@@ -2,6 +2,7 @@ import { TransactionManager } from "@shared/application/transaction/TransactionM
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
+import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 import {
@@ -18,6 +19,7 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     private readonly inventoryBoxRepository: IInventoryBoxRepository,
     private readonly inventoryBoxStockRepository: IInventoryBoxStockRepository,
     private readonly inventoryLotRepository: IInventoryLotRepository,
+    private readonly inventoryRepository: IInventoryRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -36,9 +38,22 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
       throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
-    const lot = await this.inventoryLotRepository.findById(
+    const found = await this.inventoryLotRepository.findById(
       request.inventoryLotId,
     );
+
+    if (!found) {
+      throw new NotFoundError("Lote não encontrado.", ErrorCodes.LOT_NOT_FOUND);
+    }
+
+    // Trava a variante do lote e relê o lote: saldo e alocações ficam estáveis
+    // até o commit.
+    const inventory = await this.inventoryRepository.lockExistingByProductVariantId(
+      found.productVariantId,
+    );
+    const lot = inventory
+      ? await this.inventoryLotRepository.findById(request.inventoryLotId)
+      : null;
 
     if (!lot) {
       throw new NotFoundError("Lote não encontrado.", ErrorCodes.LOT_NOT_FOUND);

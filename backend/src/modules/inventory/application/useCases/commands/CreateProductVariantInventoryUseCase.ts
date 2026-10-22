@@ -25,7 +25,7 @@ export class CreateProductVariantInventoryUseCase extends TransactionalUseCase<
     );
     if (!variant) throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
 
-    const existing = await this.inventoryRepository.findByProductVariantId(
+    const existing = await this.inventoryRepository.lockExistingByProductVariantId(
       request.productVariantId,
     );
     if (existing) throw new ConflictError("Já existe estoque para esta variante.", ErrorCodes.INVENTORY_ALREADY_EXISTS);

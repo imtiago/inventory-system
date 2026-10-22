@@ -23,9 +23,13 @@ export class ReleaseInventoryUseCase extends TransactionalUseCase<
   protected async handle(
     request: IReleaseInventoryInput,
   ): Promise<StockMovement> {
-    const inventory = await this.inventoryRepository.findById(
-      request.inventoryId,
-    );
+    const found = await this.inventoryRepository.findById(request.inventoryId);
+    // Trava pela variante e usa a leitura feita sob a trava (saldo atualizado).
+    const inventory = found
+      ? await this.inventoryRepository.lockExistingByProductVariantId(
+          found.productVariantId,
+        )
+      : null;
     if (!inventory) {
       throw new NotFoundError("Estoque não encontrado.", ErrorCodes.INVENTORY_NOT_FOUND);
     }

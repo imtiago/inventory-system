@@ -9,6 +9,7 @@ export const InternalErrorCodes = {
   INVALID_STOCK_MOVEMENT: "INVALID_STOCK_MOVEMENT",
   SALE_ITEM_INVALID: "SALE_ITEM_INVALID",
   NOT_IMPLEMENTED: "NOT_IMPLEMENTED",
+  LOCK_OUTSIDE_TRANSACTION: "LOCK_OUTSIDE_TRANSACTION",
 } as const;
 
 export class InternalInvariantError extends Error {
