@@ -1,4 +1,5 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateCategoryController.ts
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createCategorySchema } from "../../../interfaces/http/schemas/createCategorySchema";
 import { makeCreateCategoryUseCase } from "../factories/CreateCategoryFactory";
@@ -10,14 +11,10 @@ export function makeCreateCategoryController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const data = createCategorySchema.parse(request.body);
-      const category = await useCase.execute({
-        name: data.name,
-      });
-      return reply.status(201).send(category);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    const data = parseInput(createCategorySchema, request.body);
+    const category = await useCase.execute({
+      name: data.name,
+    });
+    return reply.status(201).send(category);
   };
 }

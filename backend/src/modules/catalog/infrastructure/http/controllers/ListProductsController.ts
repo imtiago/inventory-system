@@ -1,4 +1,5 @@
 // src/modules/catalog/infrastructure/http/controllers/ListProductsController.ts
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeListProductsUseCase } from "../factories/ListProductsFactory";
 import { ProductHttpPresenter } from "@catalog/interfaces/http/presenters/ProductHttpPresenter";
@@ -11,7 +12,7 @@ export function makeListProductsController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    const { page, limit, search } = listProductsSchema.parse(request.query);
+    const { page, limit, search } = parseInput(listProductsSchema, request.query);
     
     const products = await useCase.execute({ page, limit, search });
     return reply.send(products);

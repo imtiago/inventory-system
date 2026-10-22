@@ -1,3 +1,4 @@
+import { NotFoundError } from "@shared/domain/errors";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeGetUserByIdUseCase } from "../factories/GetUserByIdFactory";
 
@@ -7,17 +8,16 @@ export function makeGetMeController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { sub } = request.user as {
-        sub: string;
-        role: string;
-      };
+    const { sub } = request.user as {
+      sub: string;
+      role: string;
+    };
 
-      const user = await useCase.execute(sub);
-
-      return reply.send(user);
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    const user = await useCase.execute(sub);
+    if (!user) {
+      throw new NotFoundError("Usuário não encontrado.", "USER_NOT_FOUND");
     }
+
+    return reply.send(user);
   };
 }

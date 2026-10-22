@@ -1,3 +1,4 @@
+import { BusinessRuleError } from "@shared/domain/errors";
 // src/modules/catalog/domain/entities/ProductVariant.ts
 
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
@@ -27,19 +28,19 @@ export class ProductVariant extends BaseEntity {
       createdAt: props.createdAt,
     });
     if (!props.productId.trim()) {
-      throw new Error("Product id is required.");
+      throw new BusinessRuleError("O produto é obrigatório.", "PRODUCT_ID_REQUIRED");
     }
 
     if (!props.code.trim()) {
-      throw new Error("Variant code is required.");
+      throw new BusinessRuleError("O código da variante é obrigatório.", "VARIANT_CODE_REQUIRED");
     }
 
     if (props.name !== undefined && !props.name.trim()) {
-      throw new Error("Variant name cannot be empty.");
+      throw new BusinessRuleError("O nome da variante não pode ser vazio.", "VARIANT_NAME_REQUIRED");
     }
 
     if (props.salePrice !== undefined && props.salePrice < 0) {
-      throw new Error("Sale price cannot be negative.");
+      throw new BusinessRuleError("O preço de venda não pode ser negativo.", "NEGATIVE_SALE_PRICE");
     }
 
     this._productId = props.productId;
@@ -75,7 +76,7 @@ export class ProductVariant extends BaseEntity {
 
   rename(name: string): void {
     if (!name.trim()) {
-      throw new Error("Variant name cannot be empty.");
+      throw new BusinessRuleError("O nome da variante não pode ser vazio.", "VARIANT_NAME_REQUIRED");
     }
 
     this._name = name;
@@ -87,7 +88,7 @@ export class ProductVariant extends BaseEntity {
 
   changeSalePrice(price: number): void {
     if (price < 0) {
-      throw new Error("Sale price cannot be negative.");
+      throw new BusinessRuleError("O preço de venda não pode ser negativo.", "NEGATIVE_SALE_PRICE");
     }
 
     this._salePrice = price;

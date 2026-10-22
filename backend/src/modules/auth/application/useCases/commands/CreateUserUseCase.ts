@@ -1,3 +1,4 @@
+import { ConflictError } from "@shared/domain/errors";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { ICreateUserInput, IUserOutput } from "@auth/application/dto/UserDTO";
@@ -24,7 +25,7 @@ export class CreateUserUseCase extends TransactionalUseCase<
     { email, password, name, role }: ICreateUserInput,
   ): Promise<IUserOutput> {
     const existing = await this.userRepo.findByEmail(email);
-    if (existing) throw new Error("E-mail already in use");
+    if (existing) throw new ConflictError("E-mail já está em uso.", "EMAIL_ALREADY_IN_USE");
 
     const hashedPassword = await this.passwordHasher.hash(password);
 

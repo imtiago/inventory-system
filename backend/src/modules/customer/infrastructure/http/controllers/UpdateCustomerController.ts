@@ -1,7 +1,11 @@
+import { z } from "zod";
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { makeUpdateCustomerUseCase } from "../factories/UpdateCustomerFactory";
 import { createCustomerSchema } from "@customer/interfaces/http/schemas/createCustomerSchema";
 import { CustomerHttpPresenter } from "@customer/interfaces/http/presenters/CustomerHttpPresenter";
+
+const idParamsSchema = z.object({ id: z.string().uuid("Identificador inválido.") });
 
 export function makeUpdateCustomerController() {
   const useCase = makeUpdateCustomerUseCase();
@@ -9,17 +13,13 @@ export function makeUpdateCustomerController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { id } = request.params as { id: string };
-      const data = createCustomerSchema.parse(request.body);
+    const { id } = parseInput(idParamsSchema, request.params);
+    const data = parseInput(createCustomerSchema, request.body);
 
-      const updatedProduct = await useCase.execute({ id, ...data });
+    const updatedProduct = await useCase.execute({ id, ...data });
 
-      return reply
-        .status(200)
-        .send(CustomerHttpPresenter.toHTTP(updatedProduct));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply
+      .status(200)
+      .send(CustomerHttpPresenter.toHTTP(updatedProduct));
   };
 }

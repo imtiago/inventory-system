@@ -1,3 +1,4 @@
+import { NotFoundError } from "@shared/domain/errors";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
 import { makeGetProductVariantByBarcodeUseCase } from "../factories/GetProductVariantByBarcodeFactory";
@@ -11,7 +12,7 @@ export function makeGetProductVariantByBarcodeController() {
     const { id } = request.params as { id: string };
     const productVariant = await useCase.execute(id);
     if (!productVariant) {
-      return reply.status(404).send(HttpResponse.notFound());
+      throw new NotFoundError("Variante não encontrada.", "VARIANT_NOT_FOUND");
     }
     return reply.send(HttpResponse.ok(productVariant));
   };

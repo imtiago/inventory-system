@@ -1,3 +1,4 @@
+import { NotFoundError } from "@shared/domain/errors";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
@@ -31,10 +32,10 @@ export class CreateProductUseCase extends TransactionalUseCase<
     request: ICreateProductInput,
   ): Promise<IProductOutput> {
     const brandExists = await this.getBrandById.findById(request.brandId);
-    if (!brandExists) throw new Error("Brand não encontrada");
+    if (!brandExists) throw new NotFoundError("Marca não encontrada.", "BRAND_NOT_FOUND");
 
     const categoryExists = await this.categoryRepo.findById(request.categoryId);
-    if (!categoryExists) throw new Error("Category não encontrada");
+    if (!categoryExists) throw new NotFoundError("Categoria não encontrada.", "CATEGORY_NOT_FOUND");
 
     const productCode = await this.numberGenerator.generate(
       NumberRangeName.PRODUCT,

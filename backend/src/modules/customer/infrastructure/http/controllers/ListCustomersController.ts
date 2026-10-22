@@ -1,5 +1,6 @@
 // src/modules/customer/infrastructure/http/controllers/ListCustomersController.ts
 
+import { parseInput } from "@shared/http/parseInput";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { makeLisCustomerUseCase } from "../factories/ListCustomerFactory";
 import { CustomerHttpPresenter } from "@customer/interfaces/http/presenters/CustomerHttpPresenter";
@@ -11,16 +12,12 @@ export function makeListCustomersController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { page, limit, search } = listCustomersSchema.parse(request.query);
+    const { page, limit, search } = parseInput(listCustomersSchema, request.query);
 
-      // const customers = await useCase.execute(page, limit);
-      const customers = await useCase.execute({ page, limit, search });
+    // const customers = await useCase.execute(page, limit);
+    const customers = await useCase.execute({ page, limit, search });
 
-      return reply.send(customers);
-      // return reply.send(CustomerHttpPresenter.toHTTPList(customers));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
-    }
+    return reply.send(customers);
+    // return reply.send(CustomerHttpPresenter.toHTTPList(customers));
   };
 }
