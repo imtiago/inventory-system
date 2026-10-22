@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
+import { keyShape } from "../../../../../test/keyShape";
 import {
   createTestVariant,
   getTestUserId,
@@ -18,21 +19,6 @@ const FIXTURES_DIR = new URL(
 
 function loadFixture(name: string): unknown {
   return JSON.parse(readFileSync(new URL(`${name}.json`, FIXTURES_DIR), "utf8"));
-}
-
-// Shape of keys only: objects → sorted keys (recursively), arrays → shape of the first item.
-function keyShape(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.length > 0 ? [keyShape(value[0])] : [];
-  }
-  if (value !== null && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(value).sort()) {
-      out[key] = keyShape((value as Record<string, unknown>)[key]);
-    }
-    return out;
-  }
-  return null;
 }
 
 // Sem logs de requisição na saída dos testes.
