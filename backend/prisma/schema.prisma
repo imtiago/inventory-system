@@ -82,6 +82,7 @@ enum StockMovementType {
   OUT
   ADJUSTMENT
   RESERVE
+  RELEASE
 }
 
 enum StockMovementOrigin {
@@ -178,6 +179,7 @@ model InventoryLot {
   purchaseItem   PurchaseItem?       @relation(fields: [purchaseItemId], references: [id])
   purchaseItemId String?
   boxStocks      InventoryBoxStock[]
+  stockMovements StockMovement[]
 }
 
 model Inventory {
@@ -219,6 +221,16 @@ model StockMovement {
   origin StockMovementOrigin
 
   quantity Int
+
+  previousQuantity Int?
+
+  currentQuantity Int?
+
+  averageCost Decimal?
+
+  inventoryLotId String?
+
+  inventoryLot InventoryLot? @relation(fields: [inventoryLotId], references: [id], onDelete: SetNull)
 
   originId String?
 

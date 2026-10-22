@@ -20,9 +20,10 @@ interface StockMovementProps {
 
   originId?: string | null;
 
-  userId: string;
+  userId?: string | null;
 
-  notes?: string;
+  notes?: string | null;
+  averageCost?: number | null;
 
   createdAt?: Date;
 }
@@ -40,7 +41,9 @@ export class StockMovement extends BaseEntity {
       ...props,
       inventoryLotId: props.inventoryLotId ?? null,
       originId: props.originId ?? null,
-      notes: props.notes ?? "",
+      userId: props.userId ?? null,
+      averageCost: props.averageCost ?? null,
+      notes: props.notes ?? null,
     };
 
     this.validate();
@@ -86,6 +89,10 @@ export class StockMovement extends BaseEntity {
     return this.props.userId;
   }
 
+  get averageCost() {
+    return this.props.averageCost;
+  }
+
   get notes() {
     return this.props.notes;
   }
@@ -95,28 +102,33 @@ export class StockMovement extends BaseEntity {
       throw new Error("Quantity must be greater than zero.");
     }
 
-    // switch (this.props.type) {
-    //   case StockMovementType.IN:
-    //     if (
-    //       this.props.currentQuantity !==
-    //       this.props.previousQuantity + this.props.quantity
-    //     ) {
-    //       throw new Error("Invalid IN movement.");
-    //     }
-    //     break;
+    const { type, quantity, previousQuantity, currentQuantity } = this.props;
 
-    //   case StockMovementType.OUT:
-    //     if (
-    //       this.props.currentQuantity !==
-    //       this.props.previousQuantity - this.props.quantity
-    //     ) {
-    //       throw new Error("Invalid OUT movement.");
-    //     }
-    //     break;
+    switch (type) {
+      case StockMovementType.IN:
+        if (currentQuantity !== previousQuantity + quantity) {
+          throw new Error("Invalid IN movement.");
+        }
+        break;
 
-    //   case StockMovementType.ADJUSTMENT:
-    //     // qualquer valor é permitido
-    //     break;
-    // }
+      case StockMovementType.OUT:
+        if (currentQuantity !== previousQuantity - quantity) {
+          throw new Error("Invalid OUT movement.");
+        }
+        break;
+
+      case StockMovementType.RESERVE:
+      case StockMovementType.RELEASE:
+        if (currentQuantity !== previousQuantity) {
+          throw new Error(`Invalid ${type} movement.`);
+        }
+        break;
+
+      case StockMovementType.ADJUSTMENT:
+        if (quantity !== Math.abs(currentQuantity - previousQuantity)) {
+          throw new Error("Invalid ADJUSTMENT movement.");
+        }
+        break;
+    }
   }
 }
