@@ -5,14 +5,14 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 interface InventoryBoxParams {
   batchNumber: string;
   productVariantId: string;
 }
 export class PrismaInventoryBoxReadRepository implements InventoryBoxReadRepository {
   async getById(id: string) {
-    const data = await prisma.inventoryBox.findUnique({
+    const data = await getDb().inventoryBox.findUnique({
       where: { id },
       include: {
         stocks: true,
@@ -24,7 +24,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
     return InventoryBoxReadMapper.toDTO(data);
   }
   async getByCode(code: string) {
-    const data = await prisma.inventoryBox.findUnique({
+    const data = await getDb().inventoryBox.findUnique({
       where: { code },
       include: {
         stocks: {
@@ -57,7 +57,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
     };
 
     const [data, total] = await Promise.all([
-      prisma.inventoryBox.findMany({
+      getDb().inventoryBox.findMany({
         ...paginationOptions,
         orderBy: {
           createdAt: "asc",
@@ -82,7 +82,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
         },
       }),
 
-      prisma.inventoryBox.count({
+      getDb().inventoryBox.count({
         where,
       }),
     ]);
@@ -96,7 +96,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
   //   const paginationOptions = buildPagination(pagination);
 
   //   const [data, total] = await Promise.all([
-  //     prisma.inventory.findMany({
+  //     getDb().inventory.findMany({
   //       ...paginationOptions,
   //       orderBy: {
   //         createdAt: "asc",
@@ -106,7 +106,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
   //       },
   //     }),
 
-  //     prisma.inventory.count(),
+  //     getDb().inventory.count(),
   //   ]);
 
   //   const dt = data.map((d) => InventoryReadMapper.toDTO(d));
@@ -114,7 +114,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
   // }
 
   // async getByVariantId(id: string): Promise<InventoryDTO | null> {
-  //   const data = await prisma.inventory.findUnique({
+  //   const data = await getDb().inventory.findUnique({
   //     where: {
   //       productVariantId: id,
   //     },
@@ -129,7 +129,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
   // }
 
   // async getDashboard() {
-  //   const inventories = await prisma.inventory.findMany({
+  //   const inventories = await getDb().inventory.findMany({
   //     select: {
   //       quantity: true,
   //       reservedQuantity: true,

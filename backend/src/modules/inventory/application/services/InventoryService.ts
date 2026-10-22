@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 
 export interface ConsumeStockRequest {
   productVariantId: string;
@@ -9,6 +8,5 @@ export interface ConsumeStockRequest {
 export interface InventoryService {
   consumeStock(
     request: ConsumeStockRequest,
-    tx?: Prisma.TransactionClient,
   ): Promise<void>;
 }

@@ -1,11 +1,11 @@
 import { FinancialDocument } from "@finance/domain/entities/FinancialDocument";
 import { FinancialDocumentRepository } from "@finance/domain/repositories/FinancialDocumentRepository";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { FinancialDocumentMapper } from "../mappers/FinancialDocumentMapper";
 
 export class PrismaFinancialDocumentRepository implements FinancialDocumentRepository {
-  async create(data: FinancialDocument, tx = prisma) {
-    const receivable = await tx.financialDocument.create({
+  async create(data: FinancialDocument) {
+    const receivable = await getDb().financialDocument.create({
       data: FinancialDocumentMapper.toCreatePersistence(data),
     });
 

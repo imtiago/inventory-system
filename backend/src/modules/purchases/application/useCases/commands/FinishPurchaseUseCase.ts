@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 interface Input {
   productVariantId: string;
@@ -17,7 +16,7 @@ export class DeleteProductVariantUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(request: Input, tx: Prisma.TransactionClient): Promise<void> {
+  async handle(request: Input): Promise<void> {
     const existing = await this.repository.findById(request.productVariantId);
     if (!existing) throw new Error("Variante do produto não encontrado");
 

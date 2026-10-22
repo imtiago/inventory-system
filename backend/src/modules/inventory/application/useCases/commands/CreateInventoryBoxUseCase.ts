@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
@@ -24,7 +23,6 @@ export class CreateInventoryBoxUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateInventoryBoxInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IInventoryBoxOutput> {
     const boxCode = await this.numberGenerator.generate(
       NumberRangeName.INVENTORY_BOX,

@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import {
   ICategoryOutput,
   ICreateCategoryInput,
@@ -20,7 +19,6 @@ export class CreateCategoryUseCase extends TransactionalUseCase<
   }
   async handle(
     request: ICreateCategoryInput,
-    tx: Prisma.TransactionClient,
   ): Promise<ICategoryOutput> {
     const category = new Category({ name: request.name });
 

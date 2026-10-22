@@ -5,15 +5,15 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaSaleReadRepository implements SaleReadRepository {
   async list(
     pagination: PaginationRequest,
   ): Promise<PaginatedResult<SaleDetailsDTO>> {
     const paginationOptions = buildPagination(pagination);
-    const [sales, total] = await prisma.$transaction([
-      prisma.sale.findMany({
+    const [sales, total] = await Promise.all([
+      getDb().sale.findMany({
         ...paginationOptions,
 
         include: {
@@ -24,7 +24,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
           createdAt: "desc",
         },
       }),
-      prisma.sale.count(),
+      getDb().sale.count(),
     ]);
 
     const dt = sales.map((sale) => SaleReadMapper.toDTO(sale));
@@ -33,7 +33,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
   }
 
   async getById(id: string): Promise<SaleDetailsDTO | null> {
-    const sale = await prisma.sale.findUnique({
+    const sale = await getDb().sale.findUnique({
       where: { id },
       include: {
         customer: true,

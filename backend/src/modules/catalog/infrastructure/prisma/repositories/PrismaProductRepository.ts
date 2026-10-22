@@ -3,11 +3,11 @@ import { Product } from "@catalog/domain/entities/Product";
 import { ProductMapper } from "../mappers/ProductMapper";
 import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaProductRepository implements ProductRepository {
   async create(product: Product): Promise<Product> {
-    const created = await prisma.product.create({
+    const created = await getDb().product.create({
       data: ProductMapper.toCreatePersistence(product),
     });
 
@@ -15,7 +15,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async update(product: Product): Promise<Product> {
-    const updated = await prisma.product.update({
+    const updated = await getDb().product.update({
       where: {
         id: product.id,
       },
@@ -26,7 +26,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.product.delete({
+    await getDb().product.delete({
       where: {
         id,
       },
@@ -34,7 +34,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async findById(id: string): Promise<Product | null> {
-    const product = await prisma.product.findUnique({
+    const product = await getDb().product.findUnique({
       where: {
         id,
       },
@@ -48,7 +48,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async findByCode(code: string): Promise<Product | null> {
-    const product = await prisma.product.findUnique({
+    const product = await getDb().product.findUnique({
       where: {
         code: code,
       },
@@ -64,7 +64,7 @@ export class PrismaProductRepository implements ProductRepository {
   async list(page: number, limit: number): Promise<Product[]> {
     const skip = (page - 1) * limit;
 
-    const products = await prisma.product.findMany({
+    const products = await getDb().product.findMany({
       skip,
       take: limit,
     });
@@ -73,7 +73,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async findProductsForList(): Promise<ProductListDTO[]> {
-    const products = await prisma.product.findMany({
+    const products = await getDb().product.findMany({
       include: {
         brand: true,
 

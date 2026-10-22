@@ -5,7 +5,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaCategoriesReadRepository implements CategoriesReadRepository {
   async list(
@@ -13,14 +13,14 @@ export class PrismaCategoriesReadRepository implements CategoriesReadRepository 
   ): Promise<PaginatedResult<CategoriesListDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [categories, total] = await prisma.$transaction([
-      prisma.category.findMany({
+    const [categories, total] = await Promise.all([
+      getDb().category.findMany({
         ...paginationOptions,
         orderBy: {
           name: "asc",
         },
       }),
-      prisma.category.count(),
+      getDb().category.count(),
     ]);
 
     const dt = categories.map((category) =>
@@ -30,7 +30,7 @@ export class PrismaCategoriesReadRepository implements CategoriesReadRepository 
   }
 
   async getById(id: string): Promise<CategoriesListDTO | null> {
-    const category = await prisma.category.findUnique({
+    const category = await getDb().category.findUnique({
       where: { id },
     });
 

@@ -3,14 +3,11 @@ import { PrismaInventoryBoxRepository } from "@inventory/infrastructure/prisma/r
 import { PrismaInventoryBoxStockRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxStockRepository";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
-import { prisma } from "@shared/prisma";
 
 export function makeAddProductToBoxUseCase() {
-  const inventoryLotRepository = new PrismaInventoryLotRepository(prisma);
-  const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository(
-    prisma,
-  );
-  const inventoryBoxRepository = new PrismaInventoryBoxRepository(prisma);
+  const inventoryLotRepository = new PrismaInventoryLotRepository();
+  const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository();
+  const inventoryBoxRepository = new PrismaInventoryBoxRepository();
   const transactionManager = new PrismaTransactionManager();
 
   return new AddProductToBoxUseCase(

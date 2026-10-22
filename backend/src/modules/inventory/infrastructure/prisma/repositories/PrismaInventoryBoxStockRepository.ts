@@ -1,14 +1,12 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStockMapper } from "../mappers/InventoryBoxStockMapper";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 
 export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepository {
-  constructor(private readonly prisma: PrismaClient) {}
 
   async create(entity: InventoryBoxStock): Promise<InventoryBoxStock> {
-    const created = await this.prisma.inventoryBoxStock.create({
+    const created = await getDb().inventoryBoxStock.create({
       data: InventoryBoxStockMapper.toCreatePersistence(entity),
     });
 
@@ -16,7 +14,7 @@ export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepo
   }
 
   async update(entity: InventoryBoxStock): Promise<InventoryBoxStock> {
-    const data = await this.prisma.inventoryBoxStock.update({
+    const data = await getDb().inventoryBoxStock.update({
       where: { id: entity.id },
       data: InventoryBoxStockMapper.toUpdatePersistence(entity),
     });
@@ -25,7 +23,7 @@ export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepo
   }
 
   async findById(id: string): Promise<InventoryBoxStock | null> {
-    const data = await this.prisma.inventoryBoxStock.findUnique({
+    const data = await getDb().inventoryBoxStock.findUnique({
       where: { id },
     });
 
@@ -33,17 +31,16 @@ export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepo
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.inventoryBoxStock.delete({
+    await getDb().inventoryBoxStock.delete({
       where: { id },
     });
   }
 
   async findStock(
     inventoryLotId: string,
-    boxId: string,
-    tx: Prisma.TransactionClient = prisma,
+    boxId: string
   ) {
-    const data = await tx.inventoryBoxStock.findUnique({
+    const data = await getDb().inventoryBoxStock.findUnique({
       where: {
         inventoryLotId_boxId: {
           inventoryLotId,

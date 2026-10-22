@@ -1,11 +1,11 @@
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 import { BrandMapper } from "../mappers/BrandMapper";
 import { Brand } from "@catalog/domain/entities/Brand";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaBrandRepository implements BrandRepository {
   async create(brand: Brand): Promise<Brand> {
-    const created = await prisma.brand.create({
+    const created = await getDb().brand.create({
       data: BrandMapper.toCreatePersistence(brand),
     });
 
@@ -15,7 +15,7 @@ export class PrismaBrandRepository implements BrandRepository {
   async list({ limit, page }: FindManyProductsParams): Promise<Brand[]> {
     const skip = (page - 1) * limit;
 
-    const brands = await prisma.brand.findMany({
+    const brands = await getDb().brand.findMany({
       skip,
       take: limit,
     });
@@ -24,7 +24,7 @@ export class PrismaBrandRepository implements BrandRepository {
   }
 
   async findById(id: string): Promise<Brand | null> {
-    const brand = await prisma.brand.findUnique({
+    const brand = await getDb().brand.findUnique({
       where: { id },
     });
 

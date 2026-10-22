@@ -1,5 +1,4 @@
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
-import { Prisma } from "@prisma/client";
 
 export interface CreateFinancialServicenput {
   originId: string;
@@ -12,6 +11,5 @@ export interface CreateFinancialServicenput {
 export interface FinancialService {
   createReceivable(
     input: CreateFinancialServicenput,
-    tx?: Prisma.TransactionClient,
   ): Promise<void>;
 }

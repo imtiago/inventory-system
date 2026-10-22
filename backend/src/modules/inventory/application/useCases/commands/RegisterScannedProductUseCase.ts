@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
@@ -34,7 +33,6 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
 
   async handle(
     request: IRegisterScannedProductInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IInventoryBoxOutput> {
     /**
      * Quantidade padrão:
@@ -63,8 +61,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
      * 2. Localizar caixa
      */
     const box = await this.inventoryBoxRepository.findByCode(
-      request.boxCode,
-      tx,
+      request.boxCode
     );
 
     if (!box) {
@@ -75,8 +72,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
      * 3. Localizar estoque do produto
      */
     const inventory = await this.inventoryRepository.findByVariant(
-      productVariant.id,
-      tx,
+      productVariant.id
     );
 
     if (!inventory) {
@@ -89,8 +85,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     let lot =
       await this.inventoryLotRepository.findByProductVariantIdAndBatchNumber(
         productVariant.id,
-        request.batchNumber!,
-        tx,
+        request.batchNumber!
       );
 
     /**
@@ -109,13 +104,12 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
           batchNumber: request.batchNumber ?? null,
           manufacturingDate: null,
           expirationDate: request.expirationDate ?? null,
-        }),
-        tx,
+        })
       );
     } else {
       lot.addQuantity(quantity);
 
-      lot = await this.inventoryLotRepository.save(lot, tx);
+      lot = await this.inventoryLotRepository.save(lot);
     }
 
     /**
@@ -126,15 +120,14 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
       unitCost: lot.unitCost,
     });
 
-    await this.inventoryRepository.save(inventory, tx);
+    await this.inventoryRepository.save(inventory);
 
     /**
      * 7. Localizar estoque da caixa
      */
     const stock = await this.inventoryBoxStockRepository.findStock(
       lot.id,
-      box.id,
-      tx,
+      box.id
     );
 
     /**

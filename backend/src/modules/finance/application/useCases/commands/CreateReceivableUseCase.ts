@@ -5,9 +5,8 @@ import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FinancialDocumentRepository } from "@finance/domain/repositories/FinancialDocumentRepository";
 import { FinancialParcelRepository } from "@finance/domain/repositories/FinancialParcelRepository";
-import { Prisma } from "@prisma/client";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 
 export class CreateReceivableUseCase extends TransactionalUseCase<
   ICreateReceivableInput,
@@ -23,7 +22,6 @@ export class CreateReceivableUseCase extends TransactionalUseCase<
 
   protected async handle(
     props: ICreateReceivableInput,
-    transaction: Prisma.TransactionClient,
   ) {
     const document = new FinancialDocument({
       type: FinancialType.RECEIVABLE,
@@ -42,8 +40,8 @@ export class CreateReceivableUseCase extends TransactionalUseCase<
         }),
     );
 
-    await this.repo.create(document, transaction);
-    await this.repositoryParcels.createMany(parcels, transaction);
+    await this.repo.create(document);
+    await this.repositoryParcels.createMany(parcels);
 
     return document;
   }

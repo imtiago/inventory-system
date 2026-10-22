@@ -1,14 +1,12 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 import { NumberRangeRepository } from "@shared/domain/repositories/NumberRangeRepository";
 
 export class PrismaNumberRangeRepository implements NumberRangeRepository {
   async getNextValue(
-    name: string,
-    tx: Prisma.TransactionClient = prisma,
+    name: string
   ): Promise<number> {
-    const result = await tx.numberRange.update({
+    const result = await getDb().numberRange.update({
       where: {
         name,
       },

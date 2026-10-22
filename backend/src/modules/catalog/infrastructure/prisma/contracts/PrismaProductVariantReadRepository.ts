@@ -7,7 +7,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaProductVariantReadRepository implements ProductVariantReadRepository {
   async getByProductId(
@@ -16,8 +16,8 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   ): Promise<PaginatedResult<ProductVariantDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [productsVariant, total] = await prisma.$transaction([
-      prisma.productVariant.findMany({
+    const [productsVariant, total] = await Promise.all([
+      getDb().productVariant.findMany({
         ...paginationOptions,
         where: {
           productId,
@@ -29,7 +29,7 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
           name: "asc",
         },
       }),
-      prisma.productVariant.count({
+      getDb().productVariant.count({
         where: {
           productId,
         },
@@ -46,8 +46,8 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   ): Promise<PaginatedResult<ProductVariantDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [productsVariant, total] = await prisma.$transaction([
-      prisma.productVariant.findMany({
+    const [productsVariant, total] = await Promise.all([
+      getDb().productVariant.findMany({
         ...paginationOptions,
         include: {
           product: true,
@@ -56,7 +56,7 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
           name: "asc",
         },
       }),
-      prisma.productVariant.count(),
+      getDb().productVariant.count(),
     ]);
     const dt = productsVariant.map((variant) =>
       ProductVariantReadMapper.toDTO(variant),
@@ -66,7 +66,7 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   }
 
   async getById(id: string): Promise<ProductVariantDTO | null> {
-    const variant = await prisma.productVariant.findUnique({
+    const variant = await getDb().productVariant.findUnique({
       where: { id },
       include: {
         product: true,
@@ -78,7 +78,7 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
     return ProductVariantReadMapper.toDTO(variant);
   }
   async getByBarcode(barcode: string) {
-    const variant = await prisma.productVariant.findUnique({
+    const variant = await getDb().productVariant.findUnique({
       where: { barcode },
       include: {
         product: true,

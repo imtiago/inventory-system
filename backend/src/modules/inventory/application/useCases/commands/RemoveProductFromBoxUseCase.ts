@@ -1,6 +1,5 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 import {
@@ -21,7 +20,6 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
 
   async handle(
     request: IRemoveProductFromBoxInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IInventoryBoxStockOutput> {
     if (request.quantity <= 0) {
       throw new Error("Quantity must be greater than zero.");

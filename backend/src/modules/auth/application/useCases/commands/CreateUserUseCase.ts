@@ -1,6 +1,5 @@
-import { Prisma } from "@prisma/client";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { ICreateUserInput, IUserOutput } from "@auth/application/dto/UserDTO";
 import { User } from "@auth/domain/entities/User";
 import { UserRepository } from "@auth/domain/repositories/UserRepository";
@@ -23,7 +22,6 @@ export class CreateUserUseCase extends TransactionalUseCase<
 
   async handle(
     { email, password, name, role }: ICreateUserInput,
-    tx: Prisma.TransactionClient,
   ): Promise<IUserOutput> {
     const existing = await this.userRepo.findByEmail(email);
     if (existing) throw new Error("E-mail already in use");

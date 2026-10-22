@@ -5,7 +5,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaBrandReadRepository implements BrandReadRepository {
   async list(
@@ -13,14 +13,14 @@ export class PrismaBrandReadRepository implements BrandReadRepository {
   ): Promise<PaginatedResult<BrandListDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [brands, total] = await prisma.$transaction([
-      prisma.brand.findMany({
+    const [brands, total] = await Promise.all([
+      getDb().brand.findMany({
         ...paginationOptions,
         orderBy: {
           name: "asc",
         },
       }),
-      prisma.brand.count(),
+      getDb().brand.count(),
     ]);
 
     const dt = brands.map((brand) => BrandReadMapper.toDTO(brand));
@@ -28,7 +28,7 @@ export class PrismaBrandReadRepository implements BrandReadRepository {
   }
 
   async getById(id: string): Promise<BrandListDTO | null> {
-    const brand = await prisma.brand.findUnique({
+    const brand = await getDb().brand.findUnique({
       where: { id },
     });
 

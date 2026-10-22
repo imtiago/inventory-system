@@ -1,13 +1,12 @@
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { User } from "@auth/domain/entities/User";
 import { UserMapper } from "../mappers/UserMapper";
 import { UserRepository } from "@auth/domain/repositories/UserRepository";
-import { PrismaClient } from "@prisma/client";
 
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
 
   async create(user: User): Promise<User> {
-    const created = await this.prisma.user.create({
+    const created = await getDb().user.create({
       data: UserMapper.toCreatePersistence(user),
     });
 
@@ -15,7 +14,7 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async update(entity: User): Promise<User> {
-    const created = await this.prisma.user.update({
+    const created = await getDb().user.update({
       where: { id: entity.id },
       data: UserMapper.toUpdatePersistence(entity),
     });
@@ -24,7 +23,7 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
+    const user = await getDb().user.findUnique({
       where: { email },
     });
 
@@ -36,7 +35,7 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
+    const user = await getDb().user.findUnique({
       where: { id },
     });
 
@@ -48,7 +47,7 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({
+    await getDb().user.delete({
       where: { id },
     });
   }
@@ -56,7 +55,7 @@ export class PrismaUserRepository implements UserRepository {
   async list(page: number, limit: number): Promise<User[]> {
     const skip = (page - 1) * limit;
 
-    const users = await this.prisma.user.findMany({
+    const users = await getDb().user.findMany({
       skip,
       take: limit,
     });

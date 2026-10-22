@@ -1,5 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { prisma } from "../../../../../shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 import { InventoryMapper } from "../mappers/InventoryMapper";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
@@ -7,10 +6,9 @@ import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotMapper } from "../mappers/InventoryLotMapper";
 
 export class PrismaInventoryLotRepository implements IInventoryLotRepository {
-  constructor(private readonly prisma: PrismaClient) {}
 
   async create(entity: InventoryLot): Promise<InventoryLot> {
-    const dataCreated = await this.prisma.inventoryLot.create({
+    const dataCreated = await getDb().inventoryLot.create({
       data: InventoryLotMapper.toCreatePersistence(entity),
     });
 
@@ -18,7 +16,7 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
   }
 
   async update(entity: InventoryLot): Promise<InventoryLot> {
-    const dataCreated = await this.prisma.inventoryLot.update({
+    const dataCreated = await getDb().inventoryLot.update({
       where: {
         id: entity.id,
       },
@@ -29,15 +27,15 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.inventoryLot.delete({
+    await getDb().inventoryLot.delete({
       where: {
         id,
       },
     });
   }
 
-  async findById(id: string, tx: Prisma.TransactionClient = prisma) {
-    const inventory = await tx.inventoryLot.findUnique({
+  async findById(id: string) {
+    const inventory = await getDb().inventoryLot.findUnique({
       where: {
         id,
       },
@@ -52,10 +50,9 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
 
   async findByProductVariantIdAndBatchNumber(
     productVariantId: string,
-    batchNumber: string,
-    tx: Prisma.TransactionClient = prisma,
+    batchNumber: string
   ) {
-    const inventory = await tx.inventoryLot.findFirst({
+    const inventory = await getDb().inventoryLot.findFirst({
       where: {
         productVariantId,
         batchNumber,
@@ -70,10 +67,9 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
   }
 
   async findAvailableByInventory(
-    inventoryId: string,
-    tx: Prisma.TransactionClient = prisma,
+    inventoryId: string
   ) {
-    const data = await tx.inventoryLot.findMany({
+    const data = await getDb().inventoryLot.findMany({
       where: {
         inventoryId,
 
@@ -91,10 +87,9 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
   }
 
   async findByProductVariantId(
-    productVariantId: string,
-    tx: Prisma.TransactionClient = prisma,
+    productVariantId: string
   ) {
-    const inventory = await tx.inventory.findUnique({
+    const inventory = await getDb().inventory.findUnique({
       where: {
         productVariantId,
       },

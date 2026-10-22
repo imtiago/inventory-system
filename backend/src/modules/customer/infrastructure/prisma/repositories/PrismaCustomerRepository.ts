@@ -1,11 +1,11 @@
 import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 import { CustomerMapper } from "../mappers/CustomerMapper";
 import { Customer } from "@customer/domain/entities/Customer";
-import { prisma } from "@shared/prisma";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 export class PrismaCustomerRepository implements CustomerRepository {
   async create(customer: Customer): Promise<Customer> {
-    const created = await prisma.customer.create({
+    const created = await getDb().customer.create({
       data: CustomerMapper.toCreatePersistence(customer),
     });
 
@@ -15,7 +15,7 @@ export class PrismaCustomerRepository implements CustomerRepository {
   async list(page: number, limit: number): Promise<Customer[]> {
     const skip = (page - 1) * limit;
 
-    const customers = await prisma.customer.findMany({
+    const customers = await getDb().customer.findMany({
       skip,
       take: limit,
     });
@@ -24,7 +24,7 @@ export class PrismaCustomerRepository implements CustomerRepository {
   }
 
   async findById(id: string): Promise<Customer | null> {
-    const customer = await prisma.customer.findUnique({
+    const customer = await getDb().customer.findUnique({
       where: { id },
     });
 
@@ -36,7 +36,7 @@ export class PrismaCustomerRepository implements CustomerRepository {
   }
 
   async update(customer: Customer): Promise<Customer> {
-    const updated = await prisma.customer.update({
+    const updated = await getDb().customer.update({
       where: {
         id: customer.id,
       },
