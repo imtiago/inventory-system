@@ -40,7 +40,7 @@ export class PrismaStockMovementRepository implements IStockMovementRepository {
       where: {
         id: entity.id,
       },
-      data: StockMovementMapper.toCreatePersistence(entity),
+      data: StockMovementMapper.toUpdatePersistence(entity),
     });
 
     return StockMovementMapper.toDomain(updated);

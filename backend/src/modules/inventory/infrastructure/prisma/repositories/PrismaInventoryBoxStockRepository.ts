@@ -27,6 +27,10 @@ export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepo
       where: { id },
     });
 
+    if (!data) {
+      return null;
+    }
+
     return InventoryBoxStockMapper.toDomain(data);
   }
 
@@ -54,5 +58,14 @@ export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepo
     }
 
     return InventoryBoxStockMapper.toDomain(data);
+  }
+
+  async sumAllocatedByLot(inventoryLotId: string): Promise<number> {
+    const result = await getDb().inventoryBoxStock.aggregate({
+      where: { inventoryLotId },
+      _sum: { quantity: true },
+    });
+
+    return result._sum.quantity ?? 0;
   }
 }

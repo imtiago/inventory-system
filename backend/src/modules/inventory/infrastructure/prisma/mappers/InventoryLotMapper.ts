@@ -1,4 +1,5 @@
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
+import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { InventoryLot as PrismaInventoryLot, Prisma } from "@prisma/client";
 
 export class InventoryLotMapper {
@@ -13,13 +14,13 @@ export class InventoryLotMapper {
 
       productVariantId: prisma.productVariantId,
 
-      sourceType: prisma.sourceType,
+      sourceType: prisma.sourceType as InventoryLotSource,
 
       sourceId: prisma.sourceId,
 
-      quantity: prisma.initialQuantity,
+      initialQuantity: prisma.initialQuantity,
 
-      availableQuantity: prisma.remainingQuantity,
+      remainingQuantity: prisma.remainingQuantity,
 
       unitCost: Number(prisma.unitCost),
 
@@ -43,9 +44,9 @@ export class InventoryLotMapper {
     return {
       id: inventoryLot.id,
 
-      initialQuantity: inventoryLot.quantity,
+      initialQuantity: inventoryLot.initialQuantity,
 
-      remainingQuantity: inventoryLot.availableQuantity,
+      remainingQuantity: inventoryLot.remainingQuantity,
 
       unitCost: inventoryLot.unitCost,
 
@@ -83,9 +84,9 @@ export class InventoryLotMapper {
     inventoryLot: InventoryLot,
   ): Prisma.InventoryLotUpdateInput {
     return {
-      initialQuantity: inventoryLot.quantity,
+      initialQuantity: inventoryLot.initialQuantity,
 
-      remainingQuantity: inventoryLot.availableQuantity,
+      remainingQuantity: inventoryLot.remainingQuantity,
 
       unitCost: inventoryLot.unitCost,
 

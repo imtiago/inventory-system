@@ -15,8 +15,8 @@ interface StockMovementProps {
 
   quantity: number;
 
-  previousQuantity: number;
-  currentQuantity: number;
+  previousQuantity?: number | null;
+  currentQuantity?: number | null;
 
   originId?: string | null;
 
@@ -42,6 +42,8 @@ export class StockMovement extends BaseEntity {
       inventoryLotId: props.inventoryLotId ?? null,
       originId: props.originId ?? null,
       userId: props.userId ?? null,
+      previousQuantity: props.previousQuantity ?? null,
+      currentQuantity: props.currentQuantity ?? null,
       averageCost: props.averageCost ?? null,
       notes: props.notes ?? null,
     };
@@ -103,6 +105,11 @@ export class StockMovement extends BaseEntity {
     }
 
     const { type, quantity, previousQuantity, currentQuantity } = this.props;
+
+    // Movimentações legadas não têm saldos: só valida a coerência quando ambos existem.
+    if (previousQuantity == null || currentQuantity == null) {
+      return;
+    }
 
     switch (type) {
       case StockMovementType.IN:

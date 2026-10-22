@@ -6,6 +6,8 @@ export interface IInventoryBoxStockRepository extends ICrudRepository<InventoryB
     boxId: string
   ): Promise<InventoryBoxStock | null>;
 
+  sumAllocatedByLot(inventoryLotId: string): Promise<number>;
+
   // create(
   //   stock: InventoryBoxStock,
   // ): Promise<InventoryBoxStock>;

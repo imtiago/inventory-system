@@ -50,3 +50,28 @@ test("userId é opcional", () => {
   const m2 = make(StockMovementType.IN, 5, 10, 15, { userId: "u1" });
   assert.equal(m2.userId, "u1");
 });
+
+test("movimentação legada sem saldos é reconstituída", () => {
+  assert.doesNotThrow(
+    () =>
+      new StockMovement({
+        inventoryId: "inv-1",
+        productVariantId: "var-1",
+        type: StockMovementType.IN,
+        origin: StockMovementOrigin.MANUAL,
+        quantity: 5,
+        previousQuantity: null,
+        currentQuantity: null,
+      }),
+  );
+  assert.throws(
+    () =>
+      new StockMovement({
+        inventoryId: "inv-1",
+        productVariantId: "var-1",
+        type: StockMovementType.IN,
+        origin: StockMovementOrigin.MANUAL,
+        quantity: 0,
+      }),
+  );
+});

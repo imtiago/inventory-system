@@ -1,6 +1,5 @@
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
-import { InventoryMapper } from "../mappers/InventoryMapper";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotMapper } from "../mappers/InventoryLotMapper";
@@ -84,21 +83,5 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
     });
 
     return data.map((d) => InventoryLotMapper.toDomain(d));
-  }
-
-  async findByProductVariantId(
-    productVariantId: string
-  ) {
-    const inventory = await getDb().inventory.findUnique({
-      where: {
-        productVariantId,
-      },
-    });
-
-    if (!inventory) {
-      return null;
-    }
-
-    return InventoryMapper.toDomain(inventory);
   }
 }
