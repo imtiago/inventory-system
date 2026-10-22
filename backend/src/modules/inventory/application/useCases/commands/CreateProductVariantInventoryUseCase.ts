@@ -1,6 +1,5 @@
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { Prisma } from "@prisma/client";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { Inventory } from "@inventory/domain/entities/Inventory";
 import { CreateInventoryUseCase } from "./CreateInventoryUseCase";

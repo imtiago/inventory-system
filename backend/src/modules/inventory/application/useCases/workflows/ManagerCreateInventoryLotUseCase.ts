@@ -29,24 +29,9 @@ export class ManagerCreateInventoryLotUseCase extends TransactionalUseCase<
     const inventory = await this.getInventoryByIdUseCase.execute(
       request.inventoryId,
     );
-    console.log("tiago");
     if (!inventory) {
-      console.log("tiago da silva oliveira, o inventory não foi encontrado");
+      throw new Error("Inventory not found");
     }
-    const lot = new InventoryLot({
-      inventoryId: request.inventoryId,
-      productVariantId: request.productVariantId,
-      quantity: request.quantity,
-      unitCost: request.unitCost,
-      sourceType: InventoryLotSource.MANUAL,
-      availableQuantity: request.availableQuantity,
-      batchNumber: request.batchNumber,
-      createdAt: request.createdAt,
-      expirationDate: request.expirationDate,
-      id: request.id,
-      sourceId: request.sourceId,
-      manufacturingDate: request.manufacturingDate,
-    });
 
     const inventoryLot = await this.createInventoryLotUseCase.execute({
       inventoryId: request.inventoryId,
