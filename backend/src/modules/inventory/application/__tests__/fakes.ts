@@ -75,6 +75,16 @@ export class InMemoryInventoryRepository
   async findByProductVariantId(id: string): Promise<Inventory | null> {
     return this.all().find((i) => i.productVariantId === id) ?? null;
   }
+
+  async lockByProductVariantId(id: string): Promise<Inventory> {
+    const existing = await this.findByProductVariantId(id);
+    if (existing) return existing;
+    return this.create(new Inventory({ productVariantId: id }));
+  }
+
+  async lockExistingByProductVariantId(id: string): Promise<Inventory | null> {
+    return this.findByProductVariantId(id);
+  }
 }
 
 export class InMemoryInventoryLotRepository

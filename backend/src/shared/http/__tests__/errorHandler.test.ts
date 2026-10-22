@@ -141,3 +141,29 @@ test("ValidationError aceita código customizado", async () => {
   assert.equal(r.status, 400);
   assert.equal(r.body.code, "FILE_REQUIRED");
 });
+
+test("Prisma P2034 → 409 CONCURRENT_UPDATE", async () => {
+  const r = await call(
+    () => new Prisma.PrismaClientKnownRequestError("conflict", { code: "P2034", clientVersion: "x" }),
+  );
+  assert.equal(r.status, 409);
+  assert.deepEqual(r.body, {
+    message: "Operação em andamento para este item. Tente novamente.",
+    code: "CONCURRENT_UPDATE",
+  });
+});
+
+for (const pg of ["40P01", "55P03"]) {
+  test(`Prisma P2010 meta.code ${pg} → 409 CONCURRENT_UPDATE`, async () => {
+    const r = await call(
+      () =>
+        new Prisma.PrismaClientKnownRequestError("raw failed", {
+          code: "P2010",
+          clientVersion: "x",
+          meta: { code: pg },
+        }),
+    );
+    assert.equal(r.status, 409);
+    assert.equal(r.body.code, "CONCURRENT_UPDATE");
+  });
+}
