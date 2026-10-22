@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { parseInput } from "@shared/http/parseInput";
 import { HttpResponse } from "@shared/http/response";
 import { makeListInventoryLotsByVariantIdUseCase } from "../factories/ListInventoryLotsByVariantIdFactory";
 import {
@@ -13,18 +13,12 @@ export function makeListInventoryLotsByVariantIdController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { page, limit } = listInvetoryLotsSchema.parse(request.query);
+    const { page, limit } = parseInput(listInvetoryLotsSchema, request.query);
 
-      const { productVariantId } = listInventoryLotsParamsSchema.parse(
-        request.params,
-      );
+    const { productVariantId } = parseInput(listInventoryLotsParamsSchema, request.params);
 
-      const data = await useCase.execute({ page, limit, productVariantId });
+    const data = await useCase.execute({ page, limit, productVariantId });
 
-      return reply.send(HttpResponse.paginated(data));
-    } catch (err) {
-      return sendBadRequest(reply, err);
-    }
+    return reply.send(HttpResponse.paginated(data));
   };
 }

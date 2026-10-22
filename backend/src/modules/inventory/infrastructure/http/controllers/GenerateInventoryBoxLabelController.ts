@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { parseInput } from "@shared/http/parseInput";
 import { generateInventoryBoxLabelParamsSchema } from "@inventory/interfaces/http/schemas/generateInventoryBoxLabelSchema";
 import { makeGenerateInventoryBoxLabel } from "../factories/GenerateInventoryBoxLabelFactory";
 export function makeGenerateInventoryBoxLabelController() {
@@ -9,17 +9,11 @@ export function makeGenerateInventoryBoxLabelController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { code } = generateInventoryBoxLabelParamsSchema.parse(
-        request.params,
-      );
-      const pdf = await useCase.execute({ code });
-      return reply
-        .header("Content-Type", "application/pdf")
-        .header("Content-Disposition", `inline; filename="${code}.pdf"`)
-        .send(pdf);
-    } catch (err) {
-      return sendBadRequest(reply, err);
-    }
+    const { code } = parseInput(generateInventoryBoxLabelParamsSchema, request.params);
+    const pdf = await useCase.execute({ code });
+    return reply
+      .header("Content-Type", "application/pdf")
+      .header("Content-Disposition", `inline; filename="${code}.pdf"`)
+      .send(pdf);
   };
 }

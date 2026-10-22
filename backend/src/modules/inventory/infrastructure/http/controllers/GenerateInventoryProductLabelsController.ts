@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { parseInput } from "@shared/http/parseInput";
 import {
   generateInventoryBoxLabelParamsSchema,
   generateInventoryProductLabelsBodySchema,
@@ -12,26 +12,20 @@ export function makeGenerateInventoryProductLabelsController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { code } = generateInventoryBoxLabelParamsSchema.parse(
-        request.params,
-      );
-      const { productCode, quantity } =
-        generateInventoryProductLabelsBodySchema.parse(request.body);
-      const pdf = await useCase.execute({
-        boxCode: code,
-        productCode: productCode,
-        quantity: quantity,
-      });
-      return reply
-        .header("Content-Type", "application/pdf")
-        .header(
-          "Content-Disposition",
-          `inline; filename="${code}-${productCode}.pdf"`,
-        )
-        .send(pdf);
-    } catch (err) {
-      return sendBadRequest(reply, err);
-    }
+    const { code } = parseInput(generateInventoryBoxLabelParamsSchema, request.params);
+    const { productCode, quantity } =
+      parseInput(generateInventoryProductLabelsBodySchema, request.body);
+    const pdf = await useCase.execute({
+      boxCode: code,
+      productCode: productCode,
+      quantity: quantity,
+    });
+    return reply
+      .header("Content-Type", "application/pdf")
+      .header(
+        "Content-Disposition",
+        `inline; filename="${code}-${productCode}.pdf"`,
+      )
+      .send(pdf);
   };
 }

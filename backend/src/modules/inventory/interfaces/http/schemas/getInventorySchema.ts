@@ -2,9 +2,9 @@
 import { z } from "zod";
 
 export const getInventorySchema = z.object({
-  variantId: z.string().uuid({ message: "Invalid variantId" }),
+  variantId: z.string().uuid({ message: "ID da variante inválido." }),
 });
 
 export const getInventoryByIdParamsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().uuid("ID do estoque inválido."),
 });

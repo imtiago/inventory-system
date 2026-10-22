@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { sendBadRequest } from "@shared/http/formatZodError";
+import { parseInput } from "@shared/http/parseInput";
 import { makeListInventoryUseCase } from "../factories/ListInventoryFactory";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 import { HttpResponse } from "@shared/http/response";
@@ -10,14 +10,10 @@ export function makeListInventoryController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { page, limit } = paginationSchema.parse(request.query);
+    const { page, limit } = parseInput(paginationSchema, request.query);
 
-      const listInventory = await useCase.execute({ page, limit });
+    const listInventory = await useCase.execute({ page, limit });
 
-      return reply.send(HttpResponse.paginated(listInventory));
-    } catch (err) {
-      return sendBadRequest(reply, err);
-    }
+    return reply.send(HttpResponse.paginated(listInventory));
   };
 }
