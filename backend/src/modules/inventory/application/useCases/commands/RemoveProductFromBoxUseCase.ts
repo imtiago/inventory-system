@@ -38,7 +38,7 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
       throw new Error("Insufficient quantity in the box.");
     }
 
-    stock.addQuantity(request.quantity);
+    stock.removeQuantity(request.quantity);
 
     const data = await this.inventoryBoxStockRepository.update(stock);
     return {

@@ -62,6 +62,8 @@ export interface IRegisterScannedProductInput {
   batchNumber?: string;
   expirationDate?: Date;
   quantity?: number;
+  unitCost?: number;
+  userId?: string;
 }
 
 export interface IReleaseInventoryInput {
