@@ -1,13 +1,16 @@
 import { z } from "zod";
+import { requestDate } from "./requestDate";
 
 export const registerScannedProductSchema = z.object({
   barcode: z.string().min(1, "Barcode is required."),
 
   boxCode: z.string().min(1, "Box code is required."),
 
-  batchNumber: z.string().optional(),
+  batchNumber: z.string().trim().min(1).optional(),
 
-  expirationDate: z.string().datetime().optional(),
+  expirationDate: requestDate.optional(),
 
-  quantity: z.number().int().min(1).optional(),
+  quantity: z.number().int().min(1).default(1),
+
+  unitCost: z.number().nonnegative().optional(),
 });

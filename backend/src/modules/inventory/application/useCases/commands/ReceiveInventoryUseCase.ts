@@ -1,113 +1,104 @@
-import { InventoryRepository } from "../../../domain/repositories/InventoryRepository";
-import { Inventory } from "../../../domain/entities/Inventory";
-import { TransactionManager } from "@shared/application/transaction/TransactionManager";
-import { StockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
-import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { CatalogService } from "@catalog/application/services/CatalogService";
+import {
+  IReceiveInventoryInput,
+  IReceiveInventoryOutput,
+} from "@inventory/application/dto/InventoryDTO";
+import { Inventory } from "@inventory/domain/entities/Inventory";
+import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
-import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
-import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
-import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
-import {
-  IInventoryOutput,
-  IReceiveInventoryInput,
-} from "@inventory/application/dto/InventoryDTO";
+import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
+import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
+import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 
 export class ReceiveInventoryUseCase extends TransactionalUseCase<
   IReceiveInventoryInput,
-  IInventoryOutput
+  IReceiveInventoryOutput
 > {
   constructor(
-    private readonly inventoryRepository: InventoryRepository,
-    private readonly inventoryLotRepository: InventoryLotRepository,
-    private readonly stockMovementRepository: StockMovementRepository,
+    private readonly catalogService: CatalogService,
+    private readonly inventoryRepository: IInventoryRepository,
+    private readonly inventoryLotRepository: IInventoryLotRepository,
+    private readonly stockMovementRepository: IStockMovementRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     request: IReceiveInventoryInput,
-  ): Promise<IInventoryOutput> {
-    let inventory = await this.inventoryRepository.findByVariant(
-      request.productVariantId
+  ): Promise<IReceiveInventoryOutput> {
+    const variant = await this.catalogService.getProductVariant(
+      request.productVariantId,
     );
+    if (!variant) {
+      throw new Error("Variante não encontrada.");
+    }
 
+    let inventory = await this.inventoryRepository.findByProductVariantId(
+      request.productVariantId,
+    );
+    const isNewInventory = !inventory;
     if (!inventory) {
-      inventory = new Inventory({
-        productVariantId: request.productVariantId,
-      });
+      inventory = new Inventory({ productVariantId: request.productVariantId });
     }
 
     const previousQuantity = inventory.quantity;
-
     inventory.receive({
       quantity: request.quantity,
       unitCost: request.unitCost,
     });
 
-    const currentQuantity = inventory.quantity;
-    const averageCost = inventory.averageCost;
-    const lot = new InventoryLot({
-      inventoryId: inventory.id,
+    if (isNewInventory) {
+      await this.inventoryRepository.create(inventory);
+    } else {
+      await this.inventoryRepository.update(inventory);
+    }
 
-      productVariantId: request.productVariantId,
+    let lot = request.batchNumber
+      ? await this.inventoryLotRepository.findByProductVariantIdAndBatchNumber(
+          request.productVariantId,
+          request.batchNumber,
+        )
+      : null;
 
-      sourceType: request.origin,
-      // sourceType: InventoryLotSourceType,
+    if (lot) {
+      lot.receive(request.quantity);
+      await this.inventoryLotRepository.update(lot);
+    } else {
+      lot = new InventoryLot({
+        inventoryId: inventory.id,
+        productVariantId: request.productVariantId,
+        sourceType: request.sourceType,
+        sourceId: request.originReferenceId,
+        initialQuantity: request.quantity,
+        unitCost: request.unitCost,
+        batchNumber: request.batchNumber,
+        manufacturingDate: request.manufacturingDate,
+        expirationDate: request.expirationDate,
+      });
+      await this.inventoryLotRepository.create(lot);
+    }
 
-      sourceId: request.originReferenceId,
+    await this.stockMovementRepository.create(
+      new StockMovement({
+        inventoryId: inventory.id,
+        inventoryLotId: lot.id,
+        productVariantId: request.productVariantId,
+        type: StockMovementType.IN,
+        origin: request.origin,
+        quantity: request.quantity,
+        previousQuantity,
+        currentQuantity: inventory.quantity,
+        averageCost: inventory.averageCost,
+        originId: request.originReferenceId,
+        userId: request.userId,
+        notes: request.notes,
+      }),
+    );
 
-      quantity: request.quantity,
-
-      availableQuantity: request.quantity,
-
-      unitCost: request.unitCost,
-
-      batchNumber: request.batchNumber,
-
-      expirationDate: request.expirationDate,
-
-      manufacturingDate: request.manufacturingDate,
-    });
-
-    await this.inventoryRepository.save(inventory);
-
-    await this.inventoryLotRepository.save(lot);
-    const movement = new StockMovement({
-      inventoryId: inventory.id,
-
-      productVariantId: request.productVariantId,
-
-      type: StockMovementType.IN,
-
-      origin: request.origin,
-
-      quantity: request.quantity,
-
-      previousQuantity,
-
-      currentQuantity,
-
-      averageCost,
-      inventoryLotId: lot.id,
-
-      originId: request.originReferenceId,
-
-      userId: request.userId,
-
-      notes: request.notes,
-    });
-
-    await this.stockMovementRepository.create(movement);
-    return {
-      id: inventory.id,
-      availableQuantity: inventory.availableQuantity,
-      code: inventory.code,
-      minimumStock: inventory.minimumStock,
-      productVariantId: inventory.productVariantId,
-      quantity: inventory.quantity,
-      reservedQuantity: inventory.reservedQuantity,
-    };
+    return { inventory, lot };
   }
 }

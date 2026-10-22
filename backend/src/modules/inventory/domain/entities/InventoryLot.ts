@@ -10,8 +10,8 @@ interface InventoryLotProps {
   sourceType: InventoryLotSource;
   sourceId?: string | null;
 
-  quantity: number;
-  availableQuantity?: number;
+  initialQuantity: number;
+  remainingQuantity?: number;
 
   unitCost: number;
 
@@ -24,7 +24,7 @@ interface InventoryLotProps {
 }
 
 export class InventoryLot extends BaseEntity {
-  private props: InventoryLotProps;
+  private props: InventoryLotProps & { remainingQuantity: number };
 
   constructor(props: InventoryLotProps) {
     super({
@@ -34,7 +34,7 @@ export class InventoryLot extends BaseEntity {
 
     this.props = {
       ...props,
-      availableQuantity: props.availableQuantity ?? props.quantity,
+      remainingQuantity: props.remainingQuantity ?? props.initialQuantity,
     };
 
     this.validate();
@@ -48,18 +48,6 @@ export class InventoryLot extends BaseEntity {
     return this.props.productVariantId;
   }
 
-  get quantity() {
-    return this.props.quantity;
-  }
-
-  get availableQuantity() {
-    return this.props.availableQuantity!;
-  }
-
-  get unitCost() {
-    return this.props.unitCost;
-  }
-
   get sourceType() {
     return this.props.sourceType;
   }
@@ -68,82 +56,28 @@ export class InventoryLot extends BaseEntity {
     return this.props.sourceId;
   }
 
-  get batchNumber() {
-    return this.props.batchNumber;
+  get initialQuantity() {
+    return this.props.initialQuantity;
   }
 
-  get expirationDate() {
-    return this.props.expirationDate;
+  get remainingQuantity() {
+    return this.props.remainingQuantity;
+  }
+
+  get unitCost() {
+    return this.props.unitCost;
+  }
+
+  get batchNumber() {
+    return this.props.batchNumber;
   }
 
   get manufacturingDate() {
     return this.props.manufacturingDate;
   }
 
-  get consumedQuantity() {
-    return this.props.quantity - this.availableQuantity;
-  }
-  public addQuantity(quantity: number): void {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
-    }
-
-    this.props.quantity += quantity;
-    this.props.availableQuantity! += quantity;
-  }
-
-  public consume(quantity: number) {
-    if (quantity <= 0) {
-      throw new Error("Invalid quantity.");
-    }
-
-    if (quantity > this.availableQuantity) {
-      throw new Error("Insufficient quantity.");
-    }
-
-    this.props.availableQuantity! -= quantity;
-  }
-
-  public restore(quantity: number) {
-    if (quantity <= 0) {
-      throw new Error("Invalid quantity.");
-    }
-
-    if (this.availableQuantity + quantity > this.props.quantity) {
-      throw new Error("Invalid restore quantity.");
-    }
-
-    this.props.availableQuantity! += quantity;
-  }
-
-  public isExpired(reference = new Date()) {
-    if (!this.props.expirationDate) {
-      return false;
-    }
-
-    return this.props.expirationDate < reference;
-  }
-
-  public isEmpty() {
-    return this.availableQuantity === 0;
-  }
-
-  private validate() {
-    if (this.props.quantity <= 0) {
-      throw new Error("Invalid quantity.");
-    }
-
-    if (this.availableQuantity < 0) {
-      throw new Error("Invalid available quantity.");
-    }
-
-    if (this.availableQuantity > this.props.quantity) {
-      throw new Error("Available quantity exceeds total quantity.");
-    }
-
-    if (this.props.unitCost < 0) {
-      throw new Error("Invalid unit cost.");
-    }
+  get expirationDate() {
+    return this.props.expirationDate;
   }
 
   public receive(quantity: number): void {
@@ -151,7 +85,61 @@ export class InventoryLot extends BaseEntity {
       throw new Error("Quantity must be greater than zero.");
     }
 
-    this.props.quantity += quantity;
-    this.props.availableQuantity! += quantity;
+    this.props.initialQuantity += quantity;
+    this.props.remainingQuantity += quantity;
+  }
+
+  public consume(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error("Invalid quantity.");
+    }
+
+    if (quantity > this.props.remainingQuantity) {
+      throw new Error("Insufficient quantity.");
+    }
+
+    this.props.remainingQuantity -= quantity;
+  }
+
+  public restore(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error("Invalid quantity.");
+    }
+
+    if (this.props.remainingQuantity + quantity > this.props.initialQuantity) {
+      throw new Error("Invalid restore quantity.");
+    }
+
+    this.props.remainingQuantity += quantity;
+  }
+
+  public isEmpty(): boolean {
+    return this.props.remainingQuantity === 0;
+  }
+
+  public isExpired(reference = new Date()): boolean {
+    if (!this.props.expirationDate) {
+      return false;
+    }
+
+    return this.props.expirationDate < reference;
+  }
+
+  private validate() {
+    if (this.props.initialQuantity <= 0) {
+      throw new Error("Invalid quantity.");
+    }
+
+    if (this.props.remainingQuantity < 0) {
+      throw new Error("Invalid remaining quantity.");
+    }
+
+    if (this.props.remainingQuantity > this.props.initialQuantity) {
+      throw new Error("Remaining quantity exceeds initial quantity.");
+    }
+
+    if (this.props.unitCost < 0) {
+      throw new Error("Invalid unit cost.");
+    }
   }
 }

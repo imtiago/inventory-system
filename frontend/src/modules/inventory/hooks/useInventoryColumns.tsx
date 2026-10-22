@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
 
 import type { DataTableColumn } from '@/shared/components/table';
 import { CrudBadge } from '@/shared/components/crud';

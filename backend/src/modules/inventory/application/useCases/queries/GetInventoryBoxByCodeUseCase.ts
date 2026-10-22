@@ -1,16 +1,14 @@
 import { InventoryBoxReadRepository } from "../../contracts/InventoryBoxReadRepository";
-import { IInventoryBoxOutput } from "../../dto/InventoryBoxDTO";
+import { InventoryBoxDTO } from "../../dto/InventoryBoxDTO";
+import { InventoryBoxReadMapper } from "../../mappers/InventoryBoxReadMapper";
 
 export class GetInventoryBoxByCodeUseCase {
   constructor(private repository: InventoryBoxReadRepository) {}
 
-  async execute(code: string): Promise<IInventoryBoxOutput | null> {
+  async execute(code: string): Promise<InventoryBoxDTO | null> {
     const data = await this.repository.getByCode(code);
     if (!data) return null;
 
-    return {
-      id: data.id,
-      code: data.code,
-    };
+    return InventoryBoxReadMapper.toDTO(data);
   }
 }

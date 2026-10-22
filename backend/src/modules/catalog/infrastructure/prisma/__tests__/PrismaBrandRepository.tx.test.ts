@@ -7,8 +7,9 @@ import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositori
 import { Brand } from "@catalog/domain/entities/Brand";
 
 describe("PrismaBrandRepository dentro de transação", () => {
+  const createdNames: string[] = [];
   after(async () => {
-    await prisma.brand.deleteMany({ where: { name: { startsWith: "tx-test-" } } });
+    await prisma.brand.deleteMany({ where: { name: { in: createdNames } } });
     await prisma.$disconnect();
   });
 
@@ -16,6 +17,7 @@ describe("PrismaBrandRepository dentro de transação", () => {
     const repo = new PrismaBrandRepository();
     const tm = new PrismaTransactionManager();
     const name = `tx-test-${randomUUID()}`;
+    createdNames.push(name);
 
     await assert.rejects(
       tm.execute(async () => {

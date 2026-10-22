@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { api } from '@/shared/services/api';
 
 import type { ProductVariant } from '../types/InitialInventoryTypes';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
+
+export type BarcodeLookupResult = { status: 'found'; variant: ProductVariant } | { status: 'not-found' } | { status: 'error'; message: string };
 
 export function useProductByBarcode() {
   const [foundVariant, setFoundVariant] = useState<ProductVariant | null>(null);
@@ -11,32 +14,40 @@ export function useProductByBarcode() {
 
   const [error, setError] = useState<string | null>(null);
 
-  async function searchByBarcode(barcode: string): Promise<ProductVariant | null> {
-    try {
-      setLoading(true);
-      setError(null);
+  /** Distinguishes "not found" (404) from network/server errors. */
+  async function lookupBarcode(barcode: string): Promise<BarcodeLookupResult> {
+    setLoading(true);
+    setError(null);
+    setFoundVariant(null);
 
-      const response = await api.get(`/variants/barcode/${encodeURIComponent(barcode)}`);
+    try {
+      const response = await api.get<{ data: ProductVariant | null }>(`/variants/barcode/${encodeURIComponent(barcode)}`);
 
       const variant = response.data.data ?? null;
 
       setFoundVariant(variant);
 
-      return variant;
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        setFoundVariant(null);
-        return null;
+      return variant ? { status: 'found', variant } : { status: 'not-found' };
+    } catch (err: unknown) {
+      if ((err as { response?: { status?: number } })?.response?.status === 404) {
+        return { status: 'not-found' };
       }
 
-      setFoundVariant(null);
+      const message = apiErrorMessage(err, 'Não foi possível consultar o código de barras.');
 
-      setError(error?.response?.data?.message ?? 'Não foi possível consultar o código de barras.');
+      setError(message);
 
-      return null;
+      return { status: 'error', message };
     } finally {
       setLoading(false);
     }
+  }
+
+  /** Legacy API: the variant, or null when not found or on error (see `error`). */
+  async function searchByBarcode(barcode: string): Promise<ProductVariant | null> {
+    const result = await lookupBarcode(barcode);
+
+    return result.status === 'found' ? result.variant : null;
   }
 
   function clearFoundVariant() {
@@ -49,6 +60,7 @@ export function useProductByBarcode() {
     loading,
     error,
 
+    lookupBarcode,
     searchByBarcode,
     clearFoundVariant,
   };

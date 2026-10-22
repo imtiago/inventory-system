@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { CrudHeader, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
 
 import { DataTable } from '@/shared/components/table';
 
@@ -14,7 +14,7 @@ import { Page } from '@/shared/components/layout/Page';
 export function InventoryListPage() {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isFetching } = useInventory(page);
+  const { data } = useInventory(page);
 
   const columns = useInventoryColumns();
 
@@ -29,7 +29,7 @@ export function InventoryListPage() {
       /> */}
 
       <Section
-        title={`Items (${data?.pagination.total})`}
+        title={`Items (${data?.pagination.total ?? 0})`}
         // description="Unidades comercializadas deste produto"
         actions={
           <div className="flex items-center gap-4">

@@ -5,7 +5,8 @@ import { authorize } from "../../../../../shared/middleware/authorize";
 // import { makeGetInventoryController } from "../controllers/GetInventoryController";
 // import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
 // import { makeListInventoryController } from "../controllers/ListInventoryController";
-import { makeCreateInventoryBoxController } from "../controllers/CreateInventoryBoxController ";
+import { makeCreateInventoryBoxController } from "../controllers/CreateInventoryBoxController";
+import { makeListInventoryBoxesController } from "../controllers/ListInventoryBoxesController";
 import { makeAddProductToBoxController } from "../controllers/AddProductToBoxController";
 import { makeGetInventoryBoxByCodeController } from "../controllers/GetInventoryBoxByCodeController";
 import { makeGenerateInventoryBoxLabelController } from "../controllers/GenerateInventoryBoxLabelController";
@@ -15,6 +16,11 @@ import { makeGetInventoryBoxByLotAndProductVariantController } from "../controll
 // import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
 export async function inventoryBoxRoutes(app: FastifyInstance) {
+  app.get(
+    "/",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeListInventoryBoxesController(),
+  );
   app.post(
     "/",
     { preHandler: [authorize(["admin", "vendedor"])] },

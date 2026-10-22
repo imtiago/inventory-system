@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeListInventoryUseCase } from "../factories/ListInventoryFactory";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 import { HttpResponse } from "@shared/http/response";
@@ -15,8 +16,8 @@ export function makeListInventoryController() {
       const listInventory = await useCase.execute({ page, limit });
 
       return reply.send(HttpResponse.paginated(listInventory));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
-// import { makeGetInventoryBoxByIdUseCase } from "../factories/GetInventoryBoxByIdFactory";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { makeAddProductToBoxUseCase } from "../factories/AddProductToBoxFactory";
 import {
   addProductToBoxBodySchema,
@@ -15,7 +15,6 @@ export function makeAddProductToBoxController() {
     reply: FastifyReply,
   ) {
     try {
-      console.log("object");
       const { boxId } = addProductToBoxParamsSchema.parse(request.params);
       const { inventoryLotId, quantity } = addProductToBoxBodySchema.parse(
         request.body,
@@ -24,8 +23,8 @@ export function makeAddProductToBoxController() {
       const dt = await useCase.execute({ boxId, inventoryLotId, quantity });
 
       return reply.send(HttpResponse.created(dt));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

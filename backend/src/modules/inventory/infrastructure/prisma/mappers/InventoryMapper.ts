@@ -12,7 +12,9 @@ export class InventoryMapper {
       quantity: prisma.quantity,
       reservedQuantity: prisma.reservedQuantity,
       minimumStock: prisma.minimumStock,
+      averageCost: Number(prisma.averageCost),
       createdAt: prisma.createdAt,
+      updatedAt: prisma.updatedAt,
     });
   }
 
@@ -25,6 +27,7 @@ export class InventoryMapper {
       quantity: inventory.quantity,
       reservedQuantity: inventory.reservedQuantity,
       minimumStock: inventory.minimumStock,
+      averageCost: inventory.averageCost,
       createdAt: inventory.createdAt,
 
       productVariant: {
@@ -43,6 +46,7 @@ export class InventoryMapper {
       quantity: inventory.quantity,
       reservedQuantity: inventory.reservedQuantity,
       minimumStock: inventory.minimumStock,
+      averageCost: inventory.averageCost,
     };
   }
 }

@@ -1,55 +1,36 @@
+import { CatalogService } from "@catalog/application/services/CatalogService";
+import { ICreateInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import { Inventory } from "@inventory/domain/entities/Inventory";
+import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
-import { Inventory } from "@inventory/domain/entities/Inventory";
-import { CreateInventoryUseCase } from "./CreateInventoryUseCase";
-import { GetInventoryByVariantId } from "../queries/GetInventoryByVariantIdUseCase";
-import { CatalogApplicationService } from "@catalog/application/services/CatalogApplicationService";
-import {
-  ICreateInventoryInput,
-  IInventoryOutput,
-} from "@inventory/application/dto/InventoryDTO";
 
-export class CreateProductVariantInventoryUseCase {
-  // export class CreateProductVariantInventoryUseCase extends TransactionalUseCase<
-  //   ICreateInventoryInput,
-  //   Inventory
-  // > {
+/** Cria o inventário (saldo 0) de uma variante que ainda não tem. */
+export class CreateProductVariantInventoryUseCase extends TransactionalUseCase<
+  ICreateInventoryInput,
+  Inventory
+> {
   constructor(
-    private readonly catalogService: CatalogApplicationService,
-    private readonly getInventoryByVariantId: GetInventoryByVariantId,
-    private readonly createInventoryUseCase: CreateInventoryUseCase,
-    // transactionManager: TransactionManager,
+    private readonly catalogService: CatalogService,
+    private readonly inventoryRepository: IInventoryRepository,
+    transactionManager: TransactionManager,
   ) {
-    // super(transactionManager);
+    super(transactionManager);
   }
 
-  async handle(
-    request: ICreateInventoryInput,
-  ): Promise<IInventoryOutput> {
-    const existProductVariant = await this.catalogService.getProductVariant(
+  protected async handle(request: ICreateInventoryInput): Promise<Inventory> {
+    const variant = await this.catalogService.getProductVariant(
       request.productVariantId,
     );
-    if (!existProductVariant) throw new Error("ProductVariant not exist");
+    if (!variant) throw new Error("Variante não encontrada.");
 
-    const existInventory = await this.getInventoryByVariantId.execute(
+    const existing = await this.inventoryRepository.findByProductVariantId(
       request.productVariantId,
     );
-    if (existInventory) throw new Error("Inventory exist");
+    if (existing) throw new Error("Inventário já existe para esta variante.");
 
-    const inventory = new Inventory({
-      productVariantId: request.productVariantId,
-    });
-
-    const data = await this.createInventoryUseCase.execute(inventory);
-    return {
-      id: data.id,
-      availableQuantity: data.availableQuantity,
-      code: data.code,
-      minimumStock: data.minimumStock,
-      productVariantId: data.productVariantId,
-      quantity: data.quantity,
-      reservedQuantity: data.reservedQuantity,
-    };
+    return this.inventoryRepository.create(
+      new Inventory({ productVariantId: request.productVariantId }),
+    );
   }
 }

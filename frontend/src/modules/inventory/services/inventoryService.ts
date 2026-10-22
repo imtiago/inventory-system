@@ -1,41 +1,30 @@
 import { api } from '@/shared/services/api';
+import type { Inventory, InventoryBox, InventoryLot, Paginated } from '../types';
 
-export async function getInventory(page = 1): Promise<CustomerListResponse> {
-  const response = await api.get('/inventory', {
-    params: {
-      page,
-      limit: 10,
-    },
-  });
+/**
+ * Inventory
+ */
+
+export async function getInventory(page = 1, limit = 10): Promise<Paginated<Inventory>> {
+  const response = await api.get<Paginated<Inventory>>('/inventory', { params: { page, limit } });
 
   return response.data;
 }
 
-/**
- * =========================
- * Inventory
- * =========================
- */
-
-export async function getInventoryById(id: string) {
-  const response = await api.get(`/inventory/${id}`);
+export async function getInventoryById(id: string): Promise<Inventory> {
+  const response = await api.get<{ data: Inventory }>(`/inventory/${id}`);
 
   return response.data.data;
 }
 
-export async function getVariantInventory(productVariantId: string) {
-  const response = await api.get(`/inventory/variant/${productVariantId}`);
-
-  return response.data.data;
-}
-
-export async function getInventoryByVariant(variantId: string) {
+/** Returns null when the variant has no inventory yet (404). */
+export async function getInventoryByVariant(variantId: string): Promise<Inventory | null> {
   try {
-    const response = await api.get(`/inventory/variants/${variantId}`);
+    const response = await api.get<{ data: Inventory }>(`/inventory/variants/${variantId}`);
 
-    return response.data.data ?? response.data;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
+    return response.data.data;
+  } catch (error: unknown) {
+    if ((error as { response?: { status?: number } }).response?.status === 404) {
       return null;
     }
 
@@ -43,66 +32,83 @@ export async function getInventoryByVariant(variantId: string) {
   }
 }
 
-export async function createInventory(productVariantId: string) {
-  const response = await api.post('/inventory/', {
-    productVariantId,
-  });
+export async function createInventory(productVariantId: string): Promise<Inventory> {
+  const response = await api.post<{ data: Inventory }>('/inventory', { productVariantId });
 
-  return response.data.data ?? response.data;
+  return response.data.data;
 }
 
 /**
- * =========================
  * Inventory Lots
- * =========================
  */
+
+export async function getInventoryLots(
+  variantId: string,
+  { page = 1, limit = 10 }: { page?: number; limit?: number } = {},
+): Promise<Paginated<InventoryLot>> {
+  const response = await api.get<Paginated<InventoryLot>>(`/inventory/variants/${variantId}/lots`, {
+    params: { page, limit },
+  });
+
+  return response.data;
+}
 
 export interface CreateInventoryLotDTO {
   productVariantId: string;
   batchNumber: string;
-  manufacturingDate?: string;
-  expirationDate: string;
   quantity: number;
   unitCost: number;
+  expirationDate: string | Date;
+  manufacturingDate?: string | Date;
 }
 
-export async function createInventoryLot(data: CreateInventoryLotDTO) {
-  const response = await api.post('/inventory/lots', data);
+function toISO(value: string | Date): string {
+  return (value instanceof Date ? value : new Date(value)).toISOString();
+}
+
+export async function createInventoryLot(dto: CreateInventoryLotDTO): Promise<InventoryLot> {
+  const body = {
+    ...dto,
+    expirationDate: toISO(dto.expirationDate),
+    manufacturingDate: dto.manufacturingDate ? toISO(dto.manufacturingDate) : undefined,
+  };
+  const response = await api.post<{ data: InventoryLot }>('/inventory/lots', body);
 
   return response.data.data;
 }
 
 /**
- * =========================
  * Inventory Boxes
- * =========================
  */
 
-export interface CreateInventoryBoxDTO {
-  code: string;
+export async function listInventoryBoxes(search?: string): Promise<Paginated<InventoryBox>> {
+  const response = await api.get<Paginated<InventoryBox>>('/inventory/boxes', {
+    params: search ? { search } : undefined,
+  });
+
+  return response.data;
 }
 
-export async function createInventoryBox() {
-  // export async function createInventoryBox(data: CreateInventoryBoxDTO) {
-  // const response = await api.post('/inventory/boxes', data);
-  const response = await api.post('/inventory/boxes');
+export async function createInventoryBox(): Promise<InventoryBox> {
+  const response = await api.post<{ data: InventoryBox }>('/inventory/boxes');
 
   return response.data.data;
 }
-
-/**
- * =========================
- * Add Lot to Box
- * =========================
- */
 
 export interface AddLotToBoxDTO {
   inventoryLotId: string;
   quantity: number;
 }
 
-export async function addLotToBox(boxId: string, data: AddLotToBoxDTO) {
-  const response = await api.post(`/inventory/boxes/${boxId}/items`, data);
+export interface BoxItem {
+  id: string;
+  boxId: string;
+  inventoryLotId: string;
+  quantity: number;
+}
+
+export async function addLotToBox(boxId: string, data: AddLotToBoxDTO): Promise<BoxItem> {
+  const response = await api.post<{ data: BoxItem }>(`/inventory/boxes/${boxId}/items`, data);
 
   return response.data.data;
 }

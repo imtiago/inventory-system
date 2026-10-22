@@ -65,10 +65,11 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
   }
 
   async getByVariantId(id: string) {
-    const data = await getDb().stockMovement.findUnique({
+    const data = await getDb().stockMovement.findFirst({
       where: {
         productVariantId: id,
       },
+      orderBy: { createdAt: "desc" },
       include: {
         productVariant: true,
         inventory: true,

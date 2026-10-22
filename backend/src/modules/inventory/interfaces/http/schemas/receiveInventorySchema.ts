@@ -1,5 +1,7 @@
+import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { z } from "zod";
+import { requestDate } from "./requestDate";
 
 export const receiveInventorySchema = z.object({
   productVariantId: z.string().uuid(),
@@ -8,19 +10,19 @@ export const receiveInventorySchema = z.object({
 
   unitCost: z.number().nonnegative(),
 
-  batchNumber: z.string().optional(),
+  batchNumber: z.string().trim().min(1).optional(),
 
-  expirationDate: z.coerce.date().optional(),
+  expirationDate: requestDate.optional(),
 
-  manufacturingDate: z.coerce.date().optional(),
+  manufacturingDate: requestDate.optional(),
 
   origin: z.nativeEnum(StockMovementOrigin),
+
+  sourceType: z.nativeEnum(InventoryLotSource),
 
   originReferenceId: z.string().optional(),
 
   notes: z.string().optional(),
-
-  userId: z.string().uuid(),
 });
 
 export type ReceiveInventoryBody = z.infer<typeof receiveInventorySchema>;

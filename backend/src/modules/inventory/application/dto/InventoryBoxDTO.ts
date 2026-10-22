@@ -1,4 +1,5 @@
-import { InventoryBoxStockDTO } from "./InventoryBoxStockDTO";
+import { ProductVariantSummaryDTO } from "./CommonDTO";
+import { InventoryLotDTO } from "./InventoryLotDTO";
 
 export interface InventoryBoxDTO {
   id: string;
@@ -6,8 +7,13 @@ export interface InventoryBoxDTO {
   createdAt: Date;
   updatedAt: Date;
 }
+export interface InventoryBoxStockItemDTO {
+  boxId: string;
+  inventoryLot: InventoryLotDTO;
+  productVariant: ProductVariantSummaryDTO;
+}
 export interface InventoryBoxWithExtendsDTO extends InventoryBoxDTO {
-  stocks: InventoryBoxStockDTO;
+  stocks: InventoryBoxStockItemDTO[];
 }
 
 export interface ICreateInventoryBoxInput {}

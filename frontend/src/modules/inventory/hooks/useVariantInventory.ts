@@ -1,43 +1,19 @@
-import { useEffect, useState } from 'react';
-import { getVariantInventory } from '../services/inventoryService';
+import { useQuery } from '@tanstack/react-query';
+
+import { queryKeys } from '@/shared/react-query/keys';
+import { getInventoryByVariant } from '../services/inventoryService';
 
 export function useVariantInventory(productVariantId?: string) {
-  const [inventory, setInventory] = useState<any>(null);
-
-  const [loading, setLoading] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-
-  async function loadInventory() {
-    if (!productVariantId) {
-      setInventory(null);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await getVariantInventory(productVariantId);
-
-      setInventory(data);
-    } catch (error: any) {
-      setInventory(null);
-
-      setError(error?.response?.data?.message ?? 'Não foi possível carregar o estoque da variante.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadInventory();
-  }, [productVariantId]);
+  const query = useQuery({
+    queryKey: queryKeys.inventoryByVariant(productVariantId ?? ''),
+    queryFn: () => getInventoryByVariant(productVariantId as string),
+    enabled: Boolean(productVariantId),
+  });
 
   return {
-    inventory,
-    loading,
-    error,
-    reload: loadInventory,
+    inventory: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error ? 'Não foi possível carregar o estoque da variante.' : null,
+    reload: query.refetch,
   };
 }

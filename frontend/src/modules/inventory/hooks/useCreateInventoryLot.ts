@@ -1,39 +1,35 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { createInventoryLot, type CreateInventoryLotDTO } from '../services/inventoryService';
+import type { InventoryLot } from '../types';
+import { apiErrorMessage, type MutationResult } from '../utils/apiErrorMessage';
+import { invalidateInventoryQueries } from '../utils/invalidateInventoryQueries';
 
 export function useCreateInventoryLot() {
+  const queryClient = useQueryClient();
+
   const [loading, setLoading] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
-
-  async function create(data: CreateInventoryLotDTO) {
+  /** Returns the outcome; the wizard owns its error state. */
+  async function tryCreate(data: CreateInventoryLotDTO): Promise<MutationResult<InventoryLot>> {
     try {
       setLoading(true);
-      setError(null);
 
-      const result = await createInventoryLot(data);
+      const lot = await createInventoryLot(data);
 
-      return result;
-    } catch (error: any) {
-      const message = error?.response?.data?.message ?? 'Não foi possível criar o lote.';
+      void invalidateInventoryQueries(queryClient, data.productVariantId);
 
-      setError(typeof message === 'string' ? message : 'Não foi possível criar o lote.');
-
-      return null;
+      return { ok: true, data: lot };
+    } catch (err: unknown) {
+      return { ok: false, error: apiErrorMessage(err, 'Não foi possível criar o lote.') };
     } finally {
       setLoading(false);
     }
   }
 
-  function clearError() {
-    setError(null);
-  }
-
   return {
-    create,
+    tryCreate,
     loading,
-    error,
-    clearError,
   };
 }

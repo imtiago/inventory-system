@@ -1,5 +1,5 @@
 import { InventoryReadRepository } from "@inventory/application/contracts/InventoryReadRepository";
-import { InventoryDTO } from "@inventory/application/dto/InventoryDTO";
+import { InventoryWithExtendsDTO } from "@inventory/application/dto/InventoryDTO";
 import { InventoryReadMapper } from "@inventory/application/mappers/InventoryReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -10,7 +10,7 @@ import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 export class PrismaInventoryReadRepository implements InventoryReadRepository {
   async list(
     pagination: PaginationRequest,
-  ): Promise<PaginatedResult<InventoryDTO>> {
+  ): Promise<PaginatedResult<InventoryWithExtendsDTO>> {
     const paginationOptions = buildPagination(pagination);
 
     const [data, total] = await Promise.all([
@@ -31,7 +31,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
     return buildPaginatedResult(dt, total, pagination);
   }
 
-  async getById(id: string): Promise<InventoryDTO | null> {
+  async getById(id: string): Promise<InventoryWithExtendsDTO | null> {
     const data = await getDb().inventory.findUnique({
       where: { id },
       include: {
@@ -44,7 +44,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
     return InventoryReadMapper.toDTO(data);
   }
 
-  async getByVariantId(id: string): Promise<InventoryDTO | null> {
+  async getByVariantId(id: string): Promise<InventoryWithExtendsDTO | null> {
     const data = await getDb().inventory.findUnique({
       where: {
         productVariantId: id,

@@ -1,7 +1,7 @@
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
-import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
+import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
 import {
@@ -16,7 +16,7 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
   constructor(
     private readonly inventoryBoxRepository: IInventoryBoxRepository,
     private readonly inventoryBoxStockRepository: IInventoryBoxStockRepository,
-    private readonly inventoryLotRepository: InventoryLotRepository,
+    private readonly inventoryLotRepository: IInventoryLotRepository,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -41,6 +41,17 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
 
     if (!lot) {
       throw new Error("Inventory lot not found.");
+    }
+
+    const allocated = await this.inventoryBoxStockRepository.sumAllocatedByLot(
+      lot.id,
+    );
+    const available = Math.max(0, lot.remainingQuantity - allocated);
+
+    if (request.quantity > available) {
+      throw new Error(
+        `Quantidade excede o saldo do lote disponível para caixas (${available}).`,
+      );
     }
 
     const existingStock = await this.inventoryBoxStockRepository.findStock(

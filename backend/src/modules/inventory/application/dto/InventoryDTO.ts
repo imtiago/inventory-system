@@ -1,5 +1,8 @@
+import { Inventory } from "@inventory/domain/entities/Inventory";
+import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
+import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
-import { ProductVariantDTO } from "./CommonDTO";
+import { ProductVariantSummaryDTO } from "./CommonDTO";
 
 export interface InventoryDTO {
   id: string;
@@ -8,22 +11,18 @@ export interface InventoryDTO {
   reservedQuantity: number;
   availableQuantity: number;
   minimumStock: number;
+  averageCost: number;
   createdAt: Date;
 }
 export interface InventoryWithExtendsDTO extends InventoryDTO {
-  productVariant: ProductVariantDTO;
+  productVariant: ProductVariantSummaryDTO;
 }
 
 export interface IAdjustInventoryInput {
   productVariantId: string;
-
-  quantity: number;
-
-  origin: StockMovementOrigin;
-
-  userId?: string;
-
+  countedQuantity: number;
   notes?: string;
+  userId?: string;
 }
 
 export interface ICreateInventoryInput {
@@ -36,7 +35,7 @@ export interface IDispatchInventoryInput {
   origin: StockMovementOrigin;
   originReferenceId?: string;
   notes?: string;
-  userId: string;
+  userId?: string;
 }
 
 export interface IReceiveInventoryInput {
@@ -44,12 +43,18 @@ export interface IReceiveInventoryInput {
   quantity: number;
   unitCost: number;
   batchNumber?: string;
-  expirationDate?: Date;
   manufacturingDate?: Date;
+  expirationDate?: Date;
   origin: StockMovementOrigin;
+  sourceType: InventoryLotSource;
   originReferenceId?: string;
   notes?: string;
-  userId: string;
+  userId?: string;
+}
+
+export interface IReceiveInventoryOutput {
+  inventory: Inventory;
+  lot: InventoryLot;
 }
 
 export interface IRegisterScannedProductInput {
@@ -58,24 +63,26 @@ export interface IRegisterScannedProductInput {
   batchNumber?: string;
   expirationDate?: Date;
   quantity?: number;
+  unitCost?: number;
+  userId?: string;
 }
 
 export interface IReleaseInventoryInput {
   inventoryId: string;
-
   quantity: number;
-
-  userId: string;
-
+  origin?: StockMovementOrigin;
+  originId?: string;
   notes?: string;
+  userId?: string;
 }
 
 export interface IReserveInventoryInput {
   productVariantId: string;
   quantity: number;
-  originId: string;
+  origin?: StockMovementOrigin;
+  originId?: string;
   notes?: string;
-  userId: string;
+  userId?: string;
 }
 
 export interface IInventoryOutput {

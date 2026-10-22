@@ -1,6 +1,7 @@
 // application/mappers/StockMovementReadMapper.ts
 
 import { StockMovementWithExtendsDTO } from "../dto/StockMovementDTO";
+import { InventoryReadMapper } from "./InventoryReadMapper";
 
 export class StockMovementReadMapper {
   static toDTO(data: any): StockMovementWithExtendsDTO {
@@ -15,27 +16,15 @@ export class StockMovementReadMapper {
       userId: data.userId,
       notes: data.notes,
       createdAt: data.createdAt,
-      inventory: {
-        id: data.inventory.id,
-        availableQuantity: data.inventory.availableQuantity,
-        createdAt: data.inventory.createdAt,
-        minimumStock: data.inventory.minimumStock,
-        productVariantId: data.inventory.productVariantId,
-        quantity: data.inventory.quantity,
-        reservedQuantity: data.inventory.reservedQuantity,
-      },
-      user: {
-        id: data.user.id,
-        name: data.user.name,
-      },
+      inventory: InventoryReadMapper.toBaseDTO(data.inventory),
+      user: data.user ? { id: data.user.id, name: data.user.name } : null,
       productVariant: {
-        id: data.inventory.id,
+        id: data.productVariant.id,
         barcode: data.productVariant.barcode,
         code: data.productVariant.code,
         name: data.productVariant.name,
         productId: data.productVariant.productId,
         createdAt: data.productVariant.createdAt,
-        salePrice: data.productVariant.salePrice,
       },
     };
   }

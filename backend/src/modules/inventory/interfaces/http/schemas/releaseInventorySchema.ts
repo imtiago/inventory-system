@@ -5,8 +5,6 @@ export const releaseInventorySchema = z.object({
 
   quantity: z.number().int().positive(),
 
-  userId: z.string().uuid(),
-
   notes: z.string().trim().optional(),
 });
 

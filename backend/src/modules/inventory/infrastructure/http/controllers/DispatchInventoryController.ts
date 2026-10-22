@@ -1,12 +1,13 @@
-import { dispatchInventorySchema } from "@inventory/interfaces/http/schemas/dispatchInventorySchema";
 import { FastifyRequest, FastifyReply } from "fastify";
+import { HttpResponse } from "@shared/http/response";
+import { sendBadRequest } from "@shared/http/formatZodError";
+import { dispatchInventorySchema } from "@inventory/interfaces/http/schemas/dispatchInventorySchema";
 import { makeDispatchInventory } from "../factories/DispatchInventoryFactory";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
-import { HttpResponse } from "@shared/http/response";
-import { makeGetInventoryByVariantId } from "../factories/GetInventoryByVariantIdFactory";
+import { StockMovementOutputMapper } from "@inventory/application/mappers/StockMovementOutputMapper";
+
 export function makeDispatchInventoryController() {
   const useCase = makeDispatchInventory();
-  const getInventoryByVariantId = makeGetInventoryByVariantId();
 
   return async function DispatchInventoryController(
     request: FastifyRequest,
@@ -14,19 +15,22 @@ export function makeDispatchInventoryController() {
   ) {
     try {
       const data = dispatchInventorySchema.parse(request.body);
-      const inventory = await useCase.execute({
-        userId: data.userId,
-        origin: StockMovementOrigin[data.origin],
+      const movements = await useCase.execute({
         productVariantId: data.productVariantId,
         quantity: data.quantity,
+        origin: StockMovementOrigin[data.origin],
+        originReferenceId: data.originReferenceId,
+        notes: data.notes,
+        userId: request.user?.sub,
       });
-      const inventoryRead = await getInventoryByVariantId.execute(
-        inventory.productVariantId,
-      );
 
-      return reply.send(HttpResponse.created(inventoryRead));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+      return reply.send(
+        HttpResponse.created(
+          movements.map((m) => StockMovementOutputMapper.toDTO(m)),
+        ),
+      );
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

@@ -1,20 +1,14 @@
 import { z } from "zod";
+import { requestDate } from "./requestDate";
 
 export const createInventoryLotSchema = z.object({
   productVariantId: z.string().uuid(),
 
-  batchNumber: z.string().min(1, "Batch number is required."),
+  batchNumber: z.string().trim().min(1, "Batch number is required."),
 
-  expirationDate: z.string("Invalid ISO datetime"),
-  // expirationDate: z.date("Invalid ISO datetime"),
-  // expirationDate: z.date("Invalid ISO datetime").datetime("Invalid ISO datetime"),
+  expirationDate: requestDate,
 
-  manufacturingDate: z.string().optional(),
-  // manufacturingDate: z.date().optional(),
-  // manufacturingDate: z
-  //   .string()
-  //   .datetime("Invalid ISO datetime")
-  //   .optional(),
+  manufacturingDate: requestDate.optional(),
 
   quantity: z
     .number()

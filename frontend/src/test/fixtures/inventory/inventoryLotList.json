@@ -1,0 +1,38 @@
+{
+  "data": [
+    {
+      "id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a51",
+      "inventoryId": "5f1c2a9e-3b7d-4c1e-9a2f-6d8e0b4c7a11",
+      "productVariantId": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+      "batchNumber": "L2026-10-A",
+      "initialQuantity": 30,
+      "remainingQuantity": 30,
+      "allocatedQuantity": 12,
+      "unitCost": 18.5,
+      "sourceType": "MANUAL",
+      "manufacturingDate": "2026-09-15T00:00:00.000Z",
+      "expirationDate": "2028-09-15T00:00:00.000Z",
+      "createdAt": "2026-10-20T14:30:00.000Z"
+    },
+    {
+      "id": "f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b62",
+      "inventoryId": "5f1c2a9e-3b7d-4c1e-9a2f-6d8e0b4c7a11",
+      "productVariantId": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+      "batchNumber": "L2026-09-B",
+      "initialQuantity": 20,
+      "remainingQuantity": 12,
+      "allocatedQuantity": 12,
+      "unitCost": 19.25,
+      "sourceType": "PURCHASE",
+      "manufacturingDate": null,
+      "expirationDate": "2028-03-01T00:00:00.000Z",
+      "createdAt": "2026-10-02T10:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
+}

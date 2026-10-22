@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { sendBadRequest } from "@shared/http/formatZodError";
 import { HttpResponse } from "@shared/http/response";
 import { getInventoryBoxByLotAndProductVariantSchema } from "@inventory/interfaces/http/schemas/getInventoryBoxByLotAndProductVariantSchema";
 import { makeGetInventoryBoxByLotAndProductVariantIdUseCase } from "../factories/GetInventoryBoxByLotAndProductVariantIdFactory";
@@ -15,8 +16,8 @@ export function makeGetInventoryBoxByLotAndProductVariantController() {
       const boxs = await useCase.execute({ batchNumber, productVariantId });
 
       return reply.send(HttpResponse.paginated(boxs));
-    } catch (err: any) {
-      return reply.status(400).send({ message: err.message });
+    } catch (err) {
+      return sendBadRequest(reply, err);
     }
   };
 }

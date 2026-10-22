@@ -3,28 +3,16 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { useInventoryById } from '../hooks/useInventoryById';
 import { useInventoryLots } from '../hooks/useInventoryLots';
+import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 export function InventoryDetailsPage() {
   const navigate = useNavigate();
   const { id: inventoryId } = useParams<{ id: string }>();
 
-  /*
-   * Aqui precisamos ter acesso ao Inventory selecionado.
-   *
-   * Como o endpoint de lotes precisa do productVariantId,
-   * a página deve receber o inventory ou buscar novamente
-   * o inventory pelo ID.
-   *
-   * Neste exemplo, consideramos que você possui um hook
-   * useInventoryById.
-   */
   const { data: inventory, isLoading: isLoadingInventory, isError: isInventoryError } = useInventoryById(inventoryId || '');
 
-  const productVariantId = inventory?.productVariantId;
-
-  const { data: lotsResponse, isLoading: isLoadingLots, isError: isLotsError } = useInventoryLots(productVariantId ?? '');
-
-  const lots = lotsResponse?.data ?? [];
+  const { lots, pagination, isLoading: isLoadingLots, error: lotsError } = useInventoryLots(inventory?.productVariantId, { limit: 100 });
+  const isLotsError = Boolean(lotsError);
 
   if (isLoadingInventory) {
     return (
@@ -81,12 +69,14 @@ export function InventoryDetailsPage() {
       <section>
         <h2 className="text-muted-foreground mb-3 text-sm font-medium uppercase tracking-wide">Estoque</h2>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StockCard label="Total" value={inventory.quantity} />
+        <div className="grid gap-4 sm:grid-cols-4">
+          <StockCard label="Saldo" value={inventory.quantity} />
 
           <StockCard label="Reservado" value={inventory.reservedQuantity} />
 
           <StockCard label="Disponível" value={inventory.availableQuantity} />
+
+          <StockCard label="Custo médio" value={formatCurrency(inventory.averageCost)} />
         </div>
       </section>
 
@@ -97,7 +87,7 @@ export function InventoryDetailsPage() {
             <h2 className="text-lg font-semibold">Lotes</h2>
 
             <p className="text-muted-foreground text-sm">
-              {lotsResponse?.pagination.total ?? 0} {lotsResponse?.pagination.total === 1 ? 'lote cadastrado' : 'lotes cadastrados'}
+              {pagination?.total ?? 0} {pagination?.total === 1 ? 'lote cadastrado' : 'lotes cadastrados'}
             </p>
           </div>
 
@@ -122,22 +112,25 @@ export function InventoryDetailsPage() {
               <thead>
                 <tr className="bg-muted/40 border-b">
                   <th className="px-4 py-3 text-left text-sm font-medium">Lote</th>
-
+                  <th className="px-4 py-3 text-left text-sm font-medium">Recebido</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Restante</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Em caixas</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Custo</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Validade</th>
                 </tr>
               </thead>
 
               <tbody>
-                {lots
-                  .slice()
-                  .sort((a, b) => new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime())
-                  .map((lot) => (
-                    <tr key={lot.id} className="border-b last:border-b-0">
-                      <td className="px-4 py-3 text-sm font-medium">{lot.batchNumber}</td>
-
-                      <td className="text-muted-foreground px-4 py-3 text-sm">{formatDate(lot.expirationDate)}</td>
-                    </tr>
-                  ))}
+                {lots.map((lot) => (
+                  <tr key={lot.id} className="border-b last:border-b-0">
+                    <td className="px-4 py-3 text-sm font-medium">{lot.batchNumber ?? 'Sem lote'}</td>
+                    <td className="px-4 py-3 text-sm">{lot.initialQuantity}</td>
+                    <td className="px-4 py-3 text-sm">{lot.remainingQuantity}</td>
+                    <td className="px-4 py-3 text-sm">{lot.allocatedQuantity}</td>
+                    <td className="px-4 py-3 text-sm">{formatCurrency(lot.unitCost)}</td>
+                    <td className="text-muted-foreground px-4 py-3 text-sm">{formatDateOnly(lot.expirationDate)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -149,7 +142,7 @@ export function InventoryDetailsPage() {
 
 interface StockCardProps {
   label: string;
-  value: number;
+  value: number | string;
 }
 
 function StockCard({ label, value }: StockCardProps) {
@@ -162,10 +155,6 @@ function StockCard({ label, value }: StockCardProps) {
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(value));
+function formatCurrency(value: number | null | undefined) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value ?? 0);
 }

@@ -1,3 +1,4 @@
+import { makeCatalogService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
 import { ReceiveInventoryUseCase } from "@inventory/application/useCases/commands/ReceiveInventoryUseCase";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
@@ -5,15 +6,11 @@ import { PrismaStockMovementRepository } from "@inventory/infrastructure/prisma/
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
 export function makeReceiveInventory() {
-  const inventoryRepository = new PrismaInventoryRepository();
-  const inventoryLotRepository = new PrismaInventoryLotRepository();
-  const movementRepository = new PrismaStockMovementRepository();
-  const transactionManager = new PrismaTransactionManager();
-
   return new ReceiveInventoryUseCase(
-    inventoryRepository,
-    inventoryLotRepository,
-    movementRepository,
-    transactionManager,
+    makeCatalogService(),
+    new PrismaInventoryRepository(),
+    new PrismaInventoryLotRepository(),
+    new PrismaStockMovementRepository(),
+    new PrismaTransactionManager(),
   );
 }
