@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import { renderWithProviders } from '@/test/render';
+import internalError from '@/test/fixtures/errors/internal.json';
 import inventoryLot from '@/test/fixtures/inventory/inventoryLot.json';
 import inventoryLotList from '@/test/fixtures/inventory/inventoryLotList.json';
 import { queryKeys } from '@/shared/react-query/keys';
@@ -150,13 +151,13 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test("erro 500 na leitura mostra erro e não abre 'produto não encontrado'", async () => {
-    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Falha no servidor de produtos', code: 'INTERNAL_ERROR' }, { status: 500 })));
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json(internalError, { status: 500 })));
     const user = userEvent.setup();
     renderPage();
 
     await scanBarcode(user);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Falha no servidor de produtos');
+    expect(await screen.findByRole('alert')).toHaveTextContent(internalError.message);
     expect(screen.queryByText('Produto não encontrado')).not.toBeInTheDocument();
     expect(screen.queryByText('Esse produto já existe no cadastro?')).not.toBeInTheDocument();
   });
@@ -402,8 +403,8 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.queryByRole('heading', { name: 'Caixa' })).not.toBeInTheDocument();
   });
 
-  test("código não encontrado (404) abre 'produto existe?' com o código lido", async () => {
-    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Resource not found', code: 'NOT_FOUND' }, { status: 404 })));
+  test("404 VARIANT_NOT_FOUND leva a 'produto não encontrado': abre 'produto existe?' com o código lido", async () => {
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Variante não encontrada.', code: 'VARIANT_NOT_FOUND' }, { status: 404 })));
     const user = userEvent.setup();
     renderPage();
 
