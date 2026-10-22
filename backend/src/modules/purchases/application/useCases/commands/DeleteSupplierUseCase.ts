@@ -1,4 +1,4 @@
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { ProductRepository } from "../../domain/repositories/ProductRepository";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 interface Input {

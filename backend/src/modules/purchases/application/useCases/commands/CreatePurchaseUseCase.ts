@@ -2,7 +2,7 @@
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { Product } from "../../../domain/entities/Supplier";
 import { ProductRepository } from "../../domain/repositories/ProductRepository";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";

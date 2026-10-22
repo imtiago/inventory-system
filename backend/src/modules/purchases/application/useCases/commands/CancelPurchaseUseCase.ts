@@ -3,7 +3,7 @@ import { ProductVariant } from "../../../domain/entities/PurchaseItem";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { ICancelPurchaseInput } from "../../dto/PurchaseDTO";
 

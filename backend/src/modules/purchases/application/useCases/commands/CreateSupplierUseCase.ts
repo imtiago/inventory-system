@@ -1,7 +1,7 @@
 // src/modules/catalog/application/useCases/CreateBrand.ts
 import { BrandRepository } from "../../../domain/repositories/PurchaseRepository";
 import { Brand } from "../../domain/entities/Brand";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 
 interface CreateBrandRequest {

@@ -1,7 +1,7 @@
 // src/modules/catalog/application/useCases/CreateCategory.ts
 import { CategoryRepository } from "../../domain/repositories/CategoryRepository";
 import { Category } from "../../../domain/entities/Purchase";
-import { TransactionManager } from "@shared/domain/TransactionManager";
+import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 
 interface CreateCategoryRequest {
