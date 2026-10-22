@@ -1,5 +1,5 @@
 import { InventoryLotDTO } from "../dto/InventoryLotDTO";
-import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 
 export class InventoryLotReadMapper {
   /**
@@ -8,7 +8,7 @@ export class InventoryLotReadMapper {
    */
   static toDTO(data: any): InventoryLotDTO {
     if (!Array.isArray(data.boxStocks)) {
-      throw new BusinessRuleError("Caixas do lote não carregadas.", ErrorCodes.LOT_BOX_STOCKS_NOT_LOADED);
+      throw new InternalInvariantError("Caixas do lote não carregadas.", InternalErrorCodes.LOT_BOX_STOCKS_NOT_LOADED);
     }
     return {
       id: data.id,

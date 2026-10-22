@@ -8,6 +8,7 @@ import {
   BusinessRuleError,
   ConflictError,
   ForbiddenError,
+  InternalInvariantError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -126,4 +127,10 @@ test("rota inexistente → 404 ROUTE_NOT_FOUND", async () => {
   await app.close();
   assert.equal(res.statusCode, 404);
   assert.deepEqual(res.json(), { message: "Rota não encontrada.", code: "ROUTE_NOT_FOUND" });
+});
+
+test("InternalInvariantError → 500 sem vazar mensagem", async () => {
+  const r = await call(() => new InternalInvariantError("saldo divergente do lote 123", "INVENTORY_LOTS_INCONSISTENT"));
+  assert.equal(r.status, 500);
+  assert.deepEqual(r.body, { message: "Erro interno do servidor.", code: "INTERNAL_ERROR" });
 });

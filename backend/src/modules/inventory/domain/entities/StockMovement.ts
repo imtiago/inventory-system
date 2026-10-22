@@ -1,7 +1,7 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { StockMovementOrigin } from "../enums/StockMovementOrigin";
 import { StockMovementType } from "../enums/StockMovementType";
-import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
+import { BusinessRuleError, ErrorCodes, InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 
 interface StockMovementProps {
   id?: string;
@@ -115,26 +115,26 @@ export class StockMovement extends BaseEntity {
     switch (type) {
       case StockMovementType.IN:
         if (currentQuantity !== previousQuantity + quantity) {
-          throw new BusinessRuleError("Movimentação de entrada inválida.", ErrorCodes.INVALID_STOCK_MOVEMENT);
+          throw new InternalInvariantError("Movimentação de entrada inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
 
       case StockMovementType.OUT:
         if (currentQuantity !== previousQuantity - quantity) {
-          throw new BusinessRuleError("Movimentação de saída inválida.", ErrorCodes.INVALID_STOCK_MOVEMENT);
+          throw new InternalInvariantError("Movimentação de saída inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
 
       case StockMovementType.RESERVE:
       case StockMovementType.RELEASE:
         if (currentQuantity !== previousQuantity) {
-          throw new BusinessRuleError("Movimentação inválida.", ErrorCodes.INVALID_STOCK_MOVEMENT);
+          throw new InternalInvariantError("Movimentação inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
 
       case StockMovementType.ADJUSTMENT:
         if (quantity !== Math.abs(currentQuantity - previousQuantity)) {
-          throw new BusinessRuleError("Movimentação de ajuste inválida.", ErrorCodes.INVALID_STOCK_MOVEMENT);
+          throw new InternalInvariantError("Movimentação de ajuste inválida.", InternalErrorCodes.INVALID_STOCK_MOVEMENT);
         }
         break;
     }

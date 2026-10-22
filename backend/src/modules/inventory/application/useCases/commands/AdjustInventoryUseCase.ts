@@ -9,7 +9,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
+import { ErrorCodes, InternalErrorCodes, InternalInvariantError, NotFoundError } from "@shared/domain/errors";
 
 export class AdjustInventoryUseCase extends TransactionalUseCase<
   IAdjustInventoryInput,
@@ -60,7 +60,7 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
         remaining -= quantity;
       }
       if (remaining > 0) {
-        throw new BusinessRuleError("Os lotes do estoque estão inconsistentes.", ErrorCodes.INVENTORY_LOTS_INCONSISTENT);
+        throw new InternalInvariantError("Os lotes do estoque estão inconsistentes.", InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT);
       }
       await this.inventoryRepository.update(inventory);
       for (const lot of touched) {
