@@ -30,13 +30,15 @@ describe("repositórios Prisma de estoque", () => {
   });
 
   afterEach(async () => {
-    await cleanup();
-    await prisma.inventoryBox.deleteMany({ where: { id: { in: boxIds.splice(0) } } });
+    try {
+      await cleanup();
+    } finally {
+      await prisma.inventoryBox.deleteMany({ where: { id: { in: boxIds.splice(0) } } });
+    }
   });
 
   after(async () => {
     await prisma.inventoryBox.deleteMany({ where: { code: { startsWith: "tx-test-" } } });
-    await prisma.user.deleteMany({ where: { email: "tx-test-inventory@local" } });
     await prisma.$disconnect();
   });
 
