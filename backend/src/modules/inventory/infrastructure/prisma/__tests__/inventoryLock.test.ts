@@ -6,11 +6,28 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@shared/prisma";
 import { InternalInvariantError } from "@shared/domain/errors";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
+import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { registerErrorHandling } from "@shared/http/errorHandler";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { PrismaInventoryRepository } from "../repositories/PrismaInventoryRepository";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const CONCURRENT_BODY = {
+  message: "Operação em andamento para este item. Tente novamente.",
+  code: "CONCURRENT_UPDATE",
+};
+
+async function respondWith(error: unknown) {
+  const app = Fastify();
+  registerErrorHandling(app);
+  app.get("/boom", async () => {
+    throw error;
+  });
+  const res = await app.inject({ method: "GET", url: "/boom" });
+  await app.close();
+  return res;
+}
 
 describe("trava de linha de inventário", () => {
   const repo = new PrismaInventoryRepository();
@@ -148,12 +165,78 @@ describe("trava de linha de inventário", () => {
     assert.equal(res.json().code, "CONCURRENT_UPDATE");
   });
 
-  test("transação sem trava não é afetada pelo lock_timeout", async () => {
+  test("lock timeout em query Prisma comum (não-raw) → 409 CONCURRENT_UPDATE", async () => {
     const variantId = await newVariant();
     await tm.execute(() => repo.lockByProductVariantId(variantId));
-    const tm2 = new PrismaTransactionManager({ lockTimeoutMs: 200 });
-    const found = await tm2.execute(() => repo.findByProductVariantId(variantId));
-    assert.equal(found?.productVariantId, variantId);
+    let release!: () => void;
+    const locked = new Promise<void>((r) => (release = r));
+    const t1 = tm.execute(async () => {
+      await repo.lockByProductVariantId(variantId);
+      release();
+      await sleep(800);
+    });
+    await locked;
+    let captured: unknown;
+    try {
+      await new PrismaTransactionManager({ lockTimeoutMs: 200 }).execute(async () => {
+        await getDb().inventory.update({
+          where: { productVariantId: variantId },
+          data: { reservedQuantity: 0 },
+        });
+      });
+    } catch (e) {
+      captured = e;
+    }
+    await t1;
+    assert.ok(captured, "esperava erro de lock timeout");
+    assert.ok(captured instanceof Prisma.PrismaClientUnknownRequestError);
+    const res = await respondWith(captured);
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.json(), CONCURRENT_BODY);
+  });
+
+  test("expiração da transação interativa (P2028) → 409 CONCURRENT_UPDATE", async () => {
+    let captured: unknown;
+    try {
+      await new PrismaTransactionManager({ timeout: 300 }).execute(async () => {
+        await sleep(600);
+        await getDb().inventory.count();
+      });
+    } catch (e) {
+      captured = e;
+    }
+    assert.ok(captured instanceof Prisma.PrismaClientKnownRequestError);
+    assert.equal(captured.code, "P2028");
+    assert.match(String((captured.meta as any)?.error), /expired transaction/);
+    const res = await respondWith(captured);
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.json(), CONCURRENT_BODY);
+  });
+
+  test("transação sem trava não é afetada pelo lock_timeout (leitura simples com a linha travada)", async () => {
+    const variantId = await newVariant();
+    await tm.execute(() => repo.lockByProductVariantId(variantId));
+    let release!: () => void;
+    const locked = new Promise<void>((r) => (release = r));
+    let free!: () => void;
+    const hold = new Promise<void>((r) => (free = r));
+    const t1 = tm.execute(async () => {
+      await repo.lockByProductVariantId(variantId);
+      release();
+      await hold;
+    });
+    await locked;
+    try {
+      const start = Date.now();
+      const found = await new PrismaTransactionManager({ lockTimeoutMs: 200 }).execute(() =>
+        repo.findByProductVariantId(variantId),
+      );
+      assert.equal(found?.productVariantId, variantId);
+      assert.ok(Date.now() - start < 150, "SELECT simples não deve esperar a trava");
+    } finally {
+      free();
+      await t1;
+    }
   });
 
   test("lote duplicado (variante+batchNumber) → P2002", async () => {

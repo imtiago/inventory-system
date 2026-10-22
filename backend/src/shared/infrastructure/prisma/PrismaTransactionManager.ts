@@ -34,8 +34,7 @@ export class PrismaTransactionManager implements TransactionManager {
 
     return prisma.$transaction(
       async (tx) => {
-        // lockTimeoutMs é inteiro positivo validado no construtor (não é entrada do usuário).
-        await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '${this.lockTimeoutMs}ms'`);
+        await tx.$queryRaw`SELECT set_config('lock_timeout', ${`${this.lockTimeoutMs}ms`}, true)`;
         return runInTransactionContext(tx, work);
       },
       { timeout: this.timeout, maxWait: this.maxWait },

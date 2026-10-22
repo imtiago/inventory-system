@@ -167,3 +167,57 @@ for (const pg of ["40P01", "55P03"]) {
     assert.equal(r.body.code, "CONCURRENT_UPDATE");
   });
 }
+
+// Formas capturadas empiricamente (Prisma 6 + Postgres).
+test("Prisma P2028 com transação expirada → 409 CONCURRENT_UPDATE", async () => {
+  const r = await call(
+    () =>
+      new Prisma.PrismaClientKnownRequestError("Transaction API error", {
+        code: "P2028",
+        clientVersion: "x",
+        meta: {
+          error:
+            "Transaction already closed: A commit cannot be executed on an expired transaction. The timeout for this transaction was 300 ms, however 601 ms passed since the start of the transaction.",
+        },
+      }),
+  );
+  assert.equal(r.status, 409);
+  assert.equal(r.body.code, "CONCURRENT_UPDATE");
+});
+
+test("Prisma P2028 que não é expiração (ex.: maxWait) → 500", async () => {
+  const r = await call(
+    () =>
+      new Prisma.PrismaClientKnownRequestError("Transaction API error", {
+        code: "P2028",
+        clientVersion: "x",
+        meta: { error: "Unable to start a transaction in the given time." },
+      }),
+  );
+  assert.equal(r.status, 500);
+});
+
+for (const pg of ["40P01", "55P03"]) {
+  test(`PrismaClientUnknownRequestError com PostgresError ${pg} → 409 CONCURRENT_UPDATE`, async () => {
+    const r = await call(
+      () =>
+        new Prisma.PrismaClientUnknownRequestError(
+          `Error occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "${pg}", message: "x", severity: "ERROR", detail: None, column: None, hint: None }), transient: false })`,
+          { clientVersion: "x" },
+        ),
+    );
+    assert.equal(r.status, 409);
+    assert.equal(r.body.code, "CONCURRENT_UPDATE");
+  });
+}
+
+test("PrismaClientUnknownRequestError com outro PostgresError → 500", async () => {
+  const r = await call(
+    () =>
+      new Prisma.PrismaClientUnknownRequestError(
+        'QueryError(PostgresError { code: "23505", message: "x" })',
+        { clientVersion: "x" },
+      ),
+  );
+  assert.equal(r.status, 500);
+});

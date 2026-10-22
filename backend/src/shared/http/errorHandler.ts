@@ -25,14 +25,30 @@ function domainStatus(error: DomainError): number {
 // transação do Prisma (P2034).
 const CONCURRENCY_PG_CODES = new Set(["40P01", "55P03"]);
 
+// Erros do Postgres embutidos na mensagem de PrismaClientUnknownRequestError
+// (queries Prisma comuns, não-raw), ex.: `PostgresError { code: "55P03", ...`.
+const PG_CODE_IN_MESSAGE = /PostgresError \{ code: "(40P01|55P03)"/;
+
 function isConcurrentUpdateError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientUnknownRequestError) {
+    return PG_CODE_IN_MESSAGE.test(error.message);
+  }
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
   if (error.code === "P2034") return true;
   const meta = error.meta as Record<string, unknown> | undefined;
-  return (
+  if (
     (error.code === "P2010" || error.code === "P2028") &&
     typeof meta?.code === "string" &&
     CONCURRENCY_PG_CODES.has(meta.code)
+  ) {
+    return true;
+  }
+  // P2028 por expiração do timeout da transação interativa (ex.: espera longa
+  // por travas). Outros P2028 (maxWait, transação inexistente) não são mapeados.
+  return (
+    error.code === "P2028" &&
+    typeof meta?.error === "string" &&
+    /expired transaction/.test(meta.error)
   );
 }
 

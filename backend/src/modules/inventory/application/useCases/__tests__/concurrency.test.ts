@@ -209,15 +209,41 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
   test("erro de negócio libera a trava: após um dispatch recusado, outro dispatch válido conclui", async () => {
     const variantId = await newVariant();
     await receive.execute(receiveInput(variantId, 5));
-    // lock_timeout curto: se a transação recusada segurasse a trava, o próximo daria 409.
-    const shortLock = makeDispatchWith(new PrismaTransactionManager({ lockTimeoutMs: 1000 }));
+    const tmShort = new PrismaTransactionManager({ lockTimeoutMs: 3000 });
+    let onLocked!: () => void;
+    const failingLocked = new Promise<void>((r) => (onLocked = r));
+    // Repositório que, após travar a linha, segura a trava por 400ms (dentro da transação).
+    class HoldingRepo extends PrismaInventoryRepository {
+      async lockExistingByProductVariantId(id: string) {
+        const inv = await super.lockExistingByProductVariantId(id);
+        onLocked();
+        await sleep(400);
+        return inv;
+      }
+    }
+    const failing = new DispatchInventoryUseCase(
+      new HoldingRepo(),
+      new PrismaInventoryLotRepository(),
+      new PrismaStockMovementRepository(),
+      tmShort,
+    );
+    const shortLock = makeDispatchWith(tmShort);
 
-    const results = await Promise.allSettled([
-      shortLock.execute(dispatchInput(variantId, 10)),
-      shortLock.execute(dispatchInput(variantId, 2)),
-    ]);
+    let failingEnd = 0;
+    let validEnd = 0;
+    const pFailing = failing
+      .execute(dispatchInput(variantId, 10))
+      .finally(() => (failingEnd = Date.now()));
+    await failingLocked; // a recusada já segura a trava
+    const validStart = Date.now();
+    const pValid = shortLock
+      .execute(dispatchInput(variantId, 2))
+      .finally(() => (validEnd = Date.now()));
+    const results = await Promise.allSettled([pFailing, pValid]);
     assert.ok(isBusiness("INSUFFICIENT_STOCK")(results[0]));
     assert.equal(results[1].status, "fulfilled");
+    assert.ok(validEnd >= failingEnd, "o dispatch válido deve concluir depois do rollback do recusado");
+    assert.ok(validEnd - validStart >= 200, `o válido deveria esperar a trava, esperou ${validEnd - validStart}ms`);
 
     await shortLock.execute(dispatchInput(variantId, 3));
     const s = await state(variantId);
