@@ -1,5 +1,4 @@
-import { parseApiErrorSync } from "@/shared/services/parseApiError";
-import { applyFieldErrors } from "@/shared/utils/applyFieldErrors";
+import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
 import type { Brand, Category } from "../types";
 
@@ -25,6 +24,8 @@ interface Props {
   onCancel(): void;
 }
 
+const FIELDS = ["name", "description", "brandId", "categoryId"] as const;
+
 export function ProductForm({
   title,
   description,
@@ -42,7 +43,7 @@ export function ProductForm({
     try {
       await onSubmit(data);
     } catch (error) {
-      if (!applyFieldErrors(setError, parseApiErrorSync(error).fieldErrors)) throw error;
+      if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
   });
 
@@ -141,6 +142,11 @@ export function ProductForm({
           Salvar Produto
         </button>
       </div>
+          {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
     </form>
   );
 }

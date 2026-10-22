@@ -1,5 +1,4 @@
-import { parseApiErrorSync } from '@/shared/services/parseApiError';
-import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
+import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { useForm } from 'react-hook-form';
 import type { ICreateCustomerDTO } from '../types';
 
@@ -31,6 +30,8 @@ function maskPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+const FIELDS = ['name', 'email', 'phone', 'address'] as const;
+
 export function CustomerForm({ loading = false, error = null, mode = 'create', initialData, onSubmit, onCancel }: Props) {
   const {
     register,
@@ -50,7 +51,7 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
     try {
       await onSubmit(data);
     } catch (error) {
-      if (!applyFieldErrors(setError, parseApiErrorSync(error).fieldErrors)) throw error;
+      if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
   });
 
@@ -149,6 +150,13 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
           />
         </div>
       </section>
+
+
+      {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
 
       {/* Mensagem de erro */}
       {error && (

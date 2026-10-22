@@ -1,5 +1,4 @@
-import { parseApiErrorSync } from "@/shared/services/parseApiError";
-import { applyFieldErrors } from "@/shared/utils/applyFieldErrors";
+import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 
@@ -21,6 +20,8 @@ interface Props {
 
   onCancel(): void;
 }
+
+const FIELDS = ["name", "barcode"] as const;
 
 export function VariantForm({
   title,
@@ -44,7 +45,7 @@ export function VariantForm({
     try {
       await onSubmit(data);
     } catch (error) {
-      if (!applyFieldErrors(setError, parseApiErrorSync(error).fieldErrors)) throw error;
+      if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
   });
 
@@ -174,6 +175,11 @@ export function VariantForm({
           {submitLabel}
         </button>
       </div>
+          {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
     </form>
   );
 }

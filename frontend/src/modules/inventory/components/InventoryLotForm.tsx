@@ -20,6 +20,8 @@ interface Props {
   onCancel(): void;
 }
 
+const LOT_FIELDS = ['batchNumber', 'manufacturingDate', 'expirationDate', 'quantity', 'unitCost'] as const;
+
 export function InventoryLotForm({ initialValues, submitting = false, submitError = null, onSubmit, onCancel }: Props) {
   const {
     register,
@@ -43,7 +45,12 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
   const submit = handleSubmit(async (data) => {
     const result = await onSubmit(data);
 
-    if (result?.fieldErrors) applyFieldErrors(setError, result.fieldErrors);
+    if (result?.fieldErrors) {
+      const { unmatched } = applyFieldErrors(setError, result.fieldErrors, LOT_FIELDS);
+      const messages = Object.values(unmatched);
+
+      if (messages.length > 0) setError('root.server', { type: 'server', message: messages.join(' ') });
+    }
   });
 
   return (
@@ -176,6 +183,11 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           {submitting ? 'Salvando...' : 'Salvar lote'}
         </button>
       </div>
+    {errors.root?.server && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errors.root.server.message}
+        </div>
+      )}
     </form>
   );
 }

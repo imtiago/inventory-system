@@ -148,9 +148,9 @@ export function SaleCreatePage() {
           const { fieldErrors, message, code } = parseApiErrorSync(error);
 
           // customerId errors render on the autocomplete; other paths (e.g. items.0.quantity) have no input.
-          applyFieldErrors(setError, fieldErrors);
+          const { unmatched } = applyFieldErrors(setError, fieldErrors, ['customerId']);
 
-          const detail = Object.entries(fieldErrors).find(([field]) => field !== 'customerId')?.[1];
+          const detail = Object.values(unmatched)[0];
 
           setFeedback({
             type: 'error',
