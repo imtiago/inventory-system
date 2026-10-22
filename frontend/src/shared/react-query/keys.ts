@@ -14,4 +14,14 @@ export const queryKeys = {
   brands: ['brands'] as const,
 
   categories: ['categories'] as const,
+
+  inventory: ['inventory'] as const,
+
+  inventoryById: (id: string) => ['inventory', id] as const,
+
+  inventoryByVariant: (variantId: string) => ['inventory', 'variant', variantId] as const,
+
+  inventoryLots: (variantId: string) => ['inventory-lots', variantId] as const,
+
+  inventoryBoxes: (search?: string) => ['inventory-boxes', search ?? ''] as const,
 };

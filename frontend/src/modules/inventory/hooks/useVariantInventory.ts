@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getVariantInventory } from '../services/inventoryService';
+import { getInventoryByVariant } from '../services/inventoryService';
 
 export function useVariantInventory(productVariantId?: string) {
   const [inventory, setInventory] = useState<any>(null);
@@ -18,7 +18,7 @@ export function useVariantInventory(productVariantId?: string) {
       setLoading(true);
       setError(null);
 
-      const data = await getVariantInventory(productVariantId);
+      const data = await getInventoryByVariant(productVariantId);
 
       setInventory(data);
     } catch (error: any) {

@@ -1,31 +1,78 @@
-export interface IInventoryProductVariant {
+// Single source of truth for inventory types (matches backend DTOs / contract fixtures).
+
+export interface Paginated<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface InventoryProductVariant {
   id: string;
+  code: string;
   name: string;
   barcode: string | null;
-  code: string;
   productId: string;
-  createdAt: string;
 }
 
-export interface IInventory {
+export interface Inventory {
   id: string;
-  availableQuantity: number;
-  createdAt: string;
-  minimumStock: number;
   productVariantId: string;
-  productVariant: IInventoryProductVariant;
   quantity: number;
   reservedQuantity: number;
+  availableQuantity: number;
+  minimumStock: number;
+  averageCost: number;
+  createdAt: string;
+  productVariant: InventoryProductVariant;
 }
 
-export interface IInventoryPagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+export interface InventoryLot {
+  id: string;
+  inventoryId: string;
+  productVariantId: string;
+  batchNumber: string;
+  initialQuantity: number;
+  remainingQuantity: number;
+  allocatedQuantity: number;
+  unitCost: number;
+  sourceType: string;
+  manufacturingDate: string | null;
+  expirationDate: string | null;
+  createdAt: string;
 }
 
-export interface IInventoryListResponse {
-  data: IInventory[];
-  pagination: IInventoryPagination;
+export interface InventoryBox {
+  id: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Legacy aliases kept for existing callers.
+export type IInventoryProductVariant = InventoryProductVariant;
+export type IInventory = Inventory;
+export type IInventoryListResponse = Paginated<Inventory>;
+export type InventoryLotListResponse = Paginated<InventoryLot>;
+
+export interface Product {
+  id: string;
+  name: string;
+  code: string;
+  description?: string | null;
+  brandId: string;
+  categoryId: string;
+  createdAt?: string;
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  code: string;
+  barcode: string | null;
+  productId: string;
+  createdAt?: string;
 }

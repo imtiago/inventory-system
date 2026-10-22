@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { addLotToBox, createInventoryBox, type AddLotToBoxDTO, type CreateInventoryBoxDTO } from '../services/inventoryService';
+import { addLotToBox, createInventoryBox, type AddLotToBoxDTO } from '../services/inventoryService';
 
 export function useInventoryBox() {
   const [loading, setLoading] = useState(false);

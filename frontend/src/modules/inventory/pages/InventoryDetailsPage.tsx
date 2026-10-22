@@ -130,12 +130,12 @@ export function InventoryDetailsPage() {
               <tbody>
                 {lots
                   .slice()
-                  .sort((a, b) => new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime())
+                  .sort((a, b) => new Date(a.expirationDate ?? 0).getTime() - new Date(b.expirationDate ?? 0).getTime())
                   .map((lot) => (
                     <tr key={lot.id} className="border-b last:border-b-0">
                       <td className="px-4 py-3 text-sm font-medium">{lot.batchNumber}</td>
 
-                      <td className="text-muted-foreground px-4 py-3 text-sm">{formatDate(lot.expirationDate)}</td>
+                      <td className="text-muted-foreground px-4 py-3 text-sm">{lot.expirationDate ? formatDate(lot.expirationDate) : '-'}</td>
                     </tr>
                   ))}
               </tbody>

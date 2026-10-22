@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/shared/services/api';
-import type { InventoryLotListResponse } from '../types/InventoryLotTypes';
+import type { InventoryLotListResponse } from '../types';
 
 export function useInventoryLots(productVariantId: string) {
   return useQuery<InventoryLotListResponse>({
