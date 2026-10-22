@@ -1,13 +1,16 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { IUpdateCustomerInput } from "@customer/application/dto/CustomerDTO";
+import {
+  ICustomerOutput,
+  IUpdateCustomerInput,
+} from "@customer/application/dto/CustomerDTO";
 import { Customer } from "@customer/domain/entities/Customer";
 import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 
 export class UpdateCustomerUseCase extends TransactionalUseCase<
   IUpdateCustomerInput,
-  Customer
+  ICustomerOutput
 > {
   constructor(
     private customerRepo: CustomerRepository,
@@ -19,7 +22,7 @@ export class UpdateCustomerUseCase extends TransactionalUseCase<
   async handle(
     request: IUpdateCustomerInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Customer> {
+  ): Promise<ICustomerOutput> {
     const customer = new Customer({
       id: request.id,
       address: request.address,
@@ -27,6 +30,16 @@ export class UpdateCustomerUseCase extends TransactionalUseCase<
       email: request.email,
       phone: request.phone,
     });
-    return await this.customerRepo.update(customer);
+
+    const data = await this.customerRepo.update(customer);
+
+    return {
+      id: data.id,
+      name: data.name,
+      address: data.address,
+      email: data.email,
+      code: data.code,
+      phone: data.phone,
+    };
   }
 }

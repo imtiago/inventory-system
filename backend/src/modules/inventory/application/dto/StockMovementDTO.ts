@@ -32,3 +32,15 @@ export interface StockMovementWithExtendsDTO extends StockMovementDTO {
   user: UserDTO;
   inventory: InventoryDTO;
 }
+
+export interface IStockMovementOutput {
+  id: string;
+  inventoryId: string;
+  productVariantId: string;
+  type: StockMovementType;
+  origin: StockMovementOrigin;
+  quantity: number;
+  originId?: string | null;
+  userId: string;
+  notes?: string | null;
+}

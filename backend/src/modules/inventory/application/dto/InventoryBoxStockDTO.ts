@@ -24,3 +24,9 @@ export interface IRemoveProductFromBoxInput {
   boxId: string;
   quantity: number;
 }
+export interface IInventoryBoxStockOutput {
+  id: string;
+  inventoryLotId: string;
+  boxId: string;
+  quantity: number;
+}

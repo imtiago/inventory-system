@@ -1,13 +1,16 @@
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { ICreateCategoryInput } from "@catalog/application/dto/CategoryDTO";
+import {
+  ICategoryOutput,
+  ICreateCategoryInput,
+} from "@catalog/application/dto/CategoryDTO";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
 import { Category } from "@catalog/domain/entities/Category";
 
 export class CreateCategoryUseCase extends TransactionalUseCase<
   ICreateCategoryInput,
-  Category
+  ICategoryOutput
 > {
   constructor(
     private repository: CategoryRepository,
@@ -18,8 +21,14 @@ export class CreateCategoryUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateCategoryInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Category> {
+  ): Promise<ICategoryOutput> {
     const category = new Category({ name: request.name });
-    return this.repository.create(category);
+
+    const data = await this.repository.create(category);
+
+    return {
+      id: data.id,
+      name: data.name,
+    };
   }
 }

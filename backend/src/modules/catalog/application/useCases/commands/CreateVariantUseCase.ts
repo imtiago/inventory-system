@@ -4,13 +4,16 @@ import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionManager } from "@shared/domain/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { ICreateVariantInput } from "@catalog/application/dto/ProductVariantDTO";
+import {
+  ICreateVariantInput,
+  IProductVariantOutput,
+} from "@catalog/application/dto/ProductVariantDTO";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 
 export class CreateVariantUseCase extends TransactionalUseCase<
   ICreateVariantInput,
-  ProductVariant
+  IProductVariantOutput
 > {
   constructor(
     private productRepository: ProductRepository,
@@ -24,7 +27,7 @@ export class CreateVariantUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateVariantInput,
     tx: Prisma.TransactionClient,
-  ): Promise<ProductVariant> {
+  ): Promise<IProductVariantOutput> {
     // Verifica se o produto existe
     const product = await this.productRepository.findById(request.productId);
     if (!product) {
@@ -53,6 +56,15 @@ export class CreateVariantUseCase extends TransactionalUseCase<
       code,
     });
 
-    return this.variantRepository.create(variant);
+    const data = await this.variantRepository.create(variant);
+
+    return {
+      id: data.id,
+      name: data.name,
+      barcode: data.barcode,
+      code: data.code,
+      productId: data.productId,
+      salePrice: data.salePrice,
+    };
   }
 }

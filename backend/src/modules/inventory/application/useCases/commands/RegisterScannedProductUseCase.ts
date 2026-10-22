@@ -15,10 +15,11 @@ import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock"
 
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { IRegisterScannedProductInput } from "@inventory/application/dto/InventoryDTO";
+import { IInventoryBoxOutput } from "@inventory/application/dto/InventoryBoxDTO";
 
 export class RegisterScannedProductUseCase extends TransactionalUseCase<
   IRegisterScannedProductInput,
-  InventoryBox
+  IInventoryBoxOutput
 > {
   constructor(
     private readonly catalogService: CatalogService,
@@ -34,7 +35,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
   async handle(
     request: IRegisterScannedProductInput,
     tx: Prisma.TransactionClient,
-  ): Promise<InventoryBox> {
+  ): Promise<IInventoryBoxOutput> {
     /**
      * Quantidade padrão:
      *
@@ -157,14 +158,16 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
      * 9. Retornar resumo
      */
     return {
-      productVariantId: productVariant.id,
-      productCode: productVariant.code,
-      barcode: productVariant.barcode,
+      code: box.code,
+      id: box.id,
+      // productVariantId: productVariant.id,
+      // productCode: productVariant.code,
+      // barcode: productVariant.barcode,
 
-      boxId: box.id,
-      boxCode: box.code,
+      // boxId: box.id,
+      // boxCode: box.code,
 
-      inventoryLotId: lot.id,
+      // inventoryLotId: lot.id,
     };
   }
 }

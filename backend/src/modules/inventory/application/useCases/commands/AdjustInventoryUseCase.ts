@@ -6,10 +6,11 @@ import { Prisma } from "@prisma/client";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { IAdjustInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import { IStockMovementOutput } from "@inventory/application/dto/StockMovementDTO";
 
 export class AdjustInventoryUseCase extends TransactionalUseCase<
   IAdjustInventoryInput,
-  StockMovement
+  IStockMovementOutput
 > {
   constructor(
     private readonly inventoryRepository: IInventoryRepository,
@@ -22,7 +23,7 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
   async handle(
     request: IAdjustInventoryInput,
     tx: Prisma.TransactionClient,
-  ): Promise<StockMovement> {
+  ): Promise<IStockMovementOutput> {
     let inventory = await this.inventoryRepository.findByProductVariantId(
       request.productVariantId,
       tx,
@@ -36,7 +37,6 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
     inventory.adjust(request.quantity);
 
     await this.inventoryRepository.update(inventory);
-    console.log(request.userId);
     const movement = new StockMovement({
       inventoryId: inventory.id!,
 
@@ -57,6 +57,17 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
 
     await this.stockMovementRepository.create(movement);
 
-    return movement;
+    return {
+      id: movement.id,
+      inventoryLotId: movement.inventoryLotId,
+      quantity: movement.quantity,
+      inventoryId: movement.inventoryId,
+      origin: movement.origin,
+      productVariantId: movement.productVariantId,
+      userId: movement.userId,
+      type: movement.type,
+      notes: movement.notes,
+      originId: movement.originId,
+    };
   }
 }

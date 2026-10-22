@@ -3,11 +3,14 @@ import { TransactionalUseCase } from "@shared/application/useCases/Transactional
 import { Prisma } from "@prisma/client";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
-import { IRemoveProductFromBoxInput } from "@inventory/application/dto/InventoryBoxStockDTO";
+import {
+  IInventoryBoxStockOutput,
+  IRemoveProductFromBoxInput,
+} from "@inventory/application/dto/InventoryBoxStockDTO";
 
 export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
   IRemoveProductFromBoxInput,
-  InventoryBoxStock
+  IInventoryBoxStockOutput
 > {
   constructor(
     private readonly inventoryBoxStockRepository: IInventoryBoxStockRepository,
@@ -19,7 +22,7 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
   async handle(
     request: IRemoveProductFromBoxInput,
     tx: Prisma.TransactionClient,
-  ): Promise<InventoryBoxStock> {
+  ): Promise<IInventoryBoxStockOutput> {
     if (request.quantity <= 0) {
       throw new Error("Quantity must be greater than zero.");
     }
@@ -39,6 +42,12 @@ export class RemoveProductFromBoxUseCase extends TransactionalUseCase<
 
     stock.addQuantity(request.quantity);
 
-    return this.inventoryBoxStockRepository.update(stock);
+    const data = await this.inventoryBoxStockRepository.update(stock);
+    return {
+      id: data.id,
+      boxId: data.boxId,
+      inventoryLotId: data.inventoryLotId,
+      quantity: data.quantity,
+    };
   }
 }

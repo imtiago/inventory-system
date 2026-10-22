@@ -10,7 +10,7 @@ import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
 export class CreateBrandUseCase extends TransactionalUseCase<
   ICreateBrandInput,
-  Brand
+  IBrandOutput
 > {
   constructor(
     private repository: BrandRepository,

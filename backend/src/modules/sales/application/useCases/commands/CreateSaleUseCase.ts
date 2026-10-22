@@ -10,7 +10,7 @@ import { Sale } from "@sales/domain/entities/Sale";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
-import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
+import { ICreateSaleInput, ISaleOutput } from "@sales/application/dto/SaleDTO";
 
 export class CreateSaleUseCase extends TransactionalUseCase<
   ICreateSaleInput,
@@ -30,7 +30,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateSaleInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Sale> {
+  ): Promise<ISaleOutput> {
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {
       throw new Error(`Customer not found ${request.customerId}`);
@@ -133,11 +133,14 @@ export class CreateSaleUseCase extends TransactionalUseCase<
       },
       tx,
     );
-    return createdSale;
+    // return createdSale;
 
-    // return {
-    //   saleId: sale.id,
-    //   total: sale.total,
-    // };
+    return {
+      customer_id: createdSale.customerId,
+      id: createdSale.id,
+      status: createdSale.status,
+      totalAmount: createdSale.totalAmount,
+      items: [],
+    };
   }
 }

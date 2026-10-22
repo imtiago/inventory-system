@@ -5,11 +5,14 @@ import { IInventoryBoxRepository } from "@inventory/domain/repositories/Inventor
 import { InventoryBox } from "@inventory/domain/entities/InventoryBox";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
-import { ICreateInventoryBoxInput } from "@inventory/application/dto/InventoryBoxDTO";
+import {
+  ICreateInventoryBoxInput,
+  IInventoryBoxOutput,
+} from "@inventory/application/dto/InventoryBoxDTO";
 
 export class CreateInventoryBoxUseCase extends TransactionalUseCase<
   ICreateInventoryBoxInput,
-  InventoryBox
+  IInventoryBoxOutput
 > {
   constructor(
     private readonly inventoryBoxRepository: IInventoryBoxRepository,
@@ -22,7 +25,7 @@ export class CreateInventoryBoxUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateInventoryBoxInput,
     tx: Prisma.TransactionClient,
-  ): Promise<InventoryBox> {
+  ): Promise<IInventoryBoxOutput> {
     const boxCode = await this.numberGenerator.generate(
       NumberRangeName.INVENTORY_BOX,
       "B",
@@ -32,6 +35,10 @@ export class CreateInventoryBoxUseCase extends TransactionalUseCase<
       code: boxCode,
     });
 
-    return await this.inventoryBoxRepository.create(lot);
+    const data = await this.inventoryBoxRepository.create(lot);
+    return {
+      id: data.id,
+      code: data.code,
+    };
   }
 }

@@ -7,13 +7,16 @@ import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { Prisma } from "@prisma/client";
-import { ICreateProductInput } from "@catalog/application/dto/ProductDTO";
+import {
+  ICreateProductInput,
+  IProductOutput,
+} from "@catalog/application/dto/ProductDTO";
 import { Product } from "@catalog/domain/entities/Product";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
 
 export class CreateProductUseCase extends TransactionalUseCase<
   ICreateProductInput,
-  Product
+  IProductOutput
 > {
   constructor(
     private getBrandById: BrandRepository,
@@ -28,7 +31,7 @@ export class CreateProductUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateProductInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Product> {
+  ): Promise<IProductOutput> {
     const brandExists = await this.getBrandById.findById(request.brandId);
     if (!brandExists) throw new Error("Brand não encontrada");
 
@@ -61,6 +64,13 @@ export class CreateProductUseCase extends TransactionalUseCase<
 
     await this.variantRepo.create(variant);
 
-    return createdProduct;
+    return {
+      id: createdProduct.id,
+      name: createdProduct.name,
+      brand_id: createdProduct.brandId,
+      category_id: createdProduct.categoryId,
+      description: createdProduct?.description,
+      code: createdProduct.code,
+    };
   }
 }

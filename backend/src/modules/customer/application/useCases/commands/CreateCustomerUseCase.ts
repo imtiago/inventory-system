@@ -3,13 +3,16 @@ import { TransactionalUseCase } from "@shared/application/useCases/Transactional
 import { Prisma } from "@prisma/client";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
-import { ICreateCustomerInput } from "@customer/application/dto/CustomerDTO";
+import {
+  ICreateCustomerInput,
+  ICustomerOutput,
+} from "@customer/application/dto/CustomerDTO";
 import { Customer } from "@customer/domain/entities/Customer";
 import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 
 export class CreateCustomerUseCase extends TransactionalUseCase<
   ICreateCustomerInput,
-  Customer
+  ICustomerOutput
 > {
   constructor(
     private customerRepo: CustomerRepository,
@@ -22,7 +25,7 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateCustomerInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Customer> {
+  ): Promise<ICustomerOutput> {
     const customerCode = await this.numberGenerator.generate(
       NumberRangeName.CUSTOMER,
       "C",
@@ -32,6 +35,16 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
       code: customerCode,
       ...request,
     });
-    return this.customerRepo.create(customer);
+
+    const data = await this.customerRepo.create(customer);
+
+    return {
+      id: data.id,
+      name: data.name,
+      address: data.address,
+      email: data.email,
+      code: data.code,
+      phone: data.phone,
+    };
   }
 }

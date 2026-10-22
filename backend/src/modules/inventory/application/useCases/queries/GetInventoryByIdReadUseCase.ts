@@ -4,6 +4,6 @@ export class GetInventoryByIdReadUseCase {
   constructor(private repository: InventoryReadRepository) {}
 
   async execute(inventoryId: string) {
-    return this.repository.findById(inventoryId);
+    return this.repository.getById(inventoryId);
   }
 }

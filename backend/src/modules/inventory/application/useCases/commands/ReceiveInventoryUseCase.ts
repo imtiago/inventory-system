@@ -9,11 +9,14 @@ import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
-import { IReceiveInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import {
+  IInventoryOutput,
+  IReceiveInventoryInput,
+} from "@inventory/application/dto/InventoryDTO";
 
 export class ReceiveInventoryUseCase extends TransactionalUseCase<
   IReceiveInventoryInput,
-  Inventory
+  IInventoryOutput
 > {
   constructor(
     private readonly inventoryRepository: InventoryRepository,
@@ -27,7 +30,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
   async handle(
     request: IReceiveInventoryInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Inventory> {
+  ): Promise<IInventoryOutput> {
     let inventory = await this.inventoryRepository.findByVariant(
       request.productVariantId,
       tx,
@@ -100,6 +103,14 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     });
 
     await this.stockMovementRepository.create(movement, tx);
-    return inventory;
+    return {
+      id: inventory.id,
+      availableQuantity: inventory.availableQuantity,
+      code: inventory.code,
+      minimumStock: inventory.minimumStock,
+      productVariantId: inventory.productVariantId,
+      quantity: inventory.quantity,
+      reservedQuantity: inventory.reservedQuantity,
+    };
   }
 }

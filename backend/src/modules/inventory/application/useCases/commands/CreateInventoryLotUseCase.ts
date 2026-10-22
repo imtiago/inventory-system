@@ -4,11 +4,14 @@ import { Prisma } from "@prisma/client";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
-import { ICreateInventoryLotInput } from "@inventory/application/dto/InventoryLotDTO";
+import {
+  ICreateInventoryLotInput,
+  IInventoryLotOutput,
+} from "@inventory/application/dto/InventoryLotDTO";
 
 export class CreateInventoryLotUseCase extends TransactionalUseCase<
   ICreateInventoryLotInput,
-  InventoryLot
+  IInventoryLotOutput
 > {
   constructor(
     private readonly repository: IInventoryLotRepository,
@@ -20,7 +23,7 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateInventoryLotInput,
     tx: Prisma.TransactionClient,
-  ): Promise<InventoryLot> {
+  ): Promise<IInventoryLotOutput> {
     const lot = new InventoryLot({
       inventoryId: request.inventoryId,
       productVariantId: request.productVariantId,
@@ -36,6 +39,17 @@ export class CreateInventoryLotUseCase extends TransactionalUseCase<
       manufacturingDate: request.manufacturingDate,
     });
 
-    return await this.repository.create(lot);
+    const data = await this.repository.create(lot);
+    return {
+      id: data.id,
+      availableQuantity: data.availableQuantity,
+      batchNumber: data.batchNumber,
+      code: data.code,
+      expirationDate: data.expirationDate,
+      minimumStock: data.minimumStock,
+      productVariantId: data.productVariantId,
+      quantity: data.quantity,
+      reservedQuantity: data.reservedQuantity,
+    };
   }
 }

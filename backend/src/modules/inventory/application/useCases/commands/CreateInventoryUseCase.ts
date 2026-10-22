@@ -3,11 +3,14 @@ import { TransactionalUseCase } from "@shared/application/useCases/Transactional
 import { Prisma } from "@prisma/client";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { Inventory } from "@inventory/domain/entities/Inventory";
-import { ICreateInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import {
+  ICreateInventoryInput,
+  IInventoryOutput,
+} from "@inventory/application/dto/InventoryDTO";
 
 export class CreateInventoryUseCase extends TransactionalUseCase<
   ICreateInventoryInput,
-  Inventory
+  IInventoryOutput
 > {
   constructor(
     private readonly repository: IInventoryRepository,
@@ -19,11 +22,20 @@ export class CreateInventoryUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateInventoryInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Inventory> {
+  ): Promise<IInventoryOutput> {
     const inventory = new Inventory({
       productVariantId: request.productVariantId,
     });
 
-    return await this.repository.create(inventory);
+    const data = await this.repository.create(inventory);
+    return {
+      id: data.id,
+      availableQuantity: data.availableQuantity,
+      code: data.code,
+      minimumStock: data.minimumStock,
+      productVariantId: data.productVariantId,
+      quantity: data.quantity,
+      reservedQuantity: data.reservedQuantity,
+    };
   }
 }

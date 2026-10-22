@@ -8,11 +8,14 @@ import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
-import { IDispatchInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import {
+  IDispatchInventoryInput,
+  IInventoryOutput,
+} from "@inventory/application/dto/InventoryDTO";
 
 export class DispatchInventoryUseCase extends TransactionalUseCase<
   IDispatchInventoryInput,
-  Inventory
+  IInventoryOutput
 > {
   constructor(
     private inventoryRepository: InventoryRepository,
@@ -26,7 +29,7 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
   async handle(
     request: IDispatchInventoryInput,
     tx: Prisma.TransactionClient,
-  ): Promise<Inventory> {
+  ): Promise<IInventoryOutput> {
     const inventory = await this.inventoryRepository.findByVariant(
       request.productVariantId,
       tx,
@@ -79,7 +82,15 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
 
     await this.movementRepository.create(movement, tx);
 
-    return movement;
+    return {
+      id: inventory.id,
+      availableQuantity: inventory.availableQuantity,
+      code: inventory.code,
+      minimumStock: inventory.minimumStock,
+      productVariantId: inventory.productVariantId,
+      quantity: inventory.quantity,
+      reservedQuantity: inventory.reservedQuantity,
+    };
 
     // const movement = inventory.removeStock(request.quantity, request.reason);
 

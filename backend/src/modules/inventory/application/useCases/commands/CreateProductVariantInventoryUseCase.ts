@@ -6,7 +6,10 @@ import { Inventory } from "@inventory/domain/entities/Inventory";
 import { CreateInventoryUseCase } from "./CreateInventoryUseCase";
 import { GetInventoryByVariantId } from "../queries/GetInventoryByVariantIdUseCase";
 import { CatalogApplicationService } from "@catalog/application/services/CatalogApplicationService";
-import { ICreateInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import {
+  ICreateInventoryInput,
+  IInventoryOutput,
+} from "@inventory/application/dto/InventoryDTO";
 
 export class CreateProductVariantInventoryUseCase {
   // export class CreateProductVariantInventoryUseCase extends TransactionalUseCase<
@@ -25,7 +28,7 @@ export class CreateProductVariantInventoryUseCase {
   async handle(
     request: ICreateInventoryInput,
     // tx: Prisma.TransactionClient,
-  ): Promise<Inventory> {
+  ): Promise<IInventoryOutput> {
     const existProductVariant = await this.catalogService.getProductVariant(
       request.productVariantId,
     );
@@ -40,6 +43,15 @@ export class CreateProductVariantInventoryUseCase {
       productVariantId: request.productVariantId,
     });
 
-    return await this.createInventoryUseCase.execute(inventory);
+    const data = await this.createInventoryUseCase.execute(inventory);
+    return {
+      id: data.id,
+      availableQuantity: data.availableQuantity,
+      code: data.code,
+      minimumStock: data.minimumStock,
+      productVariantId: data.productVariantId,
+      quantity: data.quantity,
+      reservedQuantity: data.reservedQuantity,
+    };
   }
 }

@@ -5,11 +5,14 @@ import { IInventoryBoxRepository } from "@inventory/domain/repositories/Inventor
 import { InventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
-import { IAddProductToBoxInput } from "@inventory/application/dto/InventoryBoxStockDTO";
+import {
+  IAddProductToBoxInput,
+  IInventoryBoxStockOutput,
+} from "@inventory/application/dto/InventoryBoxStockDTO";
 
 export class AddProductToBoxUseCase extends TransactionalUseCase<
   IAddProductToBoxInput,
-  InventoryBoxStock
+  IInventoryBoxStockOutput
 > {
   constructor(
     private readonly inventoryBoxRepository: IInventoryBoxRepository,
@@ -23,7 +26,7 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
   async handle(
     request: IAddProductToBoxInput,
     tx: Prisma.TransactionClient,
-  ): Promise<InventoryBoxStock> {
+  ): Promise<IInventoryBoxStockOutput> {
     if (request.quantity <= 0) {
       throw new Error("Quantity must be greater than zero.");
     }
@@ -58,6 +61,12 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
       quantity: request.quantity,
     });
 
-    return this.inventoryBoxStockRepository.create(stock);
+    const data = await this.inventoryBoxStockRepository.create(stock);
+    return {
+      id: data.id,
+      boxId: data.boxId,
+      inventoryLotId: data.inventoryLotId,
+      quantity: data.quantity,
+    };
   }
 }
