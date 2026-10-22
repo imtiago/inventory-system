@@ -4,6 +4,7 @@ import { Inventory } from "@inventory/domain/entities/Inventory";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
+import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 /** Cria o inventário (saldo 0) de uma variante que ainda não tem. */
 export class CreateProductVariantInventoryUseCase extends TransactionalUseCase<
@@ -22,12 +23,12 @@ export class CreateProductVariantInventoryUseCase extends TransactionalUseCase<
     const variant = await this.catalogService.getProductVariant(
       request.productVariantId,
     );
-    if (!variant) throw new Error("Variante não encontrada.");
+    if (!variant) throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
 
     const existing = await this.inventoryRepository.findByProductVariantId(
       request.productVariantId,
     );
-    if (existing) throw new Error("Inventário já existe para esta variante.");
+    if (existing) throw new ConflictError("Já existe estoque para esta variante.", ErrorCodes.INVENTORY_ALREADY_EXISTS);
 
     return this.inventoryRepository.create(
       new Inventory({ productVariantId: request.productVariantId }),

@@ -63,10 +63,10 @@ test("adjust para cima cria lote MANUAL com custo médio atual", async () => {
 test("adjust com contagem negativa ou sem inventário falha sem gravar", async () => {
   const s = build();
   await assert.rejects(() => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: 1 }), {
-    message: "Inventory not found.",
+    name: "NotFoundError", code: "INVENTORY_NOT_FOUND",
   });
   await s.addLot(5);
   const before = await snapshot(s);
-  await assert.rejects(() => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: -1 }));
+  await assert.rejects(() => s.adjust.execute({ productVariantId: "variant-1", countedQuantity: -1 }), { code: "INVALID_QUANTITY" });
   assert.equal(await snapshot(s), before);
 });

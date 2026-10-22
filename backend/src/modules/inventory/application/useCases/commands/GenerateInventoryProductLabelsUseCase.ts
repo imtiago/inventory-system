@@ -1,6 +1,7 @@
 import { InventoryLabelPdfService } from "@inventory/infrastructure/pdf/InventoryLabelPdfService";
 import { InventoryBoxReadRepository } from "../../contracts/InventoryBoxReadRepository";
 import { IGenerateInventoryProductLabelsInput } from "@inventory/application/dto/InventoryBoxDTO";
+import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class GenerateInventoryProductLabelsUseCase {
   constructor(
@@ -10,13 +11,13 @@ export class GenerateInventoryProductLabelsUseCase {
 
   async execute(input: IGenerateInventoryProductLabelsInput): Promise<Buffer> {
     if (input.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     const box = await this.repository.getByCode(input.boxCode);
 
     if (!box) {
-      throw new Error(`Inventory box "${input.boxCode}" not found.`);
+      throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
     const labels = Array.from({ length: input.quantity }, () => ({

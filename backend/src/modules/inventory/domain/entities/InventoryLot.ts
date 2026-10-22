@@ -1,5 +1,6 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { InventoryLotSource } from "../enums/InventoryLotSource";
+import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 
 interface InventoryLotProps {
   id?: string;
@@ -82,7 +83,7 @@ export class InventoryLot extends BaseEntity {
 
   public receive(quantity: number): void {
     if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
 
     this.props.initialQuantity += quantity;
@@ -91,11 +92,11 @@ export class InventoryLot extends BaseEntity {
 
   public consume(quantity: number): void {
     if (quantity <= 0) {
-      throw new Error("Invalid quantity.");
+      throw new BusinessRuleError("Quantidade inválida.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (quantity > this.props.remainingQuantity) {
-      throw new Error("Insufficient quantity.");
+      throw new BusinessRuleError("Quantidade insuficiente no lote.", ErrorCodes.INSUFFICIENT_STOCK);
     }
 
     this.props.remainingQuantity -= quantity;
@@ -103,11 +104,11 @@ export class InventoryLot extends BaseEntity {
 
   public restore(quantity: number): void {
     if (quantity <= 0) {
-      throw new Error("Invalid quantity.");
+      throw new BusinessRuleError("Quantidade inválida.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this.props.remainingQuantity + quantity > this.props.initialQuantity) {
-      throw new Error("Invalid restore quantity.");
+      throw new BusinessRuleError("Quantidade de restauração inválida.", ErrorCodes.INVALID_QUANTITY);
     }
 
     this.props.remainingQuantity += quantity;
@@ -127,19 +128,19 @@ export class InventoryLot extends BaseEntity {
 
   private validate() {
     if (this.props.initialQuantity <= 0) {
-      throw new Error("Invalid quantity.");
+      throw new BusinessRuleError("Quantidade inválida.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this.props.remainingQuantity < 0) {
-      throw new Error("Invalid remaining quantity.");
+      throw new BusinessRuleError("Quantidade restante inválida.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this.props.remainingQuantity > this.props.initialQuantity) {
-      throw new Error("Remaining quantity exceeds initial quantity.");
+      throw new BusinessRuleError("A quantidade restante excede a quantidade inicial.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this.props.unitCost < 0) {
-      throw new Error("Invalid unit cost.");
+      throw new BusinessRuleError("Custo unitário inválido.", ErrorCodes.INVALID_UNIT_COST);
     }
   }
 }

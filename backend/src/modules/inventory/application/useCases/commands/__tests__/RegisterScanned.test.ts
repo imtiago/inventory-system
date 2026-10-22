@@ -48,8 +48,8 @@ test("registerScanned sem unitCost usa custo médio atual", async () => {
 test("registerScanned caixa inexistente falha sem receber", async () => {
   const s = await build();
   const before = await snapshot(s);
-  await assert.rejects(s.uc.execute({ barcode: "789", boxCode: "NOPE", quantity: 2 }), { message: 'Inventory box "NOPE" not found.' });
+  await assert.rejects(s.uc.execute({ barcode: "789", boxCode: "NOPE", quantity: 2 }), { name: "NotFoundError", code: "BOX_NOT_FOUND" });
   assert.equal(await snapshot(s), before);
-  await assert.rejects(s.uc.execute({ barcode: "000", boxCode: "BX1" }), { message: "Product not found for the scanned barcode." });
-  await assert.rejects(s.uc.execute({ barcode: "789", boxCode: "BX1", quantity: 0 }), { message: "Quantity must be greater than zero." });
+  await assert.rejects(s.uc.execute({ barcode: "000", boxCode: "BX1" }), { name: "NotFoundError", code: "VARIANT_NOT_FOUND" });
+  await assert.rejects(s.uc.execute({ barcode: "789", boxCode: "BX1", quantity: 0 }), { name: "BusinessRuleError", code: "INVALID_QUANTITY" });
 });

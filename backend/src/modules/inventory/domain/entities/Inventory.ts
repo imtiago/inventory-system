@@ -1,4 +1,5 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 
 export interface InventoryReceiveProps {
   quantity: number;
@@ -82,7 +83,7 @@ export class Inventory extends BaseEntity {
     this.validateQuantity(props.quantity);
 
     if (props.unitCost < 0) {
-      throw new Error("Unit cost cannot be negative.");
+      throw new BusinessRuleError("O custo unitário não pode ser negativo.", ErrorCodes.INVALID_UNIT_COST);
     }
 
     const currentValue = this._quantity * this._averageCost;
@@ -102,7 +103,7 @@ export class Inventory extends BaseEntity {
     this.validateQuantity(quantity);
 
     if (!this.hasAvailableStock(quantity)) {
-      throw new Error("Insufficient available stock.");
+      throw new BusinessRuleError("Estoque disponível insuficiente.", ErrorCodes.INSUFFICIENT_STOCK);
     }
 
     this._quantity -= quantity;
@@ -114,7 +115,7 @@ export class Inventory extends BaseEntity {
     this.validateQuantity(quantity);
 
     if (!this.hasAvailableStock(quantity)) {
-      throw new Error("Insufficient stock.");
+      throw new BusinessRuleError("Estoque disponível insuficiente.", ErrorCodes.INSUFFICIENT_STOCK);
     }
 
     this._reservedQuantity += quantity;
@@ -126,7 +127,7 @@ export class Inventory extends BaseEntity {
     this.validateQuantity(quantity);
 
     if (quantity > this._reservedQuantity) {
-      throw new Error("Reserved quantity is insufficient.");
+      throw new BusinessRuleError("Quantidade reservada insuficiente.", ErrorCodes.INSUFFICIENT_STOCK);
     }
 
     this._reservedQuantity -= quantity;
@@ -136,7 +137,7 @@ export class Inventory extends BaseEntity {
 
   public adjust(quantity: number): void {
     if (quantity < 0) {
-      throw new Error("Quantity cannot be negative.");
+      throw new BusinessRuleError("A quantidade não pode ser negativa.", ErrorCodes.INVALID_QUANTITY);
     }
 
     this._quantity = quantity;
@@ -150,25 +151,25 @@ export class Inventory extends BaseEntity {
 
   private validate() {
     if (this._quantity < 0) {
-      throw new Error("Inventory quantity cannot be negative.");
+      throw new BusinessRuleError("A quantidade em estoque não pode ser negativa.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this._reservedQuantity < 0) {
-      throw new Error("Reserved quantity cannot be negative.");
+      throw new BusinessRuleError("A quantidade reservada não pode ser negativa.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this._reservedQuantity > this._quantity) {
-      throw new Error("Reserved quantity cannot exceed inventory.");
+      throw new BusinessRuleError("A quantidade reservada não pode exceder o estoque.", ErrorCodes.INVALID_QUANTITY);
     }
 
     if (this._averageCost < 0) {
-      throw new Error("Average cost cannot be negative.");
+      throw new BusinessRuleError("O custo médio não pode ser negativo.", ErrorCodes.INVALID_UNIT_COST);
     }
   }
 
   private validateQuantity(quantity: number) {
     if (quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+      throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
     }
   }
 
