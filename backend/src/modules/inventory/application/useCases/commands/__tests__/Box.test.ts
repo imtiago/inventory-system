@@ -57,3 +57,15 @@ test("remove subtrai", async () => {
   assert.equal((await s.stocks.findStock(lot.id, s.boxA.id))!.quantity, 4);
   await assert.rejects(s.remove.execute({ inventoryLotId: lot.id, boxId: s.boxA.id, quantity: 5 }));
 });
+
+test("add com alocado > restante (após dispatch) reporta disponível 0, nunca negativo", async () => {
+  const s = await build();
+  const { lot } = await s.addLot(10);
+  await s.add.execute({ inventoryLotId: lot.id, boxId: s.boxA.id, quantity: 10 });
+  lot.consume(4); // saída reduz o restante sem mexer nas caixas: alocado 10 > restante 6
+  await s.lots.update(lot);
+  await assert.rejects(
+    s.add.execute({ inventoryLotId: lot.id, boxId: s.boxB.id, quantity: 1 }),
+    { message: "Quantidade excede o saldo do lote disponível para caixas (0)." },
+  );
+});

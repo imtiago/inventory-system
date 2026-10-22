@@ -123,7 +123,7 @@ export function InventoryDetailsPage() {
               <tbody>
                 {lots.map((lot) => (
                   <tr key={lot.id} className="border-b last:border-b-0">
-                    <td className="px-4 py-3 text-sm font-medium">{lot.batchNumber}</td>
+                    <td className="px-4 py-3 text-sm font-medium">{lot.batchNumber ?? 'Sem lote'}</td>
                     <td className="px-4 py-3 text-sm">{lot.initialQuantity}</td>
                     <td className="px-4 py-3 text-sm">{lot.remainingQuantity}</td>
                     <td className="px-4 py-3 text-sm">{lot.allocatedQuantity}</td>

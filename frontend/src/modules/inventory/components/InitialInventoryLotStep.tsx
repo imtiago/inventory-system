@@ -21,7 +21,7 @@ interface Props {
 function lotLabel(lot: InventoryLot) {
   const validity = lot.expirationDate ? ` — validade ${formatDateOnly(lot.expirationDate)}` : '';
 
-  return `${lot.batchNumber} — restante ${lot.remainingQuantity}, em caixas ${lot.allocatedQuantity}${validity}`;
+  return `${lot.batchNumber ?? 'Sem lote'} — restante ${lot.remainingQuantity}, em caixas ${lot.allocatedQuantity}${validity}`;
 }
 
 export function InitialInventoryLotStep({ variant, barcode, lots, lotsLoading, lotsError, selectedLotId, selectedLot, onSelectLot, onConfirmLot, onCreateNewLot, onBack }: Props) {

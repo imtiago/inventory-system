@@ -55,7 +55,7 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
 
         <div className="mt-4 space-y-1 text-sm text-gray-600">
           <p>
-            <strong>Lote:</strong> {lot.batchNumber}
+            <strong>Lote:</strong> {lot.batchNumber ?? 'Sem lote'}
           </p>
 
           {lot.expirationDate && (
@@ -94,6 +94,7 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          disabled={loading}
           placeholder="Ex.: B000001"
           className="w-full rounded-lg border p-3"
         />
@@ -118,8 +119,9 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
                   key={box.id}
                   type="button"
                   aria-pressed={selected}
+                  disabled={loading}
                   onClick={() => onSelectBox(box)}
-                  className={`w-full rounded-lg border p-3 text-left font-semibold transition ${selected ? 'border-black bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                  className={`w-full rounded-lg border p-3 text-left disabled:opacity-50 font-semibold transition ${selected ? 'border-black bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}
                 >
                   {box.code}
                 </button>

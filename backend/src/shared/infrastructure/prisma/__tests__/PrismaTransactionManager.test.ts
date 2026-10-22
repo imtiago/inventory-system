@@ -5,7 +5,12 @@ import { prisma } from "@shared/prisma";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
-const brandName = () => `tx-test-${randomUUID()}`;
+const createdNames: string[] = [];
+const brandName = () => {
+  const n = `tx-test-${randomUUID()}`;
+  createdNames.push(n);
+  return n;
+};
 const countBrands = (name: string) => prisma.brand.count({ where: { name } });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -13,7 +18,7 @@ describe("PrismaTransactionManager", () => {
   const tm = new PrismaTransactionManager();
 
   after(async () => {
-    await prisma.brand.deleteMany({ where: { name: { startsWith: "tx-test-" } } });
+    await prisma.brand.deleteMany({ where: { name: { in: createdNames } } });
     await prisma.$disconnect();
   });
 

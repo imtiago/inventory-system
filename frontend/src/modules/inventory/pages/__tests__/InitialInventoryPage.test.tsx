@@ -493,4 +493,40 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.queryByText(/unidade\(s\) colocada\(s\)/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sim, gerar etiqueta' })).not.toBeInTheDocument();
   });
+
+  test('lote sem número de lote (null) aparece como "Sem lote" no passo de lote', async () => {
+    const nullLot = { ...lotWithRoom, batchNumber: null };
+    server.use(
+      http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ ...inventoryLotList, data: [nullLot] })),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await scanBarcode(user);
+    expect(await screen.findByRole('option', { name: /^Sem lote — restante/ })).toBeInTheDocument();
+    expect(screen.queryByText(/null/)).not.toBeInTheDocument();
+  });
+
+  test('durante adicionar à caixa, os botões de caixa ficam desabilitados', async () => {
+    const other = { ...box, id: 'box-other', code: 'B000002' };
+    server.use(
+      http.get(`${API_URL}/inventory/boxes`, () =>
+        HttpResponse.json({ data: [box, other], pagination: { page: 1, limit: 10, total: 2, totalPages: 1 } }),
+      ),
+      http.post(`${API_URL}/inventory/boxes/:boxId/items`, async ({ request, params }) => {
+        const body = (await request.json()) as { inventoryLotId: string; quantity: number };
+        await delay(300);
+        return HttpResponse.json({ data: { id: 'item-1', boxId: params.boxId, ...body } }, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+
+    await addThreeUnitsToBox(user);
+
+    expect(screen.getByRole('button', { name: 'B000002' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /B000001/ })).toBeDisabled();
+    expect(screen.getByLabelText('Buscar caixa por código')).toBeDisabled();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Salvando...' })).not.toBeInTheDocument());
+  });
 });

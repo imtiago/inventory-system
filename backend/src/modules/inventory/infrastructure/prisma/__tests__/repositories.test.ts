@@ -38,7 +38,6 @@ describe("repositórios Prisma de estoque", () => {
   });
 
   after(async () => {
-    await prisma.inventoryBox.deleteMany({ where: { code: { startsWith: "tx-test-" } } });
     await prisma.$disconnect();
   });
 

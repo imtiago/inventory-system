@@ -46,7 +46,7 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     const allocated = await this.inventoryBoxStockRepository.sumAllocatedByLot(
       lot.id,
     );
-    const available = lot.remainingQuantity - allocated;
+    const available = Math.max(0, lot.remainingQuantity - allocated);
 
     if (request.quantity > available) {
       throw new Error(

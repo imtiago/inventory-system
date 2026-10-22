@@ -224,6 +224,31 @@ describe("HTTP de estoque", () => {
     assert.match(res.json().message, /quantity: /);
   });
 
+  test("POST /inventory/receive com batchNumber vazio → 400 citando batchNumber", async () => {
+    const res = await request("POST", "/inventory/receive", {
+      productVariantId: variantId,
+      quantity: 1,
+      unitCost: 1,
+      batchNumber: "   ",
+      origin: "PURCHASE",
+      sourceType: "PURCHASE",
+    });
+    assert.equal(res.statusCode, 400, res.body);
+    assert.match(res.json().message, /batchNumber/);
+  });
+
+  test("POST /inventory/lots com expirationDate null → 400", async () => {
+    const res = await request("POST", "/inventory/lots", lotBody({ expirationDate: null }));
+    assert.equal(res.statusCode, 400, res.body);
+    assert.match(res.json().message, /expirationDate/);
+  });
+
+  test("GET /inventory/variants/:id/lots com limit=101 → 400", async () => {
+    const res = await request("GET", `/inventory/variants/${variantId}/lots?limit=101`);
+    assert.equal(res.statusCode, 400, res.body);
+    assert.match(res.json().message, /limit/);
+  });
+
   test("dispatch/reserve/release/adjust/initial-count respondem movimentações com userId do token", async () => {
     const barcode = `tx-test-${randomUUID().slice(0, 12)}`;
     await prisma.productVariant.update({ where: { id: variantId }, data: { barcode } });

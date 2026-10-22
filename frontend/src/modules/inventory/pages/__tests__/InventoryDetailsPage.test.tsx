@@ -65,4 +65,17 @@ describe('InventoryDetailsPage', () => {
     await screen.findByText('L2026-10-A');
     expect(limits).toEqual(['100']);
   });
+
+  test('lote sem número de lote (null) mostra "Sem lote", nunca "null"', async () => {
+    const lot = { ...inventoryLotList.data[0], batchNumber: null };
+    server.use(
+      http.get(`${API_URL}/inventory/variants/:variantId/lots`, () =>
+        HttpResponse.json({ ...inventoryLotList, data: [lot] }),
+      ),
+    );
+    renderPage();
+    const cell = await screen.findByText('Sem lote');
+    expect(cell.closest('tr')).toBeTruthy();
+    expect(screen.queryByText(/null/)).not.toBeInTheDocument();
+  });
 });

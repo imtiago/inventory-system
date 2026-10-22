@@ -1,13 +1,14 @@
 import { z } from "zod";
+import { requestDate } from "./requestDate";
 
 export const createInventoryLotSchema = z.object({
   productVariantId: z.string().uuid(),
 
-  batchNumber: z.string().min(1, "Batch number is required."),
+  batchNumber: z.string().trim().min(1, "Batch number is required."),
 
-  expirationDate: z.coerce.date(),
+  expirationDate: requestDate,
 
-  manufacturingDate: z.coerce.date().optional(),
+  manufacturingDate: requestDate.optional(),
 
   quantity: z
     .number()

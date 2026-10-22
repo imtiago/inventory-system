@@ -29,19 +29,21 @@ class CreateBrandThenFail extends TransactionalUseCase<
 }
 
 describe("use cases reais dentro de transação", () => {
+  const createdNames: string[] = [];
   const tm = new PrismaTransactionManager();
   // Cast: PrismaBrandRepository ainda não implementa update/delete (erro pré-existente, igual ao da CreateBrandFactory).
   const brandRepository = new PrismaBrandRepository() as unknown as BrandRepository;
   const createBrand = new CreateBrandUseCase(brandRepository, tm);
 
   after(async () => {
-    await prisma.brand.deleteMany({ where: { name: { startsWith: "tx-test-" } } });
+    await prisma.brand.deleteMany({ where: { name: { in: createdNames } } });
     await prisma.$disconnect();
   });
 
   test("use case aninhado é desfeito quando o externo falha", async () => {
     const outer = `tx-test-${randomUUID()}`;
     const inner = `tx-test-${randomUUID()}`;
+    createdNames.push(outer, inner);
     const uc = new CreateBrandThenFail(createBrand, tm);
 
     await assert.rejects(uc.execute({ outer, inner }), /falha depois de gravar/);
@@ -51,6 +53,7 @@ describe("use cases reais dentro de transação", () => {
 
   test("use case isolado faz commit", async () => {
     const name = `tx-test-${randomUUID()}`;
+    createdNames.push(name);
 
     await createBrand.execute({ name });
 

@@ -34,7 +34,7 @@ export interface InventoryLot {
   id: string;
   inventoryId: string;
   productVariantId: string;
-  batchNumber: string;
+  batchNumber: string | null;
   initialQuantity: number;
   remainingQuantity: number;
   allocatedQuantity: number;
