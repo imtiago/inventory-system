@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { after, before, describe, test } from "node:test";
+import { after, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";

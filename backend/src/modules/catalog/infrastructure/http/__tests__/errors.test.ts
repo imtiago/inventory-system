@@ -69,4 +69,16 @@ describe("Erros HTTP do catálogo", () => {
     assert.equal(res.statusCode, 400);
     assert.equal(res.json().code, "VALIDATION_ERROR");
   });
+
+  test("GET /variants/barcode/:id em branco → 400 VALIDATION_ERROR", async () => {
+    const res = await call("GET", "/variants/barcode/%20%20");
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.json().code, "VALIDATION_ERROR");
+  });
+
+  test("GET /variants/barcode/:id desconhecido → 404 VARIANT_NOT_FOUND", async () => {
+    const res = await call("GET", `/variants/barcode/tx-test-${randomUUID()}`);
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.json().code, "VARIANT_NOT_FOUND");
+  });
 });
