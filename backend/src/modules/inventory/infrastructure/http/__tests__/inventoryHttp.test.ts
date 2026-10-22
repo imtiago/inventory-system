@@ -50,7 +50,7 @@ describe("HTTP de estoque", () => {
     userId = await getTestUserId();
     token = jwt.sign(
       { sub: userId, role: "admin" },
-      process.env.JWT_SECRET || "secret",
+      process.env.JWT_SECRET!,
     );
   });
 

@@ -1,25 +1,22 @@
 // src/shared/middleware/auth.ts
-import { FastifyReply, FastifyRequest } from "fastify";
+import { FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
+import { env } from "../config/env";
+import { UnauthorizedError } from "../domain/errors";
 
-export async function authenticate(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+export async function authenticate(request: FastifyRequest): Promise<void> {
+  const authHeader = request.headers.authorization;
+  if (!authHeader) {
+    throw new UnauthorizedError("Token ausente.");
+  }
+
+  const token = authHeader.split(" ")[1];
   try {
-    const authHeader = request.headers.authorization;
-    if (!authHeader) {
-      return reply.status(401).send({ message: "Token ausente" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as {
+    request.user = jwt.verify(token, env.JWT_SECRET) as {
       sub: string;
       role: string;
     };
-
-    request.user = decoded; // ✅ agora TypeScript sabe que request.user existe
-  } catch (err) {
-    return reply.status(401).send({ message: "Token inválido" });
+  } catch {
+    throw new UnauthorizedError("Token inválido.");
   }
 }

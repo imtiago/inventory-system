@@ -1,3 +1,4 @@
+import "./shared/config/env";
 import { app } from "./app";
 
 const start = async () => {

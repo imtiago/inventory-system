@@ -1,14 +1,15 @@
 // src/shared/middleware/authorize.ts
-import { FastifyReply, FastifyRequest } from "fastify";
+import { FastifyRequest } from "fastify";
+import { ForbiddenError, UnauthorizedError } from "../domain/errors";
 
 export function authorize(allowedRoles: string[]) {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest) => {
     if (!request.user) {
-      return reply.status(401).send({ message: "Usuário não autenticado" });
+      throw new UnauthorizedError("Usuário não autenticado.");
     }
 
-    if (!allowedRoles.includes(request.user.role.toLocaleLowerCase())) {
-      return reply.status(403).send({ message: "Acesso negado" });
+    if (!allowedRoles.includes(request.user.role.toLowerCase())) {
+      throw new ForbiddenError();
     }
   };
 }
