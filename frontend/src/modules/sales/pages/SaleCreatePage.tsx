@@ -1,3 +1,5 @@
+import { parseApiErrorSync } from '@/shared/services/parseApiError';
+import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Trash2, UserRound } from 'lucide-react';
@@ -28,7 +30,7 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
 export function SaleCreatePage() {
   const navigate = useNavigate();
 
-  const { control, watch, setValue } = useForm<SaleFormValues>({
+  const { control, watch, setValue, setError } = useForm<SaleFormValues>({
     defaultValues: {
       customerId: '',
     },
@@ -142,10 +144,17 @@ export function SaleCreatePage() {
 
           navigate('/sales');
         },
-        onError: () => {
+        onError: (error) => {
+          const { fieldErrors, message, code } = parseApiErrorSync(error);
+
+          // customerId errors render on the autocomplete; other paths (e.g. items.0.quantity) have no input.
+          applyFieldErrors(setError, fieldErrors);
+
+          const detail = Object.entries(fieldErrors).find(([field]) => field !== 'customerId')?.[1];
+
           setFeedback({
             type: 'error',
-            message: 'Não foi possível registrar a venda. Verifique os dados e tente novamente.',
+            message: code === 'UNKNOWN_ERROR' ? 'Não foi possível registrar a venda. Verifique os dados e tente novamente.' : detail ? `${message} ${detail}` : message,
           });
         },
       },

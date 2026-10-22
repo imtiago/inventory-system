@@ -1,3 +1,5 @@
+import { parseApiErrorSync } from '@/shared/services/parseApiError';
+import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { useForm } from 'react-hook-form';
 import type { ICreateCustomerDTO } from '../types';
 
@@ -33,6 +35,7 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ICreateCustomerDTO>({
     defaultValues: {
@@ -43,8 +46,16 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
     },
   });
 
+  const submit = handleSubmit(async (data) => {
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      if (!applyFieldErrors(setError, parseApiErrorSync(error).fieldErrors)) throw error;
+    }
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={submit} className="space-y-6">
       <section className="space-y-5 rounded-xl bg-white p-6 shadow">
         {/* Nome */}
         <div>

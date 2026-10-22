@@ -61,7 +61,7 @@ beforeEach(() => {
 
   server.use(
     http.get(`${API_URL}/variants/barcode/:code`, ({ params }) =>
-      params.code === BARCODE ? HttpResponse.json({ data: variant }) : HttpResponse.json({ message: 'Resource not found' }, { status: 404 }),
+      params.code === BARCODE ? HttpResponse.json({ data: variant }) : HttpResponse.json({ message: 'Resource not found', code: 'NOT_FOUND' }, { status: 404 }),
     ),
     http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => {
       lotsRequests += 1;
@@ -150,7 +150,7 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test("erro 500 na leitura mostra erro e não abre 'produto não encontrado'", async () => {
-    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Falha no servidor de produtos' }, { status: 500 })));
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Falha no servidor de produtos', code: 'INTERNAL_ERROR' }, { status: 500 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -251,7 +251,7 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test("não exibe prompt 'criar inventário'", async () => {
-    server.use(http.get(`${API_URL}/inventory/variants/:variantId`, () => HttpResponse.json({ message: 'Inventory not found' }, { status: 404 })));
+    server.use(http.get(`${API_URL}/inventory/variants/:variantId`, () => HttpResponse.json({ message: 'Inventory not found', code: 'NOT_FOUND' }, { status: 404 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -314,7 +314,7 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test('erro ao carregar lotes mostra a mensagem do servidor', async () => {
-    server.use(http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ message: 'Banco indisponível' }, { status: 500 })));
+    server.use(http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ message: 'Banco indisponível', code: 'INTERNAL_ERROR' }, { status: 500 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -403,7 +403,7 @@ describe('InitialInventoryPage (assistente)', () => {
   });
 
   test("código não encontrado (404) abre 'produto existe?' com o código lido", async () => {
-    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Resource not found' }, { status: 404 })));
+    server.use(http.get(`${API_URL}/variants/barcode/:code`, () => HttpResponse.json({ message: 'Resource not found', code: 'NOT_FOUND' }, { status: 404 })));
     const user = userEvent.setup();
     renderPage();
 
@@ -458,7 +458,7 @@ describe('InitialInventoryPage (assistente)', () => {
 
   test('erro 400 de limite da caixa é mostrado no passo de caixa', async () => {
     const message = 'Quantidade excede o saldo do lote disponível para caixas (18).';
-    server.use(http.post(`${API_URL}/inventory/boxes/:boxId/items`, () => HttpResponse.json({ message }, { status: 400 })));
+    server.use(http.post(`${API_URL}/inventory/boxes/:boxId/items`, () => HttpResponse.json({ message, code: 'BUSINESS_RULE' }, { status: 400 })));
     const user = userEvent.setup();
     renderPage();
     await goToBoxWithLot(user, lotWithRoom.id);

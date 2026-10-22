@@ -1,1 +1,1 @@
-{ "message": "Dados inválidos.", "code": "VALIDATION_ERROR", "errors": [{ "field": "name", "message": "Nome é obrigatório." }] }
+{ "message": "Dados inválidos.", "code": "VALIDATION_ERROR", "errors": [{ "field": "name", "message": "O nome é obrigatório." }] }

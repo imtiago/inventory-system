@@ -1,3 +1,4 @@
+import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -22,7 +23,11 @@ export function useCreateInventoryLot() {
 
       return { ok: true, data: lot };
     } catch (err: unknown) {
-      return { ok: false, error: apiErrorMessage(err, 'Não foi possível criar o lote.') };
+      return {
+        ok: false,
+        error: apiErrorMessage(err, 'Não foi possível criar o lote.'),
+        fieldErrors: parseApiErrorSync(err).fieldErrors,
+      };
     } finally {
       setLoading(false);
     }

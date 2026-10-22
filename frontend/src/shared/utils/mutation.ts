@@ -1,17 +1,13 @@
 // shared/utils/mutation.ts
 
-import axios from "axios";
-
+import { parseApiErrorSync } from "../services/parseApiError";
 import { notify } from "./notify";
 
 export function handleMutationError(error: unknown, defaultMessage: string) {
-  console.error(error);
+  const { status, code, message } = parseApiErrorSync(error);
 
-  if (axios.isAxiosError(error)) {
-    notify.error(error.response?.data?.message ?? defaultMessage);
+  // The axios interceptor already redirects to /login on 401.
+  if (status === 401) return;
 
-    return;
-  }
-
-  notify.error(defaultMessage);
+  notify.error(code === "UNKNOWN_ERROR" ? defaultMessage : message);
 }
