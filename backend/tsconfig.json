@@ -17,7 +17,7 @@
       "@payables/*": ["modules/payables/*"],
       "@purchases/*": ["modules/purchases/*"],
       "@sales/*": ["modules/sales/*"],
-      "@nfe-import/*": ["nfe-import/*"],
+      "@nfe-import/*": ["modules/nfe-import/*"],
       "@shared/*": ["shared/*"]
     }
   }

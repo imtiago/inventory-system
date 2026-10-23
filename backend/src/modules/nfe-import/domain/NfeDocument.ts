@@ -21,13 +21,20 @@ export interface NfeSupplier {
   phone: string | null;
 }
 
+/** Totais (ICMSTot), mesmos componentes dos itens. */
 export interface NfeTotals {
   products: number;
   discount: number;
   freight: number;
   insurance: number;
   other: number;
+  /** vICMSDeson (subtrai do vNF) */
+  icmsRelief: number;
+  /** vII */
+  importTax: number;
+  /** vIPI + vIPIDevol */
   ipi: number;
+  /** vST + vFCPST */
   icmsSt: number;
   /** vNF */
   total: number;
@@ -56,7 +63,13 @@ export interface NfeItem {
   freight: number;
   insurance: number;
   other: number;
+  /** vICMSDeson de qualquer grupo ICMS* (subtrai do custo). */
+  icmsRelief: number;
+  /** II/vII */
+  importTax: number;
+  /** IPI/IPITrib/vIPI + impostoDevol/IPI/vIPIDevol */
   ipi: number;
+  /** vICMSST + vFCPST de qualquer grupo ICMS* */
   icmsSt: number;
   lots: NfeLot[];
 }
@@ -93,7 +106,20 @@ export function quantityToNumber(quantity: NfeQuantity): number {
   return quantityToScaled(quantity) / QUANTITY_SCALE;
 }
 
-/** Custo do item (centavos): productsTotal − discount + freight + insurance + other + ipi + icmsSt. */
+/**
+ * Custo do item (centavos), na composição oficial do vNF:
+ * vProd − vDesc − vICMSDeson + vICMSST + vFCPST + vFrete + vSeg + vOutro + vII + vIPI + vIPIDevol.
+ */
 export function itemCostCents(item: NfeItem): number {
-  return item.productsTotal - item.discount + item.freight + item.insurance + item.other + item.ipi + item.icmsSt;
+  return (
+    item.productsTotal -
+    item.discount -
+    item.icmsRelief +
+    item.icmsSt +
+    item.freight +
+    item.insurance +
+    item.other +
+    item.importTax +
+    item.ipi
+  );
 }

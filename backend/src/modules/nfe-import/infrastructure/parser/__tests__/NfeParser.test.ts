@@ -6,7 +6,7 @@ import { BusinessRuleError, ValidationError } from "@shared/domain/errors";
 import { isValidAccessKey } from "@shared/domain/accessKey";
 import { buildAccessKey } from "../../../../../test/accessKeyFixtures";
 import { NfeParser } from "../NfeParser";
-import { itemCostCents, quantityToNumber, quantityToScaled } from "../../../domain/NfeDocument";
+import { itemCostCents, quantityToNumber, quantityToScaled } from "@nfe-import/domain/NfeDocument";
 
 const fixture = (name: string) =>
   readFileSync(fileURLToPath(new URL(`../../../__fixtures__/${name}`, import.meta.url)), "utf-8");
@@ -51,9 +51,11 @@ describe("NfeParser", () => {
       freight: 700,
       insurance: 100,
       other: 50,
+      icmsRelief: 150,
+      importTax: 0,
       ipi: 1205,
-      icmsSt: 630,
-      total: 39775,
+      icmsSt: 714,
+      total: 39709,
     });
 
     assert.equal(doc.items.length, 3);
@@ -73,6 +75,8 @@ describe("NfeParser", () => {
       freight: 500,
       insurance: 0,
       other: 0,
+      icmsRelief: 0,
+      importTax: 0,
       ipi: 1205,
       icmsSt: 0,
       lots: [
@@ -84,25 +88,50 @@ describe("NfeParser", () => {
     assert.equal(b.quantity, "10.5");
     assert.equal(quantityToScaled(b.quantity), 105000);
     assert.equal(quantityToNumber(b.quantity), 10.5);
-    assert.equal(b.icmsSt, 630);
+    assert.equal(b.icmsSt, 714, "vICMSST 6.30 + vFCPST 0.84");
     assert.equal(b.ipi, 0, "IPINT → 0");
     assert.deepEqual([b.freight, b.insurance, b.other], [200, 100, 50]);
     assert.deepEqual(b.lots, []);
     assert.equal(c.barcode, "7890000000017", "cEAN vazio → cEANTrib");
     assert.equal(c.discount, 99);
+    assert.equal(c.icmsRelief, 150, "vICMSDeson do ICMS40");
 
     assert.deepEqual(doc.installments, [
-      { number: "001", dueDate: "2026-11-22", amount: 13258 },
-      { number: "002", dueDate: "2026-12-22", amount: 13258 },
-      { number: "003", dueDate: "2027-01-21", amount: 13259 },
+      { number: "001", dueDate: "2026-11-22", amount: 13236 },
+      { number: "002", dueDate: "2026-12-22", amount: 13236 },
+      { number: "003", dueDate: "2027-01-21", amount: 13237 },
     ]);
   });
 
-  test("custo por item em centavos e soma = vNF", () => {
+  test("custo por item em centavos (composição oficial do vNF) e soma = vNF", () => {
     const doc = parser.parse(Buffer.from(fixture("nfe-completa.xml"), "utf-8"));
     const costs = doc.items.map(itemCostCents);
-    assert.deepEqual(costs, [24705, 5170, 9900]);
+    // 1: 241.00 − 11.00 + 5.00 + 12.05 (IPI); 2: 41.90 + 2.00 + 1.00 + 0.50 + 6.30 (ST) + 0.84 (FCP-ST);
+    // 3: 99.99 − 0.99 − 1.50 (ICMS desonerado)
+    assert.deepEqual(costs, [24705, 5254, 9750]);
     assert.equal(costs.reduce((s, c) => s + c, 0), doc.totals.total);
+  });
+
+  test("II (vII) e IPI devolvido (impostoDevol/IPI/vIPIDevol) entram no custo e nos totais", () => {
+    const full = fixture("nfe-completa.xml")
+      .replace(
+        "<vIPI>12.05</vIPI>\n</IPITrib>\n</IPI>",
+        "<vIPI>12.05</vIPI>\n</IPITrib>\n</IPI>\n<II><vBC>241.00</vBC><vDespAdu>0.00</vDespAdu><vII>2.00</vII><vIOF>0.00</vIOF></II>",
+      )
+      .replace(
+        "</imposto>\n</det>\n<det nItem=\"2\">",
+        "</imposto>\n<impostoDevol><pDevol>100.00</pDevol><IPI><vIPIDevol>1.00</vIPIDevol></IPI></impostoDevol>\n</det>\n<det nItem=\"2\">",
+      )
+      .replace("<vII>0.00</vII>", "<vII>2.00</vII>")
+      .replace("<vIPIDevol>0.00</vIPIDevol>", "<vIPIDevol>1.00</vIPIDevol>")
+      .replace("<vNF>397.09</vNF>", "<vNF>400.09</vNF>");
+    const doc = parser.parse(full);
+    assert.equal(doc.items[0].importTax, 200);
+    assert.equal(doc.items[0].ipi, 1305, "vIPI 12.05 + vIPIDevol 1.00");
+    assert.equal(itemCostCents(doc.items[0]), 25005);
+    assert.equal(doc.totals.importTax, 200);
+    assert.equal(doc.totals.ipi, 1305);
+    assert.equal(doc.totals.total, 40009);
   });
 
   test("nota sem cobrança → installments []; NFe sem nfeProc, det único, emitente CPF", () => {
@@ -132,8 +161,8 @@ describe("NfeParser", () => {
 
   test("totais: tolerância de 1 centavo por item", () => {
     const full = fixture("nfe-completa.xml");
-    assert.equal(parser.parse(full.replace("<vNF>397.75</vNF>", "<vNF>397.78</vNF>")).totals.total, 39778);
-    expectInvalidNfe(full.replace("<vNF>397.75</vNF>", "<vNF>397.79</vNF>"), "Totais da nota não conferem.");
+    assert.equal(parser.parse(full.replace("<vNF>397.09</vNF>", "<vNF>397.12</vNF>")).totals.total, 39712);
+    expectInvalidNfe(full.replace("<vNF>397.09</vNF>", "<vNF>397.13</vNF>"), "Totais da nota não conferem.");
   });
 
   test("XML com DOCTYPE/ENTITY → INVALID_FILE_CONTENT sem expandir entidades", () => {

@@ -12,7 +12,7 @@ import {
   type NfeQuantity,
   type NfeSupplier,
   type NfeTotals,
-} from "../../domain/NfeDocument";
+} from "@nfe-import/domain/NfeDocument";
 
 type XmlNode = Record<string, unknown>;
 
@@ -136,13 +136,14 @@ function barcodeOf(prod: XmlNode): string | null {
   return null;
 }
 
-/** vICMSST de qualquer grupo ICMS* (ICMS10, ICMS30, ICMS70, ICMS90, ICMSPart, ICMSSN201...). */
-function icmsStOf(imposto: XmlNode | undefined, what: string): number {
+/** Soma de campos em qualquer grupo ICMS* (ICMS10, ICMS40, ICMS90, ICMSPart, ICMSSN201...). */
+function icmsSum(imposto: XmlNode | undefined, fields: string[], what: string): number {
   const icms = child(imposto, "ICMS");
   if (!icms) return 0;
   let total = 0;
   for (const [key, group] of Object.entries(icms)) {
-    if (key.startsWith("ICMS") && isNode(group)) total += cents(group, "vICMSST", what);
+    if (!key.startsWith("ICMS") || !isNode(group)) continue;
+    for (const field of fields) total += cents(group, field, what);
   }
   return total;
 }
@@ -275,8 +276,12 @@ export class NfeParser {
       freight: cents(prod, "vFrete", what),
       insurance: cents(prod, "vSeg", what),
       other: cents(prod, "vOutro", what),
-      ipi: cents(child(child(imposto, "IPI"), "IPITrib"), "vIPI", what),
-      icmsSt: icmsStOf(imposto, what),
+      icmsRelief: icmsSum(imposto, ["vICMSDeson"], what),
+      importTax: cents(child(imposto, "II"), "vII", what),
+      ipi:
+        cents(child(child(imposto, "IPI"), "IPITrib"), "vIPI", what) +
+        cents(child(child(det, "impostoDevol"), "IPI"), "vIPIDevol", what),
+      icmsSt: icmsSum(imposto, ["vICMSST", "vFCPST"], what),
       lots,
     };
   }
@@ -289,8 +294,10 @@ export class NfeParser {
       freight: cents(tot, "vFrete", what),
       insurance: cents(tot, "vSeg", what),
       other: cents(tot, "vOutro", what),
-      ipi: cents(tot, "vIPI", what),
-      icmsSt: cents(tot, "vST", what),
+      icmsRelief: cents(tot, "vICMSDeson", what),
+      importTax: cents(tot, "vII", what),
+      ipi: cents(tot, "vIPI", what) + cents(tot, "vIPIDevol", what),
+      icmsSt: cents(tot, "vST", what) + cents(tot, "vFCPST", what),
       total: cents(tot, "vNF", what),
     };
   }
