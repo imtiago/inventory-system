@@ -34,3 +34,10 @@ export interface IProductVariantOutput {
   barcode: string | null;
   salePrice: number;
 }
+
+export interface IUpdateVariantInput {
+  id: string;
+  name?: string;
+  barcode?: string | null;
+  salePrice?: number;
+}

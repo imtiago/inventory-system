@@ -6,6 +6,9 @@ test("toCents arredonda para o centavo mais próximo", () => {
   assert.equal(toCents(10.005), 1001);
   assert.equal(toCents(0.1 + 0.2), 30);
   assert.equal(toCents(19.9), 1990);
+  assert.equal(toCents(1.005), 101);
+  assert.equal(toCents(2.675), 268);
+  assert.equal(toCents(-1.005), -101);
   assert.equal(toCents(0), 0);
   assert.equal(toCents(-10.005), -1001);
 });

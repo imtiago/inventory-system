@@ -1,11 +1,11 @@
 import "dotenv/config";
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
-import { PrismaProductVariantRepository } from "../../prisma/repositories/PrismaProductVariantRepository";
 
 app.log.level = "silent";
 
@@ -36,7 +36,7 @@ describe("Preço de venda da variante", () => {
     }
   });
 
-  const call = (method: "GET" | "POST", url: string, payload?: unknown) =>
+  const call = (method: "GET" | "POST" | "PUT", url: string, payload?: unknown) =>
     app.inject({ method, url, payload: payload as any, headers: { authorization: `Bearer ${token}` } });
 
   test("POST /products/:id/variants com salePrice 19.9 → GET mostra salePrice 19.9", async () => {
@@ -65,16 +65,54 @@ describe("Preço de venda da variante", () => {
     assert.ok(body.errors.some((e: { field: string }) => e.field === "salePrice"));
   });
 
-  test("update de variante (repositório) altera salePrice", async () => {
+  test("salePrice com mais de 2 casas decimais → 400 VALIDATION_ERROR (criar)", async () => {
+    const res = await call("POST", `/products/${productId}/variants`, { name: "tx-test-dec", salePrice: 19.999 });
+    assert.equal(res.statusCode, 400);
+    const body = res.json();
+    assert.equal(body.code, "VALIDATION_ERROR");
+    assert.ok(body.errors.some((e: { field: string }) => e.field === "salePrice"));
+  });
+
+  test("PUT /variants/:id altera salePrice → GET mostra", async () => {
     const create = await call("POST", `/products/${productId}/variants`, { name: "tx-test-upd", salePrice: 5 });
     const id = create.json().data.id;
     createdVariantIds.push(id);
-    const repo = new PrismaProductVariantRepository();
-    const variant = await repo.findById(id);
-    assert.ok(variant);
-    variant.changeSalePrice(12.34);
-    await repo.update(variant);
+    const put = await call("PUT", `/variants/${id}`, { salePrice: 12.34 });
+    assert.equal(put.statusCode, 200);
+    assert.equal(put.json().data.salePrice, 12.34);
     const get = await call("GET", `/variants/${id}`);
     assert.equal(get.json().data.salePrice, 12.34);
+    assert.equal(get.json().data.name, "tx-test-upd");
+  });
+
+  test("PUT /variants/:id com barcode de outra variante → 409", async () => {
+    const barcode = `tx-test-${randomUUID()}`;
+    const a = await call("POST", `/products/${productId}/variants`, { name: "tx-test-ba", barcode });
+    createdVariantIds.push(a.json().data.id);
+    const b = await call("POST", `/products/${productId}/variants`, { name: "tx-test-bb" });
+    createdVariantIds.push(b.json().data.id);
+    const put = await call("PUT", `/variants/${b.json().data.id}`, { barcode });
+    assert.equal(put.statusCode, 409);
+    assert.equal(put.json().code, "BARCODE_ALREADY_EXISTS");
+    const same = await call("PUT", `/variants/${a.json().data.id}`, { barcode });
+    assert.equal(same.statusCode, 200);
+  });
+
+  test("PUT /variants/:id inexistente → 404 VARIANT_NOT_FOUND", async () => {
+    const res = await call("PUT", `/variants/${randomUUID()}`, { salePrice: 1 });
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.json().code, "VARIANT_NOT_FOUND");
+  });
+
+  test("PUT /variants/:id inválido → 400 VALIDATION_ERROR", async () => {
+    const id = randomUUID();
+    const neg = await call("PUT", `/variants/${id}`, { salePrice: -1 });
+    assert.equal(neg.statusCode, 400);
+    assert.ok(neg.json().errors.some((e: { field: string }) => e.field === "salePrice"));
+    const dec = await call("PUT", `/variants/${id}`, { salePrice: 19.999 });
+    assert.equal(dec.statusCode, 400);
+    const empty = await call("PUT", `/variants/${id}`, {});
+    assert.equal(empty.statusCode, 400);
+    assert.equal(empty.json().code, "VALIDATION_ERROR");
   });
 });
