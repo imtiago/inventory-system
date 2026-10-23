@@ -7,7 +7,6 @@ import { TransactionManager } from "@shared/application/transaction/TransactionM
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { CreateBrandUseCase } from "@catalog/application/useCases/commands/CreateBrandUseCase";
 import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositories/PrismaBrandRepository";
-import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 
 // Use case externo que chama um use case real e depois falha.
 class CreateBrandThenFail extends TransactionalUseCase<
@@ -31,8 +30,7 @@ class CreateBrandThenFail extends TransactionalUseCase<
 describe("use cases reais dentro de transação", () => {
   const createdNames: string[] = [];
   const tm = new PrismaTransactionManager();
-  // Cast: PrismaBrandRepository ainda não implementa update/delete (erro pré-existente, igual ao da CreateBrandFactory).
-  const brandRepository = new PrismaBrandRepository() as unknown as BrandRepository;
+  const brandRepository = new PrismaBrandRepository();
   const createBrand = new CreateBrandUseCase(brandRepository, tm);
 
   after(async () => {

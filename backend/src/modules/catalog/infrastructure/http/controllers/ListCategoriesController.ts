@@ -1,19 +1,14 @@
-// src/modules/catalog/infrastructure/http/controllers/ListCategoriesController.ts
-import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
-import { makeGetCategoriesUseCase } from "../factories/GetCategoriesFactory";
-import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
+import { parseInput } from "@shared/http/parseInput";
+import { HttpResponse } from "@shared/http/response";
+import { listBrandCategorySchema } from "@catalog/interfaces/http/schemas/brandCategorySchemas";
+import { makeListCategoriesUseCase } from "../factories/ListCategoriesFactory";
 
 export function makeListCategoriesController() {
-  const useCase = makeGetCategoriesUseCase();
-  return async function ListCategoriesController(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
-    const { page, limit } = parseInput(paginationSchema, request.query);
-
-    // const categories = await useCase.execute(Number(page), Number(limit));
-    const categories = await useCase.execute({ page, limit });
-    return reply.send(categories);
+  const useCase = makeListCategoriesUseCase();
+  return async function ListCategoriesController(request: FastifyRequest, reply: FastifyReply) {
+    const query = parseInput(listBrandCategorySchema, request.query);
+    const result = await useCase.execute(query);
+    return reply.send(HttpResponse.paginated(result));
   };
 }

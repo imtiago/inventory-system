@@ -1,10 +1,7 @@
-import { BrandListDTO } from "../dto/BrandDTO";
+import { BrandDTO } from "../dto/BrandDTO";
 
 export class BrandReadMapper {
-  static toDTO(data: any): BrandListDTO {
-    return {
-      id: data.id,
-      name: data.name,
-    };
+  static toDTO(row: { id: string; name: string; productsCount: number }): BrandDTO {
+    return { id: row.id, name: row.name, productsCount: row.productsCount };
   }
 }

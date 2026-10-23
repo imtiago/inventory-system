@@ -30,6 +30,12 @@ export function createCatalogTestData() {
     trackProduct(id: string) {
       productIds.push(id);
     },
+    trackBrand(id: string) {
+      brandIds.push(id);
+    },
+    trackCategory(id: string) {
+      categoryIds.push(id);
+    },
     /** Produto + variante padrão direto no banco. */
     async product(opts: { brandId: string; categoryId: string; name?: string; barcode?: string | null }) {
       const t = tag();
