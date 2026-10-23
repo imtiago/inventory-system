@@ -181,15 +181,19 @@ export function idempotent(handler: RouteHandler, options: IdempotentOptions = {
         };
       }
 
-      if (++claimsSincePurge >= PURGE_EVERY) {
-        claimsSincePurge = 0;
-        await store.purgeExpired(PURGE_BATCH);
-      }
-
       const response = await runCapturing(handler, request, reply);
       await store.saveResponse(recordId, response.statusCode, response.body);
       return { replayed: false, ...response };
     });
+
+    // Limpeza preguiçosa fora da transação da operação: uma falha aqui nunca
+    // desfaz o pagamento/venda já confirmado.
+    if (!outcome.replayed && ++claimsSincePurge >= PURGE_EVERY) {
+      claimsSincePurge = 0;
+      await store.purgeExpired(PURGE_BATCH).catch((error: unknown) => {
+        request.log.warn({ err: error }, "Falha ao limpar registros de idempotência antigos.");
+      });
+    }
 
     // Commit feito: só agora a resposta vai para o cliente.
     if (outcome.replayed) reply.header(IDEMPOTENT_REPLAYED_HEADER, "true");
