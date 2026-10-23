@@ -12,7 +12,7 @@ app.log.level = "silent";
 type Role = "ADMIN" | "VENDEDOR" | "ESTOQUISTA";
 const ROLES: Role[] = ["ADMIN", "VENDEDOR", "ESTOQUISTA"];
 
-// Matriz aprovada (spec Fase 4A), escrita à mão para não reaproveitar ROLE_PERMISSIONS.
+// Matriz aprovada (specs Fases 4A e 6A), escrita à mão para não reaproveitar ROLE_PERMISSIONS.
 const MATRIX: Record<Permission, Role[]> = {
   "users.manage": ["ADMIN"],
   "catalog.read": ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
@@ -28,6 +28,12 @@ const MATRIX: Record<Permission, Role[]> = {
   "finance.read": ["ADMIN", "VENDEDOR"],
   "finance.pay": ["ADMIN", "VENDEDOR"],
   "finance.reverse": ["ADMIN"],
+  "purchases.read": ["ADMIN", "ESTOQUISTA"],
+  "purchases.write": ["ADMIN"],
+  "purchases.receive": ["ADMIN", "ESTOQUISTA"],
+  "payables.read": ["ADMIN"],
+  "payables.pay": ["ADMIN"],
+  "payables.reverse": ["ADMIN"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -38,7 +44,9 @@ const MATRIX: Record<Permission, Role[]> = {
  * sem gravar nada no banco compartilhado (testes paralelos).
  */
 const missing = randomUUID();
-const ROUTES: Record<Permission, { method: "GET" | "POST" | "PUT" | "DELETE"; url: string; payload?: object; allowed: number }> = {
+type RouteProbe = { method: "GET" | "POST" | "PUT" | "DELETE"; url: string; payload?: object; allowed: number };
+// `null` = a rota dessa permissão ainda não existe (tarefas 2-4 da Fase 6A preenchem).
+const ROUTES: Record<Permission, RouteProbe | null> = {
   "users.manage": { method: "GET", url: "/users?limit=1", allowed: 200 },
   "catalog.read": { method: "GET", url: "/brands", allowed: 200 },
   "catalog.write": { method: "POST", url: "/brands", payload: {}, allowed: 400 },
@@ -63,6 +71,12 @@ const ROUTES: Record<Permission, { method: "GET" | "POST" | "PUT" | "DELETE"; ur
     payload: {},
     allowed: 400,
   },
+  "purchases.read": { method: "GET", url: "/suppliers?limit=1", allowed: 200 },
+  "purchases.write": { method: "POST", url: "/suppliers", payload: {}, allowed: 400 },
+  "purchases.receive": null,
+  "payables.read": null,
+  "payables.pay": null,
+  "payables.reverse": null,
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
@@ -106,9 +120,10 @@ describe("matriz por HTTP: papel × rota representativa", () => {
   test("para cada papel × rota representativa de cada permissão → 2xx ou 403 conforme a spec", async () => {
     const failures: string[] = [];
     for (const permission of PERMISSIONS) {
-      const route = ROUTES[permission];
+      const route: RouteProbe | null = ROUTES[permission];
+      if (!route) continue;
       for (const role of ROLES) {
-        const res = await app.inject({
+        const res: { statusCode: number; body: string; json(): unknown } = await app.inject({
           method: route.method,
           url: route.url,
           payload: route.payload,

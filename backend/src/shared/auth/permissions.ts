@@ -1,6 +1,6 @@
 import { UserRole } from "@auth/domain/enums/UserRole";
 
-/** Permissões da aplicação (matriz aprovada na spec da Fase 4A). */
+/** Permissões da aplicação (matriz aprovada na spec da Fases 4A e 6A). */
 export const PERMISSIONS = [
   "users.manage",
   "catalog.read",
@@ -16,6 +16,12 @@ export const PERMISSIONS = [
   "finance.read",
   "finance.pay",
   "finance.reverse",
+  "purchases.read",
+  "purchases.write",
+  "purchases.receive",
+  "payables.read",
+  "payables.pay",
+  "payables.reverse",
   "self",
 ] as const;
 
@@ -41,6 +47,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "catalog.write",
     "inventory.read",
     "inventory.write",
+    "purchases.read",
+    "purchases.receive",
     "self",
   ],
 };

@@ -7,6 +7,7 @@ import { categoryRoutes } from "./modules/catalog/infrastructure/http/routes/cat
 import { saleRoutes } from "./modules/sales/infrastructure/http/routes/saleRoutes";
 import { inventoryRoutes } from "./modules/inventory/infrastructure/http/routes/inventoryRoutes";
 import { customerRoutes } from "./modules/customer/infrastructure/http/routes/customerRoutes";
+import { supplierRoutes } from "./modules/purchases/infrastructure/http/routes/supplierRoutes";
 import { userRoutes } from "./modules/auth/infrastructure/http/routes/userRoutes";
 import { authenticate } from "./shared/middleware/auth";
 
@@ -43,6 +44,7 @@ app.register(inventoryRoutes, { prefix: "/inventory" });
 
 app.register(saleRoutes, { prefix: "/sales" });
 app.register(customerRoutes, { prefix: "/customers" });
+app.register(supplierRoutes, { prefix: "/suppliers" });
 app.register(receivableRoutes, { prefix: "/receivables" });
 // app.register(inventoryRoutes, { prefix: "/finance" });
 app.register(userRoutes);

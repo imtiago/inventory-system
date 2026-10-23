@@ -1,72 +1,37 @@
-// domain/entities/Supplier.ts
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-export interface SupplierProps {
-  id?: string;
+/** Fornecedor: `document` guarda só dígitos (CPF 11 ou CNPJ 14); o tipo é derivado. */
+export class Supplier extends BaseEntity {
+  private _name: string;
+  private _document: string;
+  private _email: string | null;
+  private _phone: string | null;
 
-  name: string;
-
-  document: string;
-
-  email?: string;
-
-  phone?: string;
-
-  createdAt?: Date;
-
-  updatedAt?: Date;
-}
-
-export class Supplier {
-  public readonly id?: string;
-
-  private name: string;
-
-  private document: string;
-
-  private email?: string;
-
-  private phone?: string;
-
-  public readonly createdAt: Date;
-
-  public updatedAt: Date;
-
-  constructor(props: SupplierProps) {
-    this.id = props.id;
-
-    this.name = props.name;
-
-    this.document = props.document;
-
-    this.email = props.email;
-
-    this.phone = props.phone;
-
-    this.createdAt = props.createdAt ?? new Date();
-
-    this.updatedAt = props.updatedAt ?? new Date();
+  constructor(props: {
+    id?: string;
+    name: string;
+    document: string;
+    email?: string | null;
+    phone?: string | null;
+    createdAt?: Date;
+  }) {
+    super({ id: props.id, createdAt: props.createdAt });
+    this._name = props.name;
+    this._document = props.document;
+    this._email = props.email ?? null;
+    this._phone = props.phone ?? null;
   }
 
-  public getName(): string {
-    return this.name;
+  get name(): string {
+    return this._name;
   }
-
-  public getDocument(): string {
-    return this.document;
+  get document(): string {
+    return this._document;
   }
-
-  public changeName(name: string): void {
-    this.name = name;
-    this.updatedAt = new Date();
+  get email(): string | null {
+    return this._email;
   }
-
-  public changeEmail(email: string): void {
-    this.email = email;
-    this.updatedAt = new Date();
-  }
-
-  public changePhone(phone: string): void {
-    this.phone = phone;
-    this.updatedAt = new Date();
+  get phone(): string | null {
+    return this._phone;
   }
 }
