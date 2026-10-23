@@ -38,6 +38,8 @@ export interface SaleListItemDTO {
 
 export interface ICancelSaleInput {
   id: string;
+  /** Usuário autenticado que cancela (auditoria das movimentações RETURN). */
+  userId?: string;
 }
 
 export interface ICreateSaleInput {

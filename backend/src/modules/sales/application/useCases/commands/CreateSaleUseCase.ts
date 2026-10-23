@@ -79,6 +79,14 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       items: saleItems,
     });
 
+    // Cada parcela precisa de ao menos 1 centavo.
+    if (sale.totalAmountCents < installments) {
+      throw new BusinessRuleError(
+        "O valor da venda não permite esse número de parcelas.",
+        ErrorCodes.INSTALLMENTS_EXCEED_TOTAL,
+      );
+    }
+
     // Ordem crescente de productVariantId: vendas simultâneas travam as variantes
     // sempre na mesma ordem (sem deadlock). Itens repetidos da mesma variante
     // reentram na trava já obtida por esta transação.
@@ -90,6 +98,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
         productVariantId: item.productVariantId,
         quantity: item.quantity,
         originId: sale.id,
+        userId: request.sellerId,
       });
     }
 

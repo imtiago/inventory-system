@@ -9,6 +9,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
+import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 
 function cloneValue(value: unknown): unknown {
@@ -118,6 +119,10 @@ export class InMemoryStockMovementRepository
 {
   async findByProductVariantId(id: string): Promise<StockMovement[]> {
     return this.all().filter((m) => m.productVariantId === id);
+  }
+
+  async findByOrigin(origin: StockMovementOrigin, originId: string): Promise<StockMovement[]> {
+    return this.all().filter((m) => m.origin === origin && m.originId === originId);
   }
 }
 

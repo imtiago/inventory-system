@@ -80,6 +80,10 @@ export class FinancialDocument extends BaseEntity {
     return this._originType;
   }
 
+  cancel(): void {
+    this._status = FinancialStatus.CANCELED;
+  }
+
   addParcel(parcel: FinancialParcel): void {
     this._parcels.push(parcel);
   }
