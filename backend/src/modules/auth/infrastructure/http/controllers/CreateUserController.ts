@@ -15,6 +15,6 @@ export function makeCreateUserController() {
 
     const user = await useCase.execute(data);
 
-    return reply.status(201).send(user);
+    return reply.status(201).send({ data: user });
   };
 }

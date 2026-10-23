@@ -13,32 +13,32 @@ import { makeListStockMovementsController } from "../controllers/ListStockMoveme
 export async function stockMovementRoutes(app: FastifyInstance) {
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeListStockMovementsController(),
   );
   //   app.post(
   //     "/movements",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.write")] },
   //     makeCreateStockMovementController(),
   //   );
   //   app.get(
   //     "/movements",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeListStockMovementsController(),
   //   );
   //   app.post(
   //     "/remove",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.write")] },
   //     makeRemoveInventoryController(),
   //   );
   //   app.get(
   //     "/:variantId",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeGetInventoryController(),
   //   );
   //   app.get(
   //     "/variants/:variantId",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeGetInventoryByVariantIdController(),
   //   );
 }

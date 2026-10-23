@@ -5,6 +5,8 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
+import { getTestUserId } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 
 app.log.level = "silent";
@@ -43,7 +45,8 @@ describe("Erros HTTP de autenticação", () => {
       const res = await app.inject({
         method: "POST",
         url: "/users",
-        payload: { name: "tx-test-dup", email, password: "12345678" },
+        headers: { authorization: `Bearer ${signTestToken(await getTestUserId())}` },
+        payload: { name: "tx-test-dup", email, password: "12345678", role: "VENDEDOR" },
       });
       assert.equal(res.statusCode, 409);
       assert.equal(res.json().code, "EMAIL_ALREADY_IN_USE");

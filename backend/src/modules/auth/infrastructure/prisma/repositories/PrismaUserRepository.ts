@@ -52,14 +52,15 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
-  async list(page: number, limit: number): Promise<User[]> {
-    const skip = (page - 1) * limit;
-
-    const users = await getDb().user.findMany({
-      skip,
-      take: limit,
-    });
-
-    return users.map(UserMapper.toDomain);
+  async countActiveAdminsExcluding(id: string): Promise<number> {
+    // FOR UPDATE: dentro de uma transação, trava as linhas dos admins ativos até
+    // o commit. Uma segunda transação que tente o mesmo espera e, ao seguir,
+    // reavalia o WHERE (READ COMMITTED) e já não vê o admin rebaixado/desativado.
+    const rows = await getDb().$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "users"
+      WHERE "role" = 'ADMIN' AND "active" = true
+      FOR UPDATE
+    `;
+    return rows.filter((row) => row.id !== id).length;
   }
 }

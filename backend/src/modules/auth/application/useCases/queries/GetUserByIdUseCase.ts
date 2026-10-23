@@ -1,17 +1,13 @@
-import { IUserOutput } from "@auth/application/dto/UserDTO";
-import { UserRepository } from "@auth/domain/repositories/UserRepository";
+import { NotFoundError } from "@shared/domain/errors";
+import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
+import { UserDTO } from "@auth/application/dto/UserDTO";
 
 export class GetUserByIdUseCase {
-  constructor(private userRepo: UserRepository) {}
+  constructor(private readonly userRepo: UserReadRepository) {}
 
-  async execute(id: string): Promise<IUserOutput | null> {
+  async execute(id: string): Promise<UserDTO> {
     const user = await this.userRepo.findById(id);
-    if (!user) return null;
-    return {
-      id: user.id,
-      name: user.name,
-      role: user.role,
-      email: user.email,
-    };
+    if (!user) throw new NotFoundError("Usuário não encontrado.", "USER_NOT_FOUND");
+    return user;
   }
 }

@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "id": "7d0c4b1e-3f6a-4b8e-9a51-2f0e6c1d9a10",
+      "name": "Maria Estoque",
+      "email": "maria@example.com",
+      "role": "ESTOQUISTA",
+      "active": true,
+      "createdAt": "2026-10-23T12:00:00.000Z"
+    },
+    {
+      "id": "1b2e9f40-8c3d-4e7a-b6f1-0a9d8c7e6f54",
+      "name": "João Vendas",
+      "email": "joao@example.com",
+      "role": "VENDEDOR",
+      "active": false,
+      "createdAt": "2026-10-22T09:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
+}

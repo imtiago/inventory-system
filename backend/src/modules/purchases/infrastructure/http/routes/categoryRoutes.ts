@@ -7,12 +7,12 @@ import { makeListCategoriesController } from "../controllers/ListCategoriesContr
 export async function categoryRoutes(app: FastifyInstance) {
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.write")] },
     makeCreateCategoryController(),
   );
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeListCategoriesController(),
   );
 }

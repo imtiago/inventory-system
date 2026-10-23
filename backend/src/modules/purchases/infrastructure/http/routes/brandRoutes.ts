@@ -7,12 +7,12 @@ import { makeListBrandsController } from "../controllers/ListBrandsController";
 export async function brandRoutes(app: FastifyInstance) {
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.write")] },
     makeCreateBrandController(),
   );
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeListBrandsController(),
   );
 }

@@ -29,6 +29,8 @@ export type TestUser = {
   email: string;
   password: string;
   role: Role;
+  /** Token válido (HS256, issuer/audience reais) para este usuário. */
+  token: string;
   cleanup(): Promise<void>;
 };
 
@@ -57,6 +59,7 @@ export async function createTestUser(
     email,
     password,
     role,
+    token: signTestToken(user.id, role),
     async cleanup() {
       try {
         await prisma.user.deleteMany({ where: { id: user.id } });

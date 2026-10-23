@@ -1,8 +1,13 @@
 // src/shared/middleware/authorize.ts
 import { FastifyRequest } from "fastify";
 import { ForbiddenError, UnauthorizedError } from "../domain/errors";
+import { Permission, hasPermission } from "../auth/permissions";
 
-export function authorize(allowedRoles: string[]) {
+/**
+ * Exige a permissão no papel do usuário autenticado. O papel em
+ * `request.user.role` vem do banco (definido por `authenticate`).
+ */
+export function authorize(permission: Permission) {
   return async (request: FastifyRequest) => {
     if (!request.user) {
       throw new UnauthorizedError("Usuário não autenticado.");
@@ -13,7 +18,7 @@ export function authorize(allowedRoles: string[]) {
       throw new UnauthorizedError("Token inválido.", "UNAUTHENTICATED");
     }
 
-    if (!allowedRoles.includes(role.toLowerCase())) {
+    if (!hasPermission(role, permission)) {
       throw new ForbiddenError();
     }
   };
