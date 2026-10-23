@@ -50,6 +50,11 @@ export interface IReceiveInventoryInput {
   originReferenceId?: string;
   notes?: string;
   userId?: string;
+  /**
+   * Recebimento de compra: liga o lote ao item do pedido. Com batchNumber de um
+   * lote existente da variante que não seja deste item → 409 BATCH_ALREADY_EXISTS.
+   */
+  purchaseItemId?: string;
 }
 
 export interface IReceiveInventoryOutput {

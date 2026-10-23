@@ -1,17 +1,21 @@
 import { Prisma } from "@prisma/client";
 import { FinancialDocumentReadRepository } from "@finance/application/contracts/FinancialDocumentReadRepository";
 import {
+  FinancialDocumentDetailDTO,
+  FinancialListFilters,
+  FinancialListResult,
+  FinancialReadDTOs,
+  PayableParty,
   PersonRefDTO,
-  ReceivableDetailDTO,
-  ReceivableListFilters,
-  ReceivableListResult,
-} from "@finance/application/dto/ReceivableReadDTO";
+  ReceivableParty,
+} from "@finance/application/dto/FinancialDocumentReadDTO";
 import {
   FinancialDocumentReadMapper,
-  ReceivableFigures,
-  ReceivableRow,
+  FinancialFigures,
+  FinancialDocumentRow,
 } from "@finance/application/mappers/FinancialDocumentReadMapper";
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
+import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { fromDateOnly } from "@finance/domain/services/receivableStatus";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
@@ -21,7 +25,7 @@ import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 const personSelect = { select: { id: true, name: true } } as const;
 
 /** Status persistidos compatíveis com cada filtro (refinado depois pelo displayStatus). */
-const STORED_STATUSES: Record<NonNullable<ReceivableListFilters["status"]>, FinancialStatus[]> = {
+const STORED_STATUSES: Record<NonNullable<FinancialListFilters["status"]>, FinancialStatus[]> = {
   OPEN: [FinancialStatus.OPEN],
   PARTIALLY_PAID: [FinancialStatus.PARTIALLY_PAID],
   PAID: [FinancialStatus.PAID],
@@ -29,13 +33,93 @@ const STORED_STATUSES: Record<NonNullable<ReceivableListFilters["status"]>, Fina
   OVERDUE: [FinancialStatus.OPEN, FinancialStatus.PARTIALLY_PAID],
 };
 
-const isClosed = (row: ReceivableRow, f: ReceivableFigures) =>
+const isClosed = (row: FinancialDocumentRow, f: FinancialFigures) =>
   row.status === FinancialStatus.PAID || row.status === FinancialStatus.CANCELED || f.nextDueDate === null;
 
+/** Linha mínima para juntar a contraparte e a origem (não há FK de partyId/originId). */
+interface PartyKeyRow {
+  partyId: string;
+  originId: string;
+}
+
+/** O que muda entre os tipos: contraparte (e código do pedido) e o nome do total pago no resumo. */
+interface TypeProfile<T extends FinancialType> {
+  /** Carrega as contrapartes das linhas em lote e devolve os campos de cada uma. */
+  parties(rows: PartyKeyRow[]): Promise<(row: PartyKeyRow) => PartyFieldsByType[T]>;
+  summary(cents: { open: number; overdue: number; paid: number }): FinancialReadDTOs[T]["summary"];
+}
+
+interface PartyFieldsByType {
+  [FinancialType.RECEIVABLE]: ReceivableParty;
+  [FinancialType.PAYABLE]: PayableParty;
+}
+
+const uniqueIds = (ids: string[]) => [...new Set(ids)];
+
+async function namesById(
+  ids: string[],
+  find: (ids: string[]) => Promise<PersonRefDTO[]>,
+): Promise<Map<string, PersonRefDTO>> {
+  const unique = uniqueIds(ids);
+  if (unique.length === 0) return new Map();
+  return new Map((await find(unique)).map((p) => [p.id, p]));
+}
+
+const PROFILES: { [T in FinancialType]: TypeProfile<T> } = {
+  [FinancialType.RECEIVABLE]: {
+    async parties(rows) {
+      const customers = await namesById(
+        rows.map((r) => r.partyId),
+        (ids) => getDb().customer.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }),
+      );
+      return (row) => ({
+        customer: FinancialDocumentReadMapper.party(row.partyId, customers.get(row.partyId), "Cliente não encontrado"),
+      });
+    },
+    summary: (c) => ({
+      openAmount: fromCents(c.open),
+      overdueAmount: fromCents(c.overdue),
+      receivedAmount: fromCents(c.paid),
+    }),
+  },
+  [FinancialType.PAYABLE]: {
+    async parties(rows) {
+      const [suppliers, purchases] = await Promise.all([
+        namesById(
+          rows.map((r) => r.partyId),
+          (ids) => getDb().supplier.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }),
+        ),
+        (async () => {
+          const ids = uniqueIds(rows.map((r) => r.originId));
+          if (ids.length === 0) return new Map<string, string>();
+          const found = await getDb().purchase.findMany({
+            where: { id: { in: ids } },
+            select: { id: true, code: true },
+          });
+          return new Map(found.map((p) => [p.id, p.code]));
+        })(),
+      ]);
+      return (row) => ({
+        supplier: FinancialDocumentReadMapper.party(
+          row.partyId,
+          suppliers.get(row.partyId),
+          "Fornecedor não encontrado",
+        ),
+        purchaseCode: purchases.get(row.originId) ?? "",
+      });
+    },
+    summary: (c) => ({
+      openAmount: fromCents(c.open),
+      overdueAmount: fromCents(c.overdue),
+      paidAmount: fromCents(c.paid),
+    }),
+  },
+};
+
 /**
- * Leitura de contas a receber.
+ * Leitura de contas a receber e a pagar, sempre restrita ao `type` pedido.
  *
- * Lista: os filtros de banco (tipo, cliente, intervalo de vencimento e status
+ * Lista: os filtros de banco (tipo, contraparte, intervalo de vencimento e status
  * persistido compatível) reduzem o conjunto; status de exibição (OVERDUE depende
  * de "hoje"), ordenação por próximo vencimento em aberto e resumo são calculados
  * em memória com as MESMAS regras de domínio do detalhe (receivableStatus).
@@ -43,13 +127,14 @@ const isClosed = (row: ReceivableRow, f: ReceivableFigures) =>
  * agregado (CTE por parcela) mantendo a mesma regra.
  */
 export class PrismaFinancialDocumentReadRepository implements FinancialDocumentReadRepository {
-  async listReceivables(
-    filters: ReceivableListFilters,
+  async list<T extends FinancialType>(
+    type: T,
+    filters: FinancialListFilters,
     pagination: PaginationRequest,
     today: string,
-  ): Promise<ReceivableListResult> {
-    const where: Prisma.FinancialDocumentWhereInput = { type: "RECEIVABLE" };
-    if (filters.customerId) where.partyId = filters.customerId;
+  ): Promise<FinancialListResult<T>> {
+    const where: Prisma.FinancialDocumentWhereInput = { type };
+    if (filters.partyId) where.partyId = filters.partyId;
     if (filters.status) where.status = { in: STORED_STATUSES[filters.status] };
     if (filters.dueFrom || filters.dueTo) {
       where.parcels = {
@@ -96,40 +181,37 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
       return a.row.createdAt.getTime() - b.row.createdAt.getTime() || a.row.id.localeCompare(b.row.id);
     });
 
-    let openCents = 0;
-    let overdueCents = 0;
-    let receivedCents = 0;
+    const totals = { open: 0, overdue: 0, paid: 0 };
     for (const { figures } of entries) {
-      openCents += figures.notDueCents;
-      overdueCents += figures.overdueCents;
-      receivedCents += figures.paidCents;
+      totals.open += figures.notDueCents;
+      totals.overdue += figures.overdueCents;
+      totals.paid += figures.paidCents;
     }
 
+    const profile: TypeProfile<T> = PROFILES[type];
     const start = (pagination.page - 1) * pagination.limit;
     const page = entries.slice(start, start + pagination.limit);
-    const customers = await this.customersById(page.map((e) => e.row.partyId));
+    const partyOf = await profile.parties(page.map((e) => e.row));
 
     const result = buildPaginatedResult(
-      page.map((e) =>
-        FinancialDocumentReadMapper.toListItemDTO(e.row, customers.get(e.row.partyId), today, e.figures),
-      ),
+      page.map((e) => ({
+        ...FinancialDocumentReadMapper.toListItemDTO(e.row, today, e.figures),
+        ...partyOf(e.row),
+      })),
       entries.length,
       pagination,
     );
 
-    return {
-      ...result,
-      summary: {
-        openAmount: fromCents(openCents),
-        overdueAmount: fromCents(overdueCents),
-        receivedAmount: fromCents(receivedCents),
-      },
-    };
+    return { ...result, summary: profile.summary(totals) } as FinancialListResult<T>;
   }
 
-  async getReceivableById(id: string, today: string): Promise<ReceivableDetailDTO | null> {
+  async getById<T extends FinancialType>(
+    type: T,
+    id: string,
+    today: string,
+  ): Promise<FinancialDocumentDetailDTO<T> | null> {
     const row = await getDb().financialDocument.findFirst({
-      where: { id, type: "RECEIVABLE" },
+      where: { id, type },
       include: {
         parcels: {
           include: {
@@ -140,18 +222,10 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
     });
     if (!row) return null;
 
-    const customers = await this.customersById([row.partyId]);
-    return FinancialDocumentReadMapper.toDetailDTO(row, customers.get(row.partyId), today);
-  }
-
-  /** Clientes (partyId de recebíveis) em uma única consulta — não há FK. */
-  private async customersById(ids: string[]): Promise<Map<string, PersonRefDTO>> {
-    const unique = [...new Set(ids)];
-    if (unique.length === 0) return new Map();
-    const customers = await getDb().customer.findMany({
-      where: { id: { in: unique } },
-      select: { id: true, name: true },
-    });
-    return new Map(customers.map((c) => [c.id, c]));
+    const partyOf = await (PROFILES[type] as TypeProfile<T>).parties([row]);
+    return {
+      ...FinancialDocumentReadMapper.toDetailDTO(row, today),
+      ...partyOf(row),
+    } as FinancialDocumentDetailDTO<T>;
   }
 }

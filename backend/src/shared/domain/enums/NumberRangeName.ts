@@ -9,4 +9,5 @@ export enum NumberRangeName {
   CUSTOMER = "CUSTOMER",
   SALE = "SALE",
   USER = "USER",
+  PURCHASE = "PURCHASE",
 }

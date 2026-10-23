@@ -281,6 +281,8 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const financialService: FinancialService = {
       createSaleReceivable: async () => {},
       cancelSaleReceivable: async () => {},
+      createPurchasePayable: async () => {},
+      cancelPurchasePayable: async () => {},
     };
     return new CreateSaleUseCase(
       saleRepository,
@@ -295,7 +297,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
   test("venda com dois itens da mesma variante conclui", async () => {
     const variantId = await newVariant();
     await receive.execute(receiveInput(variantId, 5));
-    const sale = makeSale(new InventoryApplicationService(dispatch, returnSaleStock), [variantId]);
+    const sale = makeSale(new InventoryApplicationService(dispatch, returnSaleStock, receive), [variantId]);
 
     await sale.execute({
       customerId: "c-1",
@@ -320,7 +322,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
 
     // Pausa após o 1º item de cada venda: força a intercalação que causaria deadlock.
     const slowService = (): InventoryService => {
-      const real = new InventoryApplicationService(dispatch, returnSaleStock);
+      const real = new InventoryApplicationService(dispatch, returnSaleStock, receive);
       let calls = 0;
       return {
         async consumeStock(req) {
@@ -328,6 +330,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
           if (calls++ === 0) await sleep(300);
         },
         returnSaleStock: (req) => real.returnSaleStock(req),
+        receivePurchaseStock: (req) => real.receivePurchaseStock(req),
       };
     };
     const sale1 = makeSale(slowService(), [a, b]);

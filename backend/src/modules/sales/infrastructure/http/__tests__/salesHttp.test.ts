@@ -283,6 +283,8 @@ describe("HTTP de vendas", () => {
         throw new Error("financeiro indisponível");
       },
       cancelSaleReceivable: async () => {},
+      createPurchasePayable: async () => {},
+      cancelPurchasePayable: async () => {},
     };
     const useCase = new CreateSaleUseCase(
       new PrismaSaleRepository(),

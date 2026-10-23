@@ -12,7 +12,7 @@ app.log.level = "silent";
 type Role = "ADMIN" | "VENDEDOR" | "ESTOQUISTA";
 const ROLES: Role[] = ["ADMIN", "VENDEDOR", "ESTOQUISTA"];
 
-// Matriz aprovada (spec Fase 4A), escrita à mão para não reaproveitar ROLE_PERMISSIONS.
+// Matriz aprovada (specs Fases 4A e 6A), escrita à mão para não reaproveitar ROLE_PERMISSIONS.
 const MATRIX: Record<Permission, Role[]> = {
   "users.manage": ["ADMIN"],
   "catalog.read": ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
@@ -28,6 +28,12 @@ const MATRIX: Record<Permission, Role[]> = {
   "finance.read": ["ADMIN", "VENDEDOR"],
   "finance.pay": ["ADMIN", "VENDEDOR"],
   "finance.reverse": ["ADMIN"],
+  "purchases.read": ["ADMIN", "ESTOQUISTA"],
+  "purchases.write": ["ADMIN"],
+  "purchases.receive": ["ADMIN", "ESTOQUISTA"],
+  "payables.read": ["ADMIN"],
+  "payables.pay": ["ADMIN"],
+  "payables.reverse": ["ADMIN"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -38,7 +44,8 @@ const MATRIX: Record<Permission, Role[]> = {
  * sem gravar nada no banco compartilhado (testes paralelos).
  */
 const missing = randomUUID();
-const ROUTES: Record<Permission, { method: "GET" | "POST" | "PUT" | "DELETE"; url: string; payload?: object; allowed: number }> = {
+type RouteProbe = { method: "GET" | "POST" | "PUT" | "DELETE"; url: string; payload?: object; allowed: number };
+const ROUTES: Record<Permission, RouteProbe> = {
   "users.manage": { method: "GET", url: "/users?limit=1", allowed: 200 },
   "catalog.read": { method: "GET", url: "/brands", allowed: 200 },
   "catalog.write": { method: "POST", url: "/brands", payload: {}, allowed: 400 },
@@ -63,8 +70,33 @@ const ROUTES: Record<Permission, { method: "GET" | "POST" | "PUT" | "DELETE"; ur
     payload: {},
     allowed: 400,
   },
+  "purchases.read": { method: "GET", url: "/suppliers?limit=1", allowed: 200 },
+  "purchases.write": { method: "POST", url: "/suppliers", payload: {}, allowed: 400 },
+  "purchases.receive": { method: "POST", url: `/purchases/${missing}/receipts`, payload: {}, allowed: 400 },
+  "payables.read": { method: "GET", url: "/payables?limit=1", allowed: 200 },
+  "payables.pay": {
+    method: "POST",
+    url: `/payables/${missing}/parcels/${missing}/payments`,
+    payload: {},
+    allowed: 400,
+  },
+  "payables.reverse": {
+    method: "POST",
+    url: `/payables/payments/${missing}/reverse`,
+    payload: {},
+    allowed: 400,
+  },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
+
+/** Rotas representativas adicionais (mais de uma rota por permissão). */
+const EXTRA_ROUTES: [Permission, RouteProbe][] = [
+  ["purchases.read", { method: "GET", url: "/purchases?limit=1", allowed: 200 }],
+  ["purchases.read", { method: "GET", url: `/purchases/${missing}`, allowed: 404 }],
+  ["purchases.write", { method: "POST", url: "/purchases", payload: {}, allowed: 400 }],
+  ["purchases.write", { method: "POST", url: `/purchases/${missing}/cancel`, payload: {}, allowed: 400 }],
+  ["payables.read", { method: "GET", url: `/payables/${missing}`, allowed: 404 }],
+];
 
 describe("hasPermission (matriz)", () => {
   test("cada papel × permissão confere com a matriz da spec", () => {
@@ -105,10 +137,13 @@ describe("matriz por HTTP: papel × rota representativa", () => {
 
   test("para cada papel × rota representativa de cada permissão → 2xx ou 403 conforme a spec", async () => {
     const failures: string[] = [];
-    for (const permission of PERMISSIONS) {
-      const route = ROUTES[permission];
+    const probes: [Permission, RouteProbe][] = [
+      ...PERMISSIONS.map((p): [Permission, RouteProbe] => [p, ROUTES[p]]),
+      ...EXTRA_ROUTES,
+    ];
+    for (const [permission, route] of probes) {
       for (const role of ROLES) {
-        const res = await app.inject({
+        const res: { statusCode: number; body: string; json(): unknown } = await app.inject({
           method: route.method,
           url: route.url,
           payload: route.payload,

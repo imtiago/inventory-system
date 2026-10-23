@@ -12,7 +12,7 @@ import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
 import { FinancialDocumentRepository } from "@finance/domain/repositories/FinancialDocumentRepository";
 import { PaymentRepository } from "@finance/domain/repositories/PaymentRepository";
 import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
-import { ReceivableDetailDTO } from "../../dto/ReceivableReadDTO";
+import { FinancialDocumentDetailDTO } from "../../dto/FinancialDocumentReadDTO";
 import { RegisterPaymentUseCase } from "../commands/RegisterPaymentUseCase";
 import { ReversePaymentUseCase } from "../commands/ReversePaymentUseCase";
 
@@ -36,7 +36,7 @@ function newDoc(parcelsCents: number[], opts: { status?: FinancialStatus; type?:
   return doc;
 }
 
-function build(docs: FinancialDocument[]) {
+function build(docs: FinancialDocument[], type: FinancialType = FinancialType.RECEIVABLE) {
   const log: string[] = [];
   const created: Payment[] = [];
   const reversed: Payment[] = [];
@@ -71,10 +71,10 @@ function build(docs: FinancialDocument[]) {
       );
     },
   };
-  const detail = { execute: async (id: string) => ({ id }) as unknown as ReceivableDetailDTO };
+  const detail = { execute: async (id: string) => ({ id }) as unknown as FinancialDocumentDetailDTO };
   const tm = new InMemoryTransactionManager();
-  const register = new RegisterPaymentUseCase(documents, payments, tm, detail, () => TODAY);
-  const reverse = new ReversePaymentUseCase(documents, payments, tm, detail);
+  const register = new RegisterPaymentUseCase(type, documents, payments, tm, detail, () => TODAY);
+  const reverse = new ReversePaymentUseCase(type, documents, payments, tm, detail);
   return { register, reverse, log, created, reversed, updated };
 }
 
@@ -275,4 +275,40 @@ test("paymentDate anterior à criação do título (data de negócio) → 400 se
   assert.equal(created.length, 0);
   await register.execute(pay(doc, 0, 1, { paymentDate: "2026-09-01" }));
   assert.equal(created.length, 1);
+});
+
+test("tipo do caso de uso ≠ tipo do documento → 404 nos dois sentidos, sem gravar", async () => {
+  const receivable = newDoc([1000]);
+  const payable = newDoc([1000], { type: FinancialType.PAYABLE });
+  const forReceivables = build([receivable, payable]);
+  const forPayables = build([receivable, payable], FinancialType.PAYABLE);
+
+  // Pagamentos válidos no tipo certo (para testar o estorno cruzado).
+  await forReceivables.register.execute(pay(receivable, 0, 1));
+  await forPayables.register.execute(pay(payable, 0, 1));
+
+  await assert.rejects(() => forPayables.register.execute(pay(receivable, 0, 1)), {
+    name: "NotFoundError",
+    code: "FINANCIAL_DOCUMENT_NOT_FOUND",
+    message: "Conta a pagar não encontrada.",
+  });
+  await assert.rejects(() => forReceivables.register.execute(pay(payable, 0, 1)), {
+    name: "NotFoundError",
+    code: "FINANCIAL_DOCUMENT_NOT_FOUND",
+    message: "Conta a receber não encontrada.",
+  });
+  const receivablePaymentId = receivable.parcels[0].payments[0].id;
+  const payablePaymentId = payable.parcels[0].payments[0].id;
+  await assert.rejects(
+    () => forPayables.reverse.execute({ paymentId: receivablePaymentId, reason: "abc", userId: "u" }),
+    { name: "NotFoundError", code: "PAYMENT_NOT_FOUND" },
+  );
+  await assert.rejects(
+    () => forReceivables.reverse.execute({ paymentId: payablePaymentId, reason: "abc", userId: "u" }),
+    { name: "NotFoundError", code: "PAYMENT_NOT_FOUND" },
+  );
+  assert.equal(forReceivables.created.length + forPayables.created.length, 2);
+  assert.equal(forReceivables.reversed.length + forPayables.reversed.length, 0);
+  assert.equal(receivable.parcels[0].payments.length, 1);
+  assert.equal(payable.parcels[0].payments.length, 1);
 });

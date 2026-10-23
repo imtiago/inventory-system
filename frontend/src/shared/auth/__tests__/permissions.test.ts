@@ -10,6 +10,15 @@ describe('can', () => {
     expect(can('ESTOQUISTA', 'inventory.write')).toBe(true);
     expect(can('ESTOQUISTA', 'sales.read')).toBe(false);
   });
+  test('compras e contas a pagar (6A)', () => {
+    expect(can('ADMIN', 'payables.reverse')).toBe(true);
+    expect(can('ESTOQUISTA', 'purchases.read')).toBe(true);
+    expect(can('ESTOQUISTA', 'purchases.receive')).toBe(true);
+    expect(can('ESTOQUISTA', 'purchases.write')).toBe(false);
+    expect(can('ESTOQUISTA', 'payables.read')).toBe(false);
+    expect(can('VENDEDOR', 'purchases.read')).toBe(false);
+    expect(can('VENDEDOR', 'payables.pay')).toBe(false);
+  });
   test('papel desconhecido ou ausente é negado', () => {
     expect(can(undefined, 'self')).toBe(false);
     expect(can('toString', 'self')).toBe(false);

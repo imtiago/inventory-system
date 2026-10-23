@@ -9,7 +9,7 @@ function pad(value: number, size = 2): string {
 }
 
 /**
- * Mesma regra do backend (InstallmentPlan): piso por parcela, resto na última;
+ * Mesma regra do backend (shared/domain/installments): piso por parcela, resto na última;
  * vencimentos mensais no mesmo dia do primeiro, recortado ao fim do mês (recalculado a partir do dia original). UTC.
  */
 export function buildInstallments(totalCents: number, installments: number, firstDueDate: string): Installment[] {

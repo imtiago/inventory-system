@@ -7,7 +7,8 @@ import { UseCase } from "@shared/domain/UseCase";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { toCents } from "@shared/domain/money";
 import { ErrorCodes, NotFoundError, ValidationError } from "@shared/domain/errors";
-import { ReceivableDetailDTO } from "../../dto/ReceivableReadDTO";
+import { FINANCIAL_TYPE_LABEL } from "@finance/domain/enums/financialTypeLabels";
+import { FinancialDocumentDetailDTO } from "../../dto/FinancialDocumentReadDTO";
 
 export interface IRegisterPaymentInput {
   documentId: string;
@@ -21,26 +22,30 @@ export interface IRegisterPaymentInput {
   userId: string;
 }
 
-/** Monta a resposta (detalhe da conta a receber) depois do commit. */
-export interface ReceivableDetailReader {
-  execute(id: string): Promise<ReceivableDetailDTO>;
+/** Monta a resposta (detalhe do documento) depois do commit. */
+export interface FinancialDocumentDetailReader<T extends FinancialType> {
+  execute(id: string): Promise<FinancialDocumentDetailDTO<T>>;
 }
 
 /**
- * Registra um pagamento numa parcela. Trava o documento (FOR UPDATE, mesma
- * linha travada pelo cancelamento da venda) e valida sob a trava: pagamentos
- * concorrentes e cancelamento ficam serializados.
+ * Registra um pagamento numa parcela de uma conta a receber ou a pagar (o
+ * `type` da instância; documento de outro tipo → 404 sem gravar). Trava o
+ * documento (FOR UPDATE, mesma linha travada pelo cancelamento da venda/pedido)
+ * e valida sob a trava: pagamentos concorrentes e cancelamento ficam serializados.
  */
-export class RegisterPaymentUseCase implements UseCase<IRegisterPaymentInput, ReceivableDetailDTO> {
+export class RegisterPaymentUseCase<T extends FinancialType>
+  implements UseCase<IRegisterPaymentInput, FinancialDocumentDetailDTO<T>>
+{
   constructor(
+    private readonly type: T,
     private readonly documents: FinancialDocumentRepository,
     private readonly payments: PaymentRepository,
     private readonly transactionManager: TransactionManager,
-    private readonly detail: ReceivableDetailReader,
+    private readonly detail: FinancialDocumentDetailReader<T>,
     private readonly today: () => string = () => todayInBusinessTz(),
   ) {}
 
-  async execute(input: IRegisterPaymentInput): Promise<ReceivableDetailDTO> {
+  async execute(input: IRegisterPaymentInput): Promise<FinancialDocumentDetailDTO<T>> {
     const today = this.today();
     const paymentDate = input.paymentDate ?? today;
     if (paymentDate > today) {
@@ -53,8 +58,11 @@ export class RegisterPaymentUseCase implements UseCase<IRegisterPaymentInput, Re
 
     await this.transactionManager.execute(async () => {
       const document = await this.documents.lockById(input.documentId);
-      if (!document || document.type !== FinancialType.RECEIVABLE) {
-        throw new NotFoundError("Conta a receber não encontrada.", ErrorCodes.FINANCIAL_DOCUMENT_NOT_FOUND);
+      if (!document || document.type !== this.type) {
+        throw new NotFoundError(
+          `${FINANCIAL_TYPE_LABEL[this.type]} não encontrada.`,
+          ErrorCodes.FINANCIAL_DOCUMENT_NOT_FOUND,
+        );
       }
       if (paymentDate < todayInBusinessTz(document.createdAt)) {
         throw new ValidationError("Dados inválidos.", [

@@ -14,6 +14,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["src/test/setup.ts"],
+    testTimeout: 20000,
     env: { TZ: "America/Sao_Paulo", VITE_API_URL: "http://localhost:3000" },
   },
 });

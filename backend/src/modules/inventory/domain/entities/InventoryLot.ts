@@ -11,6 +11,9 @@ interface InventoryLotProps {
   sourceType: InventoryLotSource;
   sourceId?: string | null;
 
+  /** Item de pedido de compra que originou o lote (recebimento de compra). */
+  purchaseItemId?: string | null;
+
   initialQuantity: number;
   remainingQuantity?: number;
 
@@ -55,6 +58,10 @@ export class InventoryLot extends BaseEntity {
 
   get sourceId() {
     return this.props.sourceId;
+  }
+
+  get purchaseItemId() {
+    return this.props.purchaseItemId ?? null;
   }
 
   get initialQuantity() {

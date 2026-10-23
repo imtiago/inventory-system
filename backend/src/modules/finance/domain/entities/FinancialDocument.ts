@@ -1,4 +1,5 @@
 import { FinancialType } from "../enums/FinancialType";
+import { FINANCIAL_TYPE_LABEL } from "../enums/financialTypeLabels";
 import { FinancialParcel } from "./FinancialParcel";
 import { FinancialStatus } from "../enums/FinancialStatus";
 import { FinancialPartyType } from "../enums/FinancialPartyType";
@@ -157,7 +158,10 @@ export class FinancialDocument extends BaseEntity {
 
   private assertNotCanceled(): void {
     if (this._status === FinancialStatus.CANCELED) {
-      throw new ConflictError("Conta a receber cancelada.", ErrorCodes.FINANCIAL_DOCUMENT_CANCELED);
+      throw new ConflictError(
+        `${FINANCIAL_TYPE_LABEL[this._type]} cancelada.`,
+        ErrorCodes.FINANCIAL_DOCUMENT_CANCELED,
+      );
     }
   }
 

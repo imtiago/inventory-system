@@ -1,14 +1,17 @@
 import { z } from "zod";
 import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
-import { dateOnly } from "./receivableQuerySchema";
+import { FinancialType } from "@finance/domain/enums/FinancialType";
+import { FINANCIAL_TYPE_LABEL } from "@finance/domain/enums/financialTypeLabels";
+import { dateOnly } from "./financialDocumentQuerySchemas";
 
 /** No máximo 2 casas decimais (robusto a erro de float, ex.: 0.1 + 0.2). */
 const hasAtMostTwoDecimals = (v: number) => Number.isInteger(Number((v * 100).toPrecision(15)));
 
-export const registerPaymentParamsSchema = z.object({
-  id: z.string().uuid("Conta a receber inválida."),
-  parcelId: z.string().uuid("Parcela inválida."),
-});
+export const registerPaymentParamsSchema = (type: FinancialType) =>
+  z.object({
+    id: z.string().uuid(`${FINANCIAL_TYPE_LABEL[type]} inválida.`),
+    parcelId: z.string().uuid("Parcela inválida."),
+  });
 
 export const registerPaymentBodySchema = z.object({
   amount: z

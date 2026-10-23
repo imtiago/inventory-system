@@ -5,6 +5,8 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
+import { FinancialParcel } from "@finance/domain/entities/FinancialParcel";
+import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
 import { InternalInvariantError } from "@shared/domain/errors";
 
 const doc = (status: FinancialStatus) =>
@@ -33,5 +35,35 @@ test("cancel() em documento PAID ou já CANCELED → InternalInvariantError", ()
       (e: unknown) => e instanceof InternalInvariantError && e.code === "FINANCIAL_DOCUMENT_NOT_CANCELABLE",
     );
     assert.equal(d.status, status);
+  }
+});
+
+test("pagar documento CANCELED → 409 FINANCIAL_DOCUMENT_CANCELED com mensagem do tipo", () => {
+  const cases: [FinancialType, string][] = [
+    [FinancialType.RECEIVABLE, "Conta a receber cancelada."],
+    [FinancialType.PAYABLE, "Conta a pagar cancelada."],
+  ];
+  for (const [type, message] of cases) {
+    const d = new FinancialDocument({
+      type,
+      originId: "o-1",
+      originType: type === FinancialType.PAYABLE ? FinancialOriginType.PURCHASE : FinancialOriginType.SALE,
+      partyId: "p-1",
+      partyType: type === FinancialType.PAYABLE ? FinancialPartyType.SUPPLIER : FinancialPartyType.CUSTOMER,
+      status: FinancialStatus.CANCELED,
+    });
+    d.addParcel(new FinancialParcel({ amountCents: 1000, dueDate: "2026-11-01", financialDocumentId: d.id }));
+    assert.throws(
+      () =>
+        d.registerPayment({
+          parcelId: d.parcels[0].id,
+          amountCents: 100,
+          method: PaymentMethod.PIX,
+          paymentDate: "2026-10-23",
+          reference: null,
+          createdById: "u-1",
+        }),
+      { name: "ConflictError", code: "FINANCIAL_DOCUMENT_CANCELED", message },
+    );
   }
 });

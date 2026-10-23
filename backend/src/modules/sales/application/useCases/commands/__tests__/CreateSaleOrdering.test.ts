@@ -16,6 +16,7 @@ function build(variantIds: string[]) {
       calls.push(req);
     },
     returnSaleStock: async () => {},
+    receivePurchaseStock: async () => {},
   };
   const saleRepository = { create: async (s: Sale) => s } as unknown as SaleRepository;
   const customerService = {
@@ -24,6 +25,8 @@ function build(variantIds: string[]) {
   const financialService: FinancialService = {
     createSaleReceivable: async () => {},
     cancelSaleReceivable: async () => {},
+    createPurchasePayable: async () => {},
+    cancelPurchasePayable: async () => {},
   };
   const uc = new CreateSaleUseCase(
     saleRepository,

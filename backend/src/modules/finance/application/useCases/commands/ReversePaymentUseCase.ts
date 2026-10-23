@@ -4,8 +4,8 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { UseCase } from "@shared/domain/UseCase";
 import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
-import { ReceivableDetailDTO } from "../../dto/ReceivableReadDTO";
-import { ReceivableDetailReader } from "./RegisterPaymentUseCase";
+import { FinancialDocumentDetailDTO } from "../../dto/FinancialDocumentReadDTO";
+import { FinancialDocumentDetailReader } from "./RegisterPaymentUseCase";
 
 export interface IReversePaymentInput {
   paymentId: string;
@@ -15,24 +15,28 @@ export interface IReversePaymentInput {
 
 /**
  * Estorna um pagamento: descobre o documento da parcela, trava o documento
- * (FOR UPDATE) e relê sob a trava antes de validar e gravar.
+ * (FOR UPDATE) e relê sob a trava antes de validar e gravar. Pagamento de um
+ * documento de outro tipo que não o da instância → 404 PAYMENT_NOT_FOUND.
  */
-export class ReversePaymentUseCase implements UseCase<IReversePaymentInput, ReceivableDetailDTO> {
+export class ReversePaymentUseCase<T extends FinancialType>
+  implements UseCase<IReversePaymentInput, FinancialDocumentDetailDTO<T>>
+{
   constructor(
+    private readonly type: T,
     private readonly documents: FinancialDocumentRepository,
     private readonly payments: PaymentRepository,
     private readonly transactionManager: TransactionManager,
-    private readonly detail: ReceivableDetailReader,
+    private readonly detail: FinancialDocumentDetailReader<T>,
   ) {}
 
-  async execute(input: IReversePaymentInput): Promise<ReceivableDetailDTO> {
+  async execute(input: IReversePaymentInput): Promise<FinancialDocumentDetailDTO<T>> {
     const documentId = await this.transactionManager.execute(async () => {
       const notFound = () => new NotFoundError("Pagamento não encontrado.", ErrorCodes.PAYMENT_NOT_FOUND);
 
       const documentId = await this.payments.findDocumentId(input.paymentId);
       if (!documentId) throw notFound();
       const document = await this.documents.lockById(documentId);
-      if (!document || document.type !== FinancialType.RECEIVABLE) throw notFound();
+      if (!document || document.type !== this.type) throw notFound();
 
       const payment = document.reversePayment(input.paymentId, input.userId, input.reason);
       await this.payments.saveReversal(payment);

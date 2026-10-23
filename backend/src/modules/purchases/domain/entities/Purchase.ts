@@ -1,125 +1,166 @@
-// domain/entities/Purchase.ts
-
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { PurchaseItem } from "./PurchaseItem";
 import { PurchaseOrigin } from "../enums/PurchaseOrigin";
 import { PurchaseStatus } from "../enums/PurchaseStatus";
+import {
+  purchaseAlreadyCanceled,
+  purchaseAlreadyReceived,
+  purchaseCanceled,
+  purchaseHasReceipts,
+  purchaseItemNotFound,
+  purchaseTotalZero,
+  receiptExceedsRemaining,
+} from "../errors/purchaseErrors";
 
 export interface PurchaseProps {
   id?: string;
-
+  code: string;
   supplierId: string;
-
-  supplierName: string;
-
+  status: PurchaseStatus;
   origin: PurchaseOrigin;
-
-  purchaseDate?: Date;
-
-  status?: PurchaseStatus;
-
-  items?: PurchaseItem[];
-
+  /** Data do pedido "YYYY-MM-DD". */
+  purchaseDate: string;
+  notes: string | null;
+  items: PurchaseItem[];
+  cancelReason?: string | null;
+  canceledAt?: Date | null;
+  canceledById?: string | null;
   createdAt?: Date;
-
-  updatedAt?: Date;
 }
 
-export class Purchase {
-  public readonly id?: string;
+export interface PurchaseReceiptLine {
+  purchaseItemId: string;
+  quantity: number;
+}
 
-  public readonly supplierId: string;
+export interface NewPurchaseProps {
+  code: string;
+  supplierId: string;
+  purchaseDate: string;
+  notes: string | null;
+  items: PurchaseItem[];
+  origin?: PurchaseOrigin;
+}
 
-  public readonly supplierName: string;
-
-  public readonly origin: PurchaseOrigin;
-
-  private status: PurchaseStatus;
-
-  private readonly items: PurchaseItem[];
-
-  public readonly purchaseDate: Date;
-
-  public readonly createdAt: Date;
-
-  public updatedAt: Date;
+/**
+ * Pedido de compra. Total = Σ total dos itens (centavos). Status inicial
+ * PENDING; recebimentos movem para PARTIALLY_RECEIVED/RECEIVED.
+ */
+export class Purchase extends BaseEntity {
+  readonly code: string;
+  readonly supplierId: string;
+  readonly origin: PurchaseOrigin;
+  readonly purchaseDate: string;
+  readonly notes: string | null;
+  private readonly _items: PurchaseItem[];
+  private _status: PurchaseStatus;
+  private _cancelReason: string | null;
+  private _canceledAt: Date | null;
+  private _canceledById: string | null;
 
   constructor(props: PurchaseProps) {
-    this.id = props.id;
-
+    super({ id: props.id, createdAt: props.createdAt });
+    const variants = new Set(props.items.map((i) => i.productVariantId));
+    if (props.items.length === 0 || variants.size !== props.items.length) {
+      throw new InternalInvariantError(
+        "Pedido de compra exige itens com variantes distintas.",
+        InternalErrorCodes.PURCHASE_ITEM_INVALID,
+      );
+    }
+    this.code = props.code;
     this.supplierId = props.supplierId;
-
-    this.supplierName = props.supplierName;
-
     this.origin = props.origin;
-
-    this.status = props.status ?? PurchaseStatus.DRAFT;
-
-    this.items = props.items ?? [];
-
-    this.purchaseDate = props.purchaseDate ?? new Date();
-
-    this.createdAt = props.createdAt ?? new Date();
-
-    this.updatedAt = props.updatedAt ?? new Date();
+    this.purchaseDate = props.purchaseDate;
+    this.notes = props.notes;
+    this._items = props.items;
+    this._status = props.status;
+    this._cancelReason = props.cancelReason ?? null;
+    this._canceledAt = props.canceledAt ?? null;
+    this._canceledById = props.canceledById ?? null;
   }
 
-  public addItem(item: PurchaseItem): void {
-    const existing = this.items.find(
-      (i) => i.productVariantId === item.productVariantId,
-    );
+  /** Novo pedido: PENDING (origem MANUAL por padrão); total > 0 senão 422 PURCHASE_TOTAL_ZERO. */
+  static create(props: NewPurchaseProps): Purchase {
+    const purchase = new Purchase({
+      ...props,
+      origin: props.origin ?? PurchaseOrigin.MANUAL,
+      status: PurchaseStatus.PENDING,
+    });
+    if (purchase.totalAmountCents <= 0) throw purchaseTotalZero();
+    return purchase;
+  }
 
-    if (existing) {
-      throw new Error("Variant already exists.");
+  get items(): readonly PurchaseItem[] {
+    return this._items;
+  }
+
+  get status(): PurchaseStatus {
+    return this._status;
+  }
+
+  get totalAmountCents(): number {
+    return this._items.reduce((sum, item) => sum + item.totalCents, 0);
+  }
+
+  get hasReceipts(): boolean {
+    return this._items.some((item) => item.receivedQuantity > 0);
+  }
+
+  get cancelReason(): string | null {
+    return this._cancelReason;
+  }
+
+  get canceledAt(): Date | null {
+    return this._canceledAt;
+  }
+
+  get canceledById(): string | null {
+    return this._canceledById;
+  }
+
+  /** Já cancelado → 409 PURCHASE_ALREADY_CANCELED; qualquer quantidade recebida → 409 PURCHASE_HAS_RECEIPTS. */
+  cancel({ reason, userId, now = new Date() }: { reason: string; userId: string; now?: Date }): void {
+    if (this._status === PurchaseStatus.CANCELED) throw purchaseAlreadyCanceled();
+    if (this.hasReceipts) throw purchaseHasReceipts();
+    this._status = PurchaseStatus.CANCELED;
+    this._cancelReason = reason;
+    this._canceledAt = now;
+    this._canceledById = userId;
+  }
+
+  /**
+   * Registra um recebimento: CANCELED → 409 PURCHASE_CANCELED; RECEIVED → 409
+   * PURCHASE_ALREADY_RECEIVED; item de outro pedido → 404 PURCHASE_ITEM_NOT_FOUND;
+   * quantidade > restante → 422 RECEIPT_EXCEEDS_REMAINING. Valida todas as linhas
+   * antes de aplicar (erro não muda nada) e recalcula o status.
+   */
+  receive(lines: readonly PurchaseReceiptLine[]): void {
+    if (this._status === PurchaseStatus.CANCELED) throw purchaseCanceled();
+    if (this._status === PurchaseStatus.RECEIVED) throw purchaseAlreadyReceived();
+
+    const ids = new Set(lines.map((l) => l.purchaseItemId));
+    if (lines.length === 0 || ids.size !== lines.length) {
+      throw new InternalInvariantError(
+        "Recebimento exige itens distintos.",
+        InternalErrorCodes.PURCHASE_ITEM_INVALID,
+      );
     }
 
-    this.items.push(item);
+    const resolved = lines.map((line) => {
+      const item = this._items.find((i) => i.id === line.purchaseItemId);
+      if (!item) throw purchaseItemNotFound();
+      if (!Number.isSafeInteger(line.quantity) || line.quantity < 1) {
+        throw new InternalInvariantError("Quantidade de recebimento inválida.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
+      }
+      if (line.quantity > item.remainingQuantity) throw receiptExceedsRemaining();
+      return { item, quantity: line.quantity };
+    });
 
-    this.updatedAt = new Date();
-  }
+    for (const { item, quantity } of resolved) item.receive(quantity);
 
-  public removeItem(productVariantId: string): void {
-    const index = this.items.findIndex(
-      (item) => item.productVariantId === productVariantId,
-    );
-
-    if (index === -1) {
-      throw new Error("Item not found.");
-    }
-
-    this.items.splice(index, 1);
-
-    this.updatedAt = new Date();
-  }
-
-  public getItems(): readonly PurchaseItem[] {
-    return this.items;
-  }
-
-  public getStatus(): PurchaseStatus {
-    return this.status;
-  }
-
-  public getTotal(): number {
-    return this.items.reduce((total, item) => total + item.getTotal(), 0);
-  }
-
-  public finish(): void {
-    if (this.items.length === 0) {
-      throw new Error("Purchase has no items.");
-    }
-
-    this.status = PurchaseStatus.COMPLETED;
-
-    this.updatedAt = new Date();
-  }
-
-  public cancel(): void {
-    if (this.status === PurchaseStatus.COMPLETED) {
-      throw new Error("Completed purchase cannot be canceled.");
-    }
-
-    this.status = PurchaseStatus.CANCELED;
-
-    this.updatedAt = new Date();
+    this._status = this._items.every((i) => i.remainingQuantity === 0)
+      ? PurchaseStatus.RECEIVED
+      : PurchaseStatus.PARTIALLY_RECEIVED;
   }
 }

@@ -18,6 +18,8 @@ export class InventoryLotMapper {
 
       sourceId: prisma.sourceId,
 
+      purchaseItemId: prisma.purchaseItemId,
+
       initialQuantity: prisma.initialQuantity,
 
       remainingQuantity: prisma.remainingQuantity,
@@ -73,6 +75,10 @@ export class InventoryLotMapper {
           id: inventoryLot.productVariantId,
         },
       },
+
+      ...(inventoryLot.purchaseItemId
+        ? { purchaseItem: { connect: { id: inventoryLot.purchaseItemId } } }
+        : {}),
     };
   }
 

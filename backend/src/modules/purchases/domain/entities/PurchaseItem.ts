@@ -1,99 +1,86 @@
-// domain/entities/PurchaseItem.ts
+import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { divideCentsRoundHalfUp } from "@shared/domain/money";
+import { invalidItemTotal } from "../errors/purchaseErrors";
 
 export interface PurchaseItemProps {
   id?: string;
-
   productVariantId: string;
-
-  productName: string;
-
-  sku: string;
-
-  barcode?: string;
-
   quantity: number;
-
-  unitPrice: number;
-
-  discount?: number;
-
-  freight?: number;
-
-  tax?: number;
+  /** Já recebido (Tarefa 3 incrementa via recebimento). */
+  receivedQuantity?: number;
+  unitPriceCents: number;
+  discountCents?: number;
+  freightCents?: number;
+  taxCents?: number;
 }
 
-export class PurchaseItem {
-  public readonly id?: string;
+const isNonNegativeInt = (n: number) => Number.isSafeInteger(n) && n >= 0;
 
-  public readonly productVariantId: string;
-
-  public readonly productName: string;
-
-  public readonly sku: string;
-
-  public readonly barcode?: string;
-
-  private quantity: number;
-
-  private unitPrice: number;
-
-  private discount: number;
-
-  private freight: number;
-
-  private tax: number;
+/**
+ * Item do pedido, valores em centavos. total = quantidade × preço − desconto +
+ * frete + imposto (≥ 0, senão 422 INVALID_ITEM_TOTAL); unitCost =
+ * round-half-up(total / quantidade) — custo que entra no estoque.
+ */
+export class PurchaseItem extends BaseEntity {
+  readonly productVariantId: string;
+  readonly quantity: number;
+  readonly unitPriceCents: number;
+  readonly discountCents: number;
+  readonly freightCents: number;
+  readonly taxCents: number;
+  private _receivedQuantity: number;
 
   constructor(props: PurchaseItemProps) {
-    if (props.quantity <= 0) {
-      throw new Error("Quantity must be greater than zero.");
+    super({ id: props.id });
+    const discountCents = props.discountCents ?? 0;
+    const freightCents = props.freightCents ?? 0;
+    const taxCents = props.taxCents ?? 0;
+    const receivedQuantity = props.receivedQuantity ?? 0;
+    if (
+      !Number.isSafeInteger(props.quantity) ||
+      props.quantity < 1 ||
+      !isNonNegativeInt(receivedQuantity) ||
+      receivedQuantity > props.quantity ||
+      ![props.unitPriceCents, discountCents, freightCents, taxCents].every(isNonNegativeInt)
+    ) {
+      throw new InternalInvariantError("Item de compra inválido.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
     }
-
-    if (props.unitPrice < 0) {
-      throw new Error("Unit price cannot be negative.");
-    }
-
-    this.id = props.id;
     this.productVariantId = props.productVariantId;
-    this.productName = props.productName;
-    this.sku = props.sku;
-    this.barcode = props.barcode;
-
     this.quantity = props.quantity;
-    this.unitPrice = props.unitPrice;
-    this.discount = props.discount ?? 0;
-    this.freight = props.freight ?? 0;
-    this.tax = props.tax ?? 0;
+    this.unitPriceCents = props.unitPriceCents;
+    this.discountCents = discountCents;
+    this.freightCents = freightCents;
+    this.taxCents = taxCents;
+    this._receivedQuantity = receivedQuantity;
+
+    if (this.totalCents < 0) throw invalidItemTotal();
   }
 
-  getQuantity(): number {
-    return this.quantity;
+  get totalCents(): number {
+    return this.quantity * this.unitPriceCents - this.discountCents + this.freightCents + this.taxCents;
   }
 
-  getUnitPrice(): number {
-    return this.unitPrice;
+  get unitCostCents(): number {
+    return divideCentsRoundHalfUp(this.totalCents, this.quantity);
   }
 
-  getSubtotal(): number {
-    return this.quantity * this.unitPrice;
+  get receivedQuantity(): number {
+    return this._receivedQuantity;
   }
 
-  getTotal(): number {
-    return this.getSubtotal() - this.discount + this.freight + this.tax;
+  get remainingQuantity(): number {
+    return this.quantity - this._receivedQuantity;
   }
 
-  changeQuantity(quantity: number): void {
-    if (quantity <= 0) {
-      throw new Error("Invalid quantity.");
+  /**
+   * Soma `quantity` ao recebido. Só o agregado (Purchase.receive) chama, depois
+   * de validar status e saldo; aqui apenas garante o invariante.
+   */
+  receive(quantity: number): void {
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > this.remainingQuantity) {
+      throw new InternalInvariantError("Recebimento de item inválido.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
     }
-
-    this.quantity = quantity;
-  }
-
-  changeUnitPrice(price: number): void {
-    if (price < 0) {
-      throw new Error("Invalid price.");
-    }
-
-    this.unitPrice = price;
+    this._receivedQuantity += quantity;
   }
 }

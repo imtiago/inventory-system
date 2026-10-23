@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ReceiveInventoryUseCase } from "../ReceiveInventoryUseCase";
+import { InventoryApplicationService } from "../../../services/InventoryApplicationService";
 import { IReceiveInventoryInput } from "@inventory/application/dto/InventoryDTO";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
@@ -143,4 +144,97 @@ test("persistência: lote e inventário gravados refletem o estado após o use c
   await useCase.execute(input({ batchNumber: "L1", quantity: 5 }));
   assert.equal((await lots.findById(lot.id))!.remainingQuantity, 15);
   assert.equal((await inventories.findById(inventory.id))!.quantity, 15);
+});
+
+test("com purchaseItemId: lote novo ligado ao item; mesmo lote do mesmo item soma", async () => {
+  const { useCase, lots, inventories } = setup();
+  const first = await useCase.execute(
+    input({ batchNumber: "L1", purchaseItemId: "pi-1", originReferenceId: "p-1" }),
+  );
+  assert.equal(first.lot.purchaseItemId, "pi-1");
+  assert.equal(first.lot.sourceId, "p-1");
+  const second = await useCase.execute(
+    input({ batchNumber: "L1", quantity: 3, purchaseItemId: "pi-1", originReferenceId: "p-1" }),
+  );
+  assert.equal(second.lot.id, first.lot.id);
+  assert.equal(second.lot.initialQuantity, 13);
+  assert.equal(lots.all().length, 1);
+  assert.equal(inventories.all()[0].quantity, 13);
+});
+
+test("com purchaseItemId: lote existente de outra origem/item → 409 BATCH_ALREADY_EXISTS sem alterar saldo", async () => {
+  const { useCase, lots, inventories, movements } = setup();
+  await useCase.execute(input({ batchNumber: "L1" })); // lote manual, sem item de compra
+  await useCase.execute(input({ batchNumber: "L2", purchaseItemId: "pi-1" }));
+  for (const batchNumber of ["L1", "L2"]) {
+    await assert.rejects(
+      () => useCase.execute(input({ batchNumber, purchaseItemId: "pi-2" })),
+      {
+        name: "ConflictError",
+        code: "BATCH_ALREADY_EXISTS",
+        message: "Já existe um lote com esse número para esta variante.",
+      },
+    );
+  }
+  assert.equal(lots.all().length, 2);
+  assert.equal(movements.all().length, 2);
+  assert.equal(inventories.all()[0].quantity, 20);
+});
+
+test("sem purchaseItemId (entrada manual): lote existente ligado a item de compra → 409 BATCH_ALREADY_EXISTS sem alterar saldo", async () => {
+  const { useCase, lots, inventories, movements } = setup();
+  await useCase.execute(input({ batchNumber: "L1", purchaseItemId: "pi-1", originReferenceId: "p-1" }));
+  await assert.rejects(
+    () => useCase.execute(input({ batchNumber: "L1", quantity: 5 })),
+    {
+      name: "ConflictError",
+      code: "BATCH_ALREADY_EXISTS",
+      message: "Já existe um lote com esse número para esta variante.",
+    },
+  );
+  assert.equal(lots.all().length, 1);
+  assert.equal(lots.all()[0].initialQuantity, 10);
+  assert.equal(movements.all().length, 1);
+  assert.equal(inventories.all()[0].quantity, 10);
+});
+
+test("sem purchaseItemId: lote manual existente continua somando", async () => {
+  const { useCase, lots } = setup();
+  await useCase.execute(input({ batchNumber: "L1" }));
+  const { lot } = await useCase.execute(input({ batchNumber: "L1", quantity: 5 }));
+  assert.equal(lots.all().length, 1);
+  assert.equal(lot.initialQuantity, 15);
+});
+
+test("receivePurchaseStock chama o recebimento com origem/lote PURCHASE, item, usuário e custo em reais", async () => {
+  const calls: unknown[] = [];
+  const noop = { execute: async () => [] };
+  const fake = { execute: async (i: unknown) => (calls.push(i), {}) };
+  const service = new InventoryApplicationService(noop as never, noop as never, fake as never);
+  const exp = new Date("2027-01-15T00:00:00.000Z");
+  await service.receivePurchaseStock({
+    purchaseId: "p-1",
+    purchaseItemId: "pi-1",
+    productVariantId: "variant-1",
+    quantity: 3,
+    unitCostCents: 333,
+    batchNumber: "L1",
+    expirationDate: exp,
+    userId: "u-1",
+  });
+  assert.deepEqual(calls, [
+    {
+      productVariantId: "variant-1",
+      quantity: 3,
+      unitCost: 3.33,
+      batchNumber: "L1",
+      manufacturingDate: undefined,
+      expirationDate: exp,
+      origin: StockMovementOrigin.PURCHASE,
+      sourceType: InventoryLotSource.PURCHASE,
+      originReferenceId: "p-1",
+      purchaseItemId: "pi-1",
+      userId: "u-1",
+    },
+  ]);
 });

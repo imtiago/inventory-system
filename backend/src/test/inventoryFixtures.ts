@@ -87,15 +87,12 @@ export async function createTestVariant(): Promise<{
 }
 
 export async function getTestUserId(): Promise<string> {
-  const user = await prisma.user.upsert({
-    where: { email: "tx-test-inventory@local" },
-    update: {},
-    create: {
-      name: "tx-test-inventory",
-      email: "tx-test-inventory@local",
-      password: "tx-test",
-      role: "ADMIN",
-    },
-  });
-  return user.id;
+  // ON CONFLICT: arquivos de teste paralelos num banco vazio criam o mesmo usuário
+  // ao mesmo tempo; o upsert do Prisma não é atômico nesse caso (P2002).
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    INSERT INTO "users" ("id", "name", "email", "password", "role")
+    VALUES (gen_random_uuid()::text, 'tx-test-inventory', 'tx-test-inventory@local', 'tx-test', 'ADMIN')
+    ON CONFLICT ("email") DO UPDATE SET "email" = EXCLUDED."email"
+    RETURNING "id"`;
+  return rows[0].id;
 }

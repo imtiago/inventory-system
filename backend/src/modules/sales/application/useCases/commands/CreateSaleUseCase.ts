@@ -15,7 +15,7 @@ import { FinancialService } from "@finance/application/services/FinacialService"
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
-import { buildInstallments } from "@sales/domain/services/InstallmentPlan";
+import { buildInstallments } from "@shared/domain/installments";
 import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
 
 /**
