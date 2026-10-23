@@ -6,13 +6,14 @@ import { useAuth } from '../shared/hooks/useAuth';
 import { productRoutes } from '../modules/products/config/routes';
 import { inventoryRoutes } from '@/modules/inventory/config/routes';
 import { salesRoutes } from '../modules/sales/routes';
+import { receivablesRoutes } from '../modules/receivables/routes';
 import { authRoutes } from '../modules/auth/routes';
 import type { AppRoute } from './types';
 import { dashboardRoutes } from '@/modules/dashboard/routes';
 import { DashboardLayout } from '@/shared/layouts/DashboardLayout';
 import { customersRoutes } from '@/modules/customers/config/routes';
 
-const allRoutes: AppRoute[] = [...productRoutes, ...salesRoutes, ...dashboardRoutes, ...inventoryRoutes, ...customersRoutes];
+const allRoutes: AppRoute[] = [...productRoutes, ...salesRoutes, ...receivablesRoutes, ...dashboardRoutes, ...inventoryRoutes, ...customersRoutes];
 const publicRoutes = [...authRoutes];
 export const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
