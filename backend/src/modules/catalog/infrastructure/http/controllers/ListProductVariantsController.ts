@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
+import { HttpResponse } from "@shared/http/response";
 import { makeListProductVariantsUseCase } from "../factories/ListProductVariantsFactory";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
@@ -19,6 +20,6 @@ export function makeListProductVariantsController() {
     const { page, limit } = parseInput(paginationSchema, request.query);
 
     const variants = await useCase.execute({ productId, page, limit });
-    return reply.send(variants);
+    return reply.send(HttpResponse.paginated(variants));
   };
 }

@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 
-import { Pencil, Plus, Package, Layers, History } from "lucide-react";
+import { Pencil, Plus, Package, Layers, History, Trash2 } from "lucide-react";
 
 import { DataTable } from "@/shared/components/table";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 
-import { useProductDetails } from "../hooks/useProductDetails";
+import { useProduct } from "../hooks/useProduct";
+import { useProductVariants } from "../hooks/useProductVariants";
+import { useDeleteProduct } from "../hooks/useDeleteProduct";
 import { useDeleteVariant } from "../hooks/useDeleteVariant";
 
 import { useProductVariantColumns } from "../components/ProductVariantColumns";
@@ -23,20 +25,26 @@ import { InfoItem } from "@/shared/components/details/InfoItem";
 import { SummaryCard } from "@/shared/components/cards/SummaryCard";
 
 import { CrudPagination } from "@/shared/components/crud";
+import { Can } from "@/shared/auth/Can";
 
 export function ProductDetailsPage() {
   const [page, setPage] = useState(1);
 
   const { id } = useParams();
 
-  const [variantToDelete, setVariantToDelete] = useState<Variant | null>(null);
+  const navigate = useNavigate();
 
-  const {
-    product,
-    variants: variantsResponse,
-    isLoading,
-    isError,
-  } = useProductDetails(id!);
+  const [variantToDelete, setVariantToDelete] = useState<Variant | null>(null);
+  const [confirmDeleteProduct, setConfirmDeleteProduct] = useState(false);
+
+  const deleteProduct = useDeleteProduct();
+
+  // Once the delete starts, the product's own queries must not refetch (they would 404).
+  const deleting = deleteProduct.isPending || deleteProduct.isSuccess;
+
+  const { data: product, isLoading, isError } = useProduct(id!, { enabled: !deleting });
+
+  const { data: variantsResponse } = useProductVariants(id!, page, { enabled: !deleting });
 
   const variants = variantsResponse?.data ?? [];
 
@@ -48,7 +56,7 @@ export function ProductDetailsPage() {
     onDelete: setVariantToDelete,
   });
 
-  if (isLoading) {
+  if (isLoading || deleteProduct.isSuccess) {
     return <div>Carregando produto...</div>;
   }
 
@@ -61,9 +69,28 @@ export function ProductDetailsPage() {
       return;
     }
 
-    await deleteVariant.mutateAsync(variantToDelete.id);
+    try {
+      await deleteVariant.mutateAsync(variantToDelete.id);
 
-    setVariantToDelete(null);
+      // Deleting the last item of the last page leaves that page empty.
+      if (variants.length === 1 && page > 1) setPage(page - 1);
+    } catch {
+      // useDeleteVariant already shows the backend message (VARIANT_IN_USE, LAST_VARIANT).
+    } finally {
+      setVariantToDelete(null);
+    }
+  }
+
+  async function handleDeleteProduct() {
+    try {
+      await deleteProduct.mutateAsync(product!.id);
+
+      navigate("/products");
+    } catch {
+      // useDeleteProduct already shows the backend message (PRODUCT_IN_USE).
+    } finally {
+      setConfirmDeleteProduct(false);
+    }
   }
 
   return (
@@ -81,6 +108,30 @@ export function ProductDetailsPage() {
           title={product.name}
           description={product.description ?? "Sem descrição"}
           backPath="/products"
+          actions={
+            <div className="flex gap-3">
+              <Can permission="catalog.write">
+                <Link
+                  to={`/products/${product.id}/edit`}
+                  className="flex items-center gap-2 rounded-lg border px-4 py-2"
+                >
+                  <Pencil size={18} />
+                  Editar
+                </Link>
+              </Can>
+
+              <Can permission="catalog.delete">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteProduct(true)}
+                  className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-red-600"
+                >
+                  <Trash2 size={18} />
+                  Excluir
+                </button>
+              </Can>
+            </div>
+          }
         />
 
         <Section
@@ -96,7 +147,7 @@ export function ProductDetailsPage() {
 
               <InfoItem label="Categoria" value={product.category.name} />
 
-              <InfoItem label="Variantes" value={variants.length} />
+              <InfoItem label="Variantes" value={product.variantsCount} />
             </DetailsGrid>
           </div>
         </Section>
@@ -111,7 +162,7 @@ export function ProductDetailsPage() {
         >
           <SummaryCard
             title="Variantes"
-            value={variants.length}
+            value={product.variantsCount}
             icon={<Layers size={22} />}
           />
 
@@ -133,9 +184,10 @@ export function ProductDetailsPage() {
     flex-1
     min-h-0
   "
-          title={`Variantes (${pagination?.totalItems ?? 0})`}
+          title={`Variantes (${pagination?.total ?? 0})`}
           description="Unidades comercializadas deste produto"
           actions={
+            <Can permission="catalog.write">
             <Link
               to={`/products/${product.id}/variants/new`}
               className="
@@ -152,6 +204,7 @@ export function ProductDetailsPage() {
               <Plus size={18} />
               Nova Variante
             </Link>
+            </Can>
           }
         >
           <div
@@ -184,7 +237,7 @@ export function ProductDetailsPage() {
               <CrudPagination
                 page={pagination?.page ?? 1}
                 totalPages={pagination?.totalPages ?? 1}
-                totalItems={pagination?.totalItems ?? 0}
+                totalItems={pagination?.total ?? 0}
                 onPrevious={() => setPage((p) => Math.max(1, p - 1))}
                 onNext={() =>
                   setPage((p) => Math.min(pagination?.totalPages ?? 1, p + 1))
@@ -196,10 +249,17 @@ export function ProductDetailsPage() {
       </div>
 
       <ConfirmDialog
+        open={confirmDeleteProduct}
+        title="Excluir produto"
+        description={`Deseja realmente excluir o produto "${product.name}"?`}
+        loading={deleteProduct.isPending}
+        onCancel={() => setConfirmDeleteProduct(false)}
+        onConfirm={handleDeleteProduct}
+      />
+
+      <ConfirmDialog
         open={!!variantToDelete}
-        title="
-          Excluir variante
-        "
+        title="Excluir variante"
         description={`Deseja realmente excluir a variante "${variantToDelete?.name}"?`}
         loading={deleteVariant.isPending}
         onCancel={() => setVariantToDelete(null)}

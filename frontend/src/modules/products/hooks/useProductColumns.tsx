@@ -7,12 +7,13 @@ import type { DataTableColumn } from "@/shared/components/table";
 import { CrudBadge } from "@/shared/components/crud";
 
 import type { Product } from "../types";
-import { useDeleteProduct } from "./useDeleteProduct";
 import { Can } from "@/shared/auth/Can";
 
-export function useProductColumns(): DataTableColumn<Product>[] {
-  const deleteProduct = useDeleteProduct();
+interface Props {
+  onDelete(product: Product): void;
+}
 
+export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>[] {
   return [
     {
       id: "code",
@@ -35,7 +36,7 @@ export function useProductColumns(): DataTableColumn<Product>[] {
           </Link>
 
           <div className="text-sm text-gray-500">
-            {product.description}
+            {product.description ?? ""}
           </div>
         </div>
       ),
@@ -74,17 +75,21 @@ export function useProductColumns(): DataTableColumn<Product>[] {
 
       cell: (product) => (
         <div className="flex justify-center gap-3">
-          <Link
-            to={`/products/${product.id}/edit`}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            <Pencil size={18} />
-          </Link>
+          <Can permission="catalog.write">
+            <Link
+              to={`/products/${product.id}/edit`}
+              className="text-blue-600 hover:text-blue-800"
+              aria-label={`Editar ${product.name}`}
+            >
+              <Pencil size={18} />
+            </Link>
+          </Can>
 
           <Can permission="catalog.delete">
             <button
               className="text-red-600 hover:text-red-800"
-              onClick={() => deleteProduct.mutate(product.id)}
+              onClick={() => onDelete(product)}
+              aria-label={`Excluir ${product.name}`}
             >
               <Trash2 size={18} />
             </button>

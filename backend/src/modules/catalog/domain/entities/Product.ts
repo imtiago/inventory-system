@@ -47,4 +47,20 @@ export class Product extends BaseEntity {
   get categoryId() {
     return this._categoryId;
   }
+
+  rename(name: string): void {
+    this._name = name;
+  }
+
+  changeDescription(description: string | null): void {
+    this._description = description;
+  }
+
+  changeBrand(brandId: string): void {
+    this._brandId = brandId;
+  }
+
+  changeCategory(categoryId: string): void {
+    this._categoryId = categoryId;
+  }
 }

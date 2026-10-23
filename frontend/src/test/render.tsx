@@ -9,8 +9,7 @@ export function createTestQueryClient() {
   });
 }
 
-export function renderWithProviders(ui: ReactElement, { route = '/' }: { route?: string } = {}) {
-  const queryClient = createTestQueryClient();
+export function renderWithProviders(ui: ReactElement, { route = '/', queryClient = createTestQueryClient() }: { route?: string; queryClient?: QueryClient } = {}) {
 
   return {
     queryClient,

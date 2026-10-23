@@ -40,7 +40,7 @@ export function PageHeader({
         </Link>
       )}
 
-      {/* <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold">{title}</h1>
 
@@ -48,7 +48,7 @@ export function PageHeader({
         </div>
 
         {actions}
-      </div> */}
+      </div>
     </div>
   );
 }

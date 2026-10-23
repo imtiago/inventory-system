@@ -1,9 +1,17 @@
 import { Product } from "@catalog/domain/entities/Product";
-
-import { ProductMapper } from "../mappers/ProductMapper";
-import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
 import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
-import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { ProductMapper } from "../mappers/ProductMapper";
+
+function assertInTransaction(what: string): void {
+  if (!hasActiveTransaction()) {
+    throw new InternalInvariantError(
+      `Trava de ${what} exige transação ativa.`,
+      InternalErrorCodes.LOCK_OUTSIDE_TRANSACTION,
+    );
+  }
+}
 
 export class PrismaProductRepository implements ProductRepository {
   async create(product: Product): Promise<Product> {
@@ -16,9 +24,7 @@ export class PrismaProductRepository implements ProductRepository {
 
   async update(product: Product): Promise<Product> {
     const updated = await getDb().product.update({
-      where: {
-        id: product.id,
-      },
+      where: { id: product.id },
       data: ProductMapper.toUpdatePersistence(product),
     });
 
@@ -26,81 +32,23 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await getDb().product.delete({
-      where: {
-        id,
-      },
-    });
+    await getDb().product.delete({ where: { id } });
   }
 
   async findById(id: string): Promise<Product | null> {
-    const product = await getDb().product.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!product) {
-      return null;
-    }
-
-    return ProductMapper.toDomain(product);
+    const product = await getDb().product.findUnique({ where: { id } });
+    return product ? ProductMapper.toDomain(product) : null;
   }
 
   async findByCode(code: string): Promise<Product | null> {
-    const product = await getDb().product.findUnique({
-      where: {
-        code: code,
-      },
-    });
-
-    if (!product) {
-      return null;
-    }
-
-    return ProductMapper.toDomain(product);
+    const product = await getDb().product.findUnique({ where: { code } });
+    return product ? ProductMapper.toDomain(product) : null;
   }
 
-  async list(page: number, limit: number): Promise<Product[]> {
-    const skip = (page - 1) * limit;
-
-    const products = await getDb().product.findMany({
-      skip,
-      take: limit,
-    });
-
-    return products.map(ProductMapper.toDomain);
-  }
-
-  async findProductsForList(): Promise<ProductListDTO[]> {
-    const products = await getDb().product.findMany({
-      include: {
-        brand: true,
-
-        category: true,
-      },
-    });
-
-    return products.map((product) => ({
-      id: product.id,
-
-      name: product.name,
-
-      description: product.description,
-
-      brand: {
-        id: product.brand.id,
-
-        name: product.brand.name,
-      },
-
-      category: {
-        id: product.category.id,
-
-        name: product.category.name,
-      },
-
-      createdAt: product.createdAt,
-    }));
+  async lockById(id: string): Promise<boolean> {
+    assertInTransaction("produto");
+    const rows = await getDb().$queryRaw<{ id: string }[]>`
+      SELECT id FROM "Product" WHERE id = ${id} FOR UPDATE`;
+    return rows.length > 0;
   }
 }

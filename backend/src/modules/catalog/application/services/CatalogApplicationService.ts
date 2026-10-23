@@ -1,11 +1,11 @@
 import { ProductVariantDTO } from "../dto/ProductVariantDTO";
-import { GetProductVariantByBarcodeUseCase } from "../useCases/GetProductVariantByBarcodeUseCase";
-import { GetProductVariantUseCase } from "../useCases/GetProductVariantByIdUseCase";
+import { GetProductVariantByBarcodeUseCase } from "../useCases/queries/GetProductVariantByBarcodeUseCase";
+import { GetProductVariantByIdUseCase } from "../useCases/queries/GetProductVariantByIdUseCase";
 import { CatalogService } from "./CatalogService";
 
 export class CatalogApplicationService implements CatalogService {
   constructor(
-    private readonly getProductVariantUseCase: GetProductVariantUseCase,
+    private readonly getProductVariantUseCase: GetProductVariantByIdUseCase,
     private readonly getProductVariantByBarcodeUseCase: GetProductVariantByBarcodeUseCase,
   ) {}
 

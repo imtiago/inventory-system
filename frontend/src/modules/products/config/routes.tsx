@@ -11,7 +11,7 @@ import { VariantEditPage } from "../pages/VariantEditPage";
 
 export const productRoutes: AppRoute[] = [
   {
-    path: "/products", permission: "catalog.read", showInMenu: true, icon: Package,
+    path: "/products", permission: "catalog.read", showInMenu: true, icon: Package, group: "Catálogo",
     label: "Produtos",
     component: ProductListPage,
     guard: "auth",

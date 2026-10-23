@@ -1,14 +1,15 @@
-// modules/products/hooks/useProducts.ts
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import { useQuery } from "@tanstack/react-query";
+import { productQueryKeys } from "../config/queryKeys";
 import { getProducts } from "../services/productService";
+import type { ProductListParams } from "../types";
 
-export function useProducts(page: number) {
+export function useProducts(params: ProductListParams) {
   return useQuery({
-    queryKey: ["products", page],
+    queryKey: [...productQueryKeys.products, "list", params],
 
-    queryFn: () => getProducts(page),
+    queryFn: () => getProducts(params),
 
-    placeholderData: (previousData) => previousData,
+    placeholderData: keepPreviousData,
   });
 }

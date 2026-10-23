@@ -54,6 +54,14 @@ function isConcurrentUpdateError(error: unknown): boolean {
   );
 }
 
+// Rede de segurança: FK violada (P2003; ou 23503 do Postgres em query raw, P2010).
+function isForeignKeyViolation(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code === "P2003") return true;
+  const meta = error.meta as Record<string, unknown> | undefined;
+  return error.code === "P2010" && meta?.code === "23503";
+}
+
 export function errorHandler(
   error: unknown,
   request: FastifyRequest,
@@ -90,6 +98,12 @@ export function errorHandler(
       message: "Operação em andamento para este item. Tente novamente.",
       code: "CONCURRENT_UPDATE",
     });
+  }
+
+  if (isForeignKeyViolation(error)) {
+    return reply
+      .status(409)
+      .send({ message: "Registro em uso por outros dados.", code: "RESOURCE_IN_USE" });
   }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

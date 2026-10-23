@@ -13,46 +13,30 @@ import { useCustomerColumns } from '../hooks/useCustomerColumns.tsx';
 import { useCreateCustomer } from '../hooks/useCreateCustomer.ts';
 
 import { CustomerForm } from '../components/CustomerForm.tsx';
-import { CustomerEditForm } from '../components/CustomerEditForm';
+import { CustomerEditModal } from '../components/CustomerEditModal';
+import { Can } from '@/shared/auth/Can';
 
 import type { ICreateCustomerDTO, ICustomer } from '../types';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue.ts';
 
-const modalConfig = {
-  'new-customer': {
-    title: 'Cadastrar novo cliente',
-    subtitle: 'Informe os dados do cliente.',
-  },
-  'edit-customer': {
-    title: 'Editar cliente',
-    subtitle: 'Atualize os dados do cliente.',
-  },
-};
-
-type ModalStep = 'list' | keyof typeof modalConfig;
 
 export function CustomerListPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [step, setStep] = useState<ModalStep>('list');
-  const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<ICustomer | null>(null);
 
   const debouncedSearch = useDebouncedValue(search, 300);
-
-  const currentModal = step !== 'list' ? modalConfig[step] : null;
 
   const { data, isLoading, isFetching, isError } = useCustomers(page, debouncedSearch);
 
   const { mutateAsync } = useCreateCustomer();
 
-  const columns = useCustomerColumns((customer) => {
-    setSelectedCustomer(customer);
-    setStep('edit-customer');
-  });
+  const columns = useCustomerColumns(setEditing);
 
   async function handleSubmitCreateCustomer(formData: ICreateCustomerDTO) {
     await mutateAsync(formData);
-    setStep('list');
+    setCreating(false);
   }
 
   function handleSearch(value: string) {
@@ -60,9 +44,8 @@ export function CustomerListPage() {
     setPage(1);
   }
 
-  function closeModal() {
-    setStep('list');
-    setSelectedCustomer(null);
+  function closeCreate() {
+    setCreating(false);
   }
 
   return (
@@ -71,16 +54,12 @@ export function CustomerListPage() {
         title="Clientes"
         description="Gerencie os clientes cadastrados no sistema."
         actions={
-          <Button
-            onClick={() => {
-              setSelectedCustomer(null);
-              setStep('new-customer');
-            }}
-            className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800"
-          >
-            <Plus size={18} />
-            Novo Cliente
-          </Button>
+          <Can permission="customers.write">
+            <Button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800">
+              <Plus size={18} />
+              Novo Cliente
+            </Button>
+          </Can>
         }
       >
         <div className="flex min-h-0 flex-1 flex-col">
@@ -151,11 +130,11 @@ export function CustomerListPage() {
         </div>
       </Section>
 
-      <Modal open={currentModal !== null} onClose={closeModal} title={currentModal?.title ?? ''} description={currentModal?.subtitle}>
-        {step === 'new-customer' && <CustomerForm onCancel={closeModal} onSubmit={handleSubmitCreateCustomer} />}
-
-        {step === 'edit-customer' && selectedCustomer && <CustomerEditForm key={selectedCustomer.id} customer={selectedCustomer} onCancel={closeModal} onSuccess={closeModal} />}
+      <Modal open={creating} onClose={closeCreate} title="Cadastrar novo cliente" description="Informe os dados do cliente.">
+        {creating && <CustomerForm onCancel={closeCreate} onSubmit={handleSubmitCreateCustomer} />}
       </Modal>
+
+      <CustomerEditModal customer={editing} onClose={() => setEditing(null)} />
     </Page>
   );
 }

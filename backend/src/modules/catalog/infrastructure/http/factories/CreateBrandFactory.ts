@@ -3,8 +3,5 @@ import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositori
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 
 export function makeCreateBrandUseCase() {
-  const repository = new PrismaBrandRepository();
-  const transactionManager = new PrismaTransactionManager();
-
-  return new CreateBrandUseCase(repository, transactionManager);
+  return new CreateBrandUseCase(new PrismaBrandRepository(), new PrismaTransactionManager());
 }

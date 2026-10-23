@@ -1,13 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
+import { productQueryKeys } from "../config/queryKeys";
 import { getProductVariants } from "../services/productService";
 
-export function useProductVariants(productId: string) {
+export const VARIANTS_PAGE_SIZE = 10;
+
+export function useProductVariants(productId: string, page = 1, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: ["products", productId, "variants"],
+    queryKey: [...productQueryKeys.variants(productId), page],
 
-    queryFn: () => getProductVariants(productId),
+    queryFn: () => getProductVariants(productId, { page, limit: VARIANTS_PAGE_SIZE }),
 
-    enabled: !!productId,
+    enabled: !!productId && enabled,
+
+    placeholderData: keepPreviousData,
   });
 }

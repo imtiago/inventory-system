@@ -1,7 +1,7 @@
-export interface ICustomerDTO {
+export interface CustomerDTO {
   id: string;
-  name: string;
   code: string;
+  name: string;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -15,18 +15,14 @@ export interface ICreateCustomerInput {
   address?: string | null;
 }
 
-export interface IUpdateCustomerInput {
-  name: string;
+/** Atualização parcial: só as chaves presentes são gravadas; `null` limpa o campo. */
+export interface CustomerPatch {
+  name?: string;
   email?: string | null;
   phone?: string | null;
   address?: string | null;
 }
 
-export interface ICustomerOutput {
+export interface IUpdateCustomerInput extends CustomerPatch {
   id: string;
-  name: string;
-  code: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
 }

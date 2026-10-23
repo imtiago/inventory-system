@@ -1,8 +1,6 @@
 import { GetBrandByIdUseCase } from "@catalog/application/useCases/queries/GetBrandByIdUseCase";
-import { PrismaBrandRepository } from "@catalog/infrastructure/prisma/repositories/PrismaBrandRepository";
+import { PrismaBrandReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaBrandReadRepository";
 
 export function makeGetBrandByIdUseCase() {
-  const repository = new PrismaBrandRepository();
-
-  return new GetBrandByIdUseCase(repository);
+  return new GetBrandByIdUseCase(new PrismaBrandReadRepository());
 }

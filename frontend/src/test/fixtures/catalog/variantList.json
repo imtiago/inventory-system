@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "id": "5b3e4c9a-1d6f-4a43-8c8b-3e4f5a6b7c82",
+      "productId": "3f1c2a7e-9b4d-4e21-8a6f-1c2d3e4f5a60",
+      "code": "V000201",
+      "name": "Padrão",
+      "barcode": "7891234567890",
+      "salePrice": 129.9,
+      "createdAt": "2026-10-23T12:00:00.000Z"
+    },
+    {
+      "id": "6c4f5d0b-2e7a-4b54-9d9c-4f5a6b7c8d93",
+      "productId": "3f1c2a7e-9b4d-4e21-8a6f-1c2d3e4f5a60",
+      "code": "V000202",
+      "name": "Refil",
+      "barcode": null,
+      "salePrice": 99.5,
+      "createdAt": "2026-10-23T12:05:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 10, "total": 2, "totalPages": 1 }
+}

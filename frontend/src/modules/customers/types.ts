@@ -2,9 +2,10 @@ export interface ICustomer {
   id: string;
   name: string;
   code: string;
-  email?: string;
-  phone?: string;
-  address?: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  createdAt: string;
 }
 export interface CustomerListResponse {
   data: ICustomer[];
@@ -23,3 +24,6 @@ export interface ICreateCustomerDTO {
   phone?: string | null;
   address?: string | null;
 }
+
+/** PATCH body: only changed fields; null clears an optional field. */
+export type UpdateCustomerInput = Partial<ICreateCustomerDTO>;

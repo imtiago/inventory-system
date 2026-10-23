@@ -19,7 +19,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={createTestQueryClient()}>{children}</QueryClientProvider>
 );
 
-const PRODUCT = { id: 'p-1', input: { name: 'x', sku: 'y' } };
+const PRODUCT = { id: 'p-1', input: { name: 'x' } };
 
 describe('useDeleteProduct / useUpdateProduct', () => {
   beforeEach(() => vi.clearAllMocks());

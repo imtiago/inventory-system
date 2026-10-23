@@ -1,39 +1,25 @@
 import { BrandReadRepository } from "@catalog/application/contracts/BrandReadRepository";
-import { BrandListDTO } from "@catalog/application/dto/BrandDTO";
+import { NameSearchFilters } from "@catalog/application/contracts/NameSearchFilters";
+import { BrandDTO } from "@catalog/application/dto/BrandDTO";
 import { BrandReadMapper } from "@catalog/application/mappers/BrandReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
-import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
-import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { listWithProductsCount } from "../brandCategorySql";
 
 export class PrismaBrandReadRepository implements BrandReadRepository {
-  async list(
-    pagination: PaginationRequest,
-  ): Promise<PaginatedResult<BrandListDTO>> {
-    const paginationOptions = buildPagination(pagination);
-
-    const [brands, total] = await Promise.all([
-      getDb().brand.findMany({
-        ...paginationOptions,
-        orderBy: {
-          name: "asc",
-        },
-      }),
-      getDb().brand.count(),
-    ]);
-
-    const dt = brands.map((brand) => BrandReadMapper.toDTO(brand));
-    return buildPaginatedResult(dt, total, pagination);
+  async list(pagination: PaginationRequest, filters?: NameSearchFilters): Promise<PaginatedResult<BrandDTO>> {
+    const result = await listWithProductsCount("brand", pagination, filters?.search);
+    return { ...result, data: result.data.map(BrandReadMapper.toDTO) };
   }
 
-  async getById(id: string): Promise<BrandListDTO | null> {
+  async getById(id: string): Promise<BrandDTO | null> {
     const brand = await getDb().brand.findUnique({
       where: { id },
+      select: { id: true, name: true, _count: { select: { products: true } } },
     });
-
-    if (!brand) return null;
-
-    return BrandReadMapper.toDTO(brand);
+    return brand
+      ? BrandReadMapper.toDTO({ id: brand.id, name: brand.name, productsCount: brand._count.products })
+      : null;
   }
 }

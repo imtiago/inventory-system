@@ -1,37 +1,27 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateProduct } from "../services/productService";
-import { toast } from "sonner";
-import { handleMutationError } from "@/shared/utils/mutation";
+import { useCrudMutation } from "@/shared/react-query/useCrudMutation";
 
-interface UpdateInput {
+import { productMessages } from "../config/messages";
+import { productQueryKeys } from "../config/queryKeys";
+import { updateProduct } from "../services/productService";
+import type { UpdateProductInput } from "../types";
+
+interface UpdateVariables {
   id: string;
-  input: {
-    name: string;
-    sku: string;
-    brandId?: string;
-    categoryId?: string;
-  };
+  input: UpdateProductInput;
 }
 
-export const useUpdateProduct = () => {
-  const queryClient = useQueryClient();
+/** `silentError` lets a form render backend errors itself instead of a toast. */
+export function useUpdateProduct({ silentError = false }: { silentError?: boolean } = {}) {
+  return useCrudMutation({
+    mutationFn: ({ id, input }: UpdateVariables) => updateProduct(id, input),
 
-  return useMutation({
-    mutationFn: async ({ id, input }: UpdateInput) => {
-      // Garante que sempre envia objeto no body
-      if (!input || Object.keys(input).length === 0) {
-        throw new Error("Dados do produto inválidos");
-      }
-      return await updateProduct(id, input);
-    },
+    // The "products" prefix covers the list, the detail and the variants queries.
+    invalidateKeys: [productQueryKeys.products],
 
-    onSuccess: () => {
-      toast.success("Produto atualizado");
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    },
+    successMessage: productMessages.product.updated,
 
-    onError: (error) => {
-      handleMutationError(error, "Erro ao atualizar produto");
-    },
+    errorMessage: "Erro ao atualizar produto.",
+
+    silentError,
   });
-};
+}

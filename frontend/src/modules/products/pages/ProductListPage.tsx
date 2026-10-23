@@ -1,57 +1,168 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { LoaderCircle, Plus, Search } from "lucide-react";
 
-import { CrudHeader, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from "@/shared/components/crud";
+import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
+import { DataTable } from "@/shared/components/table";
+import { Section } from "@/shared/components/details/Section";
+import { Page } from "@/shared/components/layout/Page";
+import { Can } from "@/shared/auth/Can";
+import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
 
-import { DataTable } from '@/shared/components/table';
+import { useBrands } from "@/modules/brands/hooks/useBrands";
+import { useCategories } from "@/modules/categories/hooks/useCategories";
 
-import { useProducts } from '../hooks/useProducts';
-import { useProductColumns } from '../hooks/useProductColumns';
-import { Section } from '@/shared/components/details/Section';
-import { Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Page } from '@/shared/components/layout/Page';
+import { useProducts } from "../hooks/useProducts";
+import { useDeleteProduct } from "../hooks/useDeleteProduct";
+import { useProductColumns } from "../hooks/useProductColumns";
+import type { Product } from "../types";
+
+const PAGE_SIZE = 10;
 
 export function ProductListPage() {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [brandId, setBrandId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const { data, isLoading, isFetching } = useProducts(page);
+  const debouncedSearch = useDebouncedValue(search, 300);
 
-  const columns = useProductColumns();
+  const { data, isLoading, isFetching, isError } = useProducts({
+    page,
+    limit: PAGE_SIZE,
+    search: debouncedSearch,
+    brandId,
+    categoryId,
+  });
+
+  const { data: brands = [] } = useBrands();
+  const { data: categories = [] } = useCategories();
+
+  const deleteProduct = useDeleteProduct();
+
+  const columns = useProductColumns({ onDelete: setProductToDelete });
+
+  const pagination = data?.pagination;
+
+  async function handleDelete() {
+    if (!productToDelete) return;
+
+    try {
+      await deleteProduct.mutateAsync(productToDelete.id);
+
+      // Deleting the last item of the last page leaves that page empty.
+      if (page > 1 && (data?.data.length ?? 0) === 1) setPage(page - 1);
+    } catch {
+      // useDeleteProduct already shows the backend message.
+    } finally {
+      setProductToDelete(null);
+    }
+  }
 
   return (
     <Page>
-      {/* <CrudHeader
-        title="Produtos"
-        description="Gerencie seu catálogo"
-        createPath="/products/new"
-        createLabel="Novo Produto"
-        loading={isFetching}
-      /> */}
-
       <Section
-        title={`Produtos (${data?.data.length})`}
-        description="Unidades comercializadas deste produto"
+        title={pagination ? `Produtos (${pagination.total})` : "Produtos"}
+        description="Gerencie seu catálogo"
         actions={
-          <Link to={`/products/new`} className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
-            <Plus size={18} />
-            Novo Produto
-          </Link>
+          <Can permission="catalog.write">
+            <Link to="/products/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
+              <Plus size={18} />
+              Novo Produto
+            </Link>
+          </Can>
         }
       >
-        {' '}
-        {/* Área da tabela */}
-        <div className="flex-1 overflow-y-auto">
-          <DataTable data={data?.data ?? []} columns={columns} getRowId={(product) => product.id} />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-col gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:max-w-sm">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={search}
+                maxLength={120}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Buscar por nome, código ou código de barras..."
+                aria-label="Buscar produtos"
+                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none focus:border-gray-400"
+              />
+            </div>
+
+            <select
+              aria-label="Filtrar por marca"
+              value={brandId}
+              onChange={(event) => {
+                setBrandId(event.target.value);
+                setPage(1);
+              }}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
+            >
+              <option value="">Todas as marcas</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Filtrar por categoria"
+              value={categoryId}
+              onChange={(event) => {
+                setCategoryId(event.target.value);
+                setPage(1);
+              }}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
+            >
+              <option value="">Todas as categorias</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {isError ? (
+              <div className="p-6 text-center font-medium text-red-600">Não foi possível carregar os produtos.</div>
+            ) : isLoading ? (
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+                <LoaderCircle size={20} className="animate-spin" />
+                Carregando produtos...
+              </div>
+            ) : (
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(product) => product.id} />
+            )}
+          </div>
+
+          {isFetching && !isLoading && (
+            <div className="border-t border-gray-100 px-5 py-2 text-xs text-gray-500">Atualizando resultados...</div>
+          )}
+
+          <CrudPagination
+            page={pagination?.page ?? page}
+            totalPages={pagination?.totalPages ?? 1}
+            totalItems={pagination?.total ?? 0}
+            onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+            onNext={() => setPage((current) => Math.min(pagination?.totalPages ?? 1, current + 1))}
+          />
         </div>
-        {/* Paginação fixa */}
-        <CrudPagination
-          page={data?.pagination.page ?? 1}
-          totalPages={data?.pagination.totalPages ?? 1}
-          totalItems={data?.pagination.total ?? 0}
-          onPrevious={() => setPage((p) => Math.max(1, p - 1))}
-          onNext={() => setPage((p) => Math.min(data?.pagination.totalPages ?? 1, p + 1))}
-        />
       </Section>
+
+      <ConfirmDialog
+        open={!!productToDelete}
+        title="Excluir produto"
+        description={`Deseja realmente excluir o produto "${productToDelete?.name}"?`}
+        loading={deleteProduct.isPending}
+        onCancel={() => setProductToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </Page>
   );
 }

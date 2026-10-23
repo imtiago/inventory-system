@@ -11,6 +11,7 @@ export function useCreateCustomer() {
 
     successMessage: customerMessages.created,
 
-    errorMessage: 'Erro ao cadastrar Cliente.',
+    // CustomerForm displays errors itself.
+    silentError: true,
   });
 }

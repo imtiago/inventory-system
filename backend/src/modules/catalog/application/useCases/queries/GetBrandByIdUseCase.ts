@@ -1,13 +1,13 @@
-import { IBrandOutput } from "@catalog/application/dto/BrandDTO";
-import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
+import { BrandReadRepository } from "@catalog/application/contracts/BrandReadRepository";
+import { BrandDTO } from "@catalog/application/dto/BrandDTO";
+import { brandNotFound } from "@catalog/domain/errors/brandCategoryErrors";
 
 export class GetBrandByIdUseCase {
-  constructor(private repository: BrandRepository) {}
+  constructor(private repository: BrandReadRepository) {}
 
-  async execute(id: string): Promise<IBrandOutput | null> {
-    const data = await this.repository.findById(id);
-    if (!data) return null;
-
-    return { id: data.id, name: data.name };
+  async execute(id: string): Promise<BrandDTO> {
+    const brand = await this.repository.getById(id);
+    if (!brand) throw brandNotFound();
+    return brand;
   }
 }

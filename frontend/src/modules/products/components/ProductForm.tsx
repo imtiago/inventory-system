@@ -61,9 +61,10 @@ export function ProductForm({
 
           <div className="space-y-4">
             <div>
-              <label className="block mb-1">Nome</label>
+              <label htmlFor="product-name" className="block mb-1">Nome</label>
 
               <input
+                id="product-name"
                 {...register("name")}
                 className="w-full border rounded-lg p-3"
               />
@@ -71,9 +72,10 @@ export function ProductForm({
             </div>
 
             <div>
-              <label className="block mb-1">Descrição</label>
+              <label htmlFor="product-description" className="block mb-1">Descrição</label>
 
               <textarea
+                id="product-description"
                 {...register("description")}
                 rows={4}
                 className="w-full border rounded-lg p-3"
@@ -88,9 +90,10 @@ export function ProductForm({
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block mb-1">Marca</label>
+              <label htmlFor="product-brandId" className="block mb-1">Marca</label>
 
               <select
+                id="product-brandId"
                 {...register("brandId")}
                 className="w-full border rounded-lg p-3"
               >
@@ -106,9 +109,10 @@ export function ProductForm({
             </div>
 
             <div>
-              <label className="block mb-1">Categoria</label>
+              <label htmlFor="product-categoryId" className="block mb-1">Categoria</label>
 
               <select
+                id="product-categoryId"
                 {...register("categoryId")}
                 className="w-full border rounded-lg p-3"
               >

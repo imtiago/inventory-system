@@ -1,21 +1,23 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCrudMutation } from "@/shared/react-query/useCrudMutation";
+
+import { productMessages } from "../config/messages";
+import { productQueryKeys } from "../config/queryKeys";
 import { deleteProduct } from "../services/productService";
-import { toast } from "sonner";
-import { handleMutationError } from "@/shared/utils/mutation";
 
-export const useDeleteProduct = () => {
-  const queryClient = useQueryClient();
+// Backend errors (e.g. 409 PRODUCT_IN_USE) are shown once, as a toast with the backend message.
+export function useDeleteProduct() {
+  return useCrudMutation({
+    mutationFn: (id: string) => deleteProduct(id),
 
-  return useMutation({
-    mutationFn: deleteProduct,
-
-    onSuccess: () => {
-      toast.success("Produto excluído com sucesso");
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    // The deleted product's detail/variants queries must not be refetched (they would 404).
+    onSettledCache(queryClient, id) {
+      queryClient.removeQueries({ queryKey: productQueryKeys.product(id) }); // includes its variants
     },
 
-    onError: (error) => {
-      handleMutationError(error, "Erro ao excluir produto");
-    },
+    invalidateKeys: [productQueryKeys.products],
+
+    successMessage: productMessages.product.deleted,
+
+    errorMessage: "Erro ao excluir produto.",
   });
-};
+}

@@ -5,12 +5,16 @@ import { salesRoutes } from "@/modules/sales/routes";
 import { receivablesRoutes } from "@/modules/receivables/routes";
 import { dashboardRoutes } from "@/modules/dashboard/routes";
 import { usersRoutes } from "@/modules/users/routes";
+import { brandRoutes } from "@/modules/brands/routes";
+import { categoryRoutes } from "@/modules/categories/routes";
 import { customersRoutes } from "@/modules/customers/config/routes";
 
 /** Authenticated routes; order defines the menu order. New modules (e.g. /users) just add their config here. */
 export const allRoutes: AppRoute[] = [
   ...dashboardRoutes,
   ...productRoutes,
+  ...brandRoutes,
+  ...categoryRoutes,
   ...salesRoutes,
   ...customersRoutes,
   ...inventoryRoutes,

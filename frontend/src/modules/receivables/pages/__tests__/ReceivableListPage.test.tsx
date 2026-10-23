@@ -116,7 +116,7 @@ describe('ReceivableListPage filtros (revisão)', () => {
   }
 
   test('bookmark com customerId mostra o nome do cliente e permite limpar', async () => {
-    server.use(http.get(`${API_URL}/customers/c-9`, () => HttpResponse.json({ id: 'c-9', name: 'Fulana de Tal', code: 'CLI-9' })));
+    server.use(http.get(`${API_URL}/customers/c-9`, () => HttpResponse.json({ data: { id: 'c-9', name: 'Fulana de Tal', code: 'CLI-9' } })));
     const urls = track();
     renderWithProviders(<ReceivableListPage />, { route: '/receivables?customerId=c-9' });
     expect(await screen.findByDisplayValue('Fulana de Tal')).toBeInTheDocument();
