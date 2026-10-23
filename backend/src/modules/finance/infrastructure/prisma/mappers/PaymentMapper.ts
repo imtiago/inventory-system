@@ -1,40 +1,45 @@
 import { Payment } from "@finance/domain/entities/Payment";
+import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
+import { fromDateOnly, toDateOnly } from "@finance/domain/services/receivableStatus";
+import { fromCents, toCents } from "@shared/domain/money";
 import { Payment as PrismaPayment, Prisma } from "@prisma/client";
 
 export class PaymentMapper {
-  // Banco -> Domínio
   static toDomain(prisma: PrismaPayment): Payment {
     return new Payment({
       id: prisma.id,
       parcelId: prisma.parcelId,
-      amount: Number(prisma.amount),
-      method: prisma.method,
-      paymentDate: prisma.paymentDate,
+      amountCents: toCents(Number(prisma.amount)),
+      method: prisma.method as PaymentMethod,
+      reference: prisma.reference,
+      paymentDate: toDateOnly(prisma.paymentDate),
+      createdById: prisma.createdById,
+      createdAt: prisma.createdAt,
+      reversedAt: prisma.reversedAt,
+      reversedById: prisma.reversedById,
+      reversalReason: prisma.reversalReason,
     });
   }
 
-  // Domínio -> Banco (Create)
-  static toCreatePersistence(payment: Payment): Prisma.PaymentCreateInput {
+  static toCreatePersistence(payment: Payment): Prisma.PaymentUncheckedCreateInput {
     return {
       id: payment.id,
-      amount: payment.amount,
+      parcelId: payment.parcelId,
+      amount: fromCents(payment.amountCents),
       method: payment.method,
-      paymentDate: payment.paymentDate,
-
-      parcel: {
-        connect: {
-          id: payment.parcelId,
-        },
-      },
+      reference: payment.reference,
+      paymentDate: fromDateOnly(payment.paymentDate),
+      createdById: payment.createdById,
+      createdAt: payment.createdAt,
     };
   }
 
-  // Domínio -> Banco (Update)
-  static toUpdatePersistence(payment: Payment): Prisma.PaymentUpdateInput {
+  /** Só o estorno é mutável. */
+  static toReversalPersistence(payment: Payment): Prisma.PaymentUncheckedUpdateInput {
     return {
-      amount: payment.amount,
-      method: payment.method,
-      paymentDate: payment.paymentDate,
+      reversedAt: payment.reversedAt,
+      reversedById: payment.reversedById,
+      reversalReason: payment.reversalReason,
     };
   }
 }

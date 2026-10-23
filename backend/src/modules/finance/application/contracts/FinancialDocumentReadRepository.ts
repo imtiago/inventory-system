@@ -1,19 +1,16 @@
-// application/queries/ProductQuery.ts
-
-import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { FinancialDocumentDTO } from "../dto/FinancialDocumentDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import {
+  ReceivableDetailDTO,
+  ReceivableListFilters,
+  ReceivableListResult,
+} from "../dto/ReceivableReadDTO";
 
 export interface FinancialDocumentReadRepository {
+  /** Lista filtrada, ordenada (próximo vencimento em aberto; pagos/cancelados por último) e com resumo. */
   listReceivables(
+    filters: ReceivableListFilters,
     pagination: PaginationRequest,
-  ): Promise<PaginatedResult<FinancialDocumentDTO>>;
-  listPayables(
-    pagination: PaginationRequest,
-  ): Promise<PaginatedResult<FinancialDocumentDTO>>;
-  list(
-    pagination: PaginationRequest,
-  ): Promise<PaginatedResult<FinancialDocumentDTO>>;
-
-  // getById(id: string): Promise<ProductListDTO | null>;
+    today: string,
+  ): Promise<ReceivableListResult>;
+  getReceivableById(id: string, today: string): Promise<ReceivableDetailDTO | null>;
 }

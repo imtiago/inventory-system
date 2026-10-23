@@ -1,6 +1,7 @@
 import {
   FinancialDocument as PrismaFinancialDocument,
   FinancialParcel as PrismaFinancialParcel,
+  Payment as PrismaPayment,
   Prisma,
 } from "@prisma/client";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
@@ -13,7 +14,7 @@ import { FinancialDocument } from "@finance/domain/entities/FinancialDocument";
 export class FinancialDocumentMapper {
   static toDomain(
     prisma: PrismaFinancialDocument & {
-      parcels?: PrismaFinancialParcel[];
+      parcels?: (PrismaFinancialParcel & { payments?: PrismaPayment[] })[];
     },
   ): FinancialDocument {
     return new FinancialDocument({
@@ -25,7 +26,7 @@ export class FinancialDocumentMapper {
       partyType: prisma.partyType as FinancialPartyType,
       status: prisma.status as FinancialStatus,
       createdAt: prisma.createdAt,
-      parcels: prisma.parcels?.map(FinancialParcelMapper.toDomain) ?? [],
+      parcels: prisma.parcels?.map((p) => FinancialParcelMapper.toDomain(p)) ?? [],
     });
   }
 

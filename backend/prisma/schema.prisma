@@ -301,14 +301,16 @@ model Customer {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  name           String
-  email          String          @unique
-  password       String
-  role           UserRole
-  createdAt      DateTime        @default(now())
-  stockMovements StockMovement[]
-  sales          Sale[]
+  id               String          @id @default(uuid())
+  name             String
+  email            String          @unique
+  password         String
+  role             UserRole
+  createdAt        DateTime        @default(now())
+  stockMovements   StockMovement[]
+  sales            Sale[]
+  paymentsCreated  Payment[]       @relation("paymentsCreated")
+  paymentsReversed Payment[]       @relation("paymentsReversed")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -361,6 +363,14 @@ model Payment {
   paymentDate DateTime @default(now())
 
   createdAt DateTime @default(now())
+
+  createdById String?
+  createdBy   User?   @relation("paymentsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  reversedAt     DateTime?
+  reversedById   String?
+  reversedBy     User?     @relation("paymentsReversed", fields: [reversedById], references: [id], onDelete: SetNull)
+  reversalReason String?
 
   parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Cascade)
 }

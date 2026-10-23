@@ -1,85 +1,72 @@
 import { Payment } from "./Payment";
 import { ParcelStatus } from "../enums/ParcelStatus";
+import { FinancialStatus } from "../enums/FinancialStatus";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { parcelStatus, remainingCents } from "../services/receivableStatus";
 
 export class FinancialParcel extends BaseEntity {
-  private _financialDocumentId: string;
-  private _amount: number;
-  private _dueDate: Date;
-
-  private _payments: Payment[];
-
-  // private _paidAt: Date | null;
+  private readonly _financialDocumentId: string;
+  private readonly _amountCents: number;
+  /** Vencimento "YYYY-MM-DD". */
+  private readonly _dueDate: string;
+  private readonly _payments: Payment[];
 
   constructor(props: {
     id?: string;
-    amount: number;
-    dueDate: Date;
+    amountCents: number;
+    dueDate: string;
     financialDocumentId: string;
     payments?: Payment[];
     createdAt?: Date;
-
-    // paidAt?: Date | null;
   }) {
     super({
       id: props.id,
       createdAt: props.createdAt,
     });
-    this._amount = props.amount;
-
+    this._amountCents = props.amountCents;
     this._dueDate = props.dueDate;
     this._financialDocumentId = props.financialDocumentId;
     this._payments = props.payments ?? [];
-
-    // this._paidAt = props.paidAt ?? null;
   }
 
-  get amount() {
-    return this._amount;
+  get amountCents() {
+    return this._amountCents;
   }
 
   get dueDate() {
     return this._dueDate;
   }
+
   get financialDocumentId() {
     return this._financialDocumentId;
   }
 
-  get paidAmount() {
-    return this._payments.reduce((total, payment) => total + payment.amount, 0);
-  }
-
-  get remainingAmount() {
-    return this.amount - this.paidAmount;
-  }
-
-  get payments() {
+  get payments(): readonly Payment[] {
     return this._payments;
   }
 
+  /** Soma dos pagamentos não estornados. */
+  get paidCents(): number {
+    return this._payments.reduce((total, p) => (p.isReversed ? total : total + p.amountCents), 0);
+  }
+
+  get remainingCents(): number {
+    return remainingCents(this);
+  }
+
   isPaid(): boolean {
-    return this.paidAmount >= this.amount;
+    return this.paidCents >= this._amountCents;
   }
 
-  isOverdue(): boolean {
-    return !this.isPaid() && new Date() > this.dueDate;
+  /** Status na data de negócio `today`; documento CANCELED → CANCELED. */
+  status(today: string, documentStatus: FinancialStatus = FinancialStatus.OPEN): ParcelStatus {
+    return parcelStatus(
+      { amountCents: this._amountCents, paidCents: this.paidCents, dueDate: this._dueDate, documentStatus },
+      today,
+    );
   }
 
-  get status() {
-    if (this.isPaid()) return ParcelStatus.PAID;
-
-    if (this.paidAmount > 0) return ParcelStatus.PARTIALLY_PAID;
-
-    if (this.isOverdue()) return ParcelStatus.OVERDUE;
-
-    return ParcelStatus.OPEN;
+  addPayment(payment: Payment): void {
+    this._payments.push(payment);
   }
-
-  // get paidAt() {
-  //   return this._paidAt;
-  // }
-
-  // pay(): void {
-  //   this._paidAt = new Date();
-  // }
 }

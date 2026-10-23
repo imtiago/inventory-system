@@ -5,6 +5,8 @@ import { FinancialPartyType } from "../enums/FinancialPartyType";
 import { FinancialOriginType } from "../enums/FinancialOriginType";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { ParcelStatus } from "../enums/ParcelStatus";
+import { documentStatusFor } from "../services/receivableStatus";
 
 export class FinancialDocument extends BaseEntity {
   private _type: FinancialType;
@@ -67,8 +69,26 @@ export class FinancialDocument extends BaseEntity {
     return this._parcels;
   }
 
-  get totalAmount(): number {
-    return this._parcels.reduce((total, parcel) => total + parcel.amount, 0);
+  get totalCents(): number {
+    return this._parcels.reduce((total, parcel) => total + parcel.amountCents, 0);
+  }
+
+  get paidCents(): number {
+    return this._parcels.reduce((total, parcel) => total + parcel.paidCents, 0);
+  }
+
+  get remainingCents(): number {
+    return this._parcels.reduce((total, parcel) => total + parcel.remainingCents, 0);
+  }
+
+  /** Status da parcela considerando o documento (CANCELED → todas CANCELED). */
+  parcelStatus(parcel: FinancialParcel, today: string): ParcelStatus {
+    return parcel.status(today, this._status);
+  }
+
+  /** Recalcula o status a partir dos pagamentos ativos (exige parcelas com pagamentos carregados). */
+  recalculateStatus(): void {
+    this._status = documentStatusFor(this._status, this._parcels);
   }
 
   get status(): FinancialStatus {

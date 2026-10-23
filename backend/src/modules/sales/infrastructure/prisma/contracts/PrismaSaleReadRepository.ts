@@ -55,7 +55,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
             id: true,
             amount: true,
             dueDate: true,
-            payments: { select: { amount: true } },
+            payments: { select: { amount: true, reversedAt: true } },
           },
           orderBy: [{ dueDate: "asc" }, { id: "asc" }],
         },

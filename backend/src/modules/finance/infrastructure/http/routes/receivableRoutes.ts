@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { authorize } from "@shared/middleware/authorize";
 import { makeListReceivablesController } from "../controllers/ListReceivablesController";
+import { makeGetReceivableController } from "../controllers/GetReceivableController";
 
 export async function receivableRoutes(app: FastifyInstance) {
   // Contas a receber são criadas pelos fluxos de origem (ex.: venda), não por rota própria.
@@ -8,5 +9,10 @@ export async function receivableRoutes(app: FastifyInstance) {
     "/",
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeListReceivablesController(),
+  );
+  app.get(
+    "/:id",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeGetReceivableController(),
   );
 }
