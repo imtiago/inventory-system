@@ -23,7 +23,7 @@ function renderSidebar(role: UserRole, client = createTestQueryClient()) {
   return client;
 }
 
-const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Financeiro', 'Contas a receber'];
+const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra', 'Financeiro', 'Contas a receber'];
 
 function visible() {
   return labels.filter((l) => screen.queryByText(l));
@@ -41,15 +41,22 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: /Alterar senha/ })).toBeInTheDocument();
   });
 
-  test('VENDEDOR vê tudo exceto Usuários', () => {
+  test('VENDEDOR vê tudo exceto Usuários e Compras', () => {
     renderSidebar('VENDEDOR');
-    expect(visible()).toEqual(labels);
+    expect(visible()).toEqual(labels.filter((l) => !['Compras', 'Fornecedores', 'Pedidos de compra'].includes(l)));
     expect(screen.queryByText('Usuários')).not.toBeInTheDocument();
   });
 
-  test('ESTOQUISTA sem Vendas/Clientes/Financeiro', () => {
+  test('VENDEDOR não vê Compras', () => {
+    renderSidebar('VENDEDOR');
+    expect(screen.queryByText('Compras')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fornecedores')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pedidos de compra')).not.toBeInTheDocument();
+  });
+
+  test('ESTOQUISTA vê Compras, sem Vendas/Clientes/Financeiro', () => {
     renderSidebar('ESTOQUISTA');
-    expect(visible()).toEqual(['Dashboard', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias']);
+    expect(visible()).toEqual(['Dashboard', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra']);
   });
 
   test('logout limpa o cache e a sessão: próximo usuário não vê dados do anterior', async () => {

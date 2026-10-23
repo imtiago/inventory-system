@@ -3,6 +3,8 @@ import { productRoutes } from "@/modules/products/config/routes";
 import { inventoryRoutes } from "@/modules/inventory/config/routes";
 import { salesRoutes } from "@/modules/sales/routes";
 import { receivablesRoutes } from "@/modules/receivables/routes";
+import { supplierRoutes } from "@/modules/suppliers/routes";
+import { purchaseRoutes } from "@/modules/purchases/routes";
 import { dashboardRoutes } from "@/modules/dashboard/routes";
 import { usersRoutes } from "@/modules/users/routes";
 import { brandRoutes } from "@/modules/brands/routes";
@@ -18,6 +20,8 @@ export const allRoutes: AppRoute[] = [
   ...salesRoutes,
   ...customersRoutes,
   ...inventoryRoutes,
+  ...supplierRoutes,
+  ...purchaseRoutes,
   ...receivablesRoutes,
   ...usersRoutes,
 ];
