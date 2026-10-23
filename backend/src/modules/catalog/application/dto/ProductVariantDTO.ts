@@ -19,6 +19,7 @@ export interface ICreateVariantInput {
   name: string;
   // sku: string;
   barcode?: string;
+  salePrice?: number;
 }
 
 export interface IDeleteProductVariantInput {

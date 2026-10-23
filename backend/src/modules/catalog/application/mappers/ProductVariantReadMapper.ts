@@ -8,7 +8,7 @@ export class ProductVariantReadMapper {
       code: data.code,
       name: data.name,
       productId: data.product.id,
-      salePrice: data.salePrice,
+      salePrice: Number(data.salePrice),
       createdAt: data.createdAt,
     };
   }
