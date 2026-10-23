@@ -16,6 +16,7 @@ import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 const FIXTURES_DIR = new URL("../../../../../../../frontend/src/test/fixtures/sales/", import.meta.url);
 
@@ -44,7 +45,7 @@ describe("HTTP de vendas", () => {
       method,
       url,
       payload: payload as any,
-      headers: { authorization: `Bearer ${token}` },
+      headers: withIdempotencyKey(method, { authorization: `Bearer ${token}` }),
     });
 
   // Variante com preço e estoque recebido (lote manual).

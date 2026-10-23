@@ -9,6 +9,7 @@ import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { randomCpf } from "../../../../../test/documentFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -36,7 +37,7 @@ describe("Recebimento de pedidos de compra (POST /purchases/:id/receipts)", () =
   const purchaseIds: string[] = [];
 
   const call = (method: "GET" | "POST", url: string, user: TestUser, payload?: object) =>
-    app.inject({ method, url, headers: { authorization: `Bearer ${user.token}` }, payload });
+    app.inject({ method, url, headers: withIdempotencyKey(method, { authorization: `Bearer ${user.token}` }), payload });
 
   const freshVariant = async () => {
     const { variantId, cleanup } = await createTestVariant();

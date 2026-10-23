@@ -38,6 +38,12 @@ export const makeDiscardNfeImportUseCase = () =>
  * Confirmação: transação com prazo maior (cria catálogo, pedido, contas a pagar e estoque de uma vez);
  * lock_timeout maior para a confirmação concorrente esperar a primeira e responder NFE_IMPORT_CONFIRMED.
  */
+/**
+ * Tempos da transação da confirmação (nota grande, travas de estoque). Também
+ * usados pela rota idempotente, cuja transação externa engloba a confirmação.
+ */
+export const CONFIRM_NFE_TRANSACTION_OPTIONS = { timeout: 30_000, lockTimeoutMs: 15_000 } as const;
+
 export const makeConfirmNfeImportUseCase = () =>
   new ConfirmNfeImportUseCase(
     new PrismaNfeImportRepository(),
@@ -48,5 +54,5 @@ export const makeConfirmNfeImportUseCase = () =>
     makePurchaseCreator(),
     makeReceivePurchaseUseCase(),
     new PrismaNfeLotLookup(),
-    new PrismaTransactionManager({ timeout: 30_000, lockTimeoutMs: 15_000 }),
+    new PrismaTransactionManager(CONFIRM_NFE_TRANSACTION_OPTIONS),
   );

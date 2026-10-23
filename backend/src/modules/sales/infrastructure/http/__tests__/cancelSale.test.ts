@@ -11,6 +11,7 @@ import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -31,7 +32,7 @@ describe("POST /sales/:id/cancel", () => {
       method,
       url,
       payload: payload as any,
-      headers: { authorization: `Bearer ${token}` },
+      headers: withIdempotencyKey(method, { authorization: `Bearer ${token}` }),
     });
 
   const receiveLot = async (variantId: string, quantity: number, unitCost: number) => {

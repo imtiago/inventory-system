@@ -1,6 +1,7 @@
 // backend/src/modules/inventory/interfaces/http/routes/inventoryRoutes.ts
 import { FastifyInstance } from "fastify";
 import { authorize } from "../../../../../shared/middleware/authorize";
+import { idempotent } from "@shared/http/idempotency/idempotent";
 // import { makeAddInventoryController } from "../controllers/ReceiveInventoryController";
 // import { makeGetInventoryController } from "../controllers/GetInventoryController";
 import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
@@ -41,32 +42,32 @@ export async function inventoryRoutes(app: FastifyInstance) {
   app.post(
     "/receive",
     { preHandler: [authorize("inventory.write")] },
-    makeReceiveInventoryController(),
+    idempotent(makeReceiveInventoryController()),
   );
   app.post(
     "/dispatch",
     { preHandler: [authorize("inventory.write")] },
-    makeDispatchInventoryController(),
+    idempotent(makeDispatchInventoryController()),
   );
   app.post(
     "/reserve",
     { preHandler: [authorize("inventory.write")] },
-    makeReserveInventoryController(),
+    idempotent(makeReserveInventoryController()),
   );
   app.post(
     "/release",
     { preHandler: [authorize("inventory.write")] },
-    makeReleaseInventoryController(),
+    idempotent(makeReleaseInventoryController()),
   );
   app.post(
     "/adjust",
     { preHandler: [authorize("inventory.write")] },
-    makeAdjustInventoryController(),
+    idempotent(makeAdjustInventoryController()),
   );
   app.post(
     "/initial-count",
     { preHandler: [authorize("inventory.write")] },
-    makeRegisterScannedProductController(),
+    idempotent(makeRegisterScannedProductController()),
   );
   app.get(
     "/dashboard",

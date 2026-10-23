@@ -582,3 +582,32 @@ model SupplierProductMapping {
   @@unique([supplierId, supplierCode])
   @@index([productVariantId])
 }
+
+// Fase 7: chave de idempotência das operações de dinheiro/estoque. Gravada na
+// mesma transação da operação (se ela falha, o registro some junto). Escopo:
+// usuário + método + padrão da rota + chave. Sem FK para User: registros são
+// efêmeros (removidos após 24 h) e não devem bloquear a exclusão de usuários.
+model IdempotencyRecord {
+  id String @id @default(uuid())
+
+  userId String
+
+  method String
+
+  route String
+
+  key String
+
+  requestHash String
+
+  // Preenchidos na mesma transação, antes do commit. `json` (não jsonb):
+  // guarda o texto como veio, então o replay devolve as chaves na mesma ordem.
+  statusCode Int?
+
+  responseBody Json? @db.Json
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, method, route, key])
+  @@index([createdAt])
+}

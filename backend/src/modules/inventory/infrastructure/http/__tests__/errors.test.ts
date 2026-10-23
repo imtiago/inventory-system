@@ -6,6 +6,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -39,7 +40,7 @@ describe("Erros HTTP do estoque", () => {
   });
 
   const call = (method: "GET" | "POST", url: string, payload?: unknown) =>
-    app.inject({ method, url, payload: payload as any, headers: { authorization: `Bearer ${token}` } });
+    app.inject({ method, url, payload: payload as any, headers: withIdempotencyKey(method, { authorization: `Bearer ${token}` }) });
 
   const lotBody = (over: Record<string, unknown> = {}) => ({
     productVariantId: variantId,

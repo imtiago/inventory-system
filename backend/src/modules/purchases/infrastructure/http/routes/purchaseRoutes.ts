@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { authorize } from "@shared/middleware/authorize";
+import { idempotent } from "@shared/http/idempotency/idempotent";
 import {
   makeCancelPurchaseController,
   makeCreatePurchaseController,
@@ -11,7 +12,7 @@ import {
 export async function purchaseRoutes(app: FastifyInstance) {
   app.get("/", { preHandler: [authorize("purchases.read")] }, makeListPurchasesController());
   app.get("/:id", { preHandler: [authorize("purchases.read")] }, makeGetPurchaseController());
-  app.post("/", { preHandler: [authorize("purchases.write")] }, makeCreatePurchaseController());
-  app.post("/:id/cancel", { preHandler: [authorize("purchases.write")] }, makeCancelPurchaseController());
-  app.post("/:id/receipts", { preHandler: [authorize("purchases.receive")] }, makeReceivePurchaseController());
+  app.post("/", { preHandler: [authorize("purchases.write")] }, idempotent(makeCreatePurchaseController()));
+  app.post("/:id/cancel", { preHandler: [authorize("purchases.write")] }, idempotent(makeCancelPurchaseController()));
+  app.post("/:id/receipts", { preHandler: [authorize("purchases.receive")] }, idempotent(makeReceivePurchaseController()));
 }

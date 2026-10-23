@@ -10,6 +10,7 @@ import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { randomCpf } from "../../../../../test/documentFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -46,7 +47,7 @@ describe("Contas a pagar (/payables)", () => {
   const p: Record<string, { purchaseId: string; code: string; documentId: string; parcelIds: string[] }> = {};
 
   const call = (method: "GET" | "POST", url: string, user: TestUser = admin, payload?: object) =>
-    app.inject({ method, url, headers: { authorization: `Bearer ${user.token}` }, payload });
+    app.inject({ method, url, headers: withIdempotencyKey(method, { authorization: `Bearer ${user.token}` }), payload });
 
   /** Pedido de 1 item com o total dado; devolve pedido, código, payable e parcelas (por vencimento). */
   const createPurchase = async (

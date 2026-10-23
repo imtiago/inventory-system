@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { authorize } from "../../../../../shared/middleware/authorize";
+import { idempotent } from "@shared/http/idempotency/idempotent";
 // import { makeAddInventoryController } from "../controllers/ReceiveInventoryController";
 // import { makeRemoveInventoryController } from "../controllers/RemoveInventoryController";
 // import { makeGetInventoryController } from "../controllers/GetInventoryController";
@@ -29,7 +30,7 @@ export async function inventoryBoxRoutes(app: FastifyInstance) {
   app.post(
     "/:boxId/items",
     { preHandler: [authorize("inventory.write")] },
-    makeAddProductToBoxController(),
+    idempotent(makeAddProductToBoxController()),
   );
   app.post(
     "/code/:code/product-labels",

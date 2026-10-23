@@ -6,6 +6,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
 import { createTestUser, TestUser } from "../../../test/authFixtures";
 import { hasPermission, Permission, PERMISSIONS, ROLE_PERMISSIONS } from "../permissions";
+import { withIdempotencyKey } from "../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -154,7 +155,7 @@ describe("matriz por HTTP: papel × rota representativa", () => {
           method: route.method,
           url: route.url,
           payload: route.payload,
-          headers: { authorization: `Bearer ${users[role].token}` },
+          headers: withIdempotencyKey(route.method, { authorization: `Bearer ${users[role].token}` }),
         });
         const expected = MATRIX[permission].includes(role) ? route.allowed : 403;
         if (res.statusCode !== expected) {

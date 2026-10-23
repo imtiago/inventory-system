@@ -11,6 +11,7 @@ import {
   getTestUserId,
 } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 const FIXTURES_DIR = new URL(
   "../../../../../../../frontend/src/test/fixtures/inventory/",
@@ -60,7 +61,7 @@ describe("HTTP de estoque", () => {
       method,
       url,
       payload: payload as any,
-      headers: { authorization: `Bearer ${token}` },
+      headers: withIdempotencyKey(method, { authorization: `Bearer ${token}` }),
     });
 
   const lotBody = (over: Record<string, unknown> = {}) => ({

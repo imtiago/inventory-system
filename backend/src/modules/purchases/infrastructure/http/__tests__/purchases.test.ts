@@ -11,6 +11,7 @@ import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { randomCpf } from "../../../../../test/documentFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -48,7 +49,7 @@ describe("Pedidos de compra (/purchases)", () => {
   const tag = () => `tx-test-${randomUUID()}`;
 
   const call = (method: "GET" | "POST", url: string, user: TestUser, payload?: object) =>
-    app.inject({ method, url, headers: { authorization: `Bearer ${user.token}` }, payload });
+    app.inject({ method, url, headers: withIdempotencyKey(method, { authorization: `Bearer ${user.token}` }), payload });
 
   const createPurchase = async (body: object, user = admin) => {
     const res = await call("POST", "/purchases", user, body);
