@@ -1,50 +1,59 @@
 import { ILoginAttemptLimiter } from "@auth/application/ports/LoginAttemptLimiter";
 
-export const LOGIN_MAX_FAILURES = 10;
+export const LOGIN_MAX_ATTEMPTS = 10;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+export const LOGIN_LIMITER_MAX_ENTRIES = 10_000;
+const PRUNE_EVERY_N_CALLS = 1000;
 
-type Entry = { failures: number; windowStart: number };
+type Entry = { attempts: number; windowStart: number };
 
 /**
  * Limitador em memória (por processo): janela fixa de 15 min contada a partir
- * da primeira falha; bloqueia ao atingir 10 falhas na janela.
+ * da primeira tentativa; no máximo 10 tentativas sem sucesso por janela.
+ * Memória limitada a `maxEntries` chaves (descarta as mais antigas primeiro).
  */
 export class LoginAttemptLimiter implements ILoginAttemptLimiter {
   private readonly entries = new Map<string, Entry>();
-  private readonly maxFailures: number;
+  private readonly maxAttempts: number;
   private readonly windowMs: number;
+  private readonly maxEntries: number;
   private readonly now: () => number;
+  private callsSincePrune = 0;
 
   constructor(
-    opts: { maxFailures?: number; windowMs?: number; now?: () => number } = {},
+    opts: {
+      maxAttempts?: number;
+      windowMs?: number;
+      maxEntries?: number;
+      now?: () => number;
+    } = {},
   ) {
-    this.maxFailures = opts.maxFailures ?? LOGIN_MAX_FAILURES;
+    this.maxAttempts = opts.maxAttempts ?? LOGIN_MAX_ATTEMPTS;
     this.windowMs = opts.windowMs ?? LOGIN_WINDOW_MS;
+    this.maxEntries = opts.maxEntries ?? LOGIN_LIMITER_MAX_ENTRIES;
     this.now = opts.now ?? Date.now;
   }
 
-  private current(key: string): Entry | undefined {
+  get size(): number {
+    return this.entries.size;
+  }
+
+  tryConsume(key: string): boolean {
+    const now = this.now();
+    this.maybePrune(now);
+
     const entry = this.entries.get(key);
-    if (entry && this.now() - entry.windowStart > this.windowMs) {
-      this.entries.delete(key);
-      return undefined;
+    if (entry && now - entry.windowStart <= this.windowMs) {
+      if (entry.attempts >= this.maxAttempts) return false;
+      entry.attempts += 1;
+      return true;
     }
-    return entry;
-  }
 
-  isBlocked(key: string): boolean {
-    const entry = this.current(key);
-    return entry !== undefined && entry.failures >= this.maxFailures;
-  }
-
-  registerFailure(key: string): void {
-    this.pruneExpired();
-    const entry = this.current(key);
-    if (entry) {
-      entry.failures += 1;
-    } else {
-      this.entries.set(key, { failures: 1, windowStart: this.now() });
-    }
+    // Nova janela: reinsere no fim (ordem de inserção = mais antiga primeiro).
+    this.entries.delete(key);
+    this.entries.set(key, { attempts: 1, windowStart: now });
+    this.evictOverflow();
+    return true;
   }
 
   clear(key: string): void {
@@ -54,14 +63,23 @@ export class LoginAttemptLimiter implements ILoginAttemptLimiter {
   /** Zera todos os contadores (uso em testes). */
   reset(): void {
     this.entries.clear();
+    this.callsSincePrune = 0;
   }
 
-  // Evita crescimento ilimitado do mapa com chaves expiradas.
-  private pruneExpired(): void {
-    if (this.entries.size < 1000) return;
-    const now = this.now();
+  // Varredura de expirados no máximo a cada N chamadas.
+  private maybePrune(now: number): void {
+    if (++this.callsSincePrune < PRUNE_EVERY_N_CALLS) return;
+    this.callsSincePrune = 0;
     for (const [key, entry] of this.entries) {
       if (now - entry.windowStart > this.windowMs) this.entries.delete(key);
+    }
+  }
+
+  private evictOverflow(): void {
+    while (this.entries.size > this.maxEntries) {
+      const oldest = this.entries.keys().next().value;
+      if (oldest === undefined) break;
+      this.entries.delete(oldest);
     }
   }
 }

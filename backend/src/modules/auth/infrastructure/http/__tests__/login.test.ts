@@ -80,6 +80,30 @@ describe("POST /auth/login", () => {
     }
   });
 
+  test("20 falhas concorrentes no mesmo IP+e-mail → no máximo 10 respostas 401, o resto 429", async () => {
+    const user = await createTestUser();
+    try {
+      const results = await Promise.all(
+        Array.from({ length: 20 }, () => login(user.email, "senha-errada-123")),
+      );
+      const codes = results.map((r) => r.statusCode);
+      const unauthorized = codes.filter((c) => c === 401).length;
+      const tooMany = codes.filter((c) => c === 429).length;
+      assert.ok(unauthorized <= 10, `401s: ${unauthorized} (${codes.join(",")})`);
+      assert.equal(unauthorized + tooMany, 20, codes.join(","));
+    } finally {
+      await user.cleanup();
+    }
+  });
+
+  test("senha vazia ou acima de 1024 caracteres → 400 VALIDATION_ERROR", async () => {
+    for (const password of ["", "x".repeat(1025)]) {
+      const res = await login(`tx-test-${randomUUID()}@example.com`, password);
+      assert.equal(res.statusCode, 400, res.body);
+      assert.equal(res.json().code, "VALIDATION_ERROR");
+    }
+  });
+
   test("login com sucesso zera o contador e retorna { token, user }", async () => {
     const user = await createTestUser({ role: "VENDEDOR" });
     try {
@@ -119,28 +143,38 @@ describe("POST /auth/login", () => {
 });
 
 describe("LoginAttemptLimiter", () => {
-  test("bloqueia após 10 falhas na janela de 15 min e libera depois dela", () => {
+  test("tryConsume aceita 10 tentativas na janela de 15 min e libera depois dela", () => {
     let now = 1_000_000;
     const limiter = new LoginAttemptLimiter({ now: () => now });
     const key = "1.2.3.4|a@b.com";
-    for (let i = 0; i < 9; i++) limiter.registerFailure(key);
-    assert.equal(limiter.isBlocked(key), false);
-    limiter.registerFailure(key);
-    assert.equal(limiter.isBlocked(key), true);
-    assert.equal(limiter.isBlocked("1.2.3.4|c@d.com"), false);
+    for (let i = 0; i < 10; i++) assert.equal(limiter.tryConsume(key), true, `tentativa ${i + 1}`);
+    assert.equal(limiter.tryConsume(key), false);
+    assert.equal(limiter.tryConsume(key), false);
+    assert.equal(limiter.tryConsume("1.2.3.4|c@d.com"), true);
 
     now += 15 * 60 * 1000 + 1;
-    assert.equal(limiter.isBlocked(key), false);
+    assert.equal(limiter.tryConsume(key), true);
   });
 
   test("clear(key) e reset() zeram contadores", () => {
     const limiter = new LoginAttemptLimiter();
-    for (let i = 0; i < 10; i++) limiter.registerFailure("k1");
-    for (let i = 0; i < 10; i++) limiter.registerFailure("k2");
+    for (let i = 0; i < 10; i++) limiter.tryConsume("k1");
+    for (let i = 0; i < 10; i++) limiter.tryConsume("k2");
     limiter.clear("k1");
-    assert.equal(limiter.isBlocked("k1"), false);
-    assert.equal(limiter.isBlocked("k2"), true);
+    assert.equal(limiter.tryConsume("k1"), true);
+    assert.equal(limiter.tryConsume("k2"), false);
     limiter.reset();
-    assert.equal(limiter.isBlocked("k2"), false);
+    assert.equal(limiter.tryConsume("k2"), true);
+  });
+
+  test("memória limitada: acima de maxEntries descarta as chaves mais antigas", () => {
+    const limiter = new LoginAttemptLimiter({ maxEntries: 3 });
+    for (let i = 0; i < 10; i++) limiter.tryConsume("antiga");
+    limiter.tryConsume("b");
+    limiter.tryConsume("c");
+    limiter.tryConsume("d"); // excede o limite: "antiga" é descartada
+    assert.equal(limiter.size, 3);
+    assert.equal(limiter.tryConsume("antiga"), true);
+    assert.ok(limiter.size <= 3);
   });
 });

@@ -21,7 +21,8 @@ export class AuthenticateUserUseCase {
     const normalizedEmail = normalizeEmail(email);
     const key = loginAttemptKey(ip, normalizedEmail);
 
-    if (this.attemptLimiter.isBlocked(key)) {
+    // Checa e conta a tentativa antes de qualquer await (atômico no event loop).
+    if (!this.attemptLimiter.tryConsume(key)) {
       throw new TooManyRequestsError();
     }
 
@@ -36,7 +37,6 @@ export class AuthenticateUserUseCase {
     }
 
     if (!user || !user.active || !passwordMatch) {
-      this.attemptLimiter.registerFailure(key);
       throw new UnauthorizedError("Credenciais inválidas.", "INVALID_CREDENTIALS");
     }
 
