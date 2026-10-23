@@ -1,13 +1,16 @@
-// application/queries/ProductQuery.ts
-
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { CustomerDetailsDTO } from "../dto/CustomerDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { CustomerDTO } from "../dto/CustomerDTO";
+
+export interface CustomerListFilters {
+  search?: string;
+}
 
 export interface CustomerReadRepository {
   list(
     pagination: PaginationRequest,
-  ): Promise<PaginatedResult<CustomerDetailsDTO>>;
+    filters?: CustomerListFilters,
+  ): Promise<PaginatedResult<CustomerDTO>>;
 
-  getById(id: string): Promise<CustomerDetailsDTO | null>;
+  getById(id: string): Promise<CustomerDTO | null>;
 }

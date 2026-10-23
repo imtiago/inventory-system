@@ -11,7 +11,7 @@ export async function customerRoutes(app: FastifyInstance) {
     { preHandler: [authorize("customers.write")] },
     makeCreateCustomerController(),
   );
-  app.put(
+  app.patch(
     "/:id",
     { preHandler: [authorize("customers.write")] },
     makeUpdateCustomerController(),

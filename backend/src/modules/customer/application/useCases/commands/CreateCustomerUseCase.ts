@@ -4,14 +4,15 @@ import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import {
   ICreateCustomerInput,
-  ICustomerOutput,
+  CustomerDTO,
 } from "@customer/application/dto/CustomerDTO";
+import { CustomerReadMapper } from "@customer/application/mappers/CustomerReadMapper";
 import { Customer } from "@customer/domain/entities/Customer";
 import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 
 export class CreateCustomerUseCase extends TransactionalUseCase<
   ICreateCustomerInput,
-  ICustomerOutput
+  CustomerDTO
 > {
   constructor(
     private customerRepo: CustomerRepository,
@@ -23,7 +24,7 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
 
   async handle(
     request: ICreateCustomerInput,
-  ): Promise<ICustomerOutput> {
+  ): Promise<CustomerDTO> {
     const customerCode = await this.numberGenerator.generate(
       NumberRangeName.CUSTOMER,
       "C",
@@ -36,13 +37,6 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
 
     const data = await this.customerRepo.create(customer);
 
-    return {
-      id: data.id,
-      name: data.name,
-      address: data.address,
-      email: data.email,
-      code: data.code,
-      phone: data.phone,
-    };
+    return CustomerReadMapper.toDTO(data);
   }
 }

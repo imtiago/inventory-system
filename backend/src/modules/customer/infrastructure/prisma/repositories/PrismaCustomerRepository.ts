@@ -1,4 +1,4 @@
-import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
+import { CustomerPatchData, CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 import { CustomerMapper } from "../mappers/CustomerMapper";
 import { Customer } from "@customer/domain/entities/Customer";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
@@ -10,17 +10,6 @@ export class PrismaCustomerRepository implements CustomerRepository {
     });
 
     return CustomerMapper.toDomain(created);
-  }
-
-  async list(page: number, limit: number): Promise<Customer[]> {
-    const skip = (page - 1) * limit;
-
-    const customers = await getDb().customer.findMany({
-      skip,
-      take: limit,
-    });
-
-    return customers.map(CustomerMapper.toDomain);
   }
 
   async findById(id: string): Promise<Customer | null> {
@@ -35,12 +24,15 @@ export class PrismaCustomerRepository implements CustomerRepository {
     return CustomerMapper.toDomain(customer);
   }
 
-  async update(customer: Customer): Promise<Customer> {
+  async update(id: string, patch: CustomerPatchData): Promise<Customer> {
     const updated = await getDb().customer.update({
-      where: {
-        id: customer.id,
+      where: { id },
+      data: {
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.email !== undefined ? { email: patch.email } : {}),
+        ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+        ...(patch.address !== undefined ? { address: patch.address } : {}),
       },
-      data: CustomerMapper.toUpdatePersistence(customer),
     });
 
     return CustomerMapper.toDomain(updated);

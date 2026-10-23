@@ -1,6 +1,9 @@
-import { ProductListFilters } from "@catalog/application/contracts/ProductListFilters";
-import { CustomerReadRepository } from "@customer/application/contracts/CustomerReadRepository";
-import { CustomerDetailsDTO } from "@customer/application/dto/CustomerDTO";
+import { Prisma } from "@prisma/client";
+import {
+  CustomerListFilters,
+  CustomerReadRepository,
+} from "@customer/application/contracts/CustomerReadRepository";
+import { CustomerDTO } from "@customer/application/dto/CustomerDTO";
 import { CustomerReadMapper } from "@customer/application/mappers/CustomerReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -8,58 +11,52 @@ import { buildPaginatedResult } from "@shared/infrastructure/database/buildPagin
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
+/** Busca por telefone só a partir de 4 dígitos, para não casar com qualquer coisa. */
+const MIN_PHONE_SEARCH_DIGITS = 4;
+
+function buildWhere(search?: string): Prisma.CustomerWhereInput {
+  const term = search?.trim();
+  if (!term) return {};
+
+  // O `contains` do Prisma não escapa os curingas do LIKE: escapamos \, % e _
+  // para a busca ser literal (o escape padrão do LIKE no Postgres é a barra invertida).
+  const literal = term.replace(/[\\%_]/g, "\\$&");
+  const contains = (field: "name" | "code" | "email") => ({
+    [field]: { contains: literal, mode: "insensitive" as const },
+  });
+  const digits = term.replace(/\D/g, "");
+
+  return {
+    OR: [
+      contains("name"),
+      contains("code"),
+      contains("email"),
+      ...(digits.length >= MIN_PHONE_SEARCH_DIGITS ? [{ phone: { contains: digits } }] : []),
+    ],
+  };
+}
+
 export class PrismaCustomerReadRepository implements CustomerReadRepository {
   async list(
     pagination: PaginationRequest,
-    filters?: ProductListFilters,
-  ): Promise<PaginatedResult<CustomerDetailsDTO>> {
-    const paginationOptions = buildPagination(pagination);
-
-    const search = filters?.search?.trim();
-
-    const where = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            // {
-            //   code: {
-            //     contains: search,
-            //     mode: "insensitive" as const,
-            //   },
-            // },
-          ],
-        }
-      : {};
+    filters?: CustomerListFilters,
+  ): Promise<PaginatedResult<CustomerDTO>> {
+    const where = buildWhere(filters?.search);
 
     const [customers, total] = await Promise.all([
       getDb().customer.findMany({
         where,
-
-        ...paginationOptions,
-        orderBy: {
-          name: "asc",
-        },
+        ...buildPagination(pagination),
+        orderBy: [{ name: "asc" }, { id: "asc" }],
       }),
-      getDb().customer.count({
-        where,
-      }),
+      getDb().customer.count({ where }),
     ]);
-    const dt = customers.map((customer) => CustomerReadMapper.toDTO(customer));
-    return buildPaginatedResult(dt, total, pagination);
+
+    return buildPaginatedResult(customers.map(CustomerReadMapper.toDTO), total, pagination);
   }
 
-  async getById(id: string): Promise<CustomerDetailsDTO | null> {
-    const customer = await getDb().customer.findUnique({
-      where: { id },
-    });
-
-    if (!customer) return null;
-
-    return CustomerReadMapper.toDTO(customer);
+  async getById(id: string): Promise<CustomerDTO | null> {
+    const customer = await getDb().customer.findUnique({ where: { id } });
+    return customer ? CustomerReadMapper.toDTO(customer) : null;
   }
 }

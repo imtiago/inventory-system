@@ -1,25 +1,21 @@
-import { z } from "zod";
 import { parseInput } from "@shared/http/parseInput";
-import { FastifyRequest, FastifyReply } from "fastify";
-import { makeUpdateCustomerUseCase } from "../factories/UpdateCustomerFactory";
-import { createCustomerSchema } from "@customer/interfaces/http/schemas/createCustomerSchema";
+import { HttpResponse } from "@shared/http/response";
+import { FastifyReply, FastifyRequest } from "fastify";
+import {
+  customerIdParamsSchema,
+  updateCustomerBodySchema,
+} from "@customer/interfaces/http/schemas/customerSchemas";
 import { CustomerHttpPresenter } from "@customer/interfaces/http/presenters/CustomerHttpPresenter";
-
-const idParamsSchema = z.object({ id: z.string().uuid("Identificador inválido.") });
+import { makeUpdateCustomerUseCase } from "../factories/UpdateCustomerFactory";
 
 export function makeUpdateCustomerController() {
   const useCase = makeUpdateCustomerUseCase();
-  return async function UpdateCustomerController(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
-    const { id } = parseInput(idParamsSchema, request.params);
-    const data = parseInput(createCustomerSchema, request.body);
+  return async function UpdateCustomerController(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = parseInput(customerIdParamsSchema, request.params);
+    const patch = parseInput(updateCustomerBodySchema, request.body);
 
-    const updatedProduct = await useCase.execute({ id, ...data });
+    const customer = await useCase.execute({ id, ...patch });
 
-    return reply
-      .status(200)
-      .send(CustomerHttpPresenter.toHTTP(updatedProduct));
+    return reply.send(HttpResponse.ok(CustomerHttpPresenter.toHTTP(customer)));
   };
 }

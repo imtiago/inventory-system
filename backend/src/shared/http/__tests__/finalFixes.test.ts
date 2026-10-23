@@ -24,8 +24,8 @@ describe("Correções finais da revisão (HTTP)", () => {
   });
   const auth = () => ({ authorization: `Bearer ${token}` });
 
-  test("POST /customers sem email → mensagem de validação em português", async () => {
-    const res = await app.inject({ method: "POST", url: "/customers", headers: auth(), payload: { name: "tx-test-x" } });
+  test("POST /customers com e-mail inválido → mensagem de validação em português", async () => {
+    const res = await app.inject({ method: "POST", url: "/customers", headers: auth(), payload: { name: "tx-test-x", email: "nao-e-email" } });
     assert.equal(res.statusCode, 400, res.body);
     const errors = res.json().errors as { field: string; message: string }[];
     assert.ok(errors.length > 0);
