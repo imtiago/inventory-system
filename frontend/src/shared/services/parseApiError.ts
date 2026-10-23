@@ -5,6 +5,8 @@ export type ApiError = {
   code: string;
   message: string;
   fieldErrors: Record<string, string>;
+  /** Optional structured payload of the error body (e.g. NFE_ALREADY_IMPORTED carries the purchase id). */
+  details?: Record<string, unknown>;
 };
 
 const NETWORK_MESSAGE = 'Não foi possível conectar ao servidor.';
@@ -17,7 +19,7 @@ function unknownError(status: number | null): ApiError {
 function fromBody(status: number | null, body: unknown): ApiError {
   if (typeof body !== 'object' || body === null) return unknownError(status);
 
-  const { message, code, errors } = body as { message?: unknown; code?: unknown; errors?: unknown };
+  const { message, code, errors, details } = body as { message?: unknown; code?: unknown; errors?: unknown; details?: unknown };
 
   if (typeof message !== 'string' || !message.trim() || typeof code !== 'string' || !code) {
     return unknownError(status);
@@ -35,7 +37,9 @@ function fromBody(status: number | null, body: unknown): ApiError {
     }
   }
 
-  return { status, code, message, fieldErrors };
+  const isDetails = typeof details === 'object' && details !== null && !Array.isArray(details);
+
+  return { status, code, message, fieldErrors, ...(isDetails ? { details: details as Record<string, unknown> } : {}) };
 }
 
 function classify(error: unknown): { status: number | null; body: unknown } | ApiError {

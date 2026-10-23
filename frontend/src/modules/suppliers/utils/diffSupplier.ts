@@ -1,3 +1,4 @@
+import { normalizeDocument } from './formatDocument';
 import type { ICreateSupplierDTO, ISupplier, UpdateSupplierInput } from '../types';
 
 const digits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
@@ -16,7 +17,7 @@ export function diffSupplier(supplier: ISupplier, form: SupplierFormValues): Upd
   const email = form.email.trim().toLowerCase();
 
   if (name !== supplier.name) changes.name = name;
-  if (digits(form.document) !== supplier.document) changes.document = digits(form.document);
+  if (normalizeDocument(form.document) !== supplier.document) changes.document = normalizeDocument(form.document);
   if ((email || null) !== (supplier.email ?? null)) changes.email = email || null;
   if ((digits(form.phone) || null) !== (supplier.phone ?? null)) changes.phone = digits(form.phone) || null;
 
@@ -24,7 +25,7 @@ export function diffSupplier(supplier: ISupplier, form: SupplierFormValues): Upd
 }
 
 export function toCreateDTO(form: SupplierFormValues): ICreateSupplierDTO {
-  const dto: ICreateSupplierDTO = { name: form.name.trim(), document: digits(form.document) };
+  const dto: ICreateSupplierDTO = { name: form.name.trim(), document: normalizeDocument(form.document) };
 
   if (form.email.trim()) dto.email = form.email.trim().toLowerCase();
   if (digits(form.phone)) dto.phone = digits(form.phone);
