@@ -12,6 +12,7 @@ import { makeInventoryService } from "@inventory/infrastructure/http/factories/I
 import { FinancialService } from "@finance/application/services/FinacialService";
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
@@ -24,7 +25,8 @@ function loadFixture(name: string): unknown {
 
 app.log.level = "silent";
 
-const todayUtc = () => new Date().toISOString().slice(0, 10);
+// "Hoje" de negócio (America/Sao_Paulo), a mesma referência do backend.
+const todayUtc = () => todayInBusinessTz();
 const addDaysUtc = (days: number) => {
   const d = new Date(`${todayUtc()}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -179,6 +181,12 @@ describe("HTTP de vendas", () => {
     assert.equal(parcels.length, 1);
     assert.equal(parcels[0].amount, 10);
     assert.equal(parcels[0].dueDate, todayUtc());
+    assert.equal(parcels[0].status, "OPEN");
+
+    // GET /sales/:id: parcela que vence hoje → OPEN (mesma regra de contas a receber).
+    const detail = await request("GET", `/sales/${res.json().data.id}`);
+    assert.equal(detail.statusCode, 200, detail.body);
+    assert.equal(detail.json().data.receivable.parcels[0].status, "OPEN");
   });
 
   test("POST /sales variante com preço 0 → 422 VARIANT_WITHOUT_PRICE; nada gravado", async () => {

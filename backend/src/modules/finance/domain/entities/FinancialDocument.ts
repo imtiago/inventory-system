@@ -4,7 +4,28 @@ import { FinancialStatus } from "../enums/FinancialStatus";
 import { FinancialPartyType } from "../enums/FinancialPartyType";
 import { FinancialOriginType } from "../enums/FinancialOriginType";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
-import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import {
+  BusinessRuleError,
+  ConflictError,
+  ErrorCodes,
+  InternalErrorCodes,
+  InternalInvariantError,
+  NotFoundError,
+} from "@shared/domain/errors";
+import { ParcelStatus } from "../enums/ParcelStatus";
+import { PaymentMethod } from "../enums/PaymentMethod";
+import { documentStatusFor } from "../services/receivableStatus";
+import { Payment } from "./Payment";
+
+export interface RegisterPaymentProps {
+  parcelId: string;
+  amountCents: number;
+  method: PaymentMethod;
+  /** "YYYY-MM-DD" (data de negócio). */
+  paymentDate: string;
+  reference: string | null;
+  createdById: string;
+}
 
 export class FinancialDocument extends BaseEntity {
   private _type: FinancialType;
@@ -67,8 +88,26 @@ export class FinancialDocument extends BaseEntity {
     return this._parcels;
   }
 
-  get totalAmount(): number {
-    return this._parcels.reduce((total, parcel) => total + parcel.amount, 0);
+  get totalCents(): number {
+    return this._parcels.reduce((total, parcel) => total + parcel.amountCents, 0);
+  }
+
+  get paidCents(): number {
+    return this._parcels.reduce((total, parcel) => total + parcel.paidCents, 0);
+  }
+
+  get remainingCents(): number {
+    return this._parcels.reduce((total, parcel) => total + parcel.remainingCents, 0);
+  }
+
+  /** Status da parcela considerando o documento (CANCELED → todas CANCELED). */
+  parcelStatus(parcel: FinancialParcel, today: string): ParcelStatus {
+    return parcel.status(today, this._status);
+  }
+
+  /** Recalcula o status a partir dos pagamentos ativos (exige parcelas com pagamentos carregados). */
+  recalculateStatus(): void {
+    this._status = documentStatusFor(this._status, this._parcels);
   }
 
   get status(): FinancialStatus {
@@ -79,6 +118,47 @@ export class FinancialDocument extends BaseEntity {
   }
   get originType(): FinancialOriginType {
     return this._originType;
+  }
+
+  /**
+   * Registra um pagamento numa parcela deste documento e recalcula o status.
+   * Exige parcelas com pagamentos carregados (documento lido sob trava).
+   */
+  registerPayment(props: RegisterPaymentProps): Payment {
+    const parcel = this._parcels.find((p) => p.id === props.parcelId);
+    if (!parcel) {
+      throw new NotFoundError("Parcela não encontrada.", ErrorCodes.PARCEL_NOT_FOUND);
+    }
+    this.assertNotCanceled();
+    if (props.amountCents > parcel.remainingCents) {
+      throw new BusinessRuleError(
+        "O valor do pagamento excede o restante da parcela.",
+        ErrorCodes.PAYMENT_EXCEEDS_REMAINING,
+      );
+    }
+    const payment = new Payment({ ...props, parcelId: parcel.id });
+    parcel.addPayment(payment);
+    this.recalculateStatus();
+    return payment;
+  }
+
+  /** Estorna um pagamento de uma parcela deste documento e recalcula o status. */
+  reversePayment(paymentId: string, userId: string, reason: string, now: Date = new Date()): Payment {
+    const payment = this._parcels.flatMap((p) => p.payments).find((p) => p.id === paymentId);
+    if (!payment) {
+      throw new NotFoundError("Pagamento não encontrado.", ErrorCodes.PAYMENT_NOT_FOUND);
+    }
+    // Já estornado tem precedência (409 PAYMENT_ALREADY_REVERSED vem de payment.reverse).
+    if (!payment.isReversed) this.assertNotCanceled();
+    payment.reverse(userId, reason, now);
+    this.recalculateStatus();
+    return payment;
+  }
+
+  private assertNotCanceled(): void {
+    if (this._status === FinancialStatus.CANCELED) {
+      throw new ConflictError("Conta a receber cancelada.", ErrorCodes.FINANCIAL_DOCUMENT_CANCELED);
+    }
   }
 
   /** Pagamentos são checados antes (SALE_HAS_PAYMENTS); aqui é só a invariante. */

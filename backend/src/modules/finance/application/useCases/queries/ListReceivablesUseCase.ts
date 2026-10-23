@@ -1,17 +1,15 @@
-import { PaginationParams } from "@shared/application/pagination";
+import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { FinancialDocumentReadRepository } from "../../contracts/FinancialDocumentReadRepository";
-import { FinancialDocumentDTO } from "../../dto/FinancialDocumentDTO";
+import { ReceivableListFilters, ReceivableListResult } from "../../dto/ReceivableReadDTO";
 
 export class ListReceivablesUseCase {
-  constructor(private repo: FinancialDocumentReadRepository) {}
+  constructor(
+    private readonly repo: FinancialDocumentReadRepository,
+    private readonly today: () => string = () => todayInBusinessTz(),
+  ) {}
 
-  async execute({
-    page,
-    limit,
-  }: PaginationParams): Promise<FinancialDocumentDTO[]> {
-    return this.repo.listReceivables({
-      page,
-      limit,
-    });
+  async execute(filters: ReceivableListFilters, pagination: PaginationRequest): Promise<ReceivableListResult> {
+    return this.repo.listReceivables(filters, pagination, this.today());
   }
 }

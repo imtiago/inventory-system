@@ -7,6 +7,8 @@ import { FinancialDocumentRepository } from "@finance/domain/repositories/Financ
 import { FinancialParcelRepository } from "@finance/domain/repositories/FinancialParcelRepository";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
+import { toCents } from "@shared/domain/money";
+import { toDateOnly } from "@finance/domain/services/receivableStatus";
 
 export class CreateReceivableUseCase extends TransactionalUseCase<
   ICreateReceivableInput,
@@ -34,8 +36,8 @@ export class CreateReceivableUseCase extends TransactionalUseCase<
     const parcels = props.parcels.map(
       (parcel) =>
         new FinancialParcel({
-          amount: parcel.amount,
-          dueDate: parcel.dueDate,
+          amountCents: toCents(parcel.amount),
+          dueDate: toDateOnly(parcel.dueDate),
           financialDocumentId: document.id,
         }),
     );

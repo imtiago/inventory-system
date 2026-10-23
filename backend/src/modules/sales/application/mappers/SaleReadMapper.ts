@@ -1,4 +1,6 @@
 import { fromCents, toCents } from "@shared/domain/money";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
+import { parcelStatus, remainingCents, toDateOnly } from "@finance/domain/services/receivableStatus";
 import { SaleDetailDTO, SaleListItemDTO, SaleReceivableDTO } from "../dto/SaleDTO";
 
 /** Valor monetário vindo da persistência (Decimal do Prisma, string ou number). */
@@ -40,16 +42,13 @@ export interface SaleReceivableRow {
     id: string;
     amount: Money;
     dueDate: Date;
-    payments: { amount: Money }[];
+    payments: { amount: Money; reversedAt: Date | null }[];
   }[];
 }
 
 export interface SaleListRow extends SaleBaseRow {
   _count: { items: number };
 }
-
-const startOfTodayUtc = (now: Date) =>
-  new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
 export class SaleReadMapper {
   static toListItemDTO(row: SaleListRow): SaleListItemDTO {
@@ -95,29 +94,26 @@ export class SaleReadMapper {
     };
   }
 
+  /** Mesma regra de status de parcela de contas a receber (data de negócio; estornos não contam). */
   private static toReceivableDTO(doc: SaleReceivableRow, now: Date): SaleReceivableDTO {
-    const today = startOfTodayUtc(now);
+    const today = todayInBusinessTz(now);
     return {
       id: doc.id,
       status: doc.status,
       parcels: doc.parcels.map((parcel) => {
-        const amountCents = cents(parcel.amount);
-        const paidCents = parcel.payments.reduce((sum, p) => sum + cents(p.amount), 0);
-
-        let status: string;
-        if (doc.status === "CANCELED") status = "CANCELED";
-        else if (paidCents >= amountCents) status = "PAID";
-        else if (paidCents > 0) status = "PARTIALLY_PAID";
-        else if (parcel.dueDate < today) status = "OVERDUE";
-        else status = "OPEN";
+        const amounts = {
+          amountCents: cents(parcel.amount),
+          paidCents: parcel.payments.reduce((sum, p) => (p.reversedAt ? sum : sum + cents(p.amount)), 0),
+          dueDate: toDateOnly(parcel.dueDate),
+        };
 
         return {
           id: parcel.id,
-          amount: fromCents(amountCents),
-          dueDate: parcel.dueDate.toISOString().slice(0, 10),
-          paidAmount: fromCents(paidCents),
-          remainingAmount: fromCents(Math.max(amountCents - paidCents, 0)),
-          status,
+          amount: fromCents(amounts.amountCents),
+          dueDate: amounts.dueDate,
+          paidAmount: fromCents(amounts.paidCents),
+          remainingAmount: fromCents(remainingCents(amounts)),
+          status: parcelStatus({ ...amounts, documentStatus: doc.status }, today),
         };
       }),
     };

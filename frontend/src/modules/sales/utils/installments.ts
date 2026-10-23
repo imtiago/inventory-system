@@ -35,3 +35,11 @@ export function addDaysLocal(from: Date, days: number): string {
 
   return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
+
+/** Date-only "YYYY-MM-DD" + N dias (aritmética em UTC, sem depender do fuso do navegador). */
+export function addDaysToDateOnly(date: string, days: number): string {
+  const [year, month, day] = date.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day + days));
+
+  return `${pad(d.getUTCFullYear(), 4)}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}

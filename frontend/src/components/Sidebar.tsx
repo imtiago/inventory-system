@@ -5,6 +5,7 @@ import {
   ShoppingCart,
   Users,
   Boxes,
+  Wallet,
   LogOut,
 } from "lucide-react";
 
@@ -38,6 +39,39 @@ const menuItems = [
   },
 ];
 
+const financeItems = [
+  {
+    label: "Contas a receber",
+    path: "/receivables",
+    icon: Wallet,
+  },
+];
+
+function renderItem(item: { label: string; path: string; icon: typeof Wallet }) {
+  const Icon = item.icon;
+
+  return (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      className={({ isActive }) =>
+        `
+        flex items-center gap-3
+        px-4 py-3
+        rounded-lg
+        mb-1
+        transition
+        ${isActive ? "bg-slate-700" : "hover:bg-slate-800"}
+        `
+      }
+    >
+      <Icon size={20} />
+
+      <span>{item.label}</span>
+    </NavLink>
+  );
+}
+
 export function Sidebar() {
   const logout = useAuthStore((state) => state.logout);
 
@@ -55,30 +89,10 @@ export function Sidebar() {
       <div className="p-6 text-xl font-bold">Inventory System</div>
 
       <nav className="flex-1 px-3">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
+        {menuItems.map(renderItem)}
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `
-                flex items-center gap-3
-                px-4 py-3
-                rounded-lg
-                mb-1
-                transition
-                ${isActive ? "bg-slate-700" : "hover:bg-slate-800"}
-                `
-              }
-            >
-              <Icon size={20} />
-
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+        <div className="px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Financeiro</div>
+        {financeItems.map(renderItem)}
       </nav>
 
       <button

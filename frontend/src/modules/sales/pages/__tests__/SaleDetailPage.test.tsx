@@ -38,7 +38,7 @@ describe('SaleDetailPage', () => {
     expect(screen.getAllByText(/53,23/).length).toBe(4);
     expect(screen.getByText('21/11/2026')).toBeInTheDocument();
     expect(screen.getByText('21/01/2027')).toBeInTheDocument();
-    expect(screen.getAllByText('Em aberto').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('A vencer').length).toBeGreaterThan(0);
   });
 
   test('cancelar pede confirmação, chama POST /sales/:id/cancel e mostra status Cancelada', async () => {

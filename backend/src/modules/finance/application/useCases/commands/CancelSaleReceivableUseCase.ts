@@ -11,8 +11,8 @@ export interface ICancelSaleReceivableInput {
 
 /**
  * Cancela todos os documentos a receber de uma venda (não há unicidade por
- * origem). Bloqueia (409 SALE_HAS_PAYMENTS) se houver qualquer pagamento em
- * qualquer um deles; venda sem documento não faz nada.
+ * origem). Bloqueia (409 SALE_HAS_PAYMENTS) se houver pagamento ativo (não
+ * estornado) em qualquer um deles; venda sem documento não faz nada.
  */
 export class CancelSaleReceivableUseCase extends TransactionalUseCase<
   ICancelSaleReceivableInput,

@@ -27,6 +27,7 @@ function build(docs: FinancialDocument[], withPayments: string[] = []) {
       log.push(`lock:${type}:${originType}:${originId}`);
       return docs;
     },
+    lockById: async () => null,
     hasPayments: async (ids) => {
       log.push(`hasPayments:${ids.join(",")}`);
       return ids.some((id) => withPayments.includes(id));
