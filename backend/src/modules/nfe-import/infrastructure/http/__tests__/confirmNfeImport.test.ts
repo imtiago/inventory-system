@@ -310,7 +310,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.deepEqual(await parcelsOf(res2.json().data.purchaseId), [["2026-10-23", 397.09]]);
   });
 
-  test("receive true → estoque e lotes da nota; false → pedido PENDING; lote em conflito → 409 e nada criado", async () => {
+  test("receive true → estoque e lotes da nota; false → pedido PENDING; lote da nota já usado por outra origem → lote <nLote>-<pedido>", async () => {
     const note = newNote();
     const supplier = await createSupplier(note.cnpj);
     const draft = await uploadNote(note);
@@ -321,9 +321,9 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
       { index: 3, link: { productVariantId: c } },
     ];
 
-    // Lote L002 já existe em `a` vindo de outra origem → 409 BATCH_ALREADY_EXISTS; tudo desfeito.
+    // Lote L002 já existe em `a` vindo de outra origem: a entrega da nota vai para "L002-<código do pedido>".
     const inventory = await prisma.inventory.create({ data: { productVariantId: a, quantity: 0, averageCost: 0 } });
-    const foreignLot = await prisma.inventoryLot.create({
+    await prisma.inventoryLot.create({
       data: {
         inventoryId: inventory.id,
         productVariantId: a,
@@ -334,14 +334,6 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
         batchNumber: "L002",
       },
     });
-    const conflict = await confirm(draft.id, { supplier: { id: supplier.id }, items, receive: true });
-    assert.equal(conflict.statusCode, 409, conflict.body);
-    assert.equal(conflict.json().code, "BATCH_ALREADY_EXISTS");
-    assert.equal(await prisma.purchase.count({ where: { supplierId: supplier.id } }), 0);
-    assert.equal(await prisma.supplierProductMapping.count({ where: { supplierId: supplier.id } }), 0);
-    assert.equal(await prisma.inventoryLot.count({ where: { productVariantId: { in: [a, b, c] } } }), 1);
-    assert.equal((await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } })).status, "DRAFT");
-    await prisma.inventoryLot.delete({ where: { id: foreignLot.id } });
 
     const res = await confirm(draft.id, { supplier: { id: supplier.id }, items, receive: true });
     assert.equal(res.statusCode, 201, res.body);
@@ -351,7 +343,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
 
     // Lotes da nota × unidades por embalagem: 1 CX × 6 = 6 un cada; itens sem rastro → um lote sem número.
     const lots = await prisma.inventoryLot.findMany({
-      where: { productVariantId: { in: [a, b, c] } },
+      where: { productVariantId: { in: [a, b, c] }, sourceType: "PURCHASE" },
       orderBy: [{ productVariantId: "asc" }, { batchNumber: "asc" }],
     });
     const lotsOf = (id: string) =>
@@ -366,7 +358,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
         ]);
     assert.deepEqual(lotsOf(a), [
       ["L001", 6, "2026-01-10", "2027-01-10", purchaseId],
-      ["L002", 6, "2026-02-15", "2027-02-15", purchaseId],
+      [`L002-${purchase.code}`, 6, "2026-02-15", "2027-02-15", purchaseId],
     ]);
     assert.deepEqual(lotsOf(b), [[null, 21, null, null, purchaseId]]);
     assert.deepEqual(lotsOf(c), [[null, 1, null, null, purchaseId]]);
@@ -377,6 +369,8 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     );
     const movements = await prisma.stockMovement.findMany({ where: { originId: purchaseId } });
     assert.equal(movements.length, 4);
+    // O lote de outra origem continua intacto.
+    assert.equal(await prisma.inventoryLot.count({ where: { productVariantId: a, batchNumber: "L002", sourceType: "MANUAL" } }), 1);
     assert.ok(movements.every((m) => m.userId === admin.id && m.origin === "PURCHASE" && m.type === "IN"));
 
     // receive false → PENDING, sem estoque.
@@ -387,6 +381,96 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     const pendingPurchase = await prisma.purchase.findUniqueOrThrow({ where: { id: pending.json().data.purchaseId } });
     assert.equal(pendingPurchase.status, "PENDING");
     assert.equal(await prisma.stockMovement.count({ where: { originId: pendingPurchase.id } }), 0);
+  });
+
+  test("mesmo lote em duas entregas do fornecedor → a segunda vira <nLote>-<pedido> com o custo dela; estoque somado", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    const [box, bulk, unit] = [await existingVariant(), await existingVariant(), await existingVariant()];
+    const body = (boxUnits: number) => ({
+      supplier: { id: supplier.id },
+      items: [
+        { index: 1, link: { productVariantId: box, unitsPerPackage: boxUnits } },
+        { index: 2, link: { productVariantId: bulk, unitsPerPackage: 2 } },
+        { index: 3, link: { productVariantId: unit } },
+      ],
+      receive: true,
+    });
+
+    const first = await confirm((await uploadNote(note)).id, body(12));
+    assert.equal(first.statusCode, 201, first.body);
+    // Nota B do mesmo fornecedor, mesmos lotes L001/L002, caixa com 6: custo unitário diferente.
+    const second = await confirm((await uploadNote(newNote({ cnpj: note.cnpj }))).id, body(6));
+    assert.equal(second.statusCode, 201, second.body);
+    const codeB = (await prisma.purchase.findUniqueOrThrow({ where: { id: second.json().data.purchaseId } })).code;
+
+    const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: box }, orderBy: { batchNumber: "asc" } });
+    assert.deepEqual(
+      lots.map((l) => [l.batchNumber, l.initialQuantity, l.unitCost.toNumber(), l.sourceId]),
+      [
+        ["L001", 12, 10.29, first.json().data.purchaseId],
+        [`L001-${codeB}`, 6, 20.59, second.json().data.purchaseId],
+        ["L002", 12, 10.29, first.json().data.purchaseId],
+        [`L002-${codeB}`, 6, 20.59, second.json().data.purchaseId],
+      ],
+    );
+    assert.equal((await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: box } })).quantity, 36);
+  });
+
+  test("reenviar a nota depois de cancelar o pedido → 200, mesmo rascunho volta a DRAFT; mapeamentos ficam; confirma de novo", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    const draft = await uploadNote(note);
+    const [a, b, c] = [await existingVariant(), await existingVariant(), await existingVariant()];
+    const body = {
+      supplier: { id: supplier.id },
+      items: [
+        { index: 1, link: { productVariantId: a, unitsPerPackage: 12 } },
+        { index: 2, link: { productVariantId: b, unitsPerPackage: 2 } },
+        { index: 3, link: { productVariantId: c } },
+      ],
+      receive: false,
+    };
+    const first = await confirm(draft.id, body);
+    assert.equal(first.statusCode, 201, first.body);
+    const firstPurchase = first.json().data.purchaseId;
+
+    // Pedido ainda ativo → 409 NFE_ALREADY_IMPORTED.
+    const active = await app.inject({
+      method: "POST",
+      url: "/nfe-imports",
+      headers: { authorization: `Bearer ${admin.token}`, "content-type": `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: multipart([{ name: "file", filename: "nota.xml", contentType: "application/xml", content: noteXml(note) }]),
+    });
+    assert.equal(active.statusCode, 409, active.body);
+
+    const cancel = await call("POST", `/purchases/${firstPurchase}/cancel`, { reason: "Nota lançada errada" });
+    assert.equal(cancel.statusCode, 200, cancel.body);
+
+    const reupload = await app.inject({
+      method: "POST",
+      url: "/nfe-imports",
+      headers: { authorization: `Bearer ${admin.token}`, "content-type": `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: multipart([
+        { name: "file", filename: "nota.xml", contentType: "application/xml", content: noteXml(note, (xml) => xml.replace("Shampoo P&amp;G 300ml", "Shampoo Corrigido")) },
+      ]),
+    });
+    assert.equal(reupload.statusCode, 200, reupload.body);
+    const data = reupload.json().data;
+    assert.deepEqual([data.id, data.status, data.purchaseId, data.items[0].name], [draft.id, "DRAFT", null, "Shampoo Corrigido"]);
+    const row = await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } });
+    assert.deepEqual([row.status, row.purchaseId, row.confirmedById, row.confirmedAt], ["DRAFT", null, null, null]);
+    // O que foi aprendido fica: sugestões pelo mapeamento.
+    assert.equal(await prisma.supplierProductMapping.count({ where: { supplierId: supplier.id } }), 3);
+    assert.deepEqual(
+      data.items.map((i: any) => i.suggestion?.source),
+      ["MAPPING", "MAPPING", "MAPPING"],
+    );
+
+    const again = await confirm(draft.id, body);
+    assert.equal(again.statusCode, 201, again.body);
+    assert.notEqual(again.json().data.purchaseId, firstPurchase);
+    assert.equal((await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } })).status, "CONFIRMED");
   });
 
   test("itens da mesma variante somados num item; quantidade não inteira → 422 NFE_QUANTITY_NOT_INTEGER", async () => {
@@ -467,7 +551,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
       receive: false,
     });
     assert.equal(unknownVariant.statusCode, 404, unknownVariant.body);
-    assert.equal(unknownVariant.json().code, "VARIANT_NOT_FOUND");
+    assert.deepEqual(unknownVariant.json(), { message: "Item 1: Variante não encontrada.", code: "VARIANT_NOT_FOUND" });
     assert.equal(await prisma.supplier.count({ where: { document: note.cnpj } }), 0);
 
     // Cada item da nota exatamente uma vez.
@@ -506,7 +590,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     });
   });
 
-  test("código de barras duplicado num item → 409 e nada criado", async () => {
+  test("código de barras duplicado num item → 409 \"Item 3: ...\" e nada criado; marca/categoria/produto inexistentes → 404 do item", async () => {
     const note = newNote();
     const draft = await uploadNote(note);
     const taken = randomBarcode();
@@ -525,7 +609,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
       receive: true,
     });
     assert.equal(res.statusCode, 409, res.body);
-    assert.deepEqual(res.json(), { message: "Código de barras já cadastrado.", code: "BARCODE_ALREADY_EXISTS" });
+    assert.deepEqual(res.json(), { message: "Item 3: Código de barras já cadastrado.", code: "BARCODE_ALREADY_EXISTS" });
 
     assert.equal(await prisma.supplier.count({ where: { document: note.cnpj } }), 0);
     assert.equal(await prisma.product.count({ where: { name: productName } }), 0);
@@ -536,6 +620,23 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.equal(await prisma.stockMovement.count({ where: { productVariantId: linked } }), 0);
     const row = await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } });
     assert.deepEqual([row.status, row.purchaseId, row.confirmedById], ["DRAFT", null, null]);
+
+    // Erros do cadastro de um item levam o número do item na mensagem (o front marca a linha).
+    const itemsWith = (first: object, third: object = { index: 3, link: { productVariantId: linked } }) => ({
+      supplier: { create: { name: "Fornecedor Rollback" } },
+      items: [first, { index: 2, link: { productVariantId: linked, unitsPerPackage: 2 } }, third],
+      receive: false,
+    });
+    const cases: [object, object | undefined, number, object][] = [
+      [{ index: 1, create: { newProduct: { ...newProduct(), brandId: randomUUID() }, variantName: "x", salePrice: 1, unitsPerPackage: 12 } }, undefined, 404, { message: "Item 1: Marca não encontrada.", code: "BRAND_NOT_FOUND" }],
+      [{ index: 1, create: { newProduct: { ...newProduct(), categoryId: randomUUID() }, variantName: "x", salePrice: 1, unitsPerPackage: 12 } }, undefined, 404, { message: "Item 1: Categoria não encontrada.", code: "CATEGORY_NOT_FOUND" }],
+      [{ index: 1, link: { productVariantId: linked, unitsPerPackage: 12 } }, { index: 3, create: { productId: randomUUID(), variantName: "x", salePrice: 1 } }, 404, { message: "Item 3: Produto não encontrado.", code: "PRODUCT_NOT_FOUND" }],
+    ];
+    for (const [first, third, status, body] of cases) {
+      const r = await confirm(draft.id, itemsWith(first, third));
+      assert.equal(r.statusCode, status, r.body);
+      assert.deepEqual(r.json(), body);
+    }
   });
 
   test("duas confirmações simultâneas → uma 201 e uma 409; próxima nota do fornecedor sugere pelo mapeamento", async () => {

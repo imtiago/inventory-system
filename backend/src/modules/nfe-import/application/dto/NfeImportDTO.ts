@@ -24,6 +24,8 @@ export interface NfeImportItemDTO {
   unitCost: number;
   /** Custo total do item na composição do vNF. */
   total: number;
+  /** indTot da nota: false → o item não compõe o vNF (importação não suportada; o front avisa). */
+  composesTotal: boolean;
   lots: { batchNumber: string; quantity: number; manufacturingDate: string | null; expirationDate: string | null }[];
   suggestion: NfeItemSuggestionDTO | null;
 }

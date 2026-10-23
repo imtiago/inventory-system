@@ -5,6 +5,8 @@ export interface LockedNfeImport {
   id: string;
   status: NfeImportStatus;
   purchaseId: string | null;
+  /** Status do pedido gerado; null sem pedido (rascunho, ou pedido excluído). */
+  purchaseStatus: string | null;
 }
 
 /**
@@ -25,6 +27,8 @@ export interface NfeImportRepository {
   /** Lança `NfeImportAccessKeyTaken` se a chave já existir. */
   createDraft(document: NfeDocument, createdById: string | null): Promise<string>;
   replaceDraftContent(id: string, document: NfeDocument): Promise<void>;
+  /** Confirmada cujo pedido foi cancelado/excluído → DRAFT com o conteúdo novo (mesmo id, sem pedido/confirmação). */
+  resetToDraft(id: string, document: NfeDocument): Promise<void>;
   /** Documento lido (payload) da importação. */
   findDocument(id: string): Promise<NfeDocument | null>;
   /** Rascunho → CONFIRMED com o pedido gerado, quem confirmou e quando. */

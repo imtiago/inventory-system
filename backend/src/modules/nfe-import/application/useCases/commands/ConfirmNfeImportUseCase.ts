@@ -1,4 +1,12 @@
-import { ErrorCodes, InternalErrorCodes, InternalInvariantError, NotFoundError, ValidationError } from "@shared/domain/errors";
+import {
+  DomainError,
+  ErrorCodes,
+  ErrorDetails,
+  InternalErrorCodes,
+  InternalInvariantError,
+  NotFoundError,
+  ValidationError,
+} from "@shared/domain/errors";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { CatalogService } from "@catalog/application/services/CatalogService";
@@ -18,7 +26,9 @@ import {
   supplierDocumentMismatch,
 } from "@nfe-import/domain/errors/nfeImportErrors";
 import { NfeItemUnits, nfeItemUnits, NfePurchaseLine, toPurchaseLines } from "@nfe-import/domain/nfePurchaseLines";
+import { deliveryBatchNumber, renamedBatchNumber } from "@nfe-import/domain/nfeLotNumbers";
 import { NfeImportRepository } from "../../contracts/NfeImportRepository";
+import { NfeLotLookup } from "../../contracts/NfeLotLookup";
 import { SupplierProductMappingRepository } from "../../contracts/SupplierProductMappingRepository";
 
 export type ConfirmSupplierInput =
@@ -78,6 +88,7 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     private readonly mappings: SupplierProductMappingRepository,
     private readonly purchaseCreator: PurchaseCreator,
     private readonly receivePurchase: Pick<ReceivePurchaseUseCase, "execute">,
+    private readonly lots: NfeLotLookup,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -100,17 +111,25 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     // 2. Fornecedor.
     const supplier = await this.resolveSupplier(document, input.supplier);
 
-    // 3. Variantes e mapeamentos.
+    // 3. Variantes; erros do cadastro de um item levam "Item <n>: " (o front marca a linha).
     const resolved = [];
     for (const { item, request } of requests) {
-      const productVariantId = await this.resolveVariant(item, request);
+      const productVariantId = await this.resolveVariant(item, request).catch((e: unknown) => {
+        throw withItemPrefix(e, item.index);
+      });
+      resolved.push({ item, request, productVariantId, units: units.get(item.index)! });
+    }
+    // Mapeamentos em ordem de supplierCode: confirmações concorrentes do mesmo fornecedor travam
+    // as linhas na mesma ordem (sem deadlock).
+    for (const { item, request, productVariantId } of [...resolved].sort((a, b) =>
+      a.item.supplierCode < b.item.supplierCode ? -1 : a.item.supplierCode > b.item.supplierCode ? 1 : 0,
+    )) {
       await this.mappings.upsert({
         supplierId: supplier.id,
         supplierCode: item.supplierCode,
         productVariantId,
         unitsPerPackage: unitsPerPackageOf(request),
       });
-      resolved.push({ item, productVariantId, units: units.get(item.index)! });
     }
 
     // 4. Unidades somadas por variante; total de cada item = custo da nota.
@@ -219,12 +238,13 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
    */
   private async receiveAll(purchase: Purchase, lines: NfePurchaseLine[], userId: string) {
     const itemIdByVariant = new Map(purchase.items.map((item) => [item.productVariantId, item.id]));
+    const batchNumbers = await this.deliveryBatchNumbers(purchase, lines);
     const segments = lines.map((line) => {
       const inLots = line.lots.reduce((sum, lot) => sum + lot.quantity, 0);
       const parts: IReceivePurchaseInput["items"] = line.lots.map((lot) => ({
         purchaseItemId: itemIdByVariant.get(line.productVariantId)!,
         quantity: lot.quantity,
-        batchNumber: lot.batchNumber,
+        batchNumber: batchNumbers.get(line.productVariantId)!.get(lot.batchNumber),
         manufacturingDate: lot.manufacturingDate ?? undefined,
         expirationDate: lot.expirationDate ?? undefined,
       }));
@@ -239,6 +259,37 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
       await this.receivePurchase.execute({ id: purchase.id, items, userId });
     }
   }
+
+  /**
+   * Número de lote de cada lote da nota, por variante. O pedido é novo, então um lote da variante
+   * com o mesmo número é de outra entrega/origem (o recebimento manual da 6A recusa com 409
+   * BATCH_ALREADY_EXISTS): aqui a entrega vira "<nLote>-<código do pedido>" ou, se também existir,
+   * entra sem lote (ver deliveryBatchNumber).
+   */
+  private async deliveryBatchNumbers(purchase: Purchase, lines: NfePurchaseLine[]) {
+    const byVariant = new Map<string, Map<string, string | undefined>>();
+    for (const line of lines) {
+      const candidates = line.lots.flatMap((lot) => [lot.batchNumber, renamedBatchNumber(lot.batchNumber, purchase.code)]);
+      const taken = new Set(await this.lots.findExistingBatchNumbers(line.productVariantId, [...new Set(candidates)]));
+      byVariant.set(
+        line.productVariantId,
+        new Map(line.lots.map((lot) => [lot.batchNumber, deliveryBatchNumber(lot.batchNumber, purchase.code, taken)])),
+      );
+    }
+    return byVariant;
+  }
+}
+
+/**
+ * Mesmo erro (classe, código, detalhes) com a mensagem "Item <n>: <mensagem>" — o formato que o
+ * front procura (/\bitem\s+(\d+)/i) para mostrar o erro na linha do item.
+ */
+function withItemPrefix(error: unknown, index: number): unknown {
+  if (!(error instanceof DomainError)) return error;
+  const message = `Item ${index}: ${error.message}`;
+  if (error instanceof ValidationError) return new ValidationError(message, error.errors, error.code);
+  const Same = error.constructor as new (message: string, code: string, details?: ErrorDetails) => DomainError;
+  return new Same(message, error.code, error.details);
 }
 
 function unitsPerPackageOf(request: ConfirmItemInput): number {

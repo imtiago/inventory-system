@@ -134,6 +134,10 @@ describe("Importações de NF-e (/nfe-imports)", () => {
       d.items.map((i: any) => i.barcode),
       [note.barcode1, null, note.barcode3],
     );
+    assert.deepEqual(
+      d.items.map((i: any) => i.composesTotal),
+      [true, true, true],
+    );
     assert.equal(d.items[0].name, "Shampoo P&G 300ml");
     assert.deepEqual(d.items[0].lots[0], {
       batchNumber: "L001",
@@ -236,6 +240,15 @@ describe("Importações de NF-e (/nfe-imports)", () => {
     const row = await prisma.nfeImport.findUniqueOrThrow({ where: { id } });
     assert.equal(row.status, "CONFIRMED");
     assert.equal((row.payload as any).items[0].name, "Shampoo Renomeado");
+
+    // Pedido excluído (purchaseId vira null) → a nota pode ser reenviada: volta a DRAFT, mesmo id.
+    await prisma.purchase.delete({ where: { id: purchaseId } });
+    const afterDelete = await uploadNote(note);
+    assert.equal(afterDelete.statusCode, 200, afterDelete.body);
+    assert.deepEqual([afterDelete.json().data.id, afterDelete.json().data.status], [id, "DRAFT"]);
+    const reset = await prisma.nfeImport.findUniqueOrThrow({ where: { id } });
+    assert.deepEqual([reset.status, reset.purchaseId, reset.confirmedById, reset.confirmedAt], ["DRAFT", null, null, null]);
+    assert.equal((reset.payload as any).items[0].name, "Shampoo P&G 300ml");
 
     // Dois envios simultâneos de uma chave nova → um 201, o outro 200 com o mesmo rascunho.
     const fresh = newNote();

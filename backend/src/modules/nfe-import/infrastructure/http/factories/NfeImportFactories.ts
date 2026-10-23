@@ -11,6 +11,7 @@ import { ListNfeImportsUseCase } from "@nfe-import/application/useCases/queries/
 import { NfeParser } from "../../parser/NfeParser";
 import { PrismaNfeImportReadRepository } from "../../prisma/PrismaNfeImportReadRepository";
 import { PrismaNfeImportRepository } from "../../prisma/PrismaNfeImportRepository";
+import { PrismaNfeLotLookup } from "../../prisma/PrismaNfeLotLookup";
 import { PrismaNfeSuggestionLookup } from "../../prisma/PrismaNfeSuggestionLookup";
 import { PrismaSupplierProductMappingRepository } from "../../prisma/PrismaSupplierProductMappingRepository";
 
@@ -46,5 +47,6 @@ export const makeConfirmNfeImportUseCase = () =>
     new PrismaSupplierProductMappingRepository(),
     makePurchaseCreator(),
     makeReceivePurchaseUseCase(),
+    new PrismaNfeLotLookup(),
     new PrismaTransactionManager({ timeout: 30_000, lockTimeoutMs: 15_000 }),
   );

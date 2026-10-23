@@ -38,15 +38,18 @@ export class PrismaNfeImportRepository implements NfeImportRepository {
   async lockByAccessKey(accessKey: string): Promise<LockedNfeImport | null> {
     assertInTransaction();
     const rows = await getDb().$queryRaw<LockedNfeImport[]>`
-      SELECT id, status::text AS status, "purchaseId" FROM "NfeImport"
-      WHERE "accessKey" = ${accessKey} FOR UPDATE`;
+      SELECT n.id, n.status::text AS status, n."purchaseId", p.status::text AS "purchaseStatus"
+      FROM "NfeImport" n LEFT JOIN "Purchase" p ON p.id = n."purchaseId"
+      WHERE n."accessKey" = ${accessKey} FOR UPDATE OF n`;
     return rows[0] ?? null;
   }
 
   async lockById(id: string): Promise<LockedNfeImport | null> {
     assertInTransaction();
     const rows = await getDb().$queryRaw<LockedNfeImport[]>`
-      SELECT id, status::text AS status, "purchaseId" FROM "NfeImport" WHERE id = ${id} FOR UPDATE`;
+      SELECT n.id, n.status::text AS status, n."purchaseId", p.status::text AS "purchaseStatus"
+      FROM "NfeImport" n LEFT JOIN "Purchase" p ON p.id = n."purchaseId"
+      WHERE n.id = ${id} FOR UPDATE OF n`;
     return rows[0] ?? null;
   }
 
@@ -65,6 +68,13 @@ export class PrismaNfeImportRepository implements NfeImportRepository {
 
   async replaceDraftContent(id: string, document: NfeDocument): Promise<void> {
     await getDb().nfeImport.update({ where: { id }, data: contentOf(document) });
+  }
+
+  async resetToDraft(id: string, document: NfeDocument): Promise<void> {
+    await getDb().nfeImport.update({
+      where: { id },
+      data: { status: "DRAFT", purchaseId: null, confirmedById: null, confirmedAt: null, ...contentOf(document) },
+    });
   }
 
   async findDocument(id: string): Promise<NfeDocument | null> {

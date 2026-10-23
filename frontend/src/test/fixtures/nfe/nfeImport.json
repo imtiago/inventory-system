@@ -27,6 +27,7 @@
         "quantity": 2,
         "unitCost": 123.53,
         "total": 247.05,
+        "composesTotal": true,
         "lots": [
           {
             "batchNumber": "L001",
@@ -57,6 +58,7 @@
         "quantity": 10.5,
         "unitCost": 5,
         "total": 52.54,
+        "composesTotal": true,
         "lots": [],
         "suggestion": null
       },
@@ -69,6 +71,7 @@
         "quantity": 1,
         "unitCost": 97.5,
         "total": 97.5,
+        "composesTotal": true,
         "lots": [],
         "suggestion": {
           "source": "BARCODE",

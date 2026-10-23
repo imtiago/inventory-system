@@ -36,6 +36,7 @@ export class NfeImportMapper {
           quantity: quantityToNumber(item.quantity),
           unitCost: fromCents(unitCostCents(cost, item.quantity)),
           total: fromCents(cost),
+          composesTotal: item.composesTotal,
           lots: item.lots.map((lot) => ({
             batchNumber: lot.batchNumber,
             quantity: quantityToNumber(lot.quantity),

@@ -21,7 +21,9 @@ const PDF_SIGNATURE = Buffer.from("%PDF");
 
 /**
  * Envio do XML: lê e valida a nota e grava o rascunho pela chave de acesso.
- * - chave confirmada → 409 NFE_ALREADY_IMPORTED (details: purchaseId, importId);
+ * - chave confirmada com pedido ativo → 409 NFE_ALREADY_IMPORTED (details: purchaseId, importId);
+ * - chave confirmada cujo pedido foi cancelado (ou excluído) → volta a rascunho com o conteúdo novo,
+ *   mesmo id (200); os mapeamentos aprendidos ficam;
  * - chave com rascunho → substitui o conteúdo (200); senão cria (201).
  * Dois envios simultâneos de uma chave nova: o segundo INSERT falha na unicidade
  * (sua transação aborta); repetimos uma vez numa transação nova, que agora encontra
@@ -61,7 +63,11 @@ export class UploadNfeImportUseCase {
     return this.transactionManager.execute(async () => {
       const existing = await this.repo.lockByAccessKey(document.accessKey);
       if (existing && existing.status !== "DRAFT") {
-        throw nfeAlreadyImported({ purchaseId: existing.purchaseId, importId: existing.id });
+        if (existing.purchaseStatus !== null && existing.purchaseStatus !== "CANCELED") {
+          throw nfeAlreadyImported({ purchaseId: existing.purchaseId, importId: existing.id });
+        }
+        await this.repo.resetToDraft(existing.id, document);
+        return { id: existing.id, created: false };
       }
       if (existing) {
         await this.repo.replaceDraftContent(existing.id, document);
