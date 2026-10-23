@@ -8,6 +8,7 @@ import { CrudBadge } from "@/shared/components/crud";
 
 import type { Product } from "../types";
 import { useDeleteProduct } from "./useDeleteProduct";
+import { Can } from "@/shared/auth/Can";
 
 export function useProductColumns(): DataTableColumn<Product>[] {
   const deleteProduct = useDeleteProduct();
@@ -80,12 +81,14 @@ export function useProductColumns(): DataTableColumn<Product>[] {
             <Pencil size={18} />
           </Link>
 
-          <button
-            className="text-red-600 hover:text-red-800"
-            onClick={() => deleteProduct.mutate(product.id)}
-          >
-            <Trash2 size={18} />
-          </button>
+          <Can permission="catalog.delete">
+            <button
+              className="text-red-600 hover:text-red-800"
+              onClick={() => deleteProduct.mutate(product.id)}
+            >
+              <Trash2 size={18} />
+            </button>
+          </Can>
         </div>
       ),
     },

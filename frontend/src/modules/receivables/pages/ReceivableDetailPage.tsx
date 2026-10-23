@@ -12,6 +12,7 @@ import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { ReversePaymentModal } from '../components/ReversePaymentModal';
 import { useReceivable } from '../hooks/useReceivable';
 import { PAYMENT_METHOD_LABELS, RECEIVABLE_STATUS_LABELS, type IReceivablePayment } from '../types';
+import { Can } from '@/shared/auth/Can';
 
 function formatDateTime(value: string | null) {
   if (!value) return '—';
@@ -129,9 +130,11 @@ export function ReceivableDetailPage() {
                               )}
                             </div>
                             {!reversed && !canceled && (
+                              <Can permission="finance.reverse">
                               <button type="button" className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-100" onClick={() => setReversing(payment)}>
                                 Estornar
                               </button>
+                              </Can>
                             )}
                           </li>
                         );

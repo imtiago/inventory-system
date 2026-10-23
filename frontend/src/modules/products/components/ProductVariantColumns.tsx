@@ -8,6 +8,7 @@ import { formatCurrency } from "@/shared/utils/money";
 import { VariantStock } from "./VariantStock";
 
 import type { Variant } from "../services/variantService";
+import { Can } from "@/shared/auth/Can";
 
 interface Props {
   onDelete(variant: Variant): void;
@@ -69,15 +70,17 @@ export function useProductVariantColumns({
             <Pencil size={18} />
           </Link>
 
-          <button
-            onClick={() => onDelete(variant)}
-            className="
+          <Can permission="catalog.delete">
+            <button
+              onClick={() => onDelete(variant)}
+              className="
               text-red-600
               hover:text-red-800
             "
-          >
-            <Trash2 size={18} />
-          </button>
+            >
+              <Trash2 size={18} />
+            </button>
+          </Can>
         </div>
       ),
     },

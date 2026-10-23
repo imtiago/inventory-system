@@ -2,21 +2,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { RouteGuard } from './RouteGuard';
 import { useAuth } from '../shared/hooks/useAuth';
-
-import { productRoutes } from '../modules/products/config/routes';
-import { inventoryRoutes } from '@/modules/inventory/config/routes';
-import { salesRoutes } from '../modules/sales/routes';
-import { receivablesRoutes } from '../modules/receivables/routes';
 import { authRoutes } from '../modules/auth/routes';
-import type { AppRoute } from './types';
-import { dashboardRoutes } from '@/modules/dashboard/routes';
+import { allRoutes } from './routes';
 import { DashboardLayout } from '@/shared/layouts/DashboardLayout';
-import { customersRoutes } from '@/modules/customers/config/routes';
 
-const allRoutes: AppRoute[] = [...productRoutes, ...salesRoutes, ...receivablesRoutes, ...dashboardRoutes, ...inventoryRoutes, ...customersRoutes];
 const publicRoutes = [...authRoutes];
 export const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isRestoring } = useAuth();
 
   return (
     <Routes>
@@ -35,10 +27,20 @@ export const AppRoutes = () => {
       >
         {allRoutes.map((route) => {
           const element = route.element ? route.element : <route.component />;
-          return <Route key={route.path} path={route.path} element={<RouteGuard guard={route.guard}>{element}</RouteGuard>} />;
+          return (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={
+                <RouteGuard guard={route.guard} permission={route.permission}>
+                  {element}
+                </RouteGuard>
+              }
+            />
+          );
         })}
       </Route>
-      <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
+      <Route path="*" element={isRestoring ? null : <Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
     </Routes>
   );
 };

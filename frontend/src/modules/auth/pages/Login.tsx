@@ -1,44 +1,47 @@
 // src/modules/auth/pages/Login.tsx
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, Mail, Package } from "lucide-react";
 
 import { api } from "@/shared/services/api";
-import { useAuthStore } from "@/shared/store/auth";
+import { useAuthStore, type SessionUser } from "@/shared/store/auth";
+import { parseApiErrorSync } from "@/shared/services/parseApiError";
+
+type LoginForm = { email: string; password: string };
 
 export function Login() {
   const navigate = useNavigate();
 
-  const setToken = useAuthStore((s) => s.setToken);
+  const [searchParams] = useSearchParams();
+  const setSession = useAuthStore((s) => s.setSession);
+  const expired = searchParams.get("expired") === "1";
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({ defaultValues: { email: "", password: "" } });
 
-  async function handleLogin() {
+  async function onSubmit(values: LoginForm) {
     try {
-      setError("");
-
-      const user = {
-        email: "tiago@example.com",
-        password: "SenhaForte123",
-      };
-
-      const response = await api.post("/auth/login", {
-        email: user.email,
-        password: user.password,
+      const response = await api.post<{ data: { token: string; user: SessionUser } }>("/auth/login", {
+        email: values.email.trim(),
+        password: values.password,
       });
 
-      setToken(response.data.token);
+      setSession(response.data.data.token, response.data.data.user);
 
-      navigate("/", {
-        replace: true,
-      });
-    } catch (error) {
-      setError("Usuário ou senha inválidos");
+      navigate("/", { replace: true });
+    } catch (err) {
+      const parsed = parseApiErrorSync(err);
+      const message = parsed.code === "INVALID_CREDENTIALS" ? "E-mail ou senha inválidos." : parsed.message;
+      setError("root.server", { type: "server", message });
     }
   }
+
+  const error = errors.root?.server?.message;
 
   return (
     <div
@@ -107,10 +110,16 @@ export function Login() {
           </p>
         </div>
 
-        {/* Erro */}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        {expired && !error && (
+          <div role="status" className="bg-amber-50 text-amber-700 text-sm p-3 rounded-lg mb-4">
+            Sua sessão expirou.
+          </div>
+        )}
 
         {error && (
           <div
+            role="alert"
             className="
             bg-red-50
             text-red-600
@@ -128,6 +137,7 @@ export function Login() {
 
         <div className="mb-4">
           <label
+            htmlFor="login-email"
             className="
             text-sm
             font-medium
@@ -165,17 +175,21 @@ export function Login() {
                 focus:ring-2
                 focus:ring-slate-900
               "
+              id="login-email"
+              type="email"
+              autoComplete="username"
               placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register("email", { required: "E-mail obrigatório." })}
             />
           </div>
+          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
         </div>
 
         {/* Senha */}
 
         <div className="mb-6">
           <label
+            htmlFor="login-password"
             className="
             text-sm
             font-medium
@@ -213,16 +227,19 @@ export function Login() {
                 focus:ring-2
                 focus:ring-slate-900
               "
+              id="login-password"
               type="password"
+              autoComplete="current-password"
               placeholder="********"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...register("password", { required: "Senha obrigatória." })}
             />
           </div>
+          {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
         </div>
 
         <button
-          onClick={handleLogin}
+          type="submit"
+          disabled={isSubmitting}
           className="
             w-full
             bg-slate-900
@@ -236,6 +253,7 @@ export function Login() {
         >
           Entrar
         </button>
+        </form>
 
         <p
           className="

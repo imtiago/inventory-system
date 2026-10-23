@@ -10,6 +10,7 @@ import { Section } from '@/shared/components/details/Section';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Page } from '@/shared/components/layout/Page';
+import { Can } from '@/shared/auth/Can';
 
 export function InventoryListPage() {
   const [page, setPage] = useState(1);
@@ -37,10 +38,12 @@ export function InventoryListPage() {
               <Plus size={18} />
               Novo
             </Link>
-            <Link to={`/inventory/initial`} className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white">
-              <Plus size={18} />
-              Cenário Inicial
-            </Link>
+            <Can permission="inventory.write">
+              <Link to={`/inventory/initial`} className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white">
+                <Plus size={18} />
+                Cenário Inicial
+              </Link>
+            </Can>
           </div>
         }
       >
