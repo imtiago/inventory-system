@@ -1,51 +1,46 @@
-export interface Brand {
-  id: string;
-  name: string;
-}
+import type { Brand } from "@/modules/brands/types";
+import type { Category } from "@/modules/categories/types";
+import type { Paginated } from "@/shared/types/pagination";
 
-export interface Category {
-  id: string;
-  name: string;
-}
+export type { Brand, Category };
 
+/** Matches backend ProductDetailDTO (list items share the same shape). */
 export interface Product {
   id: string;
-  name: string;
   code: string;
-  description?: string;
-
+  name: string;
+  description: string | null;
   brand: Brand;
-
   category: Category;
-
   variantsCount: number;
+  createdAt?: string;
 }
+
+/** Matches backend VariantDTO. */
 export interface ProductVariant {
   id: string;
-  name: string;
-  code: string;
-  barcode: string | null;
   productId: string;
+  code: string;
+  name: string;
+  barcode: string | null;
   salePrice: number;
+  createdAt?: string;
 }
 
-export interface ProductListResponse {
-  data: Product[];
+export type ProductListResponse = Paginated<Product>;
+export type ProductVariantListResponse = Paginated<ProductVariant>;
 
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface ProductListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  brandId?: string;
+  categoryId?: string;
 }
-export interface ProductVariantListResponse {
-  data: ProductVariant[];
 
-  pagination: {
-    page: number;
-    limit: number;
-    totalItems: number;
-    totalPages: number;
-  };
+export interface UpdateProductInput {
+  name?: string;
+  description?: string;
+  brandId?: string;
+  categoryId?: string;
 }

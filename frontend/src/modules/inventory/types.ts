@@ -1,14 +1,8 @@
 // Single source of truth for inventory types (matches backend DTOs / contract fixtures).
 
-export interface Paginated<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+import type { Paginated } from "@/shared/types/pagination";
+
+export type { Paginated };
 
 export interface InventoryProductVariant {
   id: string;

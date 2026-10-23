@@ -2,14 +2,9 @@
 
 import { api } from "@/shared/services/api";
 
-export interface Variant {
-  id: string;
-  name: string;
-  code: string;
-  barcode: string | null;
-  productId: string;
-  salePrice: number;
-}
+import type { ProductVariant } from "../types";
+
+export type Variant = ProductVariant;
 
 export interface SaveVariantDTO {
   name: string;

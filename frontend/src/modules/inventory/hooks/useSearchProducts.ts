@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '@/shared/services/api';
+import type { Paginated } from '@/shared/types/pagination';
 
 export interface InventoryProductSearchResult {
   id: string;
@@ -20,13 +21,7 @@ export interface InventoryProductSearchResult {
   variantsCount?: number;
 }
 
-interface SearchProductsResponse {
-  data: InventoryProductSearchResult[];
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
+type SearchProductsResponse = Paginated<InventoryProductSearchResult>;
 
 export function useSearchProducts() {
   const [products, setProducts] = useState<InventoryProductSearchResult[]>([]);

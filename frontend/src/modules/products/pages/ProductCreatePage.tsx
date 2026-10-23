@@ -6,7 +6,6 @@ import { useBrands } from "@/modules/brands/hooks/useBrands";
 import { useCategories } from "@/modules/categories/hooks/useCategories";
 import { useCreateProduct } from "../hooks/useCreateProduct";
 import { PageContainer } from "@/shared/components/PageContainer";
-import { Page } from "@/shared/components/layout/Page";
 
 export function ProductCreatePage() {
   const navigate = useNavigate();

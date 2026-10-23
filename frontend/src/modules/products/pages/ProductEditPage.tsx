@@ -1,37 +1,79 @@
-// src/modules/products/pages/ProductEditPage.tsx
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { getProductById } from "../services/productService";
-import { ProductForm } from "../components/ProductForm";
-import type { Product } from "../types";
+import { useNavigate, useParams } from "react-router-dom";
 
-export const ProductEditPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+import { PageContainer } from "@/shared/components/PageContainer";
+import { parseApiErrorSync } from "@/shared/services/parseApiError";
+import { handleMutationError } from "@/shared/utils/mutation";
+import { notify } from "@/shared/utils/notify";
+
+import { useBrands } from "@/modules/brands/hooks/useBrands";
+import { useCategories } from "@/modules/categories/hooks/useCategories";
+
+import { ProductForm, type ProductFormData } from "../components/ProductForm";
+import { useProduct } from "../hooks/useProduct";
+import { useUpdateProduct } from "../hooks/useUpdateProduct";
+import type { UpdateProductInput } from "../types";
+
+function withCurrent<T extends { id: string }>(items: T[], current?: T): T[] {
+  return current && !items.some((item) => item.id === current.id) ? [current, ...items] : items;
+}
+
+export function ProductEditPage() {
+  const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data: product, isLoading } = useQuery<Product | undefined>({
-    queryKey: ["product", id],
-    queryFn: () => getProductById(id!),
-    enabled: !!id,
-  });
+  const { data: product, isLoading, isError } = useProduct(id);
+  const { data: brands } = useBrands();
+  const { data: categories } = useCategories();
+  const updateProduct = useUpdateProduct({ silentError: true });
 
-  if (isLoading) return <p>Carregando produto...</p>;
-  if (!product) return <p>Produto não encontrado</p>;
+  if (isLoading || (!isError && (!brands || !categories))) return <p>Carregando produto...</p>;
+  if (isError || !product) return <p>Produto não encontrado</p>;
+
+  const initialValues: ProductFormData = {
+    name: product.name,
+    description: product.description ?? "",
+    brandId: product.brand.id,
+    categoryId: product.category.id,
+  };
+
+  async function handleSubmit(data: ProductFormData) {
+    // Only changed fields are sent (the backend update is partial).
+    const changes: UpdateProductInput = {};
+
+    if (data.name.trim() !== initialValues.name) changes.name = data.name.trim();
+    if ((data.description ?? "").trim() !== initialValues.description) changes.description = (data.description ?? "").trim();
+    if (data.brandId !== initialValues.brandId) changes.brandId = data.brandId;
+    if (data.categoryId !== initialValues.categoryId) changes.categoryId = data.categoryId;
+
+    if (Object.keys(changes).length === 0) {
+      notify.info("Nenhuma alteração para salvar.");
+      return;
+    }
+
+    try {
+      await updateProduct.mutateAsync({ id, input: changes });
+    } catch (error) {
+      // Field errors are shown inline by the form; anything else becomes a toast.
+      if (Object.keys(parseApiErrorSync(error).fieldErrors).length > 0) throw error;
+
+      handleMutationError(error, "Erro ao atualizar produto.");
+      return;
+    }
+
+    navigate(`/products/${id}`);
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl mb-6">Editar Produto</h1>
+    <PageContainer>
       <ProductForm
-        defaultValues={{
-          name: product.name,
-          sku: product.variants?.[0]?.sku || "", // primeira variante como padrão
-          brandId: product.brandId || "",
-          categoryId: product.categoryId || "",
-        }}
-        productId={id}
-        onSuccess={() => navigate("/products")}
+        title="Editar Produto"
+        description={`Código ${product.code}`}
+        brands={withCurrent(brands ?? [], product.brand)}
+        categories={withCurrent(categories ?? [], product.category)}
+        initialValues={initialValues}
+        onSubmit={handleSubmit}
+        onCancel={() => navigate(`/products/${id}`)}
       />
-    </div>
+    </PageContainer>
   );
-};
+}
