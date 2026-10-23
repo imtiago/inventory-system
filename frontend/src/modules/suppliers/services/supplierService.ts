@@ -31,3 +31,9 @@ export async function updateSupplier(id: string, input: UpdateSupplierInput): Pr
 export async function deleteSupplier(id: string): Promise<void> {
   await api.delete(`/suppliers/${id}`);
 }
+
+export async function getSupplierById(id: string): Promise<ISupplier> {
+  const response = await api.get<{ data: ISupplier }>(`/suppliers/${id}`);
+
+  return response.data.data;
+}

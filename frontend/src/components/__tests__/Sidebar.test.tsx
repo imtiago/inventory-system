@@ -23,7 +23,7 @@ function renderSidebar(role: UserRole, client = createTestQueryClient()) {
   return client;
 }
 
-const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra', 'Financeiro', 'Contas a receber'];
+const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra', 'Financeiro', 'Contas a receber', 'Contas a pagar'];
 
 function visible() {
   return labels.filter((l) => screen.queryByText(l));
@@ -41,10 +41,11 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: /Alterar senha/ })).toBeInTheDocument();
   });
 
-  test('VENDEDOR vê tudo exceto Usuários e Compras', () => {
+  test('VENDEDOR vê tudo exceto Usuários, Compras e Contas a pagar', () => {
     renderSidebar('VENDEDOR');
-    expect(visible()).toEqual(labels.filter((l) => !['Compras', 'Fornecedores', 'Pedidos de compra'].includes(l)));
+    expect(visible()).toEqual(labels.filter((l) => !['Compras', 'Fornecedores', 'Pedidos de compra', 'Contas a pagar'].includes(l)));
     expect(screen.queryByText('Usuários')).not.toBeInTheDocument();
+    expect(screen.getByText('Contas a receber')).toBeInTheDocument();
   });
 
   test('VENDEDOR não vê Compras', () => {
@@ -52,6 +53,11 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Compras')).not.toBeInTheDocument();
     expect(screen.queryByText('Fornecedores')).not.toBeInTheDocument();
     expect(screen.queryByText('Pedidos de compra')).not.toBeInTheDocument();
+  });
+
+  test('ESTOQUISTA não vê Contas a pagar', () => {
+    renderSidebar('ESTOQUISTA');
+    expect(screen.queryByText('Contas a pagar')).not.toBeInTheDocument();
   });
 
   test('ESTOQUISTA vê Compras, sem Vendas/Clientes/Financeiro', () => {

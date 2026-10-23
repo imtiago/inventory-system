@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { queryKeys } from '@/shared/react-query/keys';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
-import { getSuppliers, searchSuppliers } from '../services/supplierService';
+import { getSupplierById, getSuppliers, searchSuppliers } from '../services/supplierService';
 
 export function useSuppliers(page: number, search = '') {
   return useQuery({
@@ -21,5 +21,13 @@ export function useSupplierSearch(search: string) {
     enabled: debounced.length >= 2,
     staleTime: 30_000,
     placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useSupplier(id: string) {
+  return useQuery({
+    queryKey: [...queryKeys.suppliers, 'detail', id],
+    queryFn: () => getSupplierById(id),
+    enabled: Boolean(id),
   });
 }

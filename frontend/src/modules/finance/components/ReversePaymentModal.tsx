@@ -1,3 +1,4 @@
+import type { FinanceKind } from '../config';
 import { useForm } from 'react-hook-form';
 
 import { Modal } from '@/shared/components/Modal/Modal';
@@ -6,18 +7,19 @@ import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { formatCurrency } from '@/shared/utils/money';
 
 import { useReversePayment } from '../hooks/useReversePayment';
-import type { IReceivablePayment } from '../types';
+import type { IFinancePayment } from '../types';
 
 interface Props {
-  receivableId: string;
-  payment: IReceivablePayment;
+  kind: FinanceKind;
+  documentId: string;
+  payment: IFinancePayment;
   onClose: () => void;
 }
 
 const REASON_MESSAGE = 'Informe o motivo (3 a 200 caracteres).';
 
-export function ReversePaymentModal({ receivableId, payment, onClose }: Props) {
-  const mutation = useReversePayment(receivableId);
+export function ReversePaymentModal({ kind, documentId, payment, onClose }: Props) {
+  const mutation = useReversePayment(kind, documentId);
   const {
     register,
     handleSubmit,

@@ -5,6 +5,8 @@ export const queryKeys = {
 
   receivables: ['receivables'] as const,
 
+  payables: ['payables'] as const,
+
   suppliers: ['suppliers'] as const,
 
   purchases: ['purchases'] as const,

@@ -1,14 +1,17 @@
 import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
 
-export type ReceivableStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELED';
+export type FinanceStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
-export interface IReceivableListItem {
+export interface IFinanceListItem {
   id: string;
-  status: ReceivableStatus;
-  displayStatus: ReceivableStatus;
+  status: FinanceStatus;
+  displayStatus: FinanceStatus;
   originType: string;
   originId: string;
-  customer: { id: string; name: string };
+  /** Receivables carry `customer`, payables carry `supplier`; see FINANCE_KINDS[kind].partyKey. */
+  customer?: { id: string; name: string };
+  supplier?: { id: string; name: string };
+  purchaseCode?: string;
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
@@ -17,26 +20,29 @@ export interface IReceivableListItem {
   createdAt: string;
 }
 
-export interface IReceivableSummary {
+export interface IFinanceSummary {
   openAmount: number;
   overdueAmount: number;
-  receivedAmount: number;
+  /** Receivables report `receivedAmount`, payables `paidAmount`. */
+  receivedAmount?: number;
+  paidAmount?: number;
 }
 
-export interface IReceivablesResponse {
-  data: IReceivableListItem[];
+export interface IFinanceListResponse {
+  data: IFinanceListItem[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
-  summary: IReceivableSummary;
+  summary: IFinanceSummary;
 }
 
-export interface IReceivableFilters {
-  status?: ReceivableStatus;
+export interface IFinanceFilters {
+  status?: FinanceStatus;
   customerId?: string;
+  supplierId?: string;
   dueFrom?: string;
   dueTo?: string;
 }
 
-export const RECEIVABLE_STATUS_LABELS: Record<ReceivableStatus, string> = FINANCIAL_STATUS_LABELS as Record<ReceivableStatus, string>;
+export const FINANCE_STATUS_LABELS: Record<FinanceStatus, string> = FINANCIAL_STATUS_LABELS as Record<FinanceStatus, string>;
 
 export type PaymentMethod = 'CASH' | 'PIX' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BOLETO';
 
@@ -49,7 +55,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   BOLETO: 'Boleto',
 };
 
-export interface IReceivablePayment {
+export interface IFinancePayment {
   id: string;
   amount: number;
   method: PaymentMethod;
@@ -62,29 +68,32 @@ export interface IReceivablePayment {
   reversalReason: string | null;
 }
 
-export interface IReceivableParcel {
+export interface IFinanceParcel {
   id: string;
   number: number;
   amount: number;
   dueDate: string;
   paidAmount: number;
   remainingAmount: number;
-  status: ReceivableStatus;
-  payments: IReceivablePayment[];
+  status: FinanceStatus;
+  payments: IFinancePayment[];
 }
 
-export interface IReceivableDetail {
+export interface IFinanceDetail {
   id: string;
-  status: ReceivableStatus;
-  displayStatus: ReceivableStatus;
+  status: FinanceStatus;
+  displayStatus: FinanceStatus;
   originType: string;
   originId: string;
-  customer: { id: string; name: string };
+  /** Receivables carry `customer`, payables carry `supplier`; see FINANCE_KINDS[kind].partyKey. */
+  customer?: { id: string; name: string };
+  supplier?: { id: string; name: string };
+  purchaseCode?: string;
   createdAt: string;
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  parcels: IReceivableParcel[];
+  parcels: IFinanceParcel[];
 }
 
 export interface IRegisterPaymentInput {

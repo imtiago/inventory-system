@@ -1,3 +1,4 @@
+import type { FinanceKind } from '../config';
 import { useForm } from 'react-hook-form';
 
 import { Modal } from '@/shared/components/Modal/Modal';
@@ -7,7 +8,7 @@ import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { formatCurrency, toCents } from '@/shared/utils/money';
 
 import { useRegisterPayment } from '../hooks/useRegisterPayment';
-import { PAYMENT_METHOD_LABELS, type IReceivableParcel, type PaymentMethod } from '../types';
+import { PAYMENT_METHOD_LABELS, type IFinanceParcel, type PaymentMethod } from '../types';
 
 const METHODS = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[];
 const KNOWN_FIELDS = ['amount', 'method', 'paymentDate', 'reference'] as const;
@@ -20,15 +21,16 @@ interface FormValues {
 }
 
 interface Props {
-  receivableId: string;
-  parcel: IReceivableParcel;
+  kind: FinanceKind;
+  documentId: string;
+  parcel: IFinanceParcel;
   onClose: () => void;
 }
 
 const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 
-export function RegisterPaymentModal({ receivableId, parcel, onClose }: Props) {
-  const mutation = useRegisterPayment(receivableId);
+export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Props) {
+  const mutation = useRegisterPayment(kind, documentId);
   const today = todayInBusinessTz();
   const remainingCents = toCents(parcel.remainingAmount);
 
