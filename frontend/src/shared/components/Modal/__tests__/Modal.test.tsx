@@ -42,4 +42,22 @@ describe('Modal focus management', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByText('Abrir')).toHaveFocus();
   });
+
+  test('keeps focus on a child with autoFocus', () => {
+    render(
+      <Modal open onClose={() => {}} title="T">
+        <input aria-label="busca" autoFocus />
+      </Modal>,
+    );
+    expect(screen.getByLabelText('busca')).toHaveFocus();
+  });
+
+  test('prefers first body focusable over header close button', () => {
+    render(
+      <Modal open onClose={() => {}} title="T">
+        <button>Corpo</button>
+      </Modal>,
+    );
+    expect(screen.getByText('Corpo')).toHaveFocus();
+  });
 });

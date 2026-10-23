@@ -93,10 +93,14 @@ export function SaleDetailPage() {
               </div>
 
               {sale.status !== 'CANCELED' && (
-                <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50" onClick={() => {
+                <button
+                  type="button"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+                  onClick={() => {
                     setCancelError(null);
                     setConfirmOpen(true);
-                  }}>
+                  }}
+                >
                   Cancelar venda
                 </button>
               )}

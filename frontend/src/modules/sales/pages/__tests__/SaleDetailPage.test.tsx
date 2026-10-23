@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { SaleDetailPage } from '../SaleDetailPage';
 import { SaleListPage } from '../SaleListPage';
@@ -133,5 +134,27 @@ describe('SaleDetailPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar venda' }));
     expect(screen.queryByText('Venda alterada por outra operação.')).not.toBeInTheDocument();
+  });
+
+  test('404 não faz retry (mensagem aparece imediatamente com retries habilitados)', async () => {
+    let gets = 0;
+    server.use(
+      http.get(`${API_URL}/sales/:id`, () => {
+        gets++;
+        return HttpResponse.json({ message: 'Venda não encontrada.', code: 'SALE_NOT_FOUND' }, { status: 404 });
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 3, retryDelay: 1 } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/sales/${id}`]}>
+          <Routes>
+            <Route path="/sales/:id" element={<SaleDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('Venda não encontrada.')).toBeInTheDocument();
+    expect(gets).toBe(1);
   });
 });

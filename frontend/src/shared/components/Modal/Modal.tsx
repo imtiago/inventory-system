@@ -29,6 +29,7 @@ const sizeClasses = {
 
 export function Modal({ open, onClose, children, title, description, size = 'md', closeOnOverlayClick = true, closeOnEscape = true, showCloseButton = true }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // Move focus in on open, trap Tab while open, restore focus on close.
   useEffect(() => {
@@ -43,8 +44,12 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
       return dialog ? Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
     }
 
-    const [first] = getFocusable();
-    (first ?? dialog)?.focus();
+    // Respect children that already took focus (e.g. autoFocus); otherwise prefer the body over the header.
+    if (dialog && !dialog.contains(document.activeElement)) {
+      const [bodyFirst] = bodyRef.current ? Array.from(bodyRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
+      const [first] = getFocusable();
+      (bodyFirst ?? first ?? dialog).focus();
+    }
 
     function handleTab(event: KeyboardEvent) {
       if (event.key !== 'Tab' || !dialog) {
@@ -164,7 +169,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
       </div>
     </div>
   );
