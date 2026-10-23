@@ -108,7 +108,8 @@ describe("Fornecedores (/suppliers)", () => {
 
     const byMasked = await call("GET", `/suppliers?search=${encodeURIComponent(maskCnpj(cnpj).toLowerCase())}`, admin);
     assert.deepEqual(byMasked.json().data.map((s: { id: string }) => s.id), [res.json().data.id]);
-    const byFragment = await call("GET", `/suppliers?search=${encodeURIComponent(cnpj.slice(0, 8).toLowerCase())}`, admin);
+    // Últimas 8 posições: sempre incluem os DVs numéricos (um trecho só de letras não busca por documento).
+    const byFragment = await call("GET", `/suppliers?search=${encodeURIComponent(cnpj.slice(6).toLowerCase())}`, admin);
     assert.ok(byFragment.json().data.some((s: { id: string }) => s.id === res.json().data.id));
 
     const wrongDv = `${cnpj.slice(0, 13)}${(Number(cnpj[13]) + 1) % 10}`;
