@@ -4,7 +4,7 @@ import { TransactionManager } from "@shared/application/transaction/TransactionM
 import { IUpdateUserInput, UserDTO } from "@auth/application/dto/UserDTO";
 import { UserReadMapper } from "@auth/application/mappers/UserReadMapper";
 import { UserRole } from "@auth/domain/enums/UserRole";
-import { UserRepository } from "@auth/domain/repositories/UserRepository";
+import { UserAccessChanges, UserRepository } from "@auth/domain/repositories/UserRepository";
 
 export class UpdateUserUseCase extends TransactionalUseCase<IUpdateUserInput, UserDTO> {
   constructor(
@@ -15,7 +15,16 @@ export class UpdateUserUseCase extends TransactionalUseCase<IUpdateUserInput, Us
   }
 
   protected async handle({ actorId, id, name, role, active }: IUpdateUserInput): Promise<UserDTO> {
-    const user = await this.userRepo.findById(id);
+    // Só um pedido que desativa ou define papel não-ADMIN pode tirar um admin.
+    // Nesse caso trava primeiro os admins ativos (ordem de id) e depois o alvo:
+    // ordem fixa de locks, sem deadlock entre dois rebaixamentos concorrentes.
+    const mayRemoveAdmin = active === false || (role !== undefined && role !== UserRole.ADMIN);
+    const otherActiveAdmins = mayRemoveAdmin
+      ? await this.userRepo.countActiveAdminsExcluding(id)
+      : undefined;
+
+    // Linha do alvo travada até o commit: as regras abaixo valem sobre o estado atual.
+    const user = await this.userRepo.findByIdForUpdate(id);
     if (!user) throw new NotFoundError("Usuário não encontrado.", "USER_NOT_FOUND");
 
     const nextRole = role ?? user.role;
@@ -30,25 +39,19 @@ export class UpdateUserUseCase extends TransactionalUseCase<IUpdateUserInput, Us
 
     const wasActiveAdmin = user.active && user.role === UserRole.ADMIN;
     const staysActiveAdmin = nextActive && nextRole === UserRole.ADMIN;
-    if (wasActiveAdmin && !staysActiveAdmin) {
-      // Na mesma transação da gravação (as linhas dos admins ficam travadas).
-      const otherAdmins = await this.userRepo.countActiveAdminsExcluding(id);
-      if (otherAdmins === 0) {
-        throw new ConflictError(
-          "O sistema precisa de ao menos um administrador ativo.",
-          "LAST_ADMIN",
-        );
-      }
+    if (wasActiveAdmin && !staysActiveAdmin && otherActiveAdmins === 0) {
+      throw new ConflictError(
+        "O sistema precisa de ao menos um administrador ativo.",
+        "LAST_ADMIN",
+      );
     }
 
-    if (name !== undefined) user.rename(name);
-    if (role !== undefined) user.changeRole(role);
-    if (active !== undefined) {
-      if (active) user.activate();
-      else user.deactivate();
-    }
+    const changes: UserAccessChanges = {};
+    if (name !== undefined) changes.name = name;
+    if (role !== undefined) changes.role = role;
+    if (active !== undefined) changes.active = active;
 
-    const saved = await this.userRepo.update(user);
+    const saved = await this.userRepo.updateAccess(id, changes);
     return UserReadMapper.fromEntity(saved);
   }
 }

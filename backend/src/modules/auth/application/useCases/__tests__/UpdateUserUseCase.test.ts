@@ -1,54 +1,9 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { ConflictError, NotFoundError } from "@shared/domain/errors";
-import { TransactionManager } from "@shared/application/transaction/TransactionManager";
-import { User } from "@auth/domain/entities/User";
 import { UserRole } from "@auth/domain/enums/UserRole";
-import { UserRepository } from "@auth/domain/repositories/UserRepository";
 import { UpdateUserUseCase } from "../commands/UpdateUserUseCase";
-
-class InMemoryUserRepository implements UserRepository {
-  readonly users = new Map<string, User>();
-  adminCountCalls = 0;
-
-  add(props: { id: string; role: UserRole; active?: boolean }) {
-    this.users.set(
-      props.id,
-      new User({ ...props, name: props.id, email: `${props.id}@example.com`, password: "hash" }),
-    );
-  }
-  async findById(id: string) {
-    return this.users.get(id) ?? null;
-  }
-  async findByEmail(email: string) {
-    return [...this.users.values()].find((u) => u.email === email) ?? null;
-  }
-  async create(user: User) {
-    this.users.set(user.id, user);
-    return user;
-  }
-  async update(user: User) {
-    this.users.set(user.id, user);
-    return user;
-  }
-  async delete(id: string) {
-    this.users.delete(id);
-  }
-  async countActiveAdminsExcluding(id: string) {
-    this.adminCountCalls++;
-    return [...this.users.values()].filter(
-      (u) => u.id !== id && u.active && u.role === UserRole.ADMIN,
-    ).length;
-  }
-}
-
-class SpyTransactionManager implements TransactionManager {
-  calls = 0;
-  async execute<T>(work: () => Promise<T>): Promise<T> {
-    this.calls++;
-    return work();
-  }
-}
+import { InMemoryUserRepository, SpyTransactionManager } from "../../__tests__/fakes";
 
 function setup() {
   const repo = new InMemoryUserRepository();
@@ -66,15 +21,14 @@ describe("UpdateUserUseCase", () => {
     for (const change of [{ role: UserRole.VENDEDOR }, { active: false }]) {
       await assert.rejects(
         useCase.execute({ actorId: "actor", id: "last", ...change }),
-        (err: unknown) =>
-          err instanceof ConflictError && err.code === "LAST_ADMIN",
+        (err: unknown) => err instanceof ConflictError && err.code === "LAST_ADMIN",
       );
     }
-    assert.equal(repo.users.get("last")!.role, UserRole.ADMIN);
-    assert.equal(repo.users.get("last")!.active, true);
+    assert.equal(repo.row("last").role, UserRole.ADMIN);
+    assert.equal(repo.row("last").active, true);
   });
 
-  test("com outro admin ativo, rebaixar/desativar um admin é permitido", async () => {
+  test("com outro admin ativo, rebaixar/desativar é permitido; admins travados antes do alvo, alvo lido com lock", async () => {
     const { repo, tx, useCase } = setup();
     repo.add({ id: "actor", role: UserRole.ADMIN });
     repo.add({ id: "target", role: UserRole.ADMIN });
@@ -83,10 +37,25 @@ describe("UpdateUserUseCase", () => {
     assert.equal(out.role, UserRole.ESTOQUISTA);
     assert.equal(out.active, false);
     assert.equal(tx.calls, 1);
-    assert.equal(repo.adminCountCalls, 1);
+    // ordem fixa de locks (admins → alvo) evita deadlock entre dois rebaixamentos
+    assert.deepEqual(repo.calls, [
+      "countActiveAdminsExcluding",
+      "findByIdForUpdate",
+      "updateAccess:active,role",
+    ]);
   });
 
-  test("reativar/promover ou alterar não-admin não consulta a contagem de admins", async () => {
+  test("grava só os campos alterados: renomear não reescreve active/role/senha", async () => {
+    const { repo, useCase } = setup();
+    repo.add({ id: "actor", role: UserRole.ADMIN });
+    repo.add({ id: "seller", role: UserRole.VENDEDOR });
+
+    await useCase.execute({ actorId: "actor", id: "seller", name: "novo nome" });
+    assert.deepEqual(repo.calls, ["findByIdForUpdate", "updateAccess:name"]);
+    assert.equal(repo.row("seller").name, "novo nome");
+  });
+
+  test("reativar/promover não consulta a contagem de admins", async () => {
     const { repo, useCase } = setup();
     repo.add({ id: "actor", role: UserRole.ADMIN });
     repo.add({ id: "seller", role: UserRole.VENDEDOR, active: false });
@@ -94,8 +63,7 @@ describe("UpdateUserUseCase", () => {
     const out = await useCase.execute({ actorId: "actor", id: "seller", role: UserRole.ADMIN, active: true });
     assert.equal(out.role, UserRole.ADMIN);
     assert.equal(out.active, true);
-    await useCase.execute({ actorId: "actor", id: "seller", name: "novo nome" });
-    assert.equal(repo.adminCountCalls, 0);
+    assert.ok(!repo.calls.includes("countActiveAdminsExcluding"));
   });
 
   test("admin não pode desativar a si nem remover o próprio papel ADMIN → CANNOT_CHANGE_OWN_ACCESS", async () => {

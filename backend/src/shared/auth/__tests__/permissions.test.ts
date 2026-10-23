@@ -84,6 +84,9 @@ describe("hasPermission (matriz)", () => {
   test("papel desconhecido não tem permissão", () => {
     assert.equal(hasPermission("admin", "catalog.read"), false);
     assert.equal(hasPermission("CLIENTE", "self"), false);
+    for (const odd of ["constructor", "__proto__", "toString", "hasOwnProperty", ""]) {
+      assert.equal(hasPermission(odd, "self"), false, odd);
+    }
   });
 });
 

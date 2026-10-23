@@ -86,3 +86,6 @@ export class LoginAttemptLimiter implements ILoginAttemptLimiter {
 
 /** Instância única usada pela rota de login. */
 export const loginAttemptLimiter = new LoginAttemptLimiter();
+
+/** Instância separada para a senha atual em PUT /users/me/password (chave `pwd:<userId>`). */
+export const passwordChangeAttemptLimiter = new LoginAttemptLimiter();

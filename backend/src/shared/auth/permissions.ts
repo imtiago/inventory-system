@@ -46,6 +46,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
 };
 
 export function hasPermission(role: string, permission: Permission): boolean {
-  const permissions = ROLE_PERMISSIONS[role as UserRole];
-  return permissions !== undefined && permissions.includes(permission);
+  // hasOwn: "constructor", "__proto__" etc. não são papéis.
+  if (!Object.hasOwn(ROLE_PERMISSIONS, role)) return false;
+  return ROLE_PERMISSIONS[role as UserRole].includes(permission);
 }

@@ -251,6 +251,41 @@ describe("Gestão de usuários (/users)", () => {
     }
   });
 
+  test("PUT /users/me/password: 10 senhas atuais erradas → 422; a 11ª → 429 TOO_MANY_ATTEMPTS", async () => {
+    const user = await createTestUser({ role: "VENDEDOR", password: "senha-atual-1" });
+    try {
+      const attempt = (currentPassword: string) =>
+        call("PUT", "/users/me/password", user.token, { currentPassword, newPassword: "senha-nova-12" });
+      for (let i = 1; i <= 10; i++) {
+        const res = await attempt("senha-errada");
+        assert.equal(res.statusCode, 422, `tentativa ${i}: ${res.body}`);
+      }
+      const blocked = await attempt("senha-atual-1");
+      assert.equal(blocked.statusCode, 429, blocked.body);
+      assert.deepEqual(blocked.json(), {
+        message: "Muitas tentativas. Tente novamente em alguns minutos.",
+        code: "TOO_MANY_ATTEMPTS",
+      });
+    } finally {
+      await user.cleanup();
+    }
+  });
+
+  test("nome com mais de 120 caracteres → 400 (criar e editar)", async () => {
+    const long = "x".repeat(121);
+    const create = await call("POST", "/users", admin.token, {
+      name: long,
+      email: newEmail(),
+      password: "senha-segura",
+      role: "VENDEDOR",
+    });
+    assert.equal(create.statusCode, 400, create.body);
+    const patch = await call("PATCH", `/users/${estoquista.id}`, admin.token, { name: long });
+    assert.equal(patch.statusCode, 400, patch.body);
+    const ok = await call("PATCH", `/users/${estoquista.id}`, admin.token, { name: "x".repeat(120) });
+    assert.equal(ok.statusCode, 200, ok.body);
+  });
+
   test("ESTOQUISTA acessa GET /users/me", async () => {
     const res = await call("GET", "/users/me", estoquista.token);
     assert.equal(res.statusCode, 200, res.body);

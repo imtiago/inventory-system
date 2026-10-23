@@ -19,7 +19,7 @@ export class ResetUserPasswordUseCase extends TransactionalUseCase<IResetUserPas
     const user = await this.userRepo.findById(id);
     if (!user) throw new NotFoundError("Usuário não encontrado.", "USER_NOT_FOUND");
 
-    user.changePassword(await this.passwordHasher.hash(password));
-    await this.userRepo.update(user);
+    // Grava só a senha: não reverte uma desativação/rebaixamento concorrente.
+    await this.userRepo.updatePassword(id, await this.passwordHasher.hash(password));
   }
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
-import { passwordSchema, userRoleSchema } from "./createUserSchema";
+import { nameSchema, passwordSchema, userRoleSchema } from "./createUserSchema";
 
 export const listUsersSchema = paginationSchema.extend({
   search: z.string().trim().optional(),
@@ -12,7 +12,7 @@ export const userIdParamsSchema = z.object({
 
 export const updateUserSchema = z
   .object({
-    name: z.string().trim().min(1, "O nome é obrigatório.").optional(),
+    name: nameSchema.optional(),
     role: userRoleSchema.optional(),
     active: z.boolean({ error: "Informe verdadeiro ou falso." }).optional(),
   })
