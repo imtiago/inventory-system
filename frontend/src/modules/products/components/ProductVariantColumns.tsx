@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 
 import type { DataTableColumn } from "@/shared/components/table";
 
+import { formatCurrency } from "@/shared/utils/money";
+
 import { VariantStock } from "./VariantStock";
 
 import type { Variant } from "../services/variantService";
@@ -34,6 +36,13 @@ export function useProductVariantColumns({
       header: "Código de barras",
 
       cell: (variant) => variant.barcode ?? "Não informado",
+    },
+
+    {
+      id: "salePrice",
+      header: "Preço de venda",
+
+      cell: (variant) => formatCurrency(variant.salePrice),
     },
 
     {

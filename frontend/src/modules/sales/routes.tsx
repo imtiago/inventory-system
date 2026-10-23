@@ -1,6 +1,5 @@
 // modules/sales/routes.tsx
 import type { AppRoute } from '@/routes/types';
-import { SalesPage } from './pages/SalesPage';
 import { SaleListPage } from './pages/SaleListPage';
 import { SaleCreatePage } from './pages/SaleCreatePage';
 

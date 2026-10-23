@@ -7,6 +7,8 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 export interface VariantFormData {
   name: string;
   barcode?: string;
+  /** R$; vazio = não informado (backend assume 0 na criação). */
+  salePrice?: number;
 }
 
 interface Props {
@@ -21,7 +23,16 @@ interface Props {
   onCancel(): void;
 }
 
-const FIELDS = ["name", "barcode"] as const;
+const FIELDS = ["name", "barcode", "salePrice"] as const;
+
+function validateSalePrice(value: number | undefined) {
+  if (value === undefined) return true;
+  if (Number.isNaN(value)) return "Informe um preço válido.";
+  if (value < 0) return "O preço não pode ser negativo.";
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return "O preço deve ter no máximo 2 casas decimais.";
+
+  return true;
+}
 
 export function VariantForm({
   title,
@@ -51,6 +62,7 @@ export function VariantForm({
 
   return (
     <form
+      noValidate
       onSubmit={submit}
       className="
         space-y-6
@@ -122,6 +134,31 @@ export function VariantForm({
             </button>
           </div>
           {errors.barcode && <p className="mt-1 text-sm text-red-600">{errors.barcode.message}</p>}
+        </div>
+
+        {/* Preço de venda */}
+
+        <div>
+          <label htmlFor="variant-sale-price" className="block mb-1">Preço de venda (R$)</label>
+
+          <input
+            id="variant-sale-price"
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            {...register("salePrice", {
+              setValueAs: (value) => (value === "" || value == null ? undefined : Number(value)),
+              validate: validateSalePrice,
+            })}
+            className="
+              w-full
+              border
+              rounded-lg
+              p-3
+            "
+            placeholder="0,00"
+          />
+          {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}
         </div>
 
         {scannerOpen && (

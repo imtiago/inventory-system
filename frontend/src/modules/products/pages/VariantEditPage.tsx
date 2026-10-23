@@ -12,7 +12,7 @@ export function VariantEditPage() {
 
   const { data: variant, isLoading, isError } = useVariant(variantId!);
 
-  const updateVariant = useUpdateVariant(variantId!);
+  const updateVariant = useUpdateVariant(variantId!, variant?.productId ?? "");
 
   async function handleSubmit(data: VariantFormData) {
     if (!variant) return;
@@ -38,6 +38,7 @@ export function VariantEditPage() {
         initialValues={{
           name: variant.name,
           barcode: variant.barcode ?? "",
+          salePrice: variant.salePrice,
         }}
         onSubmit={handleSubmit}
         onCancel={() => navigate(`/products/${variant.productId}`)}

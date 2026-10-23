@@ -12,5 +12,8 @@ export function useCreateSale() {
     successMessage: saleMessages.created,
 
     errorMessage: 'Erro ao registrar a venda.',
+
+    // The page renders the error itself (field errors + alert); avoid a duplicate toast.
+    silentError: true,
   });
 }

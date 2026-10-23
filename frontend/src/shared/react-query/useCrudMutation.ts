@@ -20,6 +20,9 @@ interface CrudMutationOptions<TData, TVariables> {
   successMessage?: string;
 
   errorMessage?: string;
+
+  /** When true, no default error toast is shown (the caller displays the error itself). */
+  silentError?: boolean;
 }
 
 export function useCrudMutation<TData, TVariables>({
@@ -27,13 +30,14 @@ export function useCrudMutation<TData, TVariables>({
   invalidateKeys = [],
   successMessage,
   errorMessage = "Ocorreu um erro.",
+  silentError = false,
 }: CrudMutationOptions<TData, TVariables>) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn,
 
-    async onSuccess(data, variables, context) {
+    async onSuccess() {
       if (invalidateKeys.length) {
         await invalidate(queryClient, ...invalidateKeys);
       }
@@ -44,6 +48,8 @@ export function useCrudMutation<TData, TVariables>({
     },
 
     onError(error) {
+      if (silentError) return;
+
       handleMutationError(error, errorMessage);
     },
   });

@@ -1,7 +1,12 @@
 import { useState } from 'react';
 
 import type { ISaleDraftItem } from '../types';
-import type { ProductVariant } from '@/modules/initial-inventory/types/InitialInventoryTypes';
+import { toCents } from '@/shared/utils/money';
+import type { ProductVariant } from '@/modules/inventory/types';
+
+export function isQuantityValid(quantity: number | null): quantity is number {
+  return quantity !== null && Number.isInteger(quantity) && quantity >= 1;
+}
 
 export function useSaleCart() {
   const [items, setItems] = useState<ISaleDraftItem[]>([]);
@@ -15,7 +20,7 @@ export function useSaleCart() {
           current.productVariantId === item.productVariantId
             ? {
                 ...current,
-                quantity: current.quantity + item.quantity,
+                quantity: (current.quantity ?? 0) + (item.quantity ?? 0),
               }
             : current,
         );
@@ -31,15 +36,12 @@ export function useSaleCart() {
       productName: variant.name,
       productCode: variant.code,
       quantity: 1,
-      unitPrice: 0,
+      unitPrice: variant.salePrice ?? 0,
     });
   }
 
-  function updateQuantity(productVariantId: string, quantity: number) {
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      return;
-    }
-
+  /** null = field cleared; validated at submit (isQuantityValid). */
+  function updateQuantity(productVariantId: string, quantity: number | null) {
     setItems((currentItems) => currentItems.map((item) => (item.productVariantId === productVariantId ? { ...item, quantity } : item)));
   }
 
@@ -51,9 +53,13 @@ export function useSaleCart() {
     setItems([]);
   }
 
-  const totalQuantity = items.reduce((total, item) => total + item.quantity, 0);
+  const totalQuantity = items.reduce((total, item) => total + (item.quantity ?? 0), 0);
 
-  const estimatedTotal = items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
+  const totalCents = items.reduce((total, item) => total + (item.quantity ?? 0) * toCents(item.unitPrice), 0);
+
+  const hasInvalidQuantity = items.some((item) => !isQuantityValid(item.quantity));
+
+  const itemsWithoutPrice = items.filter((item) => !(item.unitPrice > 0));
 
   return {
     items,
@@ -63,6 +69,8 @@ export function useSaleCart() {
     removeItem,
     clearItems,
     totalQuantity,
-    estimatedTotal,
+    totalCents,
+    hasInvalidQuantity,
+    itemsWithoutPrice,
   };
 }
