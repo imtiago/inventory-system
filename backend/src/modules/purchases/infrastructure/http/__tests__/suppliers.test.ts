@@ -32,6 +32,22 @@ function randomCpf(): string {
     return [...base, d1, d2].join("");
   }
 }
+function randomCnpj(): string {
+  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const dv = (nums: number[], w: number[]) => {
+    const rest = nums.reduce((acc, d, i) => acc + d * w[i], 0) % 11;
+    return rest < 2 ? 0 : 11 - rest;
+  };
+  for (;;) {
+    const base = [...Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)), 0, 0, 0, 1];
+    if (new Set(base.slice(0, 8)).size === 1) continue;
+    const d1 = dv(base, w1);
+    const d2 = dv([...base, d1], w2);
+    return [...base, d1, d2].join("");
+  }
+}
+const maskCnpj = (d: string) => `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 const maskCpf = (d: string) => `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 
 describe("Fornecedores (/suppliers)", () => {
@@ -99,15 +115,13 @@ describe("Fornecedores (/suppliers)", () => {
   });
 
   test("CNPJ válido aceito (documentType CNPJ); opcionais ausente/null/'' → null; e-mail em minúsculas e telefone só dígitos", async () => {
-    const res = await create({ name: tag(), document: "11.222.333/0001-81", email: "", phone: null });
-    // o CNPJ pode já existir se outro teste/execução o usou: aceitamos 201 ou 409 e validamos o 201
-    if (res.statusCode === 201) {
-      assert.equal(res.json().data.documentType, "CNPJ");
-      assert.equal(res.json().data.document, "11222333000181");
-      assert.equal(res.json().data.email, null);
-    } else {
-      assert.equal(res.json().code, "SUPPLIER_DOCUMENT_ALREADY_EXISTS");
-    }
+    const cnpj = randomCnpj();
+    const res = await create({ name: tag(), document: maskCnpj(cnpj), email: "", phone: null });
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.json().data.documentType, "CNPJ");
+    assert.equal(res.json().data.document, cnpj);
+    assert.equal(res.json().data.email, null);
+    assert.equal((await prisma.supplier.findUnique({ where: { id: res.json().data.id } }))?.document, cnpj);
 
     const full = await create({ name: tag(), document: randomCpf(), email: "  Contato@Acme.COM ", phone: "(11) 98765-4321" });
     assert.equal(full.statusCode, 201);
@@ -198,9 +212,13 @@ describe("Fornecedores (/suppliers)", () => {
     assert.deepEqual(byEmail.json().data.map((s: { id: string }) => s.id), [a.id]);
 
     // curingas do LIKE são literais
+    const pct = (await create({ name: `${t} 100% Puro`, document: randomCpf() })).json().data;
     const wildcard = await call("GET", `/suppliers?search=${encodeURIComponent("%")}`, admin);
     assert.equal(wildcard.statusCode, 200);
-    assert.ok(wildcard.json().data.every((s: { name: string; email: string | null }) => `${s.name}${s.email}`.includes("%")));
+    const ids = wildcard.json().data.map((x: { id: string }) => x.id);
+    assert.ok(ids.includes(pct.id));
+    assert.ok(!ids.includes(a.id));
+    assert.ok(wildcard.json().data.every((x: { name: string; email: string | null }) => `${x.name}${x.email}`.includes("%")));
 
     assert.equal((await call("GET", "/suppliers?limit=101", admin)).statusCode, 400);
   });

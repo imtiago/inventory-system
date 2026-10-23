@@ -2,12 +2,15 @@ import { Prisma } from "@prisma/client";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
 import { Supplier } from "@purchases/domain/entities/Supplier";
-import { supplierDocumentAlreadyExists } from "@purchases/domain/errors/supplierErrors";
+import { supplierDocumentAlreadyExists, supplierNotFound } from "@purchases/domain/errors/supplierErrors";
 import { SupplierPatchData, SupplierRepository } from "@purchases/domain/repositories/SupplierRepository";
 import { SupplierMapper } from "../mappers/SupplierMapper";
 
 /** Corrida entre a checagem do use case e a gravação: o índice único de document decide. */
 function mapUniqueDocument(error: unknown): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+    throw supplierNotFound();
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
     throw supplierDocumentAlreadyExists();
   }
