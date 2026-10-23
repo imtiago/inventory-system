@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nfeProc [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+  <!ENTITY lol "lol">
+  <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+]>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+<NFe><infNFe Id="NFe35261011222333000181550010000123451123456784" versao="4.00">
+<ide><mod>55</mod></ide>
+<emit><CNPJ>11222333000181</CNPJ><xNome>&xxe;</xNome></emit>
+<det nItem="1"><prod><cProd>X</cProd><xProd>&lol2;</xProd></prod></det>
+</infNFe></NFe>
+</nfeProc>

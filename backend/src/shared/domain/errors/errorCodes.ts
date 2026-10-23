@@ -65,6 +65,7 @@ export const ErrorCodes = {
   PURCHASE_ITEM_NOT_FOUND: "PURCHASE_ITEM_NOT_FOUND",
   RECEIPT_EXCEEDS_REMAINING: "RECEIPT_EXCEEDS_REMAINING",
   BATCH_ALREADY_EXISTS: "BATCH_ALREADY_EXISTS",
+  INVALID_NFE: "INVALID_NFE",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
