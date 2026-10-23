@@ -195,6 +195,25 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
     assert.equal(await prisma.payment.count({ where: { parcelId: a.parcelIds[0] } }), 0);
   });
 
+  test("paymentDate anterior à criação do título → 400 (campo paymentDate); no dia da criação → 201", async () => {
+    const { documentId, parcelIds } = await createSaleReceivable(10, 1);
+
+    const before = await postPayment(documentId, parcelIds[0], {
+      amount: 1,
+      method: "PIX",
+      paymentDate: addDays(-1),
+    });
+    assert.equal(before.statusCode, 400, before.body);
+    assert.equal(before.json().code, "VALIDATION_ERROR");
+    assert.deepEqual(before.json().errors, [
+      { field: "paymentDate", message: "A data do pagamento não pode ser anterior à criação do título." },
+    ]);
+    assert.equal(await prisma.payment.count({ where: { parcelId: parcelIds[0] } }), 0);
+
+    const same = await postPayment(documentId, parcelIds[0], { amount: 1, method: "PIX", paymentDate: TODAY });
+    assert.equal(same.statusCode, 201, same.body);
+  });
+
   test("paymentDate futura → 400 (campo paymentDate); corpo inválido → 400", async () => {
     const { documentId, parcelIds } = await createSaleReceivable(10, 1);
 
@@ -207,6 +226,10 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
     assert.equal(future.json().code, "VALIDATION_ERROR");
     assert.deepEqual(future.json().errors.map((e: any) => e.field), ["paymentDate"]);
 
+    await prisma.financialDocument.update({
+      where: { id: documentId },
+      data: { createdAt: new Date(`${addDays(-10)}T12:00:00.000Z`) },
+    });
     const past = await postPayment(documentId, parcelIds[0], {
       amount: 1,
       method: "DEBIT_CARD",

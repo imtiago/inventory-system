@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Modal } from '@/shared/components/Modal/Modal';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
+import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { formatCurrency, toCents } from '@/shared/utils/money';
 
 import { useRegisterPayment } from '../hooks/useRegisterPayment';
@@ -18,13 +19,6 @@ interface FormValues {
   reference: string;
 }
 
-export function todayLocal() {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 interface Props {
   receivableId: string;
   parcel: IReceivableParcel;
@@ -35,7 +29,7 @@ const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.
 
 export function RegisterPaymentModal({ receivableId, parcel, onClose }: Props) {
   const mutation = useRegisterPayment(receivableId);
-  const today = todayLocal();
+  const today = todayInBusinessTz();
   const remainingCents = toCents(parcel.remainingAmount);
 
   const {
@@ -129,7 +123,7 @@ export function RegisterPaymentModal({ receivableId, parcel, onClose }: Props) {
             {...register('paymentDate', {
               validate: (value) => {
                 if (!value) return 'Informe a data do pagamento.';
-                if (value > todayLocal()) return 'A data do pagamento não pode ser futura.';
+                if (value > todayInBusinessTz()) return 'A data do pagamento não pode ser futura.';
                 return true;
               },
             })}

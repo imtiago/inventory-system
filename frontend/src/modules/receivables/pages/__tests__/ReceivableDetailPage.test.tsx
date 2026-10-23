@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -6,6 +6,7 @@ import { Route, Routes } from 'react-router-dom';
 
 import { ReceivableDetailPage } from '../ReceivableDetailPage';
 import { SaleDetailPage } from '@/modules/sales/pages/SaleDetailPage';
+import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
@@ -25,12 +26,6 @@ function renderDetail() {
   );
 }
 
-function todayLocal() {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 function paidParcel2() {
   return {
     data: {
@@ -40,6 +35,8 @@ function paidParcel2() {
     },
   };
 }
+
+afterEach(() => vi.useRealTimers());
 
 describe('ReceivableDetailPage', () => {
   test('detalhe mostra parcelas, pagamentos e estornados riscados com motivo', async () => {
@@ -63,6 +60,17 @@ describe('ReceivableDetailPage', () => {
     expect(within(active).getByRole('button', { name: 'Estornar' })).toBeInTheDocument();
   });
 
+  test('data padrão do pagamento usa o dia de São Paulo, não o do navegador', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-24T02:00:00Z')); // 23/10 23:00 em São Paulo
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+
+    await userEvent.click(within(screen.getByTestId(`parcel-${parcel2.number}`)).getByRole('button', { name: 'Registrar pagamento' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Data do pagamento')).toHaveValue('2026-10-23');
+  });
+
   test('registrar pagamento envia { amount, method, paymentDate, reference } e atualiza a tela', async () => {
     let body: Record<string, unknown> | null = null;
     server.use(
@@ -77,13 +85,13 @@ describe('ReceivableDetailPage', () => {
     await userEvent.click(within(screen.getByTestId(`parcel-${parcel2.number}`)).getByRole('button', { name: 'Registrar pagamento' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Valor')).toHaveValue('53.23');
-    expect(within(dialog).getByLabelText('Data do pagamento')).toHaveValue(todayLocal());
+    expect(within(dialog).getByLabelText('Data do pagamento')).toHaveValue(todayInBusinessTz());
 
     await userEvent.selectOptions(within(dialog).getByLabelText('Forma de pagamento'), 'PIX');
     await userEvent.type(within(dialog).getByLabelText('Referência'), 'PIX 999');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
 
-    await waitFor(() => expect(body).toEqual({ amount: 53.23, method: 'PIX', paymentDate: todayLocal(), reference: 'PIX 999' }));
+    await waitFor(() => expect(body).toEqual({ amount: 53.23, method: 'PIX', paymentDate: todayInBusinessTz(), reference: 'PIX 999' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const section = screen.getByTestId(`parcel-${parcel2.number}`);
     expect(within(section).getByText('Paga')).toBeInTheDocument();

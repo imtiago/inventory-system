@@ -56,6 +56,11 @@ export class RegisterPaymentUseCase implements UseCase<IRegisterPaymentInput, Re
       if (!document || document.type !== FinancialType.RECEIVABLE) {
         throw new NotFoundError("Conta a receber não encontrada.", ErrorCodes.FINANCIAL_DOCUMENT_NOT_FOUND);
       }
+      if (paymentDate < todayInBusinessTz(document.createdAt)) {
+        throw new ValidationError("Dados inválidos.", [
+          { field: "paymentDate", message: "A data do pagamento não pode ser anterior à criação do título." },
+        ]);
+      }
       const payment = document.registerPayment({
         parcelId: input.parcelId,
         amountCents,

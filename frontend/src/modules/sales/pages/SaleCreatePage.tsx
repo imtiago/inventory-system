@@ -16,8 +16,9 @@ import { useProductByBarcode } from '@/modules/inventory/hooks/useProductByBarco
 import { SaleBarcodeInput } from '../components/SaleBarcodeInput';
 import { isQuantityValid, useSaleCart } from '../hooks/useSaleCart';
 import { useCreateSale } from '../hooks/useCreateSale';
-import { addDaysLocal, buildInstallments } from '../utils/installments';
+import { addDaysToDateOnly, buildInstallments } from '../utils/installments';
 import { formatCents, formatCurrency } from '@/shared/utils/money';
+import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 type SaleFormValues = {
@@ -43,7 +44,7 @@ export function SaleCreatePage() {
   } = useForm<SaleFormValues>({
     defaultValues: {
       customerId: '',
-      firstDueDate: addDaysLocal(new Date(), DEFAULT_FIRST_DUE_DAYS),
+      firstDueDate: addDaysToDateOnly(todayInBusinessTz(), DEFAULT_FIRST_DUE_DAYS),
     },
   });
 

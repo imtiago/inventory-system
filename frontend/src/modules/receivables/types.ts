@@ -1,3 +1,5 @@
+import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
+
 export type ReceivableStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
 export interface IReceivableListItem {
@@ -34,13 +36,7 @@ export interface IReceivableFilters {
   dueTo?: string;
 }
 
-export const RECEIVABLE_STATUS_LABELS: Record<ReceivableStatus, string> = {
-  OPEN: 'A vencer',
-  PARTIALLY_PAID: 'Parcialmente paga',
-  PAID: 'Paga',
-  OVERDUE: 'Vencida',
-  CANCELED: 'Cancelada',
-};
+export const RECEIVABLE_STATUS_LABELS: Record<ReceivableStatus, string> = FINANCIAL_STATUS_LABELS as Record<ReceivableStatus, string>;
 
 export type PaymentMethod = 'CASH' | 'PIX' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BOLETO';
 

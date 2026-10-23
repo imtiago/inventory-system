@@ -13,19 +13,12 @@ import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 import { useSale } from '../hooks/useSale';
 import { useCancelSale } from '../hooks/useCancelSale';
+import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
 
 const saleStatusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
   CANCELED: 'Cancelada',
   PENDING: 'Pendente',
-};
-
-const parcelStatusLabels: Record<string, string> = {
-  OPEN: 'Em aberto',
-  PARTIALLY_PAID: 'Parcialmente paga',
-  PAID: 'Paga',
-  OVERDUE: 'Vencida',
-  CANCELED: 'Cancelada',
 };
 
 function formatDateTime(value: string) {
@@ -181,7 +174,7 @@ export function SaleDetailPage() {
                           <td className="py-2 text-right">{formatCurrency(parcel.amount)}</td>
                           <td className="py-2 text-right">{formatCurrency(parcel.paidAmount)}</td>
                           <td className="py-2 text-right">{formatCurrency(parcel.remainingAmount)}</td>
-                          <td className="py-2">{parcelStatusLabels[parcel.status] ?? parcel.status}</td>
+                          <td className="py-2">{FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status}</td>
                         </tr>
                       ))}
                     </tbody>

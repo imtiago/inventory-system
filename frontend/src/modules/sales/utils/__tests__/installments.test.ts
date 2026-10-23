@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { addDaysLocal, buildInstallments } from '../installments';
+import { addDaysLocal, addDaysToDateOnly, buildInstallments } from '../installments';
 
 describe('buildInstallments (mesma regra do backend)', () => {
   test('10000/3: piso por parcela, resto na última; 31/01 recortado ao fim do mês', () => {
@@ -28,5 +28,12 @@ describe('addDaysLocal', () => {
   test('soma dias em data local formatada YYYY-MM-DD', () => {
     expect(addDaysLocal(new Date(2026, 9, 22, 23, 30), 30)).toBe('2026-11-21');
     expect(addDaysLocal(new Date(2026, 11, 15), 30)).toBe('2027-01-14');
+  });
+});
+
+describe('addDaysToDateOnly', () => {
+  test('soma dias sem depender do fuso', () => {
+    expect(addDaysToDateOnly('2026-10-23', 30)).toBe('2026-11-22');
+    expect(addDaysToDateOnly('2026-12-15', 30)).toBe('2027-01-14');
   });
 });

@@ -26,6 +26,7 @@ function newDoc(parcelsCents: number[], opts: { status?: FinancialStatus; type?:
     partyId: "c-1",
     partyType: FinancialPartyType.CUSTOMER,
     status: opts.status,
+    createdAt: new Date("2026-09-01T12:00:00.000Z"),
   });
   parcelsCents.forEach((amountCents, i) =>
     doc.addParcel(
@@ -258,4 +259,20 @@ test("estorno duplo → 409 PAYMENT_ALREADY_REVERSED; inexistente → 404; docum
     { name: "ConflictError", code: "FINANCIAL_DOCUMENT_CANCELED" },
   );
   assert.equal(other.reversed.length, 0);
+});
+
+test("paymentDate anterior à criação do título (data de negócio) → 400 sem gravar", async () => {
+  const doc = newDoc([10000]);
+  const { register, created } = build([doc]);
+
+  await assert.rejects(
+    () => register.execute(pay(doc, 0, 1, { paymentDate: "2026-08-31" })),
+    (e: any) =>
+      e.name === "ValidationError" &&
+      e.errors[0].field === "paymentDate" &&
+      e.errors[0].message === "A data do pagamento não pode ser anterior à criação do título.",
+  );
+  assert.equal(created.length, 0);
+  await register.execute(pay(doc, 0, 1, { paymentDate: "2026-09-01" }));
+  assert.equal(created.length, 1);
 });
