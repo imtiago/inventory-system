@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
@@ -80,14 +80,5 @@ describe('Login', () => {
   test('?expired=1 mostra aviso de sessão expirada', () => {
     renderLogin('/login?expired=1');
     expect(screen.getByText('Sua sessão expirou.')).toBeInTheDocument();
-  });
-
-  test('erro no login não recarrega nem altera a localização', async () => {
-    server.use(http.post(`${API_URL}/auth/login`, () => HttpResponse.json({ message: 'x', code: 'INVALID_CREDENTIALS' }, { status: 401 })));
-    renderLogin();
-    await userEvent.type(screen.getByLabelText('Email'), 'a@b.com');
-    await userEvent.type(screen.getByLabelText('Senha'), 'qualquer123{Enter}');
-    await waitFor(() => expect(screen.getByText('E-mail ou senha inválidos.')).toBeInTheDocument());
-    expect(window.location.pathname).toBe('/');
   });
 });

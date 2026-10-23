@@ -111,148 +111,148 @@ export function Login() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        {expired && !error && (
-          <div role="status" className="bg-amber-50 text-amber-700 text-sm p-3 rounded-lg mb-4">
-            Sua sessão expirou.
-          </div>
-        )}
+          {expired && !error && (
+            <div role="status" className="bg-amber-50 text-amber-700 text-sm p-3 rounded-lg mb-4">
+              Sua sessão expirou.
+            </div>
+          )}
 
-        {error && (
-          <div
-            role="alert"
-            className="
-            bg-red-50
-            text-red-600
-            text-sm
-            p-3
-            rounded-lg
-            mb-4
-          "
-          >
-            {error}
-          </div>
-        )}
-
-        {/* Email */}
-
-        <div className="mb-4">
-          <label
-            htmlFor="login-email"
-            className="
-            text-sm
-            font-medium
-            text-slate-700
-          "
-          >
-            Email
-          </label>
-
-          <div
-            className="
-            relative
-            mt-1
-          "
-          >
-            <Mail
-              size={18}
+          {error && (
+            <div
+              role="alert"
               className="
-                absolute
-                left-3
-                top-3
-                text-slate-400
-              "
-            />
+              bg-red-50
+              text-red-600
+              text-sm
+              p-3
+              rounded-lg
+              mb-4
+            "
+            >
+              {error}
+            </div>
+          )}
 
-            <input
+          {/* Email */}
+
+          <div className="mb-4">
+            <label
+              htmlFor="login-email"
               className="
-                w-full
-                border
-                rounded-xl
-                py-2.5
-                pl-10
-                pr-3
-                outline-none
-                focus:ring-2
-                focus:ring-slate-900
-              "
-              id="login-email"
-              type="email"
-              autoComplete="username"
-              placeholder="seu@email.com"
-              {...register("email", { required: "E-mail obrigatório." })}
-            />
+              text-sm
+              font-medium
+              text-slate-700
+            "
+            >
+              Email
+            </label>
+
+            <div
+              className="
+              relative
+              mt-1
+            "
+            >
+              <Mail
+                size={18}
+                className="
+                  absolute
+                  left-3
+                  top-3
+                  text-slate-400
+                "
+              />
+
+              <input
+                className="
+                  w-full
+                  border
+                  rounded-xl
+                  py-2.5
+                  pl-10
+                  pr-3
+                  outline-none
+                  focus:ring-2
+                  focus:ring-slate-900
+                "
+                id="login-email"
+                type="email"
+                autoComplete="username"
+                placeholder="seu@email.com"
+                {...register("email", { required: "E-mail obrigatório." })}
+              />
+            </div>
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
           </div>
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
-        </div>
 
-        {/* Senha */}
+          {/* Senha */}
 
-        <div className="mb-6">
-          <label
-            htmlFor="login-password"
-            className="
-            text-sm
-            font-medium
-            text-slate-700
-          "
-          >
-            Senha
-          </label>
-
-          <div
-            className="
-            relative
-            mt-1
-          "
-          >
-            <Lock
-              size={18}
+          <div className="mb-6">
+            <label
+              htmlFor="login-password"
               className="
-                absolute
-                left-3
-                top-3
-                text-slate-400
-              "
-            />
+              text-sm
+              font-medium
+              text-slate-700
+            "
+            >
+              Senha
+            </label>
 
-            <input
+            <div
               className="
-                w-full
-                border
-                rounded-xl
-                py-2.5
-                pl-10
-                pr-3
-                outline-none
-                focus:ring-2
-                focus:ring-slate-900
-              "
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="********"
-              {...register("password", { required: "Senha obrigatória." })}
-            />
+              relative
+              mt-1
+            "
+            >
+              <Lock
+                size={18}
+                className="
+                  absolute
+                  left-3
+                  top-3
+                  text-slate-400
+                "
+              />
+
+              <input
+                className="
+                  w-full
+                  border
+                  rounded-xl
+                  py-2.5
+                  pl-10
+                  pr-3
+                  outline-none
+                  focus:ring-2
+                  focus:ring-slate-900
+                "
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="********"
+                {...register("password", { required: "Senha obrigatória." })}
+              />
+            </div>
+            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
           </div>
-          {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
-        </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="
-            w-full
-            bg-slate-900
-            text-white
-            py-3
-            rounded-xl
-            font-semibold
-            hover:bg-slate-800
-            transition
-          "
-        >
-          Entrar
-        </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="
+              w-full
+              bg-slate-900
+              text-white
+              py-3
+              rounded-xl
+              font-semibold
+              hover:bg-slate-800
+              transition
+            "
+          >
+            Entrar
+          </button>
         </form>
 
         <p
