@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -61,7 +62,7 @@ export const createSaleSchema = z
       });
     }
     // Comparação lexicográfica de "YYYY-MM-DD" equivale à cronológica.
-    if (firstDueDate && firstDueDate < new Date().toISOString().slice(0, 10)) {
+    if (firstDueDate && firstDueDate < todayInBusinessTz()) {
       ctx.addIssue({
         code: "custom",
         message: "O primeiro vencimento não pode ser anterior a hoje.",

@@ -9,9 +9,12 @@ export function invalidateInventoryQueries(queryClient: QueryClient, variantId?:
     queryClient.invalidateQueries({ queryKey: [queryKeys.inventoryBoxes()[0]] }),
   ];
 
-  if (variantId) {
-    tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.inventoryLots(variantId) }));
-  }
+  // Without a variant (e.g. a sale touching several), refresh every variant's lots.
+  tasks.push(
+    queryClient.invalidateQueries({
+      queryKey: variantId ? queryKeys.inventoryLots(variantId) : [queryKeys.inventoryLots('')[0]],
+    }),
+  );
 
   return Promise.all(tasks);
 }

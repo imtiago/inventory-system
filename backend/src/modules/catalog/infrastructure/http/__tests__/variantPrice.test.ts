@@ -115,4 +115,31 @@ describe("Preço de venda da variante", () => {
     assert.equal(empty.statusCode, 400);
     assert.equal(empty.json().code, "VALIDATION_ERROR");
   });
+
+  test("POST de duas variantes com barcode em branco → ambas 201 (sem barcode)", async () => {
+    const a = await call("POST", `/products/${productId}/variants`, { name: "tx-test-blank-a", barcode: "" });
+    assert.equal(a.statusCode, 201);
+    createdVariantIds.push(a.json().data.id);
+    const b = await call("POST", `/products/${productId}/variants`, { name: "tx-test-blank-b", barcode: "   " });
+    assert.equal(b.statusCode, 201);
+    createdVariantIds.push(b.json().data.id);
+    const c = await call("POST", `/products/${productId}/variants`, { name: "tx-test-blank-c", barcode: null });
+    assert.equal(c.statusCode, 201);
+    createdVariantIds.push(c.json().data.id);
+    assert.equal(a.json().data.barcode ?? null, null);
+    assert.equal(b.json().data.barcode ?? null, null);
+  });
+
+  test("PUT com barcode em branco → 200 e barcode null", async () => {
+    const barcode = `tx-test-${randomUUID()}`;
+    const create = await call("POST", `/products/${productId}/variants`, { name: "tx-test-clear", barcode });
+    const id = create.json().data.id;
+    createdVariantIds.push(id);
+    const put = await call("PUT", `/variants/${id}`, { barcode: "", salePrice: 7 });
+    assert.equal(put.statusCode, 200);
+    assert.equal(put.json().data.barcode ?? null, null);
+    assert.equal(put.json().data.salePrice, 7);
+    const get = await call("GET", `/variants/${id}`);
+    assert.equal(get.json().data.barcode ?? null, null);
+  });
 });

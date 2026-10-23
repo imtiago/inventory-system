@@ -4,6 +4,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@shared/domain/errors";
+import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
 import { fromCents, toCents } from "@shared/domain/money";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
@@ -16,9 +17,6 @@ import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
 import { buildInstallments } from "@sales/domain/services/InstallmentPlan";
 import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
-
-const todayUtc = (now: Date) =>
-  new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
 /**
  * Cria a venda numa transação: valida cliente → resolve variantes (preço > 0,
@@ -44,7 +42,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
         { field: "paymentTerms.firstDueDate", message: "Informe o primeiro vencimento." },
       ]);
     }
-    const firstDueDate = request.paymentTerms.firstDueDate ?? todayUtc(new Date());
+    const firstDueDate = request.paymentTerms.firstDueDate ?? businessTodayAsUtcDate();
 
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {

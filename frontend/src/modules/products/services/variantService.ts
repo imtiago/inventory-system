@@ -13,7 +13,7 @@ export interface Variant {
 
 export interface SaveVariantDTO {
   name: string;
-  barcode?: string;
+  barcode?: string | null;
   salePrice?: number;
 }
 

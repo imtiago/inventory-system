@@ -6,7 +6,8 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 export interface VariantFormData {
   name: string;
-  barcode?: string;
+  /** Em branco vira null no envio (backend trata como "sem código de barras"). */
+  barcode?: string | null;
   /** R$; vazio = não informado (backend assume 0 na criação). */
   salePrice?: number;
 }
@@ -21,12 +22,15 @@ interface Props {
   onSubmit(data: VariantFormData): void | Promise<void>;
 
   onCancel(): void;
+
+  /** Edição: o preço é obrigatório (vazio não pode "manter" o preço antigo em silêncio). */
+  requireSalePrice?: boolean;
 }
 
 const FIELDS = ["name", "barcode", "salePrice"] as const;
 
-function validateSalePrice(value: number | undefined) {
-  if (value === undefined) return true;
+function validateSalePrice(value: number | undefined, required: boolean) {
+  if (value === undefined) return required ? "Informe o preço de venda." : true;
   if (Number.isNaN(value)) return "Informe um preço válido.";
   if (value < 0) return "O preço não pode ser negativo.";
   if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return "O preço deve ter no máximo 2 casas decimais.";
@@ -40,6 +44,7 @@ export function VariantForm({
   initialValues,
   onSubmit,
   onCancel,
+  requireSalePrice = false,
 }: Props) {
   const { register, handleSubmit, setValue, setError, formState: { errors } } = useForm<VariantFormData>({
     defaultValues: initialValues,
@@ -54,7 +59,7 @@ export function VariantForm({
 
   const submit = handleSubmit(async (data) => {
     try {
-      await onSubmit(data);
+      await onSubmit({ ...data, barcode: data.barcode?.trim() || null });
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
@@ -148,7 +153,7 @@ export function VariantForm({
             inputMode="decimal"
             {...register("salePrice", {
               setValueAs: (value) => (value === "" || value == null ? undefined : Number(value)),
-              validate: validateSalePrice,
+              validate: (value) => validateSalePrice(value, requireSalePrice),
             })}
             className="
               w-full

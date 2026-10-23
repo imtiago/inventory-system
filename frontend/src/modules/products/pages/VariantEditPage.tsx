@@ -35,6 +35,7 @@ export function VariantEditPage() {
       <VariantForm
         title="Editar Variante"
         submitLabel="Salvar Alterações"
+        requireSalePrice
         initialValues={{
           name: variant.name,
           barcode: variant.barcode ?? "",
