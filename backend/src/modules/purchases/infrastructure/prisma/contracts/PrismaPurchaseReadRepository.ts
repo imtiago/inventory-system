@@ -61,7 +61,7 @@ export class PrismaPurchaseReadRepository implements PurchaseReadRepository {
         supplier: supplierSelect,
         items: {
           include: { productVariant: { select: { id: true, name: true, code: true, barcode: true } } },
-          orderBy: { id: "asc" },
+          orderBy: [{ position: "asc" }, { id: "asc" }],
         },
       },
     });

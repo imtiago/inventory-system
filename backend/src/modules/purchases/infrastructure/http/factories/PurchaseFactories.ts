@@ -2,8 +2,10 @@ import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTr
 import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";
 import { makeCatalogService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
 import { makeFinancialService } from "@finance/infrastructure/http/factories/FinancialServiceFactory";
+import { makeInventoryService } from "@inventory/infrastructure/http/factories/InventoryServiceFactory";
 import { CreatePurchaseUseCase } from "@purchases/application/useCases/commands/CreatePurchaseUseCase";
 import { CancelPurchaseUseCase } from "@purchases/application/useCases/commands/CancelPurchaseUseCase";
+import { ReceivePurchaseUseCase } from "@purchases/application/useCases/commands/ReceivePurchaseUseCase";
 import { GetPurchaseByIdUseCase } from "@purchases/application/useCases/queries/GetPurchaseByIdUseCase";
 import { ListPurchasesUseCase } from "@purchases/application/useCases/queries/ListPurchasesUseCase";
 import { PrismaPurchaseRepository } from "../../prisma/repositories/PrismaPurchaseRepository";
@@ -22,6 +24,9 @@ export const makeCreatePurchaseUseCase = () =>
 
 export const makeCancelPurchaseUseCase = () =>
   new CancelPurchaseUseCase(new PrismaPurchaseRepository(), new PrismaTransactionManager(), makeFinancialService());
+
+export const makeReceivePurchaseUseCase = () =>
+  new ReceivePurchaseUseCase(new PrismaPurchaseRepository(), new PrismaTransactionManager(), makeInventoryService());
 
 export const makeGetPurchaseUseCase = () => new GetPurchaseByIdUseCase(new PrismaPurchaseReadRepository());
 

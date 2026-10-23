@@ -5,6 +5,7 @@ import {
   makeCreatePurchaseController,
   makeGetPurchaseController,
   makeListPurchasesController,
+  makeReceivePurchaseController,
 } from "../controllers/purchaseControllers";
 
 export async function purchaseRoutes(app: FastifyInstance) {
@@ -12,4 +13,5 @@ export async function purchaseRoutes(app: FastifyInstance) {
   app.get("/:id", { preHandler: [authorize("purchases.read")] }, makeGetPurchaseController());
   app.post("/", { preHandler: [authorize("purchases.write")] }, makeCreatePurchaseController());
   app.post("/:id/cancel", { preHandler: [authorize("purchases.write")] }, makeCancelPurchaseController());
+  app.post("/:id/receipts", { preHandler: [authorize("purchases.receive")] }, makeReceivePurchaseController());
 }

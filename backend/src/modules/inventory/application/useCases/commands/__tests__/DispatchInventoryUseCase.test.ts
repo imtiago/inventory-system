@@ -74,7 +74,7 @@ test("dispatch respeita reservado", async () => {
 test("consumeStock chama dispatch com origin SALE e userId", async () => {
   const calls: unknown[] = [];
   const fake = { execute: async (i: unknown) => (calls.push(i), []) };
-  const service = new InventoryApplicationService(fake as never, fake as never);
+  const service = new InventoryApplicationService(fake as never, fake as never, fake as never);
   await service.consumeStock({ productVariantId: "variant-1", quantity: 2, originId: "sale-1", userId: "u-1" });
   assert.deepEqual(calls, [
     {

@@ -139,3 +139,49 @@ export const listPurchasesSchema = paginationSchema
     message: "A data inicial não pode ser posterior à final.",
     path: ["from"],
   });
+
+const receiptItemSchema = z.object({
+  purchaseItemId: z.string({ error: "Informe o item do pedido." }).uuid("Item do pedido inválido."),
+  quantity: z
+    .number({ error: "A quantidade deve ser um número." })
+    .int("A quantidade deve ser um número inteiro.")
+    .min(1, "A quantidade deve ser maior que zero.")
+    .max(MAX_QUANTITY, "Quantidade excede o máximo permitido."),
+  batchNumber: z.preprocess(
+    (v) => (v === null || (typeof v === "string" && v.trim() === "") ? undefined : v),
+    z.string().trim().max(60, "O lote deve ter no máximo 60 caracteres.").optional(),
+  ),
+  manufacturingDate: z.preprocess(
+    (v) => (v === null || v === "" ? undefined : v),
+    dateOnlySchema.optional(),
+  ),
+  expirationDate: z.preprocess((v) => (v === null || v === "" ? undefined : v), dateOnlySchema.optional()),
+});
+
+export const receivePurchaseBodySchema = z
+  .object(
+    {
+      items: z
+        .array(receiptItemSchema, { error: "Informe os itens recebidos." })
+        .min(1, "Informe ao menos um item recebido.")
+        .max(200, "O recebimento pode ter no máximo 200 itens."),
+    },
+    { error: "Informe os itens recebidos." },
+  )
+  .superRefine((data, ctx) => {
+    const ids = new Set<string>();
+    data.items.forEach((item, index) => {
+      if (ids.has(item.purchaseItemId)) {
+        ctx.addIssue({ code: "custom", message: "Item repetido.", path: ["items", index, "purchaseItemId"] });
+      }
+      ids.add(item.purchaseItemId);
+      // "YYYY-MM-DD": comparação lexicográfica = cronológica.
+      if (item.manufacturingDate && item.expirationDate && item.expirationDate < item.manufacturingDate) {
+        ctx.addIssue({
+          code: "custom",
+          message: "A validade não pode ser anterior à fabricação.",
+          path: ["items", index, "expirationDate"],
+        });
+      }
+    });
+  });

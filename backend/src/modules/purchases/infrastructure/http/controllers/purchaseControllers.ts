@@ -6,12 +6,14 @@ import {
   createPurchaseBodySchema,
   listPurchasesSchema,
   purchaseIdParamsSchema,
+  receivePurchaseBodySchema,
 } from "@purchases/interfaces/http/schemas/purchaseSchemas";
 import {
   makeCancelPurchaseUseCase,
   makeCreatePurchaseUseCase,
   makeGetPurchaseUseCase,
   makeListPurchasesUseCase,
+  makeReceivePurchaseUseCase,
 } from "../factories/PurchaseFactories";
 
 export function makeCreatePurchaseController() {
@@ -33,6 +35,18 @@ export function makeCancelPurchaseController() {
     await cancelPurchase.execute({ id, reason, userId: request.user!.sub });
     // Mesmo DTO do GET /purchases/:id.
     return reply.send(HttpResponse.ok(await getPurchase.execute(id)));
+  };
+}
+
+export function makeReceivePurchaseController() {
+  const receivePurchase = makeReceivePurchaseUseCase();
+  const getPurchase = makeGetPurchaseUseCase();
+  return async function ReceivePurchaseController(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = parseInput(purchaseIdParamsSchema, request.params);
+    const { items } = parseInput(receivePurchaseBodySchema, request.body);
+    await receivePurchase.execute({ id, items, userId: request.user!.sub });
+    // Mesmo DTO do GET /purchases/:id.
+    return reply.status(201).send(HttpResponse.created(await getPurchase.execute(id)));
   };
 }
 

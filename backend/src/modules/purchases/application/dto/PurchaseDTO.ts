@@ -67,3 +67,18 @@ export interface ICancelPurchaseInput {
   /** Usuário autenticado que cancela. */
   userId: string;
 }
+
+export interface IReceivePurchaseInput {
+  id: string;
+  items: {
+    purchaseItemId: string;
+    quantity: number;
+    batchNumber?: string;
+    /** "YYYY-MM-DD". */
+    manufacturingDate?: string;
+    /** "YYYY-MM-DD". */
+    expirationDate?: string;
+  }[];
+  /** Usuário autenticado que registra o recebimento. */
+  userId: string;
+}

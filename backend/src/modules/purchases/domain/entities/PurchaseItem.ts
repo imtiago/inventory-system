@@ -72,4 +72,15 @@ export class PurchaseItem extends BaseEntity {
   get remainingQuantity(): number {
     return this.quantity - this._receivedQuantity;
   }
+
+  /**
+   * Soma `quantity` ao recebido. Só o agregado (Purchase.receive) chama, depois
+   * de validar status e saldo; aqui apenas garante o invariante.
+   */
+  receive(quantity: number): void {
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > this.remainingQuantity) {
+      throw new InternalInvariantError("Recebimento de item inválido.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
+    }
+    this._receivedQuantity += quantity;
+  }
 }

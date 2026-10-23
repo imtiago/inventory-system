@@ -73,7 +73,7 @@ const ROUTES: Record<Permission, RouteProbe | null> = {
   },
   "purchases.read": { method: "GET", url: "/suppliers?limit=1", allowed: 200 },
   "purchases.write": { method: "POST", url: "/suppliers", payload: {}, allowed: 400 },
-  "purchases.receive": null,
+  "purchases.receive": { method: "POST", url: `/purchases/${missing}/receipts`, payload: {}, allowed: 400 },
   "payables.read": null,
   "payables.pay": null,
   "payables.reverse": null,

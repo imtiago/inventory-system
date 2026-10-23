@@ -89,3 +89,73 @@ test("cancelar pedido com qualquer quantidade recebida → 409 PURCHASE_HAS_RECE
   });
   assert.equal(p.status, PurchaseStatus.PARTIALLY_RECEIVED);
 });
+
+const twoItemPurchase = () =>
+  newPurchase([
+    item({ id: "i-1", productVariantId: "v-1", quantity: 5 }),
+    item({ id: "i-2", productVariantId: "v-2", quantity: 2 }),
+  ]);
+
+test("receber: soma em receivedQuantity e recalcula status (parcial → total)", () => {
+  const p = twoItemPurchase();
+  p.receive([{ purchaseItemId: "i-1", quantity: 2 }]);
+  assert.equal(p.status, PurchaseStatus.PARTIALLY_RECEIVED);
+  assert.deepEqual(p.items.map((i) => [i.receivedQuantity, i.remainingQuantity]), [[2, 3], [0, 2]]);
+  assert.equal(p.hasReceipts, true);
+
+  p.receive([
+    { purchaseItemId: "i-2", quantity: 2 },
+    { purchaseItemId: "i-1", quantity: 3 },
+  ]);
+  assert.equal(p.status, PurchaseStatus.RECEIVED);
+  assert.deepEqual(p.items.map((i) => i.remainingQuantity), [0, 0]);
+
+  assert.throws(() => p.receive([{ purchaseItemId: "i-1", quantity: 1 }]), {
+    name: "ConflictError",
+    code: "PURCHASE_ALREADY_RECEIVED",
+    message: "Pedido já foi totalmente recebido.",
+  });
+});
+
+test("receber: cancelado → 409; item desconhecido → 404; acima do restante → 422; nada muda em erro", () => {
+  const canceled = twoItemPurchase();
+  canceled.cancel({ reason: "motivo", userId: "u-1" });
+  assert.throws(() => canceled.receive([{ purchaseItemId: "i-1", quantity: 1 }]), {
+    name: "ConflictError",
+    code: "PURCHASE_CANCELED",
+    message: "Pedido cancelado não pode ser recebido.",
+  });
+
+  const p = twoItemPurchase();
+  assert.throws(() => p.receive([{ purchaseItemId: "outro", quantity: 1 }]), {
+    name: "NotFoundError",
+    code: "PURCHASE_ITEM_NOT_FOUND",
+    message: "Item do pedido não encontrado.",
+  });
+  // Segundo item excede: o primeiro (válido) não pode ter sido aplicado.
+  assert.throws(
+    () =>
+      p.receive([
+        { purchaseItemId: "i-1", quantity: 1 },
+        { purchaseItemId: "i-2", quantity: 3 },
+      ]),
+    {
+      name: "BusinessRuleError",
+      code: "RECEIPT_EXCEEDS_REMAINING",
+      message: "Quantidade maior que o saldo a receber do item.",
+    },
+  );
+  assert.deepEqual(p.items.map((i) => i.receivedQuantity), [0, 0]);
+  assert.equal(p.status, PurchaseStatus.PENDING);
+
+  // Item repetido / quantidade inválida: invariantes (o schema HTTP já barra com 400).
+  assert.throws(() =>
+    p.receive([
+      { purchaseItemId: "i-1", quantity: 1 },
+      { purchaseItemId: "i-1", quantity: 1 },
+    ]),
+  );
+  assert.throws(() => p.receive([{ purchaseItemId: "i-1", quantity: 0 }]));
+  assert.throws(() => p.receive([]));
+  assert.deepEqual(p.items.map((i) => i.receivedQuantity), [0, 0]);
+});

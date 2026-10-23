@@ -22,8 +22,9 @@ export class PurchaseMapper {
       canceledAt: row.canceledAt,
       canceledById: row.canceledById,
       createdAt: row.createdAt,
+      // Ordem do pedido (position); id desempata.
       items: [...row.items]
-        .sort((a, b) => a.id.localeCompare(b.id))
+        .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
         .map(
           (item) =>
             new PurchaseItem({
@@ -52,8 +53,9 @@ export class PurchaseMapper {
       notes: purchase.notes,
       createdAt: purchase.createdAt,
       items: {
-        create: purchase.items.map((item) => ({
+        create: purchase.items.map((item, position) => ({
           id: item.id,
+          position,
           productVariantId: item.productVariantId,
           quantity: item.quantity,
           receivedQuantity: item.receivedQuantity,
@@ -74,6 +76,13 @@ export class PurchaseMapper {
       cancelReason: purchase.cancelReason,
       canceledAt: purchase.canceledAt,
       canceledById: purchase.canceledById,
+      // Recebimentos: grava o acumulado de cada item.
+      items: {
+        update: purchase.items.map((item) => ({
+          where: { id: item.id },
+          data: { receivedQuantity: item.receivedQuantity },
+        })),
+      },
     };
   }
 }

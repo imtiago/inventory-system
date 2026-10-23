@@ -474,6 +474,9 @@ model PurchaseItem {
   // Custo unitário que entra no estoque: round(total / quantity) em centavos.
   unitCost Decimal @db.Decimal(12, 2)
 
+  // Ordem do item no pedido (ordem do envio na criação).
+  position Int
+
   inventoryLots InventoryLot[]
 }
 

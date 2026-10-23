@@ -11,7 +11,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
 export class ReceiveInventoryUseCase extends TransactionalUseCase<
   IReceiveInventoryInput,
@@ -43,6 +43,22 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
       request.productVariantId,
     );
 
+    let lot = request.batchNumber
+      ? await this.inventoryLotRepository.findByProductVariantIdAndBatchNumber(
+          request.productVariantId,
+          request.batchNumber,
+        )
+      : null;
+
+    // Compra: só soma num lote existente do mesmo item do pedido; outro lote
+    // com o mesmo número misturaria custo e vínculo de origem.
+    if (lot && request.purchaseItemId && lot.purchaseItemId !== request.purchaseItemId) {
+      throw new ConflictError(
+        "Já existe um lote com esse número para esta variante.",
+        ErrorCodes.BATCH_ALREADY_EXISTS,
+      );
+    }
+
     const previousQuantity = inventory.quantity;
     inventory.receive({
       quantity: request.quantity,
@@ -50,13 +66,6 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     });
 
     await this.inventoryRepository.update(inventory);
-
-    let lot = request.batchNumber
-      ? await this.inventoryLotRepository.findByProductVariantIdAndBatchNumber(
-          request.productVariantId,
-          request.batchNumber,
-        )
-      : null;
 
     if (lot) {
       lot.receive(request.quantity);
@@ -67,6 +76,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
         productVariantId: request.productVariantId,
         sourceType: request.sourceType,
         sourceId: request.originReferenceId,
+        purchaseItemId: request.purchaseItemId,
         initialQuantity: request.quantity,
         unitCost: request.unitCost,
         batchNumber: request.batchNumber,

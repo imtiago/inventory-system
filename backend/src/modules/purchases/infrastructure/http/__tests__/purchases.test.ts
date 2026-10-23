@@ -444,4 +444,19 @@ describe("Pedidos de compra (/purchases)", () => {
     assert.equal(missing.statusCode, 404);
     assert.equal(missing.json().code, "PURCHASE_NOT_FOUND");
   });
+
+  test("detalhe devolve os itens na ordem em que foram enviados", async () => {
+    for (const order of [[v2, v1], [v1, v2]]) {
+      const res = await createPurchase(
+        body(order.map((productVariantId, i) => ({ productVariantId, quantity: i + 1, unitPrice: 1 }))),
+      );
+      assert.equal(res.statusCode, 201, res.body);
+      assert.deepEqual(res.json().data.items.map((i: any) => i.productVariant.id), order);
+      const detail = await call("GET", `/purchases/${res.json().data.id}`, admin);
+      assert.deepEqual(detail.json().data.items.map((i: any) => [i.productVariant.id, i.quantity]), [
+        [order[0], 1],
+        [order[1], 2],
+      ]);
+    }
+  });
 });

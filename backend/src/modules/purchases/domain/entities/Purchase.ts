@@ -3,7 +3,15 @@ import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/error
 import { PurchaseItem } from "./PurchaseItem";
 import { PurchaseOrigin } from "../enums/PurchaseOrigin";
 import { PurchaseStatus } from "../enums/PurchaseStatus";
-import { purchaseAlreadyCanceled, purchaseHasReceipts, purchaseTotalZero } from "../errors/purchaseErrors";
+import {
+  purchaseAlreadyCanceled,
+  purchaseAlreadyReceived,
+  purchaseCanceled,
+  purchaseHasReceipts,
+  purchaseItemNotFound,
+  purchaseTotalZero,
+  receiptExceedsRemaining,
+} from "../errors/purchaseErrors";
 
 export interface PurchaseProps {
   id?: string;
@@ -21,6 +29,11 @@ export interface PurchaseProps {
   createdAt?: Date;
 }
 
+export interface PurchaseReceiptLine {
+  purchaseItemId: string;
+  quantity: number;
+}
+
 export interface NewPurchaseProps {
   code: string;
   supplierId: string;
@@ -32,7 +45,7 @@ export interface NewPurchaseProps {
 
 /**
  * Pedido de compra. Total = Σ total dos itens (centavos). Status inicial
- * PENDING; recebimentos (Tarefa 3) movem para PARTIALLY_RECEIVED/RECEIVED.
+ * PENDING; recebimentos movem para PARTIALLY_RECEIVED/RECEIVED.
  */
 export class Purchase extends BaseEntity {
   readonly code: string;
@@ -114,5 +127,40 @@ export class Purchase extends BaseEntity {
     this._cancelReason = reason;
     this._canceledAt = now;
     this._canceledById = userId;
+  }
+
+  /**
+   * Registra um recebimento: CANCELED → 409 PURCHASE_CANCELED; RECEIVED → 409
+   * PURCHASE_ALREADY_RECEIVED; item de outro pedido → 404 PURCHASE_ITEM_NOT_FOUND;
+   * quantidade > restante → 422 RECEIPT_EXCEEDS_REMAINING. Valida todas as linhas
+   * antes de aplicar (erro não muda nada) e recalcula o status.
+   */
+  receive(lines: readonly PurchaseReceiptLine[]): void {
+    if (this._status === PurchaseStatus.CANCELED) throw purchaseCanceled();
+    if (this._status === PurchaseStatus.RECEIVED) throw purchaseAlreadyReceived();
+
+    const ids = new Set(lines.map((l) => l.purchaseItemId));
+    if (lines.length === 0 || ids.size !== lines.length) {
+      throw new InternalInvariantError(
+        "Recebimento exige itens distintos.",
+        InternalErrorCodes.PURCHASE_ITEM_INVALID,
+      );
+    }
+
+    const resolved = lines.map((line) => {
+      const item = this._items.find((i) => i.id === line.purchaseItemId);
+      if (!item) throw purchaseItemNotFound();
+      if (!Number.isSafeInteger(line.quantity) || line.quantity < 1) {
+        throw new InternalInvariantError("Quantidade de recebimento inválida.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
+      }
+      if (line.quantity > item.remainingQuantity) throw receiptExceedsRemaining();
+      return { item, quantity: line.quantity };
+    });
+
+    for (const { item, quantity } of resolved) item.receive(quantity);
+
+    this._status = this._items.every((i) => i.remainingQuantity === 0)
+      ? PurchaseStatus.RECEIVED
+      : PurchaseStatus.PARTIALLY_RECEIVED;
   }
 }
