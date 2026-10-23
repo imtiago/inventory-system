@@ -8,11 +8,13 @@ export interface Variant {
   code: string;
   barcode: string | null;
   productId: string;
+  salePrice: number;
 }
 
 export interface SaveVariantDTO {
   name: string;
-  barcode?: string;
+  barcode?: string | null;
+  salePrice?: number;
 }
 
 export async function getVariant(id: string): Promise<Variant> {

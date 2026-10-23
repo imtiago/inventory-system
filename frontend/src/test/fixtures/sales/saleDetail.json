@@ -1,0 +1,72 @@
+{
+  "data": {
+    "id": "0b6f3c2e-8a4d-4f1b-9c7e-2d5a8f1e3b40",
+    "status": "COMPLETED",
+    "totalAmount": 159.7,
+    "createdAt": "2026-10-22T14:32:10.000Z",
+    "customer": {
+      "id": "6a1e9d3c-2b7f-4c8a-9e5d-1f3b7a9c2e64",
+      "name": "Maria Oliveira"
+    },
+    "seller": {
+      "id": "e2c4a6b8-1d3f-4a5c-8e7f-9b1d3f5a7c90",
+      "name": "João Vendedor"
+    },
+    "items": [
+      {
+        "id": "4c8e1a3f-6b2d-4e9a-8c1f-3a5e7b9d1f22",
+        "productVariant": {
+          "id": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+          "name": "Camiseta Básica Azul M",
+          "code": "CAM-BAS-AZ-M",
+          "barcode": "7891234567895"
+        },
+        "quantity": 3,
+        "unitPrice": 39.9,
+        "totalPrice": 119.7
+      },
+      {
+        "id": "9d2f4b6a-8c1e-4a3d-9f5b-7e1a3c5d7f84",
+        "productVariant": {
+          "id": "d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f72",
+          "name": "Camiseta Básica Preta G",
+          "code": "CAM-BAS-PR-G",
+          "barcode": null
+        },
+        "quantity": 1,
+        "unitPrice": 40,
+        "totalPrice": 40
+      }
+    ],
+    "receivable": {
+      "id": "7e3a5c1d-9b4f-4d2e-8a6c-5f1b3d7e9a16",
+      "status": "OPEN",
+      "parcels": [
+        {
+          "id": "1a3c5e7f-2b4d-4f6a-8c1e-3d5f7a9b1c38",
+          "amount": 53.23,
+          "dueDate": "2026-11-21",
+          "paidAmount": 0,
+          "remainingAmount": 53.23,
+          "status": "OPEN"
+        },
+        {
+          "id": "2b4d6f8a-3c5e-4a7b-9d2f-4e6a8c1d3f59",
+          "amount": 53.23,
+          "dueDate": "2026-12-21",
+          "paidAmount": 0,
+          "remainingAmount": 53.23,
+          "status": "OPEN"
+        },
+        {
+          "id": "3c5e7a9b-4d6f-4b8c-8e3a-5f7b9d2e4a71",
+          "amount": 53.24,
+          "dueDate": "2027-01-21",
+          "paidAmount": 0,
+          "remainingAmount": 53.24,
+          "status": "OPEN"
+        }
+      ]
+    }
+  }
+}

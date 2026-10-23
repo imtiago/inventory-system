@@ -27,8 +27,8 @@ describe("Erros HTTP de vendas", () => {
       headers: auth(),
       payload: {
         customerId: randomUUID(),
-        sellerId: randomUUID(),
         items: [{ productVariantId: randomUUID(), quantity: 1 }],
+        paymentTerms: { installments: 1 },
       },
     });
     assert.equal(res.statusCode, 404, res.body);

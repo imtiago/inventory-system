@@ -52,6 +52,7 @@ export class CreateVariantUseCase extends TransactionalUseCase<
       productId: request.productId,
       name: request.name,
       barcode: request.barcode,
+      salePrice: request.salePrice,
       code,
     });
 

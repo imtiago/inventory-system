@@ -19,6 +19,7 @@ export interface ICreateVariantInput {
   name: string;
   // sku: string;
   barcode?: string;
+  salePrice?: number;
 }
 
 export interface IDeleteProductVariantInput {
@@ -32,4 +33,11 @@ export interface IProductVariantOutput {
   name: string;
   barcode: string | null;
   salePrice: number;
+}
+
+export interface IUpdateVariantInput {
+  id: string;
+  name?: string;
+  barcode?: string | null;
+  salePrice?: number;
 }

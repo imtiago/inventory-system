@@ -5,13 +5,15 @@ import { SaleItem } from "./SaleItem";
 
 export class Sale extends BaseEntity {
   private _customerId: string;
+  private _sellerId: string | null;
   private _items: SaleItem[];
-  private _totalAmount: number;
+  private _totalAmountCents: number;
   private _status: SaleStatus;
 
   constructor(props: {
     id?: string;
     customerId: string;
+    sellerId?: string | null;
     items: SaleItem[];
     status?: SaleStatus;
     createdAt?: Date;
@@ -20,33 +22,29 @@ export class Sale extends BaseEntity {
       id: props.id,
       createdAt: props.createdAt,
     });
-    // if (props.items.length === 0) {
-    //   throw new Error("Sale must have items");
-    // }
 
     this._customerId = props.customerId;
-
+    this._sellerId = props.sellerId ?? null;
     this._items = props.items;
-
-    this._totalAmount = this.calculateTotal();
-
+    this._totalAmountCents = this._items.reduce((total, item) => total + item.totalCents, 0);
     this._status = props.status ?? SaleStatus.COMPLETED;
-  }
-
-  private calculateTotal() {
-    return this._items.reduce((total, item) => total + item.total, 0);
   }
 
   get customerId() {
     return this._customerId;
   }
 
+  get sellerId() {
+    return this._sellerId;
+  }
+
   get items() {
     return this._items;
   }
 
-  get totalAmount() {
-    return this._totalAmount;
+  /** Σ(quantidade × preço unitário), em centavos inteiros. */
+  get totalAmountCents() {
+    return this._totalAmountCents;
   }
 
   get status() {
@@ -54,10 +52,10 @@ export class Sale extends BaseEntity {
   }
 
   cancel() {
-    if (this._status === SaleStatus.CANCELLED) {
+    if (this._status === SaleStatus.CANCELED) {
       throw new ConflictError("Venda já cancelada.", ErrorCodes.SALE_ALREADY_CANCELED);
     }
 
-    this._status = SaleStatus.CANCELLED;
+    this._status = SaleStatus.CANCELED;
   }
 }

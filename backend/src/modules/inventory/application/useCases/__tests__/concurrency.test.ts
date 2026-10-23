@@ -8,6 +8,7 @@ import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { makeReceiveInventory } from "@inventory/infrastructure/http/factories/ReceiveInventoryFactory";
 import { makeDispatchInventory } from "@inventory/infrastructure/http/factories/DispatchInventoryFactory";
+import { makeReturnSaleStock } from "@inventory/infrastructure/http/factories/ReturnSaleStockFactory";
 import { makeAddProductToBoxUseCase } from "@inventory/infrastructure/http/factories/AddProductToBoxFactory";
 import { InventoryApplicationService } from "@inventory/application/services/InventoryApplicationService";
 import { InventoryService } from "@inventory/application/services/InventoryService";
@@ -35,6 +36,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
   const cleanups: Array<() => Promise<unknown>> = [];
   const receive = makeReceiveInventory();
   const dispatch = makeDispatchInventory();
+  const returnSaleStock = makeReturnSaleStock();
   const addToBox = makeAddProductToBoxUseCase();
   const reserve = new ReserveInventoryUseCase(
     new PrismaInventoryRepository(),
@@ -276,7 +278,10 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const customerService = {
       getCustomer: async (id: string) => ({ id }),
     } as unknown as CustomerService;
-    const financialService: FinancialService = { createReceivable: async () => {} };
+    const financialService: FinancialService = {
+      createSaleReceivable: async () => {},
+      cancelSaleReceivable: async () => {},
+    };
     return new CreateSaleUseCase(
       saleRepository,
       new PrismaTransactionManager(),
@@ -290,13 +295,15 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
   test("venda com dois itens da mesma variante conclui", async () => {
     const variantId = await newVariant();
     await receive.execute(receiveInput(variantId, 5));
-    const sale = makeSale(new InventoryApplicationService(dispatch), [variantId]);
+    const sale = makeSale(new InventoryApplicationService(dispatch, returnSaleStock), [variantId]);
 
     await sale.execute({
       customerId: "c-1",
+      sellerId: userId,
+      paymentTerms: { installments: 1 },
       items: [
-        { productVariantId: variantId, quantity: 2, price: 1 },
-        { productVariantId: variantId, quantity: 1, price: 1 },
+        { productVariantId: variantId, quantity: 2 },
+        { productVariantId: variantId, quantity: 1 },
       ],
     });
 
@@ -313,13 +320,14 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
 
     // Pausa após o 1º item de cada venda: força a intercalação que causaria deadlock.
     const slowService = (): InventoryService => {
-      const real = new InventoryApplicationService(dispatch);
+      const real = new InventoryApplicationService(dispatch, returnSaleStock);
       let calls = 0;
       return {
         async consumeStock(req) {
           await real.consumeStock(req);
           if (calls++ === 0) await sleep(300);
         },
+        returnSaleStock: (req) => real.returnSaleStock(req),
       };
     };
     const sale1 = makeSale(slowService(), [a, b]);
@@ -328,16 +336,20 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const results = await Promise.allSettled([
       sale1.execute({
         customerId: "c-1",
+        sellerId: userId,
+        paymentTerms: { installments: 1 },
         items: [
-          { productVariantId: a, quantity: 1, price: 1 },
-          { productVariantId: b, quantity: 1, price: 1 },
+          { productVariantId: a, quantity: 1 },
+          { productVariantId: b, quantity: 1 },
         ],
       }),
       sale2.execute({
         customerId: "c-1",
+        sellerId: userId,
+        paymentTerms: { installments: 1 },
         items: [
-          { productVariantId: b, quantity: 1, price: 1 },
-          { productVariantId: a, quantity: 1, price: 1 },
+          { productVariantId: b, quantity: 1 },
+          { productVariantId: a, quantity: 1 },
         ],
       }),
     ]);

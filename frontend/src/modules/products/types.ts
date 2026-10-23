@@ -26,6 +26,7 @@ export interface ProductVariant {
   code: string;
   barcode: string | null;
   productId: string;
+  salePrice: number;
 }
 
 export interface ProductListResponse {

@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "id": "0b6f3c2e-8a4d-4f1b-9c7e-2d5a8f1e3b40",
+      "status": "COMPLETED",
+      "totalAmount": 159.7,
+      "createdAt": "2026-10-22T14:32:10.000Z",
+      "customer": {
+        "id": "6a1e9d3c-2b7f-4c8a-9e5d-1f3b7a9c2e64",
+        "name": "Maria Oliveira"
+      },
+      "itemsCount": 2
+    },
+    {
+      "id": "5d7f9b1c-3e5a-4c7d-9f1b-6a8c2e4d6f03",
+      "status": "CANCELED",
+      "totalAmount": 25,
+      "createdAt": "2026-10-21T10:05:00.000Z",
+      "customer": {
+        "id": "8c2e4a6d-5f7b-4d9e-8a1c-7b9d1f3a5c27",
+        "name": "Carlos Souza"
+      },
+      "itemsCount": 1
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
+}

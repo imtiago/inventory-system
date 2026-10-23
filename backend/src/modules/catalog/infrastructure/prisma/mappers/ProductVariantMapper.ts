@@ -9,6 +9,7 @@ export class ProductVariantMapper {
       code: prisma.code,
       name: prisma.name,
       barcode: prisma.barcode,
+      salePrice: Number(prisma.salePrice),
       createdAt: prisma.createdAt,
     });
   }
@@ -22,6 +23,7 @@ export class ProductVariantMapper {
       code: variant.code,
       name: variant.name,
       barcode: variant.barcode,
+      salePrice: variant.salePrice,
       createdAt: variant.createdAt,
     };
   }
@@ -33,6 +35,7 @@ export class ProductVariantMapper {
       code: variant.code,
       name: variant.name,
       barcode: variant.barcode,
+      salePrice: variant.salePrice,
     };
   }
 }

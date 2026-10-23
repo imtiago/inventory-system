@@ -13,7 +13,9 @@ export class FinancialParcelMapper {
 
       dueDate: prisma.dueDate,
 
-      paidAt: prisma.paidAt,
+      financialDocumentId: prisma.financialDocumentId,
+
+      createdAt: prisma.createdAt,
     });
   }
 

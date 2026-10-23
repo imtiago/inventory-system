@@ -1,49 +1,58 @@
 import { SaleItemDTO } from "./SaleItemDTO";
 
-export interface SaleDTO {
+export interface SaleReceivableParcelDTO {
   id: string;
-
-  customer: {
-    id: string;
-    name: string;
-  };
-
-  items: SaleItemDTO[];
-
-  totalAmount: number;
-
+  amount: number;
+  /** Data sem hora, "YYYY-MM-DD" (UTC). */
+  dueDate: string;
+  paidAmount: number;
+  remainingAmount: number;
   status: string;
+}
 
+export interface SaleReceivableDTO {
+  id: string;
+  status: string;
+  parcels: SaleReceivableParcelDTO[];
+}
+
+export interface SaleDetailDTO {
+  id: string;
+  status: string;
+  totalAmount: number;
   createdAt: Date;
+  customer: { id: string; name: string };
+  seller: { id: string; name: string } | null;
+  items: SaleItemDTO[];
+  receivable: SaleReceivableDTO | null;
+}
+
+export interface SaleListItemDTO {
+  id: string;
+  status: string;
+  totalAmount: number;
+  createdAt: Date;
+  customer: { id: string; name: string };
+  itemsCount: number;
 }
 
 export interface ICancelSaleInput {
   id: string;
+  /** Usuário autenticado que cancela (auditoria das movimentações RETURN). */
+  userId?: string;
 }
 
 export interface ICreateSaleInput {
   customerId: string;
-
+  /** Usuário autenticado (request.user.sub). */
+  sellerId: string;
   items: {
     productVariantId: string;
     quantity: number;
-    price: number;
   }[];
-
-  installments?: {
-    amount: number;
-    dueDate: Date;
-  }[];
-}
-
-export interface ISaleOutput {
-  id: string;
-
-  customer_id: string;
-
-  items: SaleItemDTO[];
-
-  totalAmount: number;
-
-  status: string;
+  paymentTerms: {
+    installments: number;
+    /** Meia-noite UTC; ausente com 1 parcela = hoje. */
+    firstDueDate?: Date;
+  };
 }

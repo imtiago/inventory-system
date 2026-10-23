@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeGetProductVariantController } from "../controllers/GetProductVariantController";
+import { makeUpdateVariantController } from "../controllers/UpdateVariantController";
 import { makeDeleteProductVariantController } from "../controllers/DeleteProductVariantController";
 import { makeGetProductVariantByBarcodeController } from "../controllers/GetProductVariantByBarcodeController";
 
@@ -15,11 +16,11 @@ export async function productVariantsRoutes(app: FastifyInstance) {
     { preHandler: [authorize(["admin", "vendedor"])] },
     makeGetProductVariantByBarcodeController(),
   );
-  // app.put(
-  //   "/:id",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
-  //   makeUpdateProductController(),
-  // );
+  app.put(
+    "/:id",
+    { preHandler: [authorize(["admin", "vendedor"])] },
+    makeUpdateVariantController(),
+  );
   app.delete(
     "/:id",
     { preHandler: [authorize(["admin", "vendedor"])] },

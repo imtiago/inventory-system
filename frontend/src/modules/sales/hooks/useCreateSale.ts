@@ -1,16 +1,26 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { queryKeys } from '@/shared/react-query/keys';
-import { useCrudMutation } from '@/shared/react-query/useCrudMutation.ts';
+import { notify } from '@/shared/utils/notify';
+import { invalidateInventoryQueries } from '@/modules/inventory/utils/invalidateInventoryQueries';
 import { saleMessages } from '../config/messages';
 import { createSale } from '../services/saleService';
 
 export function useCreateSale() {
-  return useCrudMutation({
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: createSale,
 
-    invalidateKeys: [queryKeys.sales],
+    async onSuccess() {
+      // A sale consumes stock: refresh sales and every stock screen.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.sales }),
+        invalidateInventoryQueries(queryClient),
+      ]);
+      notify.success(saleMessages.created);
+    },
 
-    successMessage: saleMessages.created,
-
-    errorMessage: 'Erro ao registrar a venda.',
+    // The page renders the error itself (field errors + alert); no toast here.
   });
 }

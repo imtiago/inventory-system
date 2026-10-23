@@ -14,31 +14,44 @@ import { useCustomerSearch } from '@/modules/customers/hooks/useCustomerSearch';
 import { useProductByBarcode } from '@/modules/inventory/hooks/useProductByBarcode';
 
 import { SaleBarcodeInput } from '../components/SaleBarcodeInput';
-import { useSaleCart } from '../hooks/useSaleCart';
+import { isQuantityValid, useSaleCart } from '../hooks/useSaleCart';
 import { useCreateSale } from '../hooks/useCreateSale';
-import { useAuth } from '@/shared/hooks/useAuth';
+import { addDaysLocal, buildInstallments } from '../utils/installments';
+import { formatCents, formatCurrency } from '@/shared/utils/money';
+import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 type SaleFormValues = {
   customerId: string;
+  firstDueDate: string;
 };
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
+type PaymentMode = 'cash' | 'installments';
+
+const MAX_INSTALLMENTS = 12;
+const DEFAULT_FIRST_DUE_DAYS = 30;
 
 export function SaleCreatePage() {
   const navigate = useNavigate();
 
-  const { control, watch, setValue, setError } = useForm<SaleFormValues>({
+  const {
+    control,
+    watch,
+    setError,
+    clearErrors,
+    register,
+    formState: { errors },
+  } = useForm<SaleFormValues>({
     defaultValues: {
       customerId: '',
+      firstDueDate: addDaysLocal(new Date(), DEFAULT_FIRST_DUE_DAYS),
     },
   });
 
-  const { user, isLoadingUser } = useAuth();
-
   const customerId = watch('customerId');
+  const firstDueDate = watch('firstDueDate');
+
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
+  const [installments, setInstallments] = useState(2);
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
@@ -60,6 +73,8 @@ export function SaleCreatePage() {
 
   const createSaleMutation = useCreateSale();
 
+  const isInstallments = paymentMode === 'installments';
+
   async function handleBarcodeSubmit(barcode: string) {
     setFeedback(null);
 
@@ -75,30 +90,15 @@ export function SaleCreatePage() {
 
     cart.addVariant(variant);
 
-    setFeedback({
-      type: 'success',
-      message: `${variant.name} adicionado à venda.`,
-    });
+    setFeedback(
+      variant.salePrice && variant.salePrice > 0
+        ? { type: 'success', message: `${variant.name} adicionado à venda.` }
+        : null,
+    );
   }
 
   function handleRegisterSale() {
     setFeedback(null);
-
-    if (isLoadingUser) {
-      setFeedback({
-        type: 'error',
-        message: 'Aguarde a identificação do vendedor autenticado.',
-      });
-      return;
-    }
-
-    if (!user?.id) {
-      setFeedback({
-        type: 'error',
-        message: 'Não foi possível identificar o vendedor autenticado. Verifique sua sessão.',
-      });
-      return;
-    }
 
     if (!customerId) {
       setFeedback({
@@ -116,6 +116,27 @@ export function SaleCreatePage() {
       return;
     }
 
+    if (cart.hasInvalidQuantity) {
+      setFeedback({
+        type: 'error',
+        message: 'Informe uma quantidade válida (número inteiro maior que zero) para todos os itens.',
+      });
+      return;
+    }
+
+    if (cart.itemsWithoutPrice.length > 0) {
+      setFeedback({
+        type: 'error',
+        message: 'Há itens sem preço de venda. Cadastre o preço da variante antes de registrar a venda.',
+      });
+      return;
+    }
+
+    if (isInstallments && !/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) {
+      setError('firstDueDate', { type: 'validate', message: 'Informe a data do primeiro vencimento.' });
+      return;
+    }
+
     if (createSaleMutation.isPending) {
       return;
     }
@@ -123,34 +144,34 @@ export function SaleCreatePage() {
     createSaleMutation.mutate(
       {
         customerId,
-        sellerId: user.id,
         items: cart.items.map((item) => ({
           productVariantId: item.productVariantId,
-          quantity: item.quantity,
+          quantity: item.quantity as number,
         })),
+        paymentTerms: isInstallments ? { installments, firstDueDate } : { installments: 1 },
       },
       {
-        onSuccess: () => {
-          cart.clearItems();
-
-          setValue('customerId', '');
-          setSelectedCustomer(null);
-          setCustomerSearch('');
-
-          setFeedback({
-            type: 'success',
-            message: 'Venda registrada com sucesso.',
-          });
-
-          navigate('/sales');
+        onSuccess: (sale) => {
+          navigate(`/sales/${sale.id}`);
         },
         onError: (error) => {
-          const { fieldErrors, message, code } = parseApiErrorSync(error);
+          const { fieldErrors, message, code, status } = parseApiErrorSync(error);
 
-          // customerId errors render on the autocomplete; other paths (e.g. items.0.quantity) have no input.
-          const { unmatched } = applyFieldErrors(setError, fieldErrors, ['customerId']);
+          // The axios interceptor already redirects to /login on 401.
+          if (status === 401) return;
+
+          // customerId / firstDueDate render inline; other paths (e.g. items.0.quantity) have no input.
+          const mapped: Record<string, string> = {};
+          for (const [field, text] of Object.entries(fieldErrors)) {
+            mapped[field === 'paymentTerms.firstDueDate' ? 'firstDueDate' : field] = text;
+          }
+
+          const { applied, unmatched } = applyFieldErrors(setError, mapped, ['customerId', 'firstDueDate']);
 
           const detail = Object.values(unmatched)[0];
+
+          // Shown once: inline when fully mapped to a field, otherwise as the alert (never both).
+          if (applied.length > 0 && !detail) return;
 
           setFeedback({
             type: 'error',
@@ -161,7 +182,13 @@ export function SaleCreatePage() {
     );
   }
 
-  const isRegisterDisabled = !customerId || !user?.id || isLoadingUser || cart.items.length === 0 || createSaleMutation.isPending;
+  const hasUnpricedItems = cart.itemsWithoutPrice.length > 0;
+
+  const isRegisterDisabled = !customerId || cart.items.length === 0 || hasUnpricedItems || createSaleMutation.isPending;
+
+  const canPreview = isInstallments && cart.totalCents > 0 && !cart.hasInvalidQuantity && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate);
+
+  const preview = canPreview ? buildInstallments(cart.totalCents, installments, firstDueDate) : [];
 
   return (
     <Page>
@@ -286,16 +313,16 @@ export function SaleCreatePage() {
                             type="number"
                             min={1}
                             step={1}
-                            value={item.quantity}
+                            value={item.quantity ?? ''}
                             disabled={createSaleMutation.isPending}
-                            onChange={(event) => cart.updateQuantity(item.productVariantId, Number(event.target.value))}
+                            onChange={(event) => cart.updateQuantity(item.productVariantId, event.target.value === '' ? null : Number(event.target.value))}
                             className="w-20 rounded-md border px-2 py-1.5"
                           />
                         </td>
 
-                        <td className="px-3 py-3">{currencyFormatter.format(item.unitPrice)}</td>
+                        <td className="px-3 py-3">{item.unitPrice > 0 ? formatCurrency(item.unitPrice) : <span className="text-red-600">Sem preço</span>}</td>
 
-                        <td className="px-3 py-3 font-medium">{currencyFormatter.format(item.quantity * item.unitPrice)}</td>
+                        <td className="px-3 py-3 font-medium">{isQuantityValid(item.quantity) ? formatCurrency(item.quantity * item.unitPrice) : '—'}</td>
 
                         <td className="px-3 py-3">
                           <button
@@ -315,11 +342,78 @@ export function SaleCreatePage() {
               </div>
             )}
 
+            {hasUnpricedItems && (
+              <div role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                {cart.itemsWithoutPrice.map((item) => item.productName).join(', ')}: sem preço de venda. Cadastre o preço da variante para registrar a venda.
+              </div>
+            )}
+
             <div className="mt-5 flex flex-col gap-2 border-t pt-4 sm:items-end">
-              <p className="text-sm text-gray-500">Total estimado</p>
-              <p className="text-2xl font-semibold">{currencyFormatter.format(cart.estimatedTotal)}</p>
-              <p className="text-xs text-gray-500">Os preços estão temporariamente zerados.</p>
+              <p className="text-sm text-gray-500">Total</p>
+              <p data-testid="sale-total" className="text-2xl font-semibold">
+                {formatCents(cart.totalCents)}
+              </p>
             </div>
+
+            {/* Condição de pagamento */}
+            <fieldset className="mt-6 border-t pt-5">
+              <legend className="text-lg font-semibold">Condição de pagamento</legend>
+
+              <div className="mt-3 flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="paymentMode" checked={!isInstallments} onChange={() => { setPaymentMode('cash'); clearErrors('firstDueDate'); }} />
+                  À vista
+                </label>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="paymentMode" checked={isInstallments} onChange={() => setPaymentMode('installments')} />
+                  Parcelado
+                </label>
+              </div>
+
+              {isInstallments && (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="sale-installments" className="mb-1 block text-sm font-medium">
+                      Número de parcelas
+                    </label>
+                    <select
+                      id="sale-installments"
+                      value={installments}
+                      onChange={(event) => setInstallments(Number(event.target.value))}
+                      className="w-full rounded-md border px-3 py-2"
+                    >
+                      {Array.from({ length: MAX_INSTALLMENTS - 1 }, (_, i) => i + 2).map((n) => (
+                        <option key={n} value={n}>
+                          {n}x
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="sale-first-due" className="mb-1 block text-sm font-medium">
+                      Primeiro vencimento
+                    </label>
+                    <input id="sale-first-due" type="date" {...register('firstDueDate')} className="w-full rounded-md border px-3 py-2" />
+                    {errors.firstDueDate && <p className="mt-1 text-sm text-red-600">{errors.firstDueDate.message}</p>}
+                  </div>
+                </div>
+              )}
+
+              {isInstallments && preview.length > 0 && (
+                <ul data-testid="installments-preview" className="mt-4 divide-y rounded-lg border text-sm">
+                  {preview.map((parcel, index) => (
+                    <li key={index} className="flex justify-between px-3 py-2">
+                      <span>
+                        {index + 1}/{preview.length} · {formatDateOnly(parcel.dueDate)}
+                      </span>
+                      <span className="font-medium">{formatCents(parcel.amountCents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </fieldset>
 
             {/* Ações da venda */}
             <div className="mt-6 flex flex-col-reverse justify-end gap-3 border-t pt-5 sm:flex-row">
@@ -328,7 +422,7 @@ export function SaleCreatePage() {
               </Button>
 
               <Button type="button" disabled={isRegisterDisabled} onClick={handleRegisterSale}>
-                {isLoadingUser ? 'Identificando vendedor...' : createSaleMutation.isPending ? 'Registrando venda...' : 'Registrar venda'}
+                {createSaleMutation.isPending ? 'Registrando venda...' : 'Registrar venda'}
               </Button>
             </div>
           </section>

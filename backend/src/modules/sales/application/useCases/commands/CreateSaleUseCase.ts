@@ -1,24 +1,32 @@
-import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
-import { SaleRepository } from "../../../domain/repositories/SaleRepository";
-
+import {
+  BusinessRuleError,
+  ErrorCodes,
+  NotFoundError,
+  ValidationError,
+} from "@shared/domain/errors";
+import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
+import { fromCents, toCents } from "@shared/domain/money";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
+import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { CustomerService } from "@customer/application/services/CustomerService";
 import { CatalogService } from "@catalog/application/services/CatalogService";
 import { InventoryService } from "@inventory/application/services/InventoryService";
 import { FinancialService } from "@finance/application/services/FinacialService";
+import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
-import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
-import { ICreateSaleInput, ISaleOutput } from "@sales/application/dto/SaleDTO";
+import { buildInstallments } from "@sales/domain/services/InstallmentPlan";
+import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
 
-export class CreateSaleUseCase extends TransactionalUseCase<
-  ICreateSaleInput,
-  Sale
-> {
+/**
+ * Cria a venda numa transação: valida cliente → resolve variantes (preço > 0,
+ * snapshot) → consome estoque em ordem de variante (originId = venda) → grava a
+ * venda → gera contas a receber com as parcelas. Qualquer falha desfaz tudo.
+ */
+export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sale> {
   constructor(
     private readonly saleRepository: SaleRepository,
-    readonly transactionManager: TransactionManager,
+    transactionManager: TransactionManager,
     private readonly customerService: CustomerService,
     private readonly catalogService: CatalogService,
     private readonly inventoryService: InventoryService,
@@ -27,126 +35,80 @@ export class CreateSaleUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
-    request: ICreateSaleInput,
-  ): Promise<ISaleOutput> {
+  protected async handle(request: ICreateSaleInput): Promise<Sale> {
+    const { installments } = request.paymentTerms;
+    if (installments > 1 && !request.paymentTerms.firstDueDate) {
+      throw new ValidationError("Dados inválidos.", [
+        { field: "paymentTerms.firstDueDate", message: "Informe o primeiro vencimento." },
+      ]);
+    }
+    const firstDueDate = request.paymentTerms.firstDueDate ?? businessTodayAsUtcDate();
+
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {
       throw new NotFoundError("Cliente não encontrado.", ErrorCodes.CUSTOMER_NOT_FOUND);
     }
 
     const saleItems: SaleItem[] = [];
-
     for (const item of request.items) {
-      const variant = await this.catalogService.getProductVariant(
-        item.productVariantId,
-      );
+      const variant = await this.catalogService.getProductVariant(item.productVariantId);
       if (!variant) {
         throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
       }
+      const unitPriceCents = toCents(variant.salePrice);
+      if (unitPriceCents <= 0) {
+        throw new BusinessRuleError("Variante sem preço de venda.", ErrorCodes.VARIANT_WITHOUT_PRICE);
+      }
       saleItems.push(
         new SaleItem({
-          variantName: variant.name,
           variantId: variant.id,
-          quantity: item.quantity,
-          unitPrice: variant.salePrice,
+          variantName: variant.name,
           variantCode: variant.code,
           barcode: variant.barcode,
+          quantity: item.quantity,
+          unitPriceCents,
         }),
       );
     }
 
-    /*
-     * 2 - Criar venda
-     */
     const sale = new Sale({
       customerId: customer.id,
+      sellerId: request.sellerId,
       items: saleItems,
-      // items
-      // sellerId: request.sellerId,
-      // notes: request.notes,
-      // discount: request.discount,
-      // items: saleItems,
     });
 
-    // const variant = await this.catalogService.getProductVariant(
-    //   item.productVariantId,
-    // );
-    /*
-     * 1 - Atualizar estoque
-     */
+    // Cada parcela precisa de ao menos 1 centavo.
+    if (sale.totalAmountCents < installments) {
+      throw new BusinessRuleError(
+        "O valor da venda não permite esse número de parcelas.",
+        ErrorCodes.INSTALLMENTS_EXCEED_TOTAL,
+      );
+    }
+
     // Ordem crescente de productVariantId: vendas simultâneas travam as variantes
     // sempre na mesma ordem (sem deadlock). Itens repetidos da mesma variante
     // reentram na trava já obtida por esta transação.
     const itemsInLockOrder = [...request.items].sort((a, b) =>
-      a.productVariantId < b.productVariantId
-        ? -1
-        : a.productVariantId > b.productVariantId
-          ? 1
-          : 0,
+      a.productVariantId < b.productVariantId ? -1 : a.productVariantId > b.productVariantId ? 1 : 0,
     );
     for (const item of itemsInLockOrder) {
-      // const inventory =
-      await this.inventoryService.consumeStock(
-        {
-          productVariantId: item.productVariantId,
-          quantity: item.quantity,
-        }
-      );
-
-      // if (!inventory) {
-      //   throw new Error(
-      //     `Inventory not found for variant ${item.productVariantId}`,
-      //   );
-      // }
-
-      // const movement = inventory.removeStock(item.quantity, "Sale");
-
-      // await this.inventoryRepo.save(inventory);
-
-      // await this.inventoryRepo.addMovement(movement);
-    }
-    const createdSale = await this.saleRepository.create(sale);
-    // console.log("createdSale");
-
-    /*
-     * 3 - Criar contas a receber
-     */
-
-    //      const sale = Sale.create({
-    //   customerId: customer.id,
-    //   sellerId: request.sellerId,
-    //   notes: request.notes,
-    //   discount: request.discount,
-    //   items: saleItems,
-    // });
-
-    // await this.saleRepository.create(sale);
-
-    // for (const item of sale.items) {
-    //   await this.inventoryService.consumeStock(
-    //     item.productVariantId,
-    //     item.quantity,
-    //     "SALE",
-    //   );
-    // }
-    await this.financialService.createReceivable(
-      {
-        customerId: sale.customerId,
+      await this.inventoryService.consumeStock({
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
         originId: sale.id,
-        originType: FinancialOriginType.SALE,
-        parcels: [],
-        totalAmount: 500,
-      }
-    );
-    // return createdSale;
+        userId: request.sellerId,
+      });
+    }
 
-    return {
-      customer_id: createdSale.customerId,
-      id: createdSale.id,
-      status: createdSale.status,
-      totalAmount: createdSale.totalAmount,
-      items: [],
-    };
+    const created = await this.saleRepository.create(sale);
+
+    const plan = buildInstallments(sale.totalAmountCents, installments, firstDueDate);
+    await this.financialService.createSaleReceivable({
+      saleId: sale.id,
+      customerId: sale.customerId,
+      parcels: plan.map((p) => ({ amount: fromCents(p.amountCents), dueDate: p.dueDate })),
+    });
+
+    return created;
   }
 }

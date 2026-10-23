@@ -1,7 +1,6 @@
-// src/modules/sales/infrastructure/mappers/SaleItemMapper.ts
-
 import { SaleItem as PrismaSaleItem, Prisma } from "@prisma/client";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
+import { fromCents, toCents } from "@shared/domain/money";
 
 export class SaleItemMapper {
   // Banco -> Domínio
@@ -9,31 +8,26 @@ export class SaleItemMapper {
     return new SaleItem({
       id: prisma.id,
       variantId: prisma.productVariantId,
+      variantName: prisma.productName,
+      variantCode: prisma.sku ?? "",
+      barcode: prisma.barcode,
       quantity: prisma.quantity,
-      unitPrice: prisma.unitPrice,
-      variantCode: "",
+      unitPriceCents: toCents(Number(prisma.unitPrice)),
     });
   }
 
-  // Domínio -> Banco (Create)
+  // Domínio -> Banco (Create). `sku` guarda o snapshot do código da variante.
   static toCreatePersistence(
     item: SaleItem,
   ): Prisma.SaleItemUncheckedCreateWithoutSaleInput {
     return {
       id: item.id,
-      productName: item.variantName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
       productVariantId: item.variantId,
-    };
-  }
-
-  // Domínio -> Banco (Update)
-  static toUpdatePersistence(item: SaleItem): Prisma.SaleItemUpdateInput {
-    return {
+      productName: item.variantName,
+      sku: item.variantCode,
+      barcode: item.barcode,
       quantity: item.quantity,
-
-      price: item.price,
+      unitPrice: fromCents(item.unitPriceCents),
     };
   }
 }

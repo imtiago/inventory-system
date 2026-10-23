@@ -1,29 +1,30 @@
 import {
   FinancialDocument as PrismaFinancialDocument,
+  FinancialParcel as PrismaFinancialParcel,
   Prisma,
 } from "@prisma/client";
+import { FinancialType } from "@finance/domain/enums/FinancialType";
+import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
+import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
+import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
 import { FinancialParcelMapper } from "./FinancialParcelMapper";
 import { FinancialDocument } from "@finance/domain/entities/FinancialDocument";
 
 export class FinancialDocumentMapper {
   static toDomain(
     prisma: PrismaFinancialDocument & {
-      parcels?: any[];
+      parcels?: PrismaFinancialParcel[];
     },
   ): FinancialDocument {
     return new FinancialDocument({
       id: prisma.id,
-
-      type: prisma.type,
-
-      referenceId: prisma.referenceId,
-
-      customerId: prisma.customerId,
-
-      supplierId: prisma.supplierId,
-
+      type: prisma.type as FinancialType,
+      originId: prisma.originId,
+      originType: prisma.originType as FinancialOriginType,
+      partyId: prisma.partyId,
+      partyType: prisma.partyType as FinancialPartyType,
+      status: prisma.status as FinancialStatus,
       createdAt: prisma.createdAt,
-
       parcels: prisma.parcels?.map(FinancialParcelMapper.toDomain) ?? [],
     });
   }
@@ -46,11 +47,7 @@ export class FinancialDocumentMapper {
     document: FinancialDocument,
   ): Prisma.FinancialDocumentUpdateInput {
     return {
-      type: document.type,
-
-      customerId: document.customerId,
-
-      supplierId: document.supplierId,
+      status: document.status,
     };
   }
 }

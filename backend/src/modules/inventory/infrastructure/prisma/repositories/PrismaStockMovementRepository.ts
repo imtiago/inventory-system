@@ -1,7 +1,9 @@
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
+import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementMapper } from "../mappers/StockMovementMapper";
+import { StockMovementOriginMapper } from "../mappers/StockMovementOriginMapper";
 
 export class PrismaStockMovementRepository implements IStockMovementRepository {
 
@@ -53,6 +55,18 @@ export class PrismaStockMovementRepository implements IStockMovementRepository {
       where: {
         productVariantId,
       },
+    });
+
+    return data.map((d) => StockMovementMapper.toDomain(d));
+  }
+
+  async findByOrigin(
+    origin: StockMovementOrigin,
+    originId: string
+  ): Promise<StockMovement[]> {
+    const data = await getDb().stockMovement.findMany({
+      where: { origin: StockMovementOriginMapper.toPrisma(origin), originId },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
 
     return data.map((d) => StockMovementMapper.toDomain(d));
