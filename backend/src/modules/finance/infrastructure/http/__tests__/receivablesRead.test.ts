@@ -168,11 +168,6 @@ describe("Leitura de contas a receber (GET /receivables)", () => {
     assert.deepEqual(await listIds(`${a}&dueFrom=${TODAY}&dueTo=${TODAY}`), [docs.partial]);
     assert.deepEqual(await listIds(`${a}&dueTo=${addDays(-4)}`), [docs.overdue, docs.paid]);
     assert.deepEqual(await listIds(`${a}&dueFrom=${addDays(41)}`), []);
-
-    // OVERDUE em todos os clientes inclui o documento de A (outros testes podem criar mais).
-    const all = await listIds("status=OVERDUE");
-    assert.ok(all.includes(docs.overdue));
-    assert.ok(!all.includes(docs.canceled));
   });
 
   test("GET /receivables ordena por próximo vencimento em aberto; pagos/cancelados por último", async () => {

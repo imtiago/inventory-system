@@ -4,7 +4,7 @@ import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSche
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** "YYYY-MM-DD" que existe no calendário. */
-const dateOnly = (label: string) =>
+export const dateOnly = (label: string) =>
   z
     .string()
     .regex(DATE_ONLY, `${label} deve estar no formato AAAA-MM-DD.`)

@@ -13,7 +13,12 @@ export interface FinancialDocumentRepository {
     originType: FinancialOriginType,
     originId: string,
   ): Promise<FinancialDocument[]>;
-  /** true se alguma parcela de algum dos documentos tem pagamento registrado. */
+  /**
+   * Trava (FOR UPDATE) e lê o documento com parcelas e pagamentos (para
+   * registrar/estornar pagamento). null se não existe. Exige transação.
+   */
+  lockById(id: string): Promise<FinancialDocument | null>;
+  /** true se alguma parcela de algum dos documentos tem pagamento ativo (não estornado). */
   hasPayments(documentIds: string[]): Promise<boolean>;
   /** Grava o status do documento. */
   update(document: FinancialDocument): Promise<FinancialDocument>;

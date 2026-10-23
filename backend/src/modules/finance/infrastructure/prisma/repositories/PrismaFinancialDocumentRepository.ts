@@ -15,17 +15,37 @@ export class PrismaFinancialDocumentRepository implements FinancialDocumentRepos
     return FinancialDocumentMapper.toDomain(receivable);
   }
 
-  async lockByOrigin(
-    type: FinancialType,
-    originType: FinancialOriginType,
-    originId: string,
-  ): Promise<FinancialDocument[]> {
+  async lockById(id: string): Promise<FinancialDocument | null> {
+    this.assertTransaction();
+    const db = getDb();
+    // Mesma linha travada pelo cancelamento da venda (lockByOrigin): serializa pagamento × cancelamento.
+    const rows = await db.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "FinancialDocument" WHERE id = ${id} FOR UPDATE`;
+    if (rows.length === 0) return null;
+
+    // Lido depois da trava: vê o estado confirmado mais recente (READ COMMITTED).
+    const document = await db.financialDocument.findUnique({
+      where: { id },
+      include: { parcels: { include: { payments: true } } },
+    });
+    return document ? FinancialDocumentMapper.toDomain(document) : null;
+  }
+
+  private assertTransaction(): void {
     if (!hasActiveTransaction()) {
       throw new InternalInvariantError(
         "Trava de documento financeiro exige transação ativa.",
         InternalErrorCodes.LOCK_OUTSIDE_TRANSACTION,
       );
     }
+  }
+
+  async lockByOrigin(
+    type: FinancialType,
+    originType: FinancialOriginType,
+    originId: string,
+  ): Promise<FinancialDocument[]> {
+    this.assertTransaction();
     const db = getDb();
     const rows = await db.$queryRaw<{ id: string }[]>`
       SELECT id FROM "FinancialDocument"
@@ -46,7 +66,7 @@ export class PrismaFinancialDocumentRepository implements FinancialDocumentRepos
   async hasPayments(documentIds: string[]): Promise<boolean> {
     if (documentIds.length === 0) return false;
     const count = await getDb().payment.count({
-      where: { parcel: { financialDocumentId: { in: documentIds } } },
+      where: { reversedAt: null, parcel: { financialDocumentId: { in: documentIds } } },
     });
 
     return count > 0;
