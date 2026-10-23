@@ -155,7 +155,12 @@ export function SaleDetailPage() {
 
             {sale.receivable && (
               <section>
-                <h2 className="mb-2 font-semibold">Parcelas</h2>
+                <div className="mb-2 flex items-center justify-between">
+                  <h2 className="font-semibold">Parcelas</h2>
+                  <Link to={`/receivables/${sale.receivable.id}`} className="text-sm font-medium hover:underline">
+                    Ver contas a receber
+                  </Link>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
