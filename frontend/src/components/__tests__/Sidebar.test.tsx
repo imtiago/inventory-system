@@ -23,7 +23,7 @@ function renderSidebar(role: UserRole, client = createTestQueryClient()) {
   return client;
 }
 
-const labels = ['Dashboard', 'Produtos', 'Vendas', 'Clientes', 'Estoque', 'Financeiro', 'Contas a receber'];
+const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Financeiro', 'Contas a receber'];
 
 function visible() {
   return labels.filter((l) => screen.queryByText(l));
@@ -49,7 +49,7 @@ describe('Sidebar', () => {
 
   test('ESTOQUISTA sem Vendas/Clientes/Financeiro', () => {
     renderSidebar('ESTOQUISTA');
-    expect(visible()).toEqual(['Dashboard', 'Produtos', 'Estoque']);
+    expect(visible()).toEqual(['Dashboard', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias']);
   });
 
   test('logout limpa o cache e a sessão: próximo usuário não vê dados do anterior', async () => {

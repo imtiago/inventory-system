@@ -1,27 +1,13 @@
 import { api } from '@/shared/services/api';
-import type { CustomerListResponse, ICreateCustomerDTO, ICustomer } from '../types';
+import type { CustomerListResponse, ICreateCustomerDTO, ICustomer, UpdateCustomerInput } from '../types';
 
 const PAGE_SIZE = 10;
 const SEARCH_PAGE_SIZE = 20;
 
 export async function getCustomers(page = 1, search = ''): Promise<CustomerListResponse> {
-  const params = new URLSearchParams({
-    page: String(page),
+  const response = await api.get('/customers', {
+    params: { page, limit: PAGE_SIZE, ...(search ? { search } : {}) },
   });
-
-  if (search) {
-    params.set('search', search);
-  }
-
-  const response = await api.get(`/customers?${params.toString()}`);
-
-  // const response = await api.get('/customers', {
-  //   params: {
-  //     page,
-  //     limit: PAGE_SIZE,
-  //     search,
-  //   },
-  // });
 
   return response.data;
 }
@@ -44,18 +30,14 @@ export async function createCustomer(data: ICreateCustomerDTO) {
   return response.data.data;
 }
 
-export const updateCustomer = async (id: string, input: any) => {
-  const { data } = await api.put(`/customers/${id}`, input);
-  // return response.data.data;
-  return data;
-};
+export async function updateCustomer(id: string, input: UpdateCustomerInput): Promise<ICustomer> {
+  const response = await api.patch<{ data: ICustomer }>(`/customers/${id}`, input);
 
-export async function getCustomerById(id: string): Promise<ICustomer> {
-  const response = await api.get(`/customers/${id}`);
-
-  return response.data;
+  return response.data.data;
 }
 
-export const deleteProduct = async (id: string) => {
-  await api.delete(`/customers/${id}`);
-};
+export async function getCustomerById(id: string): Promise<ICustomer> {
+  const response = await api.get<{ data: ICustomer }>(`/customers/${id}`);
+
+  return response.data.data;
+}

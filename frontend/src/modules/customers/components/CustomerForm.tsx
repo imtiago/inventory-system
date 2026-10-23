@@ -1,4 +1,5 @@
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
+import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useForm } from 'react-hook-form';
 import type { ICreateCustomerDTO } from '../types';
 
@@ -51,7 +52,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
     try {
       await onSubmit(data);
     } catch (error) {
-      if (!applySubmitError(setError, error, FIELDS)) throw error;
+      // Field errors go inline; anything else is shown in the form (mutations are silent).
+      if (!applySubmitError(setError, error, FIELDS)) {
+        setError('root.server', { type: 'server', message: parseApiErrorSync(error).message });
+      }
     }
   });
 

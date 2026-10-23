@@ -65,6 +65,16 @@ describe('ProductEditPage', () => {
     expect(bodies).toEqual([{ brandId: 'brand-2' }]);
   });
 
+  test('limpar a descrição envia { description: "" }', async () => {
+    renderEdit();
+    await screen.findByDisplayValue('Perfume Floral 100ml');
+    await userEvent.clear(screen.getByDisplayValue('Fragrância floral amadeirada.'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
+
+    expect(await screen.findByText('detalhe do produto')).toBeInTheDocument();
+    expect(bodies).toEqual([{ description: '' }]);
+  });
+
   test('sem alterações não chama a API', async () => {
     renderEdit();
     await screen.findByDisplayValue('Perfume Floral 100ml');

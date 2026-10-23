@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, MapPin, Phone, Pencil, UserRound } from 'lucide-react';
 
@@ -6,11 +7,14 @@ import { Section } from '@/shared/components/details/Section';
 import { Button } from '@/components/ui/button';
 
 import { useCustomer } from '../hooks/useCustomer';
-import { formatName } from '@/shared/utils/formatName';
+import { Can } from '@/shared/auth/Can';
+import { CustomerEditModal } from '../components/CustomerEditModal';
 import { formatPhone } from '@/shared/utils/formatPhone';
 
 export function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
+
+  const [editing, setEditing] = useState(false);
 
   const { data: customer, isLoading, isError } = useCustomer(id ?? '');
 
@@ -57,18 +61,18 @@ export function CustomerDetailsPage() {
                 </div>
 
                 <div className="min-w-0">
-                  <h1 className="break-words text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">{formatName(customer.name)}</h1>
+                  <h1 className="break-words text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">{customer.name}</h1>
 
                   <p className="mt-1 text-sm text-gray-500">Cliente #{customer.id}</p>
                 </div>
               </div>
 
-              <Button asChild variant="outline" className="shrink-0">
-                <Link to={`/customers/${customer.id}/edit`}>
+              <Can permission="customers.write">
+                <Button type="button" className="shrink-0 border border-gray-300 bg-white text-gray-900 hover:bg-gray-50" onClick={() => setEditing(true)}>
                   <Pencil size={16} className="mr-2" />
                   Editar
-                </Link>
-              </Button>
+                </Button>
+              </Can>
             </div>
 
             <div className="border-t border-gray-100" />
@@ -108,6 +112,8 @@ export function CustomerDetailsPage() {
           </div>
         </Section>
       </div>
+
+      <CustomerEditModal customer={editing ? customer : null} onClose={() => setEditing(false)} />
     </Page>
   );
 }

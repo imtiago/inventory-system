@@ -27,6 +27,9 @@ export function ConfirmDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
       className="
         fixed inset-0
         bg-black/40
@@ -59,7 +62,7 @@ export function ConfirmDialog({
           </div>
 
           <div className="flex-1">
-            <h2 className="text-xl font-semibold">{title}</h2>
+            <h2 id="confirm-dialog-title" className="text-xl font-semibold">{title}</h2>
 
             <p className="mt-2 text-gray-600">{description}</p>
           </div>

@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 
 import type { DataTableColumn } from '@/shared/components/table';
-import { CrudBadge } from '@/shared/components/crud';
 
 import type { ICustomer } from '../types';
 import { formatPhone } from '@/shared/utils/formatPhone';
-import { formatName } from '@/shared/utils/formatName';
+import { Can } from '@/shared/auth/Can';
 // import { useDeleteProduct } from './useDeleteProduct';
 
 export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataTableColumn<ICustomer>[] {
@@ -38,7 +37,7 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
       id: 'name',
       header: 'Nome',
 
-      cell: (data) => formatName(data.name),
+      cell: (data) => data.name,
     },
 
     {
@@ -51,7 +50,7 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
       id: 'email',
       header: 'E-mail',
 
-      cell: (data) => data.email,
+      cell: (data) => data.email ?? "-",
     },
 
     // {
@@ -76,9 +75,11 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
 
       cell: (data) => (
         <div className="flex justify-center gap-3">
-          <button type="button" onClick={() => onEdit(data)} className="text-blue-600 hover:text-blue-800" aria-label={`Editar ${data.name}`}>
-            <Pencil size={18} />
-          </button>
+          <Can permission="customers.write">
+            <button type="button" onClick={() => onEdit(data)} className="text-blue-600 hover:text-blue-800" aria-label={`Editar ${data.name}`}>
+              <Pencil size={18} />
+            </button>
+          </Can>
 
           {/* <button className="text-red-600 hover:text-red-800" onClick={() => deleteProduct.mutate(product.id)}>
             <Trash2 size={18} />

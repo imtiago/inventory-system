@@ -93,7 +93,7 @@ describe('ProductListPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Excluir Perfume Floral 100ml' }));
     expect(deletes).toBe(0);
-    const dialog = screen.getByText('Excluir produto').closest('div')!.parentElement!.parentElement!;
+    const dialog = screen.getByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
