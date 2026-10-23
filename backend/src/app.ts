@@ -13,7 +13,7 @@ import { userRoutes } from "./modules/auth/infrastructure/http/routes/userRoutes
 import { authenticate } from "./shared/middleware/auth";
 
 import cors from "@fastify/cors";
-import { importNfeRoutes } from "modules/nfe-import/infrastructure/http/routes/importNfeRoutes";
+import { nfeImportRoutes } from "@nfe-import/infrastructure/http/routes/nfeImportRoutes";
 import { payableRoutes, receivableRoutes } from "@finance/infrastructure/http/routes/financialDocumentRoutes";
 import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/productVariantsRoutes";
 
@@ -51,4 +51,4 @@ app.register(receivableRoutes, { prefix: "/receivables" });
 app.register(payableRoutes, { prefix: "/payables" });
 // app.register(inventoryRoutes, { prefix: "/finance" });
 app.register(userRoutes);
-app.register(importNfeRoutes);
+app.register(nfeImportRoutes, { prefix: "/nfe-imports" });

@@ -23,6 +23,11 @@ enum PurchaseStatus {
   CANCELED
 }
 
+enum NfeImportStatus {
+  DRAFT
+  CONFIRMED
+}
+
 enum PurchaseOrigin {
   MANUAL
   XML
@@ -154,6 +159,8 @@ model ProductVariant {
   saleItems      SaleItem[]
   purchaseItems  PurchaseItem[]
   inventoryLots  InventoryLot[]
+
+  supplierProductMappings SupplierProductMapping[]
 }
 
 model InventoryLot {
@@ -307,18 +314,20 @@ model Customer {
 }
 
 model User {
-  id                String          @id @default(uuid())
-  name              String
-  email             String          @unique
-  password          String
-  role              UserRole
-  active            Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  stockMovements    StockMovement[]
-  sales             Sale[]
-  paymentsCreated   Payment[]       @relation("paymentsCreated")
-  paymentsReversed  Payment[]       @relation("paymentsReversed")
-  purchasesCanceled Purchase[]      @relation("purchasesCanceled")
+  id                  String          @id @default(uuid())
+  name                String
+  email               String          @unique
+  password            String
+  role                UserRole
+  active              Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  stockMovements      StockMovement[]
+  sales               Sale[]
+  paymentsCreated     Payment[]       @relation("paymentsCreated")
+  paymentsReversed    Payment[]       @relation("paymentsReversed")
+  purchasesCanceled   Purchase[]      @relation("purchasesCanceled")
+  nfeImportsCreated   NfeImport[]     @relation("nfeImportsCreated")
+  nfeImportsConfirmed NfeImport[]     @relation("nfeImportsConfirmed")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -409,6 +418,8 @@ model Supplier {
   updatedAt DateTime @updatedAt
 
   purchases Purchase[]
+
+  productMappings SupplierProductMapping[]
 }
 
 model Purchase {
@@ -444,6 +455,8 @@ model Purchase {
   updatedAt DateTime @updatedAt
 
   items PurchaseItem[]
+
+  nfeImport NfeImport?
 }
 
 model PurchaseItem {
@@ -505,4 +518,67 @@ model InventoryBoxStock {
   updatedAt DateTime @updatedAt
 
   @@unique([inventoryLotId, boxId])
+}
+
+// Rascunho de importação de NF-e (XML modelo 55): conteúdo lido em `payload` (NfeDocument).
+model NfeImport {
+  id String @id @default(uuid())
+
+  accessKey String @unique
+
+  status NfeImportStatus @default(DRAFT)
+
+  supplierDocument String
+
+  supplierName String
+
+  // Data sem hora ("YYYY-MM-DD").
+  issueDate DateTime @db.Date
+
+  totalAmount Decimal @db.Decimal(12, 2)
+
+  payload Json
+
+  purchaseId String? @unique
+
+  purchase Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  createdById String?
+
+  createdBy User? @relation("nfeImportsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  confirmedById String?
+
+  confirmedBy User? @relation("nfeImportsConfirmed", fields: [confirmedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  confirmedAt DateTime?
+
+  @@index([status, createdAt])
+}
+
+// Vínculo aprendido: código do produto no fornecedor → variante do catálogo.
+// Excluir a variante só remove o vínculo (Cascade), não bloqueia a exclusão.
+model SupplierProductMapping {
+  id String @id @default(uuid())
+
+  supplierId String
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  supplierCode String
+
+  productVariantId String
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  unitsPerPackage Int @default(1)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([supplierId, supplierCode])
+  @@index([productVariantId])
 }

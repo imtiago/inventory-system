@@ -1,0 +1,87 @@
+{
+  "data": {
+    "id": "3b6f1c2e-8a4d-4e7b-9c1a-2d5e8f0a1b30",
+    "accessKey": "35261011222333000181550010000123451123456784",
+    "status": "DRAFT",
+    "number": "12345",
+    "series": "1",
+    "issueDate": "2026-10-23",
+    "totalAmount": 397.09,
+    "purchaseId": null,
+    "createdAt": "2026-10-23T14:10:00.000Z",
+    "supplier": {
+      "document": "11222333000181",
+      "name": "Distribuidora Exemplo Ltda",
+      "match": {
+        "id": "9a3e5c7b-1d2f-4e6a-8b9c-0d1e2f3a4b50",
+        "name": "Distribuidora Exemplo"
+      }
+    },
+    "items": [
+      {
+        "index": 1,
+        "supplierCode": "A-001",
+        "barcode": "7891234567895",
+        "name": "Shampoo P&G 300ml",
+        "unit": "CX",
+        "quantity": 2,
+        "unitCost": 123.53,
+        "total": 247.05,
+        "lots": [
+          {
+            "batchNumber": "L001",
+            "quantity": 1,
+            "manufacturingDate": "2026-01-10",
+            "expirationDate": "2027-01-10"
+          },
+          {
+            "batchNumber": "L002",
+            "quantity": 1,
+            "manufacturingDate": "2026-02-15",
+            "expirationDate": "2027-02-15"
+          }
+        ],
+        "suggestion": {
+          "source": "MAPPING",
+          "productVariantId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e50",
+          "label": "Shampoo Exemplo — 300ml (SHA-300)",
+          "unitsPerPackage": 12
+        }
+      },
+      {
+        "index": 2,
+        "supplierCode": "B-002",
+        "barcode": null,
+        "name": "Sabonete Granel",
+        "unit": "KG",
+        "quantity": 10.5,
+        "unitCost": 5,
+        "total": 52.54,
+        "lots": [],
+        "suggestion": null
+      },
+      {
+        "index": 3,
+        "supplierCode": "C-003",
+        "barcode": "7890000000017",
+        "name": "Condicionador 200ml",
+        "unit": "UN",
+        "quantity": 1,
+        "unitCost": 97.5,
+        "total": 97.5,
+        "lots": [],
+        "suggestion": {
+          "source": "BARCODE",
+          "productVariantId": "d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f60",
+          "label": "Condicionador Exemplo — 200ml (CON-200)",
+          "unitsPerPackage": 1
+        }
+      }
+    ],
+    "installments": [
+      { "number": "001", "dueDate": "2026-11-22", "amount": 132.36 },
+      { "number": "002", "dueDate": "2026-12-22", "amount": 132.36 },
+      { "number": "003", "dueDate": "2027-01-21", "amount": 132.37 }
+    ]
+  }
+}

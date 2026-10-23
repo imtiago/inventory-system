@@ -12,7 +12,7 @@ app.log.level = "silent";
 type Role = "ADMIN" | "VENDEDOR" | "ESTOQUISTA";
 const ROLES: Role[] = ["ADMIN", "VENDEDOR", "ESTOQUISTA"];
 
-// Matriz aprovada (specs Fases 4A e 6A), escrita à mão para não reaproveitar ROLE_PERMISSIONS.
+// Matriz aprovada (specs Fases 4A, 6A e 6B), escrita à mão para não reaproveitar ROLE_PERMISSIONS.
 const MATRIX: Record<Permission, Role[]> = {
   "users.manage": ["ADMIN"],
   "catalog.read": ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
@@ -95,6 +95,11 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["purchases.read", { method: "GET", url: `/purchases/${missing}`, allowed: 404 }],
   ["purchases.write", { method: "POST", url: "/purchases", payload: {}, allowed: 400 }],
   ["purchases.write", { method: "POST", url: `/purchases/${missing}/cancel`, payload: {}, allowed: 400 }],
+  // Importação de NF-e (6B): tudo em purchases.write. POST sem multipart → 400 FILE_REQUIRED.
+  ["purchases.write", { method: "POST", url: "/nfe-imports", payload: {}, allowed: 400 }],
+  ["purchases.write", { method: "GET", url: "/nfe-imports?limit=1", allowed: 200 }],
+  ["purchases.write", { method: "GET", url: `/nfe-imports/${missing}`, allowed: 404 }],
+  ["purchases.write", { method: "DELETE", url: `/nfe-imports/${missing}`, allowed: 404 }],
   ["payables.read", { method: "GET", url: `/payables/${missing}`, allowed: 404 }],
 ];
 

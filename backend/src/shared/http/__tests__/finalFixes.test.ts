@@ -11,8 +11,6 @@ import { JWT_AUDIENCE, JWT_ISSUER } from "@auth/infrastructure/security/JwtToken
 
 app.log.level = "silent";
 
-const boundary = "----tx-test-boundary-final";
-
 describe("Correções finais da revisão (HTTP)", () => {
   let token: string;
   before(async () => {
@@ -44,21 +42,6 @@ describe("Correções finais da revisão (HTTP)", () => {
     const res = await app.inject({ method: "DELETE", url: `/variants/${randomUUID()}`, headers: auth() });
     assert.equal(res.statusCode, 404, res.body);
     assert.equal(res.json().code, "VARIANT_NOT_FOUND");
-  });
-
-  test("POST /nfe-import XML bem formado (UPDATE_ONLY) → 200", async () => {
-    const xml =
-      `<nfe><products><product><code>tx-test-${randomUUID()}</code><name>x</name>` +
-      `<quantity>1</quantity><unit>UN</unit><price>1.5</price></product></products></nfe>`;
-    const res = await app.inject({
-      method: "POST",
-      url: "/nfe-import?mode=UPDATE_ONLY",
-      headers: { ...auth(), "content-type": `multipart/form-data; boundary=${boundary}` },
-      payload:
-        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="nota.xml"\r\nContent-Type: text/xml\r\n\r\n${xml}\r\n--${boundary}--\r\n`,
-    });
-    assert.equal(res.statusCode, 200, res.body);
-    assert.equal(res.json().imported, 1);
   });
 
   test("token sem claim role usa o papel do banco → 200", async () => {
