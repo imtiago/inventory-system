@@ -73,8 +73,10 @@ describe('ReceivableDetailPage', () => {
 
   test('registrar pagamento envia { amount, method, paymentDate, reference } e atualiza a tela', async () => {
     let body: Record<string, unknown> | null = null;
+    let key: string | null = null;
     server.use(
       http.post(`${API_URL}/receivables/${id}/parcels/${parcel2.id}/payments`, async ({ request }) => {
+        key = request.headers.get('Idempotency-Key');
         body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(paidParcel2(), { status: 201 });
       }),
@@ -92,6 +94,7 @@ describe('ReceivableDetailPage', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
 
     await waitFor(() => expect(body).toEqual({ amount: 53.23, method: 'PIX', paymentDate: todayInBusinessTz(), reference: 'PIX 999' }));
+    expect(key).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const section = screen.getByTestId(`parcel-${parcel2.number}`);
     expect(within(section).getByText('Paga')).toBeInTheDocument();

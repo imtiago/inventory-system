@@ -17,7 +17,10 @@ const unpriced = { id: 'v-2', name: 'Camiseta Sem Preço', code: 'CAM-2', barcod
 
 let posted: unknown;
 
+let postedKey: string | null = null;
+
 beforeEach(() => {
+  postedKey = null;
   posted = undefined;
   server.use(
     http.get(`${API_URL}/customers`, () => HttpResponse.json({ data: [customer], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } })),
@@ -26,6 +29,7 @@ beforeEach(() => {
       return HttpResponse.json({ data: v });
     }),
     http.post(`${API_URL}/sales`, async ({ request }) => {
+      postedKey = request.headers.get('Idempotency-Key');
       posted = await request.json();
       return HttpResponse.json(saleDetail, { status: 201 });
     }),
@@ -115,6 +119,7 @@ describe('SaleCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Registrar venda' }));
     await waitFor(() => expect(posted).toBeDefined());
     expect((posted as { paymentTerms: unknown }).paymentTerms).toEqual({ installments: 1 });
+    expect(postedKey).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
   });
 
   test('campo de quantidade pode ser apagado e valida no envio', async () => {

@@ -1,5 +1,6 @@
 import { api } from '@/shared/services/api';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
+import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 import type { Inventory, InventoryBox, InventoryLot, Paginated } from '../types';
 
 /**
@@ -69,13 +70,13 @@ function toISO(value: string | Date): string {
   return (value instanceof Date ? value : new Date(value)).toISOString();
 }
 
-export async function createInventoryLot(dto: CreateInventoryLotDTO): Promise<InventoryLot> {
+export async function createInventoryLot(dto: CreateInventoryLotDTO, idempotencyKey: string): Promise<InventoryLot> {
   const body = {
     ...dto,
     expirationDate: toISO(dto.expirationDate),
     manufacturingDate: dto.manufacturingDate ? toISO(dto.manufacturingDate) : undefined,
   };
-  const response = await api.post<{ data: InventoryLot }>('/inventory/lots', body);
+  const response = await api.post<{ data: InventoryLot }>('/inventory/lots', body, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }
@@ -110,8 +111,8 @@ export interface BoxItem {
   quantity: number;
 }
 
-export async function addLotToBox(boxId: string, data: AddLotToBoxDTO): Promise<BoxItem> {
-  const response = await api.post<{ data: BoxItem }>(`/inventory/boxes/${boxId}/items`, data);
+export async function addLotToBox(boxId: string, data: AddLotToBoxDTO, idempotencyKey: string): Promise<BoxItem> {
+  const response = await api.post<{ data: BoxItem }>(`/inventory/boxes/${boxId}/items`, data, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }

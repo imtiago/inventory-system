@@ -2,6 +2,7 @@ import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { useIdempotencyKey } from '@/shared/utils/idempotencyKey';
 import { createInventoryLot, type CreateInventoryLotDTO } from '../services/inventoryService';
 import type { InventoryLot } from '../types';
 import { apiErrorMessage, type MutationResult } from '../utils/apiErrorMessage';
@@ -9,6 +10,7 @@ import { invalidateInventoryQueries } from '../utils/invalidateInventoryQueries'
 
 export function useCreateInventoryLot() {
   const queryClient = useQueryClient();
+  const keys = useIdempotencyKey();
 
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +19,7 @@ export function useCreateInventoryLot() {
     try {
       setLoading(true);
 
-      const lot = await createInventoryLot(data);
+      const lot = await keys.run(data, (key) => createInventoryLot(data, key));
 
       void invalidateInventoryQueries(queryClient, data.productVariantId);
 

@@ -74,7 +74,7 @@ describe('inventoryService', () => {
       unitCost: 10,
       expirationDate: new Date('2028-09-15T00:00:00.000Z'),
       manufacturingDate: '2026-09-15',
-    });
+    }, 'key-12345678');
 
     expect(body?.expirationDate).toBe('2028-09-15T00:00:00.000Z');
     expect(body?.manufacturingDate).toBe('2026-09-15T00:00:00.000Z');
@@ -100,7 +100,7 @@ describe('inventoryService', () => {
     const box = await createInventoryBox();
     expect(box.code).toBe('B000123');
 
-    const item = await addLotToBox(box.id, { inventoryLotId: 'lot-1', quantity: 4 });
+    const item = await addLotToBox(box.id, { inventoryLotId: 'lot-1', quantity: 4 }, 'key-12345678');
     expect(item).toMatchObject({ boxId: box.id, inventoryLotId: 'lot-1', quantity: 4 });
   });
 });

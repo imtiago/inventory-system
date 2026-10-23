@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useIdempotencyKey } from '@/shared/utils/idempotencyKey';
 import { queryKeys } from '@/shared/react-query/keys';
 import { addLotToBox, createInventoryBox, listInventoryBoxes, type AddLotToBoxDTO, type BoxItem } from '../services/inventoryService';
 import type { InventoryBox } from '../types';
@@ -26,6 +27,7 @@ export function useInventoryBoxes(search: string, enabled = true) {
 
 export function useInventoryBox() {
   const queryClient = useQueryClient();
+  const keys = useIdempotencyKey();
 
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +51,7 @@ export function useInventoryBox() {
     try {
       setLoading(true);
 
-      const item = await addLotToBox(boxId, data);
+      const item = await keys.run({ boxId, data }, (key) => addLotToBox(boxId, data, key));
 
       void invalidateInventoryQueries(queryClient, variantId);
 

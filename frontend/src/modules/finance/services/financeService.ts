@@ -1,4 +1,5 @@
 import { api } from '@/shared/services/api';
+import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 import { FINANCE_KINDS, type FinanceKind } from '../config';
 import type { IFinanceDetail, IFinanceFilters, IFinanceListResponse, IRegisterPaymentInput } from '../types';
 
@@ -22,14 +23,14 @@ export async function getFinanceDocument(kind: FinanceKind, id: string): Promise
   return response.data.data;
 }
 
-export async function registerPayment(kind: FinanceKind, documentId: string, parcelId: string, input: IRegisterPaymentInput): Promise<IFinanceDetail> {
-  const response = await api.post<{ data: IFinanceDetail }>(`${FINANCE_KINDS[kind].basePath}/${documentId}/parcels/${parcelId}/payments`, input);
+export async function registerPayment(kind: FinanceKind, documentId: string, parcelId: string, input: IRegisterPaymentInput, idempotencyKey: string): Promise<IFinanceDetail> {
+  const response = await api.post<{ data: IFinanceDetail }>(`${FINANCE_KINDS[kind].basePath}/${documentId}/parcels/${parcelId}/payments`, input, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }
 
-export async function reversePayment(kind: FinanceKind, paymentId: string, reason: string): Promise<IFinanceDetail> {
-  const response = await api.post<{ data: IFinanceDetail }>(`${FINANCE_KINDS[kind].basePath}/payments/${paymentId}/reverse`, { reason });
+export async function reversePayment(kind: FinanceKind, paymentId: string, reason: string, idempotencyKey: string): Promise<IFinanceDetail> {
+  const response = await api.post<{ data: IFinanceDetail }>(`${FINANCE_KINDS[kind].basePath}/payments/${paymentId}/reverse`, { reason }, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }

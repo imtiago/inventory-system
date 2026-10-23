@@ -1,7 +1,6 @@
 // shared/react-query/useCrudMutation.ts
 
 import {
-  type MutationFunction,
   type QueryKey,
   type QueryClient,
   useMutation,
@@ -12,9 +11,14 @@ import { invalidate } from "./invalidate";
 
 import { notify } from "../utils/notify";
 import { handleMutationError } from "../utils/mutation";
+import { useIdempotencyKey } from "../utils/idempotencyKey";
 
 interface CrudMutationOptions<TData, TVariables> {
-  mutationFn: MutationFunction<TData, TVariables>;
+  /** With `idempotent`, receives the Idempotency-Key of this attempt as second argument. */
+  mutationFn: (variables: TVariables, idempotencyKey: string) => Promise<TData>;
+
+  /** Sends one Idempotency-Key per user action, kept across retries with the same variables. */
+  idempotent?: boolean;
 
   invalidateKeys?: readonly QueryKey[];
 
@@ -31,6 +35,7 @@ interface CrudMutationOptions<TData, TVariables> {
 
 export function useCrudMutation<TData, TVariables>({
   mutationFn,
+  idempotent = false,
   invalidateKeys = [],
   onSettledCache,
   successMessage,
@@ -38,9 +43,11 @@ export function useCrudMutation<TData, TVariables>({
   silentError = false,
 }: CrudMutationOptions<TData, TVariables>) {
   const queryClient = useQueryClient();
+  const keys = useIdempotencyKey();
 
   return useMutation({
-    mutationFn,
+    mutationFn: (variables: TVariables) =>
+      idempotent ? keys.run(variables, (key) => mutationFn(variables, key)) : mutationFn(variables, ""),
 
     async onSuccess(_data, variables) {
       onSettledCache?.(queryClient, variables);

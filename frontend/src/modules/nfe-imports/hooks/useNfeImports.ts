@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/shared/react-query/keys';
 import { invalidateInventoryQueries } from '@/modules/inventory/utils/invalidateInventoryQueries';
+import { useIdempotencyKey } from '@/shared/utils/idempotencyKey';
 import { notify } from '@/shared/utils/notify';
 import { confirmNfeImport, discardNfeImport, getNfeImport, getNfeImports, uploadNfeXml } from '../services/nfeImportService';
 import type { IConfirmNfeDTO, NfeImportStatus } from '../types';
@@ -47,9 +48,10 @@ export function useDiscardNfeImport() {
 
 export function useConfirmNfeImport(id: string) {
   const queryClient = useQueryClient();
+  const keys = useIdempotencyKey();
 
   return useMutation({
-    mutationFn: (data: IConfirmNfeDTO) => confirmNfeImport(id, data),
+    mutationFn: (data: IConfirmNfeDTO) => keys.run(data, (key) => confirmNfeImport(id, data, key)),
     async onSuccess() {
       await Promise.all([
         ...[queryKeys.nfeImports, queryKeys.purchases, queryKeys.payables, queryKeys.suppliers, queryKeys.products, queryKeys.brands, queryKeys.categories].map((queryKey) =>
