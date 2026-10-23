@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInstallments } from "../services/InstallmentPlan";
+import { buildInstallments } from "../installments";
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 const iso = (date: Date) => date.toISOString().slice(0, 10);

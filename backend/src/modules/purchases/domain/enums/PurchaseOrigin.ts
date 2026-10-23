@@ -1,5 +1,6 @@
 export enum PurchaseOrigin {
   MANUAL = "MANUAL",
-
-  NFE_IMPORT = "NFE_IMPORT",
+  XML = "XML",
+  IMPORT = "IMPORT",
+  REPLENISHMENT = "REPLENISHMENT",
 }

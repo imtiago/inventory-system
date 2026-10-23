@@ -80,6 +80,14 @@ const ROUTES: Record<Permission, RouteProbe | null> = {
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
+/** Rotas representativas adicionais (mais de uma rota por permissão). */
+const EXTRA_ROUTES: [Permission, RouteProbe][] = [
+  ["purchases.read", { method: "GET", url: "/purchases?limit=1", allowed: 200 }],
+  ["purchases.read", { method: "GET", url: `/purchases/${missing}`, allowed: 404 }],
+  ["purchases.write", { method: "POST", url: "/purchases", payload: {}, allowed: 400 }],
+  ["purchases.write", { method: "POST", url: `/purchases/${missing}/cancel`, payload: {}, allowed: 400 }],
+];
+
 describe("hasPermission (matriz)", () => {
   test("cada papel × permissão confere com a matriz da spec", () => {
     for (const permission of PERMISSIONS) {
@@ -119,9 +127,11 @@ describe("matriz por HTTP: papel × rota representativa", () => {
 
   test("para cada papel × rota representativa de cada permissão → 2xx ou 403 conforme a spec", async () => {
     const failures: string[] = [];
-    for (const permission of PERMISSIONS) {
-      const route: RouteProbe | null = ROUTES[permission];
-      if (!route) continue;
+    const probes: [Permission, RouteProbe][] = [
+      ...PERMISSIONS.flatMap((p): [Permission, RouteProbe][] => (ROUTES[p] ? [[p, ROUTES[p]!]] : [])),
+      ...EXTRA_ROUTES,
+    ];
+    for (const [permission, route] of probes) {
       for (const role of ROLES) {
         const res: { statusCode: number; body: string; json(): unknown } = await app.inject({
           method: route.method,

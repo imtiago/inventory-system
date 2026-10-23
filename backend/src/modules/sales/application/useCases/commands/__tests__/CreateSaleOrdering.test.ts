@@ -24,6 +24,8 @@ function build(variantIds: string[]) {
   const financialService: FinancialService = {
     createSaleReceivable: async () => {},
     cancelSaleReceivable: async () => {},
+    createPurchasePayable: async () => {},
+    cancelPurchasePayable: async () => {},
   };
   const uc = new CreateSaleUseCase(
     saleRepository,

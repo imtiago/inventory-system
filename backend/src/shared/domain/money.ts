@@ -12,3 +12,16 @@ export function toCents(value: number): number {
 export function fromCents(cents: number): number {
   return cents / 100;
 }
+
+/**
+ * Divide centavos inteiros (≥ 0) por um divisor inteiro positivo, arredondando
+ * meio para cima — em aritmética inteira (ex.: custo unitário = total / quantidade).
+ */
+export function divideCentsRoundHalfUp(cents: number, divisor: number): number {
+  if (!Number.isSafeInteger(cents) || cents < 0 || !Number.isSafeInteger(divisor) || divisor <= 0) {
+    throw new RangeError("divideCentsRoundHalfUp exige centavos inteiros ≥ 0 e divisor inteiro > 0.");
+  }
+  const quotient = Math.floor(cents / divisor);
+  const rest = cents - quotient * divisor;
+  return rest * 2 >= divisor ? quotient + 1 : quotient;
+}

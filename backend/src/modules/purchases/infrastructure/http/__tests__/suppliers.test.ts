@@ -7,6 +7,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
+import { randomCnpj, randomCpf } from "../../../../../test/documentFixtures";
 
 app.log.level = "silent";
 
@@ -16,37 +17,6 @@ const loadFixture = (name: string): unknown =>
 
 const SUPPLIER_KEYS = ["createdAt", "document", "documentType", "email", "id", "name", "phone"];
 
-// Gera CPF válido a partir de 9 dígitos aleatórios (testes paralelos: documento único por teste).
-function cpfDigit(base: number[]): number {
-  const factor = base.length + 1;
-  const sum = base.reduce((acc, d, i) => acc + d * (factor - i), 0);
-  const rest = (sum * 10) % 11;
-  return rest === 10 ? 0 : rest;
-}
-function randomCpf(): string {
-  for (;;) {
-    const base = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
-    if (new Set(base).size === 1) continue;
-    const d1 = cpfDigit(base);
-    const d2 = cpfDigit([...base, d1]);
-    return [...base, d1, d2].join("");
-  }
-}
-function randomCnpj(): string {
-  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  const dv = (nums: number[], w: number[]) => {
-    const rest = nums.reduce((acc, d, i) => acc + d * w[i], 0) % 11;
-    return rest < 2 ? 0 : 11 - rest;
-  };
-  for (;;) {
-    const base = [...Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)), 0, 0, 0, 1];
-    if (new Set(base.slice(0, 8)).size === 1) continue;
-    const d1 = dv(base, w1);
-    const d2 = dv([...base, d1], w2);
-    return [...base, d1, d2].join("");
-  }
-}
 const maskCnpj = (d: string) => `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 const maskCpf = (d: string) => `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 
@@ -166,7 +136,7 @@ describe("Fornecedores (/suppliers)", () => {
 
     // com pedido de compra → 409
     const purchase = await prisma.purchase.create({
-      data: { supplierId: created.id, status: "PENDING", origin: "MANUAL", purchaseDate: new Date() },
+      data: { code: tag(), supplierId: created.id, status: "PENDING", origin: "MANUAL", purchaseDate: new Date() },
     });
     purchaseIds.push(purchase.id);
     const blocked = await call("DELETE", `/suppliers/${created.id}`, admin);

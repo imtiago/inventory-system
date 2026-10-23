@@ -14,6 +14,7 @@ import {
   ReceivableListItemDTO,
   ReceivablePaymentDTO,
 } from "../dto/ReceivableReadDTO";
+import { FinancialDocumentSummaryDTO } from "../dto/FinancialDocumentSummaryDTO";
 
 /** Valor monetário vindo da persistência (Decimal do Prisma, string ou number). */
 type Money = number | string | { toString(): string };
@@ -63,8 +64,15 @@ export interface ReceivableFigures {
 const activePaidCents = (payments: PaymentAmountRow[]) =>
   payments.reduce((sum, p) => (p.reversedAt ? sum : sum + cents(p.amount)), 0);
 
+/** Linha mínima de um documento para o resumo (qualquer tipo). */
+export interface DocumentSummaryRow {
+  id: string;
+  status: string;
+  parcels: ReceivableRow["parcels"];
+}
+
 /** Parcelas ordenadas por vencimento (desempate por id), em centavos. */
-function parcelAmounts<P extends PaymentAmountRow>(row: ReceivableRow<P>) {
+function parcelAmounts<P extends PaymentAmountRow>(row: Pick<ReceivableRow<P>, "parcels">) {
   return [...row.parcels]
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime() || a.id.localeCompare(b.id))
     .map((p) => ({
@@ -153,6 +161,27 @@ export class FinancialDocumentReadMapper {
         payments: [...p.row.payments]
           .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id))
           .map(FinancialDocumentReadMapper.toPaymentDTO),
+      })),
+    };
+  }
+
+  /**
+   * Resumo type-agnostic (a receber ou a pagar): status de exibição e parcelas
+   * numeradas por vencimento, com as mesmas regras de status do detalhe.
+   */
+  static toSummaryDTO(row: DocumentSummaryRow, today: string): FinancialDocumentSummaryDTO {
+    return {
+      id: row.id,
+      status: row.status,
+      displayStatus: documentDisplayStatus(row.status, parcelAmounts(row), today),
+      parcels: parcelAmounts(row).map((p, index) => ({
+        id: p.row.id,
+        number: index + 1,
+        amount: fromCents(p.amountCents),
+        dueDate: p.dueDate,
+        paidAmount: fromCents(p.paidCents),
+        remainingAmount: fromCents(remainingCents(p)),
+        status: parcelStatus({ ...p, documentStatus: row.status }, today),
       })),
     };
   }

@@ -281,6 +281,8 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const financialService: FinancialService = {
       createSaleReceivable: async () => {},
       cancelSaleReceivable: async () => {},
+      createPurchasePayable: async () => {},
+      cancelPurchasePayable: async () => {},
     };
     return new CreateSaleUseCase(
       saleRepository,
