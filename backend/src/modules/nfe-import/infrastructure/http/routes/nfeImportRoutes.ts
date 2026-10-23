@@ -1,6 +1,8 @@
 import { FastifyInstance } from "fastify";
 import multipart from "@fastify/multipart";
 import { authorize } from "@shared/middleware/authorize";
+import { idempotent } from "@shared/http/idempotency/idempotent";
+import { CONFIRM_NFE_TRANSACTION_OPTIONS } from "../factories/NfeImportFactories";
 import {
   makeConfirmNfeImportController,
   makeDiscardNfeImportController,
@@ -21,5 +23,9 @@ export async function nfeImportRoutes(app: FastifyInstance) {
   app.get("/", { preHandler: [authorize("purchases.write")] }, makeListNfeImportsController());
   app.get("/:id", { preHandler: [authorize("purchases.write")] }, makeGetNfeImportController());
   app.delete("/:id", { preHandler: [authorize("purchases.write")] }, makeDiscardNfeImportController());
-  app.post("/:id/confirm", { preHandler: [authorize("purchases.write")] }, makeConfirmNfeImportController());
+  app.post(
+    "/:id/confirm",
+    { preHandler: [authorize("purchases.write")] },
+    idempotent(makeConfirmNfeImportController(), CONFIRM_NFE_TRANSACTION_OPTIONS),
+  );
 }

@@ -1,3 +1,4 @@
+import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 import { api } from '@/shared/services/api';
 import type { IConfirmNfeDTO, IConfirmNfeResult, INfeImport, NfeImportListResponse, NfeImportStatus } from '../types';
 
@@ -29,8 +30,8 @@ export async function discardNfeImport(id: string): Promise<void> {
   await api.delete(`/nfe-imports/${id}`);
 }
 
-export async function confirmNfeImport(id: string, data: IConfirmNfeDTO): Promise<IConfirmNfeResult> {
-  const response = await api.post<{ data: IConfirmNfeResult }>(`/nfe-imports/${id}/confirm`, data);
+export async function confirmNfeImport(id: string, data: IConfirmNfeDTO, idempotencyKey: string): Promise<IConfirmNfeResult> {
+  const response = await api.post<{ data: IConfirmNfeResult }>(`/nfe-imports/${id}/confirm`, data, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }

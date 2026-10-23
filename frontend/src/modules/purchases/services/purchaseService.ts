@@ -1,4 +1,5 @@
 import { api } from '@/shared/services/api';
+import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 import type { ICreatePurchaseDTO, IPurchaseDetail, IPurchaseFilters, IReceivePurchaseDTO, PurchaseListResponse } from '../types';
 
 const PAGE_SIZE = 10;
@@ -21,20 +22,20 @@ export async function getPurchase(id: string): Promise<IPurchaseDetail> {
   return response.data.data;
 }
 
-export async function createPurchase(data: ICreatePurchaseDTO): Promise<IPurchaseDetail> {
-  const response = await api.post<{ data: IPurchaseDetail }>('/purchases', data);
+export async function createPurchase(data: ICreatePurchaseDTO, idempotencyKey: string): Promise<IPurchaseDetail> {
+  const response = await api.post<{ data: IPurchaseDetail }>('/purchases', data, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }
 
-export async function receivePurchase(id: string, data: IReceivePurchaseDTO): Promise<IPurchaseDetail> {
-  const response = await api.post<{ data: IPurchaseDetail }>(`/purchases/${id}/receipts`, data);
+export async function receivePurchase(id: string, data: IReceivePurchaseDTO, idempotencyKey: string): Promise<IPurchaseDetail> {
+  const response = await api.post<{ data: IPurchaseDetail }>(`/purchases/${id}/receipts`, data, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }
 
-export async function cancelPurchase(id: string, reason: string): Promise<IPurchaseDetail> {
-  const response = await api.post<{ data: IPurchaseDetail }>(`/purchases/${id}/cancel`, { reason });
+export async function cancelPurchase(id: string, reason: string, idempotencyKey: string): Promise<IPurchaseDetail> {
+  const response = await api.post<{ data: IPurchaseDetail }>(`/purchases/${id}/cancel`, { reason }, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }

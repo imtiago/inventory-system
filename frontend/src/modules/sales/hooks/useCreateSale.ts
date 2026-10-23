@@ -3,14 +3,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/react-query/keys';
 import { notify } from '@/shared/utils/notify';
 import { invalidateInventoryQueries } from '@/modules/inventory/utils/invalidateInventoryQueries';
+import { useIdempotencyKey } from '@/shared/utils/idempotencyKey';
 import { saleMessages } from '../config/messages';
+import type { ICreateSaleDTO } from '../types';
 import { createSale } from '../services/saleService';
 
 export function useCreateSale() {
   const queryClient = useQueryClient();
+  const keys = useIdempotencyKey();
 
   return useMutation({
-    mutationFn: createSale,
+    mutationFn: (data: ICreateSaleDTO) => keys.run(data, (key) => createSale(data, key)),
 
     async onSuccess() {
       // A sale consumes stock: refresh sales and every stock screen.

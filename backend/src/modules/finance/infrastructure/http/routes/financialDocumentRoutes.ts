@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { authorize } from "@shared/middleware/authorize";
+import { idempotent } from "@shared/http/idempotency/idempotent";
 import { Permission } from "@shared/auth/permissions";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { makeListFinancialDocumentsController } from "../controllers/ListFinancialDocumentsController";
@@ -24,12 +25,12 @@ function financialDocumentRoutes({ type, permissions }: FinancialRoutesOptions) 
     app.post(
       "/:id/parcels/:parcelId/payments",
       { preHandler: [authorize(permissions.pay)] },
-      makeRegisterPaymentController(type),
+      idempotent(makeRegisterPaymentController(type)),
     );
     app.post(
       "/payments/:paymentId/reverse",
       { preHandler: [authorize(permissions.reverse)] },
-      makeReversePaymentController(type),
+      idempotent(makeReversePaymentController(type)),
     );
   };
 }

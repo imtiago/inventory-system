@@ -6,6 +6,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -24,7 +25,7 @@ describe("Erros HTTP de vendas", () => {
     const res = await app.inject({
       method: "POST",
       url: "/sales",
-      headers: auth(),
+      headers: withIdempotencyKey("POST", auth()),
       payload: {
         customerId: randomUUID(),
         items: [{ productVariantId: randomUUID(), quantity: 1 }],
@@ -36,7 +37,7 @@ describe("Erros HTTP de vendas", () => {
   });
 
   test("POST /sales corpo inválido → 400 VALIDATION_ERROR", async () => {
-    const res = await app.inject({ method: "POST", url: "/sales", headers: auth(), payload: { items: [] } });
+    const res = await app.inject({ method: "POST", url: "/sales", headers: withIdempotencyKey("POST", auth()), payload: { items: [] } });
     assert.equal(res.statusCode, 400, res.body);
     assert.equal(res.json().code, "VALIDATION_ERROR");
     assert.ok(Array.isArray(res.json().errors));

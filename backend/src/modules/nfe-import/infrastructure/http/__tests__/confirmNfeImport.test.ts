@@ -8,6 +8,7 @@ import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { randomCnpj } from "../../../../../test/documentFixtures";
 import { BOUNDARY, multipart, newNote, Note, noteXml, randomBarcode } from "./nfeTestNotes";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -31,7 +32,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
   const variantCleanups: (() => Promise<void>)[] = [];
 
   const call = (method: "GET" | "POST", url: string, payload?: object, user = admin) =>
-    app.inject({ method, url, headers: { authorization: `Bearer ${user.token}` }, payload });
+    app.inject({ method, url, headers: withIdempotencyKey(method, { authorization: `Bearer ${user.token}` }), payload });
 
   const uploadNote = async (note: Note, mutate?: (xml: string) => string) => {
     importKeys.push(note.key);
@@ -515,7 +516,10 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.equal((await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } })).totalAmount.toNumber(), 397.09);
 
     // Lotes do item 1 (12 + 12) e o restante (1 un do item 3) sem lote, todos no mesmo item do pedido.
-    const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: same }, orderBy: { initialQuantity: "asc" } });
+    const lots = await prisma.inventoryLot.findMany({
+      where: { productVariantId: same },
+      orderBy: [{ initialQuantity: "asc" }, { batchNumber: "asc" }],
+    });
     assert.deepEqual(
       lots.map((l) => [l.batchNumber, l.initialQuantity]),
       [

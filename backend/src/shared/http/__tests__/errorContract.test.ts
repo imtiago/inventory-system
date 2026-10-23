@@ -10,6 +10,7 @@ import { registerErrorHandling } from "../errorHandler";
 import { keyShape } from "../../../test/keyShape";
 import { createTestVariant, getTestUserId } from "../../../test/inventoryFixtures";
 import { signTestToken } from "../../../test/authFixtures";
+import { withIdempotencyKey } from "../../../test/idempotency";
 
 const FIXTURES_DIR = new URL("../../../../../frontend/src/test/fixtures/errors/", import.meta.url);
 
@@ -39,7 +40,7 @@ describe("Contrato de erro HTTP (fixtures compartilhadas com o frontend)", () =>
   });
 
   const call = (method: "GET" | "POST", url: string, payload?: unknown) =>
-    app.inject({ method, url, payload: payload as any, headers: { authorization: `Bearer ${token}` } });
+    app.inject({ method, url, payload: payload as any, headers: withIdempotencyKey(method, { authorization: `Bearer ${token}` }) });
 
   const expectShape = (body: unknown, fixture: string) =>
     assert.deepEqual(keyShape(body), keyShape(loadFixture(fixture)), `chaves diferem de ${fixture}.json`);

@@ -16,3 +16,41 @@ afterEach(() => {
   server.resetHandlers();
 });
 afterAll(() => server.close());
+
+// Guard: every covered POST (money and stock operations) must carry Idempotency-Key.
+// A request without it would get 400 IDEMPOTENCY_KEY_REQUIRED in production, so any test
+// (page or hook) that triggers one without the header fails here.
+const COVERED_POSTS = [
+  /\/sales$/,
+  /\/sales\/[^/]+\/cancel$/,
+  /\/(receivables|payables)\/[^/]+\/parcels\/[^/]+\/payments$/,
+  /\/(receivables|payables)\/payments\/[^/]+\/reverse$/,
+  /\/purchases$/,
+  /\/purchases\/[^/]+\/(receipts|cancel)$/,
+  /\/nfe-imports\/[^/]+\/confirm$/,
+  /\/inventory\/(receive|dispatch|adjust|reserve|release|initial-count|lots)$/,
+  /\/inventory\/boxes\/[^/]+\/items$/,
+];
+const missingKey: string[] = [];
+
+export function isCoveredPost(method: string, pathname: string): boolean {
+  return method === 'POST' && COVERED_POSTS.some((re) => re.test(pathname));
+}
+
+beforeEach(() => {
+  missingKey.length = 0;
+});
+server.events.on('request:start', ({ request }) => {
+  const { pathname } = new URL(request.url);
+
+  if (isCoveredPost(request.method, pathname) && !request.headers.get('Idempotency-Key')) {
+    missingKey.push(`${request.method} ${pathname}`);
+  }
+});
+afterEach(() => {
+  if (missingKey.length) {
+    const list = missingKey.join(', ');
+    missingKey.length = 0;
+    throw new Error(`Idempotency-Key ausente em: ${list}`);
+  }
+});

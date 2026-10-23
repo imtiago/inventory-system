@@ -9,6 +9,7 @@ import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prism
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
+import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
@@ -28,7 +29,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
   const variants: { id: string; cleanup: () => Promise<void> }[] = [];
 
   const request = (method: "GET" | "POST", url: string, payload?: unknown) =>
-    app.inject({ method, url, payload: payload as any, headers: { authorization: `Bearer ${token}` } });
+    app.inject({ method, url, payload: payload as any, headers: withIdempotencyKey(method, { authorization: `Bearer ${token}` }) });
 
   const createPricedVariant = async (salePrice: number) => {
     const { variantId, cleanup } = await createTestVariant();
