@@ -4,6 +4,9 @@ import { ArrowLeft } from 'lucide-react';
 
 import { Page } from '@/shared/components/layout/Page';
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { queryKeys } from '@/shared/react-query/keys';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
@@ -35,10 +38,14 @@ function formatDateTime(value: string) {
 
 export function SaleDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: sale, isLoading, isError } = useSale(id);
+  const { data: sale, isLoading, isError, error: loadError } = useSale(id);
+  const queryClient = useQueryClient();
   const cancel = useCancelSale(id ?? '');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const parsedLoadError = isError ? parseApiErrorSync(loadError) : null;
+  const isNotFound = parsedLoadError?.status === 404 || parsedLoadError?.code === 'SALE_NOT_FOUND';
 
   function closeDialog() {
     if (cancel.isPending) return;
@@ -50,7 +57,11 @@ export function SaleDetailPage() {
     cancel.mutate(undefined, {
       onSuccess: () => setConfirmOpen(false),
       onError: (error) => {
-        setCancelError(parseApiErrorSync(error).message || 'Não foi possível cancelar a venda.');
+        const parsed = parseApiErrorSync(error);
+        setCancelError(parsed.message || 'Não foi possível cancelar a venda.');
+        if (parsed.code === 'CONCURRENT_UPDATE' || parsed.code === 'SALE_ALREADY_CANCELED') {
+          void queryClient.invalidateQueries({ queryKey: [...queryKeys.sales, 'detail', id] });
+        }
         setConfirmOpen(false);
       },
     });
@@ -66,7 +77,11 @@ export function SaleDetailPage() {
 
         {isLoading && <p className="text-sm text-gray-500">Carregando venda...</p>}
 
-        {isError && <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar a venda.</div>}
+        {isError && (
+          <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">
+            {isNotFound ? 'Venda não encontrada.' : 'Não foi possível carregar a venda.'}
+          </div>
+        )}
 
         {sale && (
           <div className="flex flex-col gap-6">
@@ -78,7 +93,10 @@ export function SaleDetailPage() {
               </div>
 
               {sale.status !== 'CANCELED' && (
-                <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50" onClick={() => setConfirmOpen(true)}>
+                <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50" onClick={() => {
+                    setCancelError(null);
+                    setConfirmOpen(true);
+                  }}>
                   Cancelar venda
                 </button>
               )}

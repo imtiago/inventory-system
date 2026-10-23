@@ -97,4 +97,41 @@ describe('SaleDetailPage', () => {
     expect(screen.getByRole('link', { name: /Nova Venda/ })).toHaveAttribute('href', '/sales/new');
     expect(document.querySelector('button a, a button')).toBeNull();
   });
+
+  test('Esc fecha o diálogo e devolve o foco ao botão Cancelar venda', async () => {
+    renderDetail();
+    const btn = await screen.findByRole('button', { name: 'Cancelar venda' });
+    await userEvent.click(btn);
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(btn).toHaveFocus();
+  });
+
+  test('404 mostra "Venda não encontrada." com link para /sales', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ message: 'Venda não encontrada.', code: 'SALE_NOT_FOUND' }, { status: 404 })));
+    renderDetail();
+    expect(await screen.findByText('Venda não encontrada.')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /vendas/i })[0]).toHaveAttribute('href', '/sales');
+    expect(screen.queryByText('Não foi possível carregar a venda.')).not.toBeInTheDocument();
+  });
+
+  test('409 CONCURRENT_UPDATE mostra a mensagem e refaz o GET da venda', async () => {
+    let gets = 0;
+    server.use(
+      http.get(`${API_URL}/sales/:id`, () => {
+        gets++;
+        return HttpResponse.json(saleDetail);
+      }),
+      http.post(`${API_URL}/sales/:id/cancel`, () => HttpResponse.json({ message: 'Venda alterada por outra operação.', code: 'CONCURRENT_UPDATE' }, { status: 409 })),
+    );
+    renderDetail();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar venda' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /Confirmar cancelamento/ }));
+    expect(await screen.findByText('Venda alterada por outra operação.')).toBeInTheDocument();
+    await waitFor(() => expect(gets).toBe(2));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar venda' }));
+    expect(screen.queryByText('Venda alterada por outra operação.')).not.toBeInTheDocument();
+  });
 });

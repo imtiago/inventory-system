@@ -1,4 +1,6 @@
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface ModalProps {
   open: boolean;
@@ -26,6 +28,58 @@ const sizeClasses = {
 };
 
 export function Modal({ open, onClose, children, title, description, size = 'md', closeOnOverlayClick = true, closeOnEscape = true, showCloseButton = true }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Move focus in on open, trap Tab while open, restore focus on close.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+
+    function getFocusable() {
+      return dialog ? Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
+    }
+
+    const [first] = getFocusable();
+    (first ?? dialog)?.focus();
+
+    function handleTab(event: KeyboardEvent) {
+      if (event.key !== 'Tab' || !dialog) {
+        return;
+      }
+
+      const focusable = getFocusable();
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstEl = focusable[0];
+      const lastEl = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === firstEl || !dialog.contains(active))) {
+        event.preventDefault();
+        lastEl.focus();
+      } else if (!event.shiftKey && (active === lastEl || !dialog.contains(active))) {
+        event.preventDefault();
+        firstEl.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleTab);
+
+    return () => {
+      document.removeEventListener('keydown', handleTab);
+      previouslyFocused?.focus?.();
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open || !closeOnEscape) {
       return;
@@ -77,6 +131,8 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onMouseDown={handleOverlayClick}
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
       aria-describedby={description ? 'modal-description' : undefined}
