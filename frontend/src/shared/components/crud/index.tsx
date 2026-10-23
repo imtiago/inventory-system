@@ -1,4 +1,4 @@
-export * from "./CrudHeader";
-export * from "./CrudPagination";
-export * from "./CrudActions";
-export * from "./CrudBadge";
+export { CrudHeader } from "./CrudHeader";
+export { CrudPagination } from "./CrudPagination";
+export { CrudActions } from "./CrudActions";
+export { CrudBadge } from "./CrudBadge";

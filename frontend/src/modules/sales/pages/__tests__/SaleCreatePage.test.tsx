@@ -53,6 +53,14 @@ async function addBarcode(code: string) {
 }
 
 describe('SaleCreatePage', () => {
+  test('selecionar cliente mostra o resumo do cliente escolhido', async () => {
+    renderPage();
+    expect(screen.queryByText('Maria Oliveira')).not.toBeInTheDocument();
+    await pickCustomer();
+
+    expect(await screen.findByText('Maria Oliveira')).toBeInTheDocument();
+  });
+
   test('carrinho mostra preço da variante e total real', async () => {
     renderPage();
     await addBarcode('111');

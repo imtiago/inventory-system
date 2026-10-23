@@ -10,12 +10,14 @@ type FormAutocompleteProps<TForm extends FieldValues, TOption, TValue extends st
   control: Control<TForm>;
   name: TName;
   rules?: RegisterOptions<TForm, TName>;
+  onOptionChange?: (option: TOption | null) => void;
 };
 
 export function FormAutocomplete<TForm extends FieldValues, TOption, TValue extends string | number, TName extends FieldPath<TForm>>({
   control,
   name,
   rules,
+  onOptionChange,
   ...props
 }: FormAutocompleteProps<TForm, TOption, TValue, TName>) {
   return (
@@ -28,7 +30,10 @@ export function FormAutocomplete<TForm extends FieldValues, TOption, TValue exte
           {...props}
           name={field.name}
           value={(field.value ?? null) as TValue | null}
-          onChange={(value) => field.onChange(value ?? '')}
+          onChange={(value, option) => {
+            field.onChange(value ?? '');
+            onOptionChange?.(option);
+          }}
           error={fieldState.error?.message}
         />
       )}

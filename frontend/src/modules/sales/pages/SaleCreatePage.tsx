@@ -3,7 +3,7 @@ import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Trash2, UserRound } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
@@ -36,7 +36,6 @@ export function SaleCreatePage() {
 
   const {
     control,
-    watch,
     setError,
     clearErrors,
     register,
@@ -48,8 +47,8 @@ export function SaleCreatePage() {
     },
   });
 
-  const customerId = watch('customerId');
-  const firstDueDate = watch('firstDueDate');
+  const customerId = useWatch({ control, name: 'customerId' });
+  const firstDueDate = useWatch({ control, name: 'firstDueDate' });
 
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
   const [installments, setInstallments] = useState(2);
