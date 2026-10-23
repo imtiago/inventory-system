@@ -59,10 +59,10 @@ describe('inventoryService', () => {
   });
 
   test('createInventoryLot envia datas em ISO', async () => {
-    let body: any;
+    let body: { expirationDate: string; manufacturingDate: string } | undefined;
     server.use(
       http.post(`${API_URL}/inventory/lots`, async ({ request }) => {
-        body = await request.json();
+        body = (await request.json()) as typeof body;
         return HttpResponse.json(inventoryLot, { status: 201 });
       }),
     );
@@ -72,12 +72,12 @@ describe('inventoryService', () => {
       batchNumber: 'L1',
       quantity: 3,
       unitCost: 10,
-      expirationDate: new Date('2028-09-15T00:00:00.000Z') as any,
-      manufacturingDate: '2026-09-15' as any,
+      expirationDate: new Date('2028-09-15T00:00:00.000Z'),
+      manufacturingDate: '2026-09-15',
     });
 
-    expect(body.expirationDate).toBe('2028-09-15T00:00:00.000Z');
-    expect(body.manufacturingDate).toBe('2026-09-15T00:00:00.000Z');
+    expect(body?.expirationDate).toBe('2028-09-15T00:00:00.000Z');
+    expect(body?.manufacturingDate).toBe('2026-09-15T00:00:00.000Z');
     expect(result).toEqual(inventoryLot.data);
   });
 

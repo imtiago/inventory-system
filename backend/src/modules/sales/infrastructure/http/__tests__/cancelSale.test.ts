@@ -10,11 +10,12 @@ import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prism
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 
 app.log.level = "silent";
 
 const addDaysUtc = (days: number) => {
-  const d = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const d = new Date(`${todayInBusinessTz()}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 };

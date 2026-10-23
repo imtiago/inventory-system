@@ -9,7 +9,6 @@ import { inventoryRoutes } from "./modules/inventory/infrastructure/http/routes/
 import { customerRoutes } from "./modules/customer/infrastructure/http/routes/customerRoutes";
 import { userRoutes } from "./modules/auth/infrastructure/http/routes/userRoutes";
 import { authenticate } from "./shared/middleware/auth";
-import { payableRoutes } from "modules/finance/infrastructure/http/routes/payableRoutes";
 
 import cors from "@fastify/cors";
 import { importNfeRoutes } from "modules/nfe-import/infrastructure/http/routes/importNfeRoutes";
@@ -46,6 +45,5 @@ app.register(saleRoutes, { prefix: "/sales" });
 app.register(customerRoutes, { prefix: "/customers" });
 app.register(receivableRoutes, { prefix: "/receivables" });
 // app.register(inventoryRoutes, { prefix: "/finance" });
-// app.register(payableRoutes);
 app.register(userRoutes);
 app.register(importNfeRoutes);

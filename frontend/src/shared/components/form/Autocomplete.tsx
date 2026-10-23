@@ -54,12 +54,6 @@ export function Autocomplete<TOption, TValue extends string | number>({
   const selectedOption = options.find((option) => value != null && getOptionValue(option) === value);
 
   useEffect(() => {
-    if (!open) {
-      setQuery(selectedOption ? getOptionLabel(selectedOption) : '');
-    }
-  }, [open, selectedOption, getOptionLabel]);
-
-  useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
@@ -110,6 +104,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
+      if (!open) setQuery('');
       setOpen(true);
 
       setActiveIndex((current) => Math.min(current + 1, filteredOptions.length - 1));
@@ -162,7 +157,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
           aria-required={required}
           autoComplete="off"
           disabled={disabled}
-          value={open ? query : selectedOption ? getOptionLabel(selectedOption) : query}
+          value={open ? query : selectedOption ? getOptionLabel(selectedOption) : ''}
           placeholder={placeholder}
           onFocus={() => {
             setQuery('');

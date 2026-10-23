@@ -17,7 +17,7 @@ import { RECEIVABLE_STATUS_LABELS, type IReceivableFilters, type IReceivableList
 
 const STATUSES = Object.keys(RECEIVABLE_STATUS_LABELS) as ReceivableStatus[];
 
-const FILTER_KEYS = ['status', 'customerId', 'dueFrom', 'dueTo'] as const;
+type FilterKey = 'status' | 'customerId' | 'dueFrom' | 'dueTo';
 
 function SummaryCard({ id, label, value }: { id: string; label: string; value?: number }) {
   return (
@@ -91,7 +91,7 @@ export function ReceivableListPage() {
   const knownCustomer = selectedCustomer?.id === filters.customerId ? selectedCustomer : urlCustomer?.id === filters.customerId ? urlCustomer : null;
   const customerOptions = knownCustomer && !customers.some((c) => c.id === knownCustomer.id) ? [knownCustomer, ...customers] : customers;
 
-  function setFilter(key: (typeof FILTER_KEYS)[number], value: string | null) {
+  function setFilter(key: FilterKey, value: string | null) {
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);

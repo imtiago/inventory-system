@@ -1,5 +1,6 @@
 //src/modules/auth/infrastructure/mappers/UserMapper.ts
 
+import { UserRole } from "@auth/domain/enums/UserRole";
 import { User } from "@auth/domain/entities/User";
 import { User as PrismaUser, Prisma } from "@prisma/client";
 
@@ -10,7 +11,7 @@ export class UserMapper {
       name: prisma.name,
       email: prisma.email,
       password: prisma.password,
-      role: prisma.role ?? undefined,
+      role: UserRole[prisma.role],
       active: prisma.active,
       createdAt: prisma.createdAt,
     });
