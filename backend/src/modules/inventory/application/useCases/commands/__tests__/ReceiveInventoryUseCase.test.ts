@@ -181,6 +181,31 @@ test("com purchaseItemId: lote existente de outra origem/item → 409 BATCH_ALRE
   assert.equal(inventories.all()[0].quantity, 20);
 });
 
+test("sem purchaseItemId (entrada manual): lote existente ligado a item de compra → 409 BATCH_ALREADY_EXISTS sem alterar saldo", async () => {
+  const { useCase, lots, inventories, movements } = setup();
+  await useCase.execute(input({ batchNumber: "L1", purchaseItemId: "pi-1", originReferenceId: "p-1" }));
+  await assert.rejects(
+    () => useCase.execute(input({ batchNumber: "L1", quantity: 5 })),
+    {
+      name: "ConflictError",
+      code: "BATCH_ALREADY_EXISTS",
+      message: "Já existe um lote com esse número para esta variante.",
+    },
+  );
+  assert.equal(lots.all().length, 1);
+  assert.equal(lots.all()[0].initialQuantity, 10);
+  assert.equal(movements.all().length, 1);
+  assert.equal(inventories.all()[0].quantity, 10);
+});
+
+test("sem purchaseItemId: lote manual existente continua somando", async () => {
+  const { useCase, lots } = setup();
+  await useCase.execute(input({ batchNumber: "L1" }));
+  const { lot } = await useCase.execute(input({ batchNumber: "L1", quantity: 5 }));
+  assert.equal(lots.all().length, 1);
+  assert.equal(lot.initialQuantity, 15);
+});
+
 test("receivePurchaseStock chama o recebimento com origem/lote PURCHASE, item, usuário e custo em reais", async () => {
   const calls: unknown[] = [];
   const noop = { execute: async () => [] };

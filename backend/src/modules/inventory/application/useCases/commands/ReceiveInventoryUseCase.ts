@@ -50,9 +50,10 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
         )
       : null;
 
-    // Compra: só soma num lote existente do mesmo item do pedido; outro lote
-    // com o mesmo número misturaria custo e vínculo de origem.
-    if (lot && request.purchaseItemId && lot.purchaseItemId !== request.purchaseItemId) {
+    // Só soma num lote existente com o mesmo vínculo de compra: compra só no
+    // lote do mesmo item do pedido; entrada sem item (manual, cadastro por
+    // leitura) nunca num lote de compra. Misturaria custo e vínculo de origem.
+    if (lot && lot.purchaseItemId !== (request.purchaseItemId ?? null)) {
       throw new ConflictError(
         "Já existe um lote com esse número para esta variante.",
         ErrorCodes.BATCH_ALREADY_EXISTS,

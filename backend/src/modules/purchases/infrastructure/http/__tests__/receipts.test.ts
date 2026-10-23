@@ -336,4 +336,30 @@ describe("Recebimento de pedidos de compra (POST /purchases/:id/receipts)", () =
     assert.equal(m.userId, estoquista.id);
     assert.equal(await stockOf(v1), 2);
   });
+
+  test("entrada manual (POST /inventory/receive) num lote ligado a item de compra → 409 BATCH_ALREADY_EXISTS sem alterar saldo", async () => {
+    const v1 = await freshVariant();
+    const purchase = await createPurchase([{ productVariantId: v1, quantity: 5, unitPrice: 4 }]);
+    const batch = `tx-test-${randomUUID().slice(0, 8)}`;
+    const ok = await receive(purchase.id, [{ purchaseItemId: purchase.items[0].id, quantity: 2, batchNumber: batch }]);
+    assert.equal(ok.statusCode, 201, ok.body);
+
+    const res = await call("POST", "/inventory/receive", admin, {
+      productVariantId: v1,
+      quantity: 3,
+      unitCost: 1,
+      batchNumber: batch,
+      origin: "MANUAL",
+      sourceType: "MANUAL",
+    });
+    assert.equal(res.statusCode, 409, res.body);
+    assert.deepEqual(res.json(), {
+      message: "Já existe um lote com esse número para esta variante.",
+      code: "BATCH_ALREADY_EXISTS",
+    });
+    assert.equal(await stockOf(v1), 2);
+    const lot = await prisma.inventoryLot.findFirstOrThrow({ where: { productVariantId: v1, batchNumber: batch } });
+    assert.equal(lot.initialQuantity, 2);
+    assert.equal(await prisma.stockMovement.count({ where: { productVariantId: v1 } }), 1);
+  });
 });
