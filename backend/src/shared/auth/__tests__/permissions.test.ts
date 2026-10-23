@@ -45,8 +45,7 @@ const MATRIX: Record<Permission, Role[]> = {
  */
 const missing = randomUUID();
 type RouteProbe = { method: "GET" | "POST" | "PUT" | "DELETE"; url: string; payload?: object; allowed: number };
-// `null` = a rota dessa permissão ainda não existe (tarefas 2-4 da Fase 6A preenchem).
-const ROUTES: Record<Permission, RouteProbe | null> = {
+const ROUTES: Record<Permission, RouteProbe> = {
   "users.manage": { method: "GET", url: "/users?limit=1", allowed: 200 },
   "catalog.read": { method: "GET", url: "/brands", allowed: 200 },
   "catalog.write": { method: "POST", url: "/brands", payload: {}, allowed: 400 },
@@ -74,9 +73,19 @@ const ROUTES: Record<Permission, RouteProbe | null> = {
   "purchases.read": { method: "GET", url: "/suppliers?limit=1", allowed: 200 },
   "purchases.write": { method: "POST", url: "/suppliers", payload: {}, allowed: 400 },
   "purchases.receive": { method: "POST", url: `/purchases/${missing}/receipts`, payload: {}, allowed: 400 },
-  "payables.read": null,
-  "payables.pay": null,
-  "payables.reverse": null,
+  "payables.read": { method: "GET", url: "/payables?limit=1", allowed: 200 },
+  "payables.pay": {
+    method: "POST",
+    url: `/payables/${missing}/parcels/${missing}/payments`,
+    payload: {},
+    allowed: 400,
+  },
+  "payables.reverse": {
+    method: "POST",
+    url: `/payables/payments/${missing}/reverse`,
+    payload: {},
+    allowed: 400,
+  },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
@@ -86,6 +95,7 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["purchases.read", { method: "GET", url: `/purchases/${missing}`, allowed: 404 }],
   ["purchases.write", { method: "POST", url: "/purchases", payload: {}, allowed: 400 }],
   ["purchases.write", { method: "POST", url: `/purchases/${missing}/cancel`, payload: {}, allowed: 400 }],
+  ["payables.read", { method: "GET", url: `/payables/${missing}`, allowed: 404 }],
 ];
 
 describe("hasPermission (matriz)", () => {
@@ -128,7 +138,7 @@ describe("matriz por HTTP: papel × rota representativa", () => {
   test("para cada papel × rota representativa de cada permissão → 2xx ou 403 conforme a spec", async () => {
     const failures: string[] = [];
     const probes: [Permission, RouteProbe][] = [
-      ...PERMISSIONS.flatMap((p): [Permission, RouteProbe][] => (ROUTES[p] ? [[p, ROUTES[p]!]] : [])),
+      ...PERMISSIONS.map((p): [Permission, RouteProbe] => [p, ROUTES[p]]),
       ...EXTRA_ROUTES,
     ];
     for (const [permission, route] of probes) {

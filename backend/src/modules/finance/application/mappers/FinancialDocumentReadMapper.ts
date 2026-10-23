@@ -9,11 +9,11 @@ import {
 } from "@finance/domain/services/receivableStatus";
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
 import {
+  FinancialDetailBaseDTO,
+  FinancialListItemBaseDTO,
+  FinancialPaymentDTO,
   PersonRefDTO,
-  ReceivableDetailDTO,
-  ReceivableListItemDTO,
-  ReceivablePaymentDTO,
-} from "../dto/ReceivableReadDTO";
+} from "../dto/FinancialDocumentReadDTO";
 import { FinancialDocumentSummaryDTO } from "../dto/FinancialDocumentSummaryDTO";
 
 /** Valor monetário vindo da persistência (Decimal do Prisma, string ou number). */
@@ -37,7 +37,7 @@ export interface PaymentDetailRow extends PaymentAmountRow {
   reversedBy: PersonRefDTO | null;
 }
 
-export interface ReceivableRow<P extends PaymentAmountRow = PaymentAmountRow> {
+export interface FinancialDocumentRow<P extends PaymentAmountRow = PaymentAmountRow> {
   id: string;
   status: string;
   originType: string;
@@ -48,7 +48,7 @@ export interface ReceivableRow<P extends PaymentAmountRow = PaymentAmountRow> {
 }
 
 /** Valores derivados de um documento na data de negócio `today` (tudo em centavos). */
-export interface ReceivableFigures {
+export interface FinancialFigures {
   displayStatus: DisplayStatus;
   totalCents: number;
   paidCents: number;
@@ -68,11 +68,11 @@ const activePaidCents = (payments: PaymentAmountRow[]) =>
 export interface DocumentSummaryRow {
   id: string;
   status: string;
-  parcels: ReceivableRow["parcels"];
+  parcels: FinancialDocumentRow["parcels"];
 }
 
 /** Parcelas ordenadas por vencimento (desempate por id), em centavos. */
-function parcelAmounts<P extends PaymentAmountRow>(row: Pick<ReceivableRow<P>, "parcels">) {
+function parcelAmounts<P extends PaymentAmountRow>(row: Pick<FinancialDocumentRow<P>, "parcels">) {
   return [...row.parcels]
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime() || a.id.localeCompare(b.id))
     .map((p) => ({
@@ -83,10 +83,8 @@ function parcelAmounts<P extends PaymentAmountRow>(row: Pick<ReceivableRow<P>, "
     }));
 }
 
-const UNKNOWN_CUSTOMER = "Cliente não encontrado";
-
 export class FinancialDocumentReadMapper {
-  static figures(row: ReceivableRow, today: string): ReceivableFigures {
+  static figures(row: FinancialDocumentRow, today: string): FinancialFigures {
     const parcels = parcelAmounts(row);
     const canceled = row.status === FinancialStatus.CANCELED;
     const withBalance = parcels.filter((p) => remainingCents(p) > 0);
@@ -111,19 +109,18 @@ export class FinancialDocumentReadMapper {
     };
   }
 
+  /** Item de lista sem a contraparte (o repositório junta cliente ou fornecedor). */
   static toListItemDTO(
-    row: ReceivableRow,
-    customer: PersonRefDTO | undefined,
+    row: FinancialDocumentRow,
     today: string,
-    figures: ReceivableFigures = FinancialDocumentReadMapper.figures(row, today),
-  ): ReceivableListItemDTO {
+    figures: FinancialFigures = FinancialDocumentReadMapper.figures(row, today),
+  ): FinancialListItemBaseDTO {
     return {
       id: row.id,
       status: row.status,
       displayStatus: figures.displayStatus,
       originType: row.originType,
       originId: row.originId,
-      customer: FinancialDocumentReadMapper.customer(row, customer),
       totalAmount: fromCents(figures.totalCents),
       paidAmount: fromCents(figures.paidCents),
       remainingAmount: fromCents(figures.remainingCents),
@@ -133,11 +130,8 @@ export class FinancialDocumentReadMapper {
     };
   }
 
-  static toDetailDTO(
-    row: ReceivableRow<PaymentDetailRow>,
-    customer: PersonRefDTO | undefined,
-    today: string,
-  ): ReceivableDetailDTO {
+  /** Detalhe sem a contraparte (o repositório junta cliente ou fornecedor). */
+  static toDetailDTO(row: FinancialDocumentRow<PaymentDetailRow>, today: string): FinancialDetailBaseDTO {
     const figures = FinancialDocumentReadMapper.figures(row, today);
     return {
       id: row.id,
@@ -145,7 +139,6 @@ export class FinancialDocumentReadMapper {
       displayStatus: figures.displayStatus,
       originType: row.originType,
       originId: row.originId,
-      customer: FinancialDocumentReadMapper.customer(row, customer),
       createdAt: row.createdAt,
       totalAmount: fromCents(figures.totalCents),
       paidAmount: fromCents(figures.paidCents),
@@ -186,7 +179,12 @@ export class FinancialDocumentReadMapper {
     };
   }
 
-  private static toPaymentDTO(payment: PaymentDetailRow): ReceivablePaymentDTO {
+  /** Contraparte encontrada ou placeholder com o partyId (não há FK). */
+  static party(partyId: string, found: PersonRefDTO | undefined, unknownName: string): PersonRefDTO {
+    return found ? { id: found.id, name: found.name } : { id: partyId, name: unknownName };
+  }
+
+  private static toPaymentDTO(payment: PaymentDetailRow): FinancialPaymentDTO {
     return {
       id: payment.id,
       amount: fromCents(cents(payment.amount)),
@@ -199,11 +197,5 @@ export class FinancialDocumentReadMapper {
       reversedBy: payment.reversedBy ? { id: payment.reversedBy.id, name: payment.reversedBy.name } : null,
       reversalReason: payment.reversalReason,
     };
-  }
-
-  private static customer(row: ReceivableRow<any>, customer: PersonRefDTO | undefined): PersonRefDTO {
-    return customer
-      ? { id: customer.id, name: customer.name }
-      : { id: row.partyId, name: UNKNOWN_CUSTOMER };
   }
 }

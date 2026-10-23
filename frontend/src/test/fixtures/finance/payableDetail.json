@@ -1,0 +1,84 @@
+{
+  "data": {
+    "id": "7e3a5c1d-9b4f-4d2e-8a6c-5f1b3d7e9a16",
+    "status": "PARTIALLY_PAID",
+    "displayStatus": "OVERDUE",
+    "originType": "PURCHASE",
+    "originId": "4e2a7c9d-1b3f-4d5e-8a6c-9f1b3d5e7a20",
+    "supplier": {
+      "id": "5d3b8f1a-7c2e-4a9d-8b6f-2e4c6a8d0f13",
+      "name": "Distribuidora Boa Vista Ltda"
+    },
+    "purchaseCode": "PC000012",
+    "createdAt": "2026-09-21T14:32:10.000Z",
+    "totalAmount": 159.7,
+    "paidAmount": 53.23,
+    "remainingAmount": 106.47,
+    "parcels": [
+      {
+        "id": "1a3c5e7f-2b4d-4f6a-8c1e-3d5f7a9b1c38",
+        "number": 1,
+        "amount": 53.23,
+        "dueDate": "2026-09-21",
+        "paidAmount": 53.23,
+        "remainingAmount": 0,
+        "status": "PAID",
+        "payments": [
+          {
+            "id": "6c8e0a2b-4d6f-4b8c-9e0a-2b4d6f8a0c21",
+            "amount": 53.23,
+            "method": "BOLETO",
+            "paymentDate": "2026-09-20",
+            "reference": null,
+            "createdAt": "2026-09-20T18:10:00.000Z",
+            "createdBy": {
+              "id": "e2c4a6b8-1d3f-4a5c-8e7f-9b1d3f5a7c90",
+              "name": "Ana Gerente"
+            },
+            "reversedAt": "2026-09-21T14:55:00.000Z",
+            "reversedBy": {
+              "id": "f3d5b7c9-2e4a-4b6d-9f8a-0c2e4a6b8d01",
+              "name": "Ana Gerente"
+            },
+            "reversalReason": "Pago na conta errada"
+          },
+          {
+            "id": "5b7d9f1a-3c5e-4a7b-8d9f-1a3c5e7b9d10",
+            "amount": 53.23,
+            "method": "PIX",
+            "paymentDate": "2026-09-21",
+            "reference": "PIX 123456",
+            "createdAt": "2026-09-21T15:00:00.000Z",
+            "createdBy": {
+              "id": "e2c4a6b8-1d3f-4a5c-8e7f-9b1d3f5a7c90",
+              "name": "Ana Gerente"
+            },
+            "reversedAt": null,
+            "reversedBy": null,
+            "reversalReason": null
+          }
+        ]
+      },
+      {
+        "id": "2b4d6f8a-3c5e-4a7b-9d2f-4e6a8c1d3f59",
+        "number": 2,
+        "amount": 53.23,
+        "dueDate": "2026-10-21",
+        "paidAmount": 0,
+        "remainingAmount": 53.23,
+        "status": "OVERDUE",
+        "payments": []
+      },
+      {
+        "id": "3c5e7a9b-4d6f-4b8c-8e3a-5f7b9d2e4a71",
+        "number": 3,
+        "amount": 53.24,
+        "dueDate": "2026-11-21",
+        "paidAmount": 0,
+        "remainingAmount": 53.24,
+        "status": "OPEN",
+        "payments": []
+      }
+    ]
+  }
+}

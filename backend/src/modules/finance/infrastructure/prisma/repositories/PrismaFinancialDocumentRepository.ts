@@ -18,7 +18,7 @@ export class PrismaFinancialDocumentRepository implements FinancialDocumentRepos
   async lockById(id: string): Promise<FinancialDocument | null> {
     this.assertTransaction();
     const db = getDb();
-    // Mesma linha travada pelo cancelamento da venda (lockByOrigin): serializa pagamento × cancelamento.
+    // Mesma linha travada pelo cancelamento da origem — venda ou pedido (lockByOrigin): serializa pagamento × cancelamento.
     const rows = await db.$queryRaw<{ id: string }[]>`
       SELECT id FROM "FinancialDocument" WHERE id = ${id} FOR UPDATE`;
     if (rows.length === 0) return null;

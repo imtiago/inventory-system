@@ -1,16 +1,19 @@
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { FinancialType } from "@finance/domain/enums/FinancialType";
 import {
-  ReceivableDetailDTO,
-  ReceivableListFilters,
-  ReceivableListResult,
-} from "../dto/ReceivableReadDTO";
+  FinancialDocumentDetailDTO,
+  FinancialListFilters,
+  FinancialListResult,
+} from "../dto/FinancialDocumentReadDTO";
 
+/** Leitura de documentos financeiros de um tipo (a receber ou a pagar); outro tipo nunca aparece. */
 export interface FinancialDocumentReadRepository {
   /** Lista filtrada, ordenada (próximo vencimento em aberto; pagos/cancelados por último) e com resumo. */
-  listReceivables(
-    filters: ReceivableListFilters,
+  list<T extends FinancialType>(
+    type: T,
+    filters: FinancialListFilters,
     pagination: PaginationRequest,
     today: string,
-  ): Promise<ReceivableListResult>;
-  getReceivableById(id: string, today: string): Promise<ReceivableDetailDTO | null>;
+  ): Promise<FinancialListResult<T>>;
+  getById<T extends FinancialType>(type: T, id: string, today: string): Promise<FinancialDocumentDetailDTO<T> | null>;
 }
