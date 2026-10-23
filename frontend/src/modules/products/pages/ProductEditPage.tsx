@@ -22,10 +22,11 @@ export function ProductEditPage() {
   const navigate = useNavigate();
 
   const { data: product, isLoading, isError } = useProduct(id);
-  const { data: brands } = useBrands();
-  const { data: categories } = useCategories();
+  const { data: brands, isError: brandsError } = useBrands();
+  const { data: categories, isError: categoriesError } = useCategories();
   const updateProduct = useUpdateProduct({ silentError: true });
 
+  if (brandsError || categoriesError) return <p>Erro ao carregar dados do produto</p>;
   if (isLoading || (!isError && (!brands || !categories))) return <p>Carregando produto...</p>;
   if (isError || !product) return <p>Produto não encontrado</p>;
 

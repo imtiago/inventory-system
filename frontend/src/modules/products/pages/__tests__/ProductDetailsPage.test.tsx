@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 
+import { QueryClient } from '@tanstack/react-query';
+import { shouldRetryQuery } from '@/shared/react-query/queryClient';
 import { ProductDetailsPage } from '../ProductDetailsPage';
 import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
@@ -80,5 +82,35 @@ describe('ProductDetailsPage', () => {
 
     expect(await screen.findByText('lista de produtos')).toBeInTheDocument();
     expect(deletes).toBe(1);
+  });
+
+  test('excluir produto com o retry real do app não trava nem mostra erro (detalhe removido, não refeito)', async () => {
+    let detailGets = 0;
+    let deleted = false;
+    server.use(
+      http.get(`${API_URL}/products/:id`, () => {
+        detailGets += 1;
+        return deleted ? HttpResponse.json({ message: 'nf', code: 'PRODUCT_NOT_FOUND' }, { status: 404 }) : HttpResponse.json(productDetail);
+      }),
+      http.delete(`${API_URL}/products/:id`, () => ((deleted = true), new HttpResponse(null, { status: 204 }))),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: shouldRetryQuery, retryDelay: 1000 }, mutations: { retry: false } } });
+    renderWithProviders(
+      <Routes>
+        <Route path="/products/:id" element={<ProductDetailsPage />} />
+        <Route path="/products" element={<div>lista de produtos</div>} />
+      </Routes>,
+      { route: `/products/${product.id}`, queryClient },
+    );
+    await screen.findByText('Natura');
+    const before = detailGets;
+
+    await userEvent.click(screen.getByRole('button', { name: /Excluir/ }));
+    const buttons = screen.getAllByRole('button', { name: 'Excluir' });
+    await userEvent.click(buttons[buttons.length - 1]);
+
+    await waitFor(() => expect(screen.getByText('lista de produtos')).toBeInTheDocument(), { timeout: 1000 });
+    expect(screen.queryByText('Erro ao carregar produto')).not.toBeInTheDocument();
+    expect(detailGets - before).toBe(0);
   });
 });

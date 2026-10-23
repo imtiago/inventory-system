@@ -111,4 +111,27 @@ describe('ProductListPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(deletes).toBe(0);
   });
+
+  test('excluir o único item da última página volta uma página', async () => {
+    const one = { ...productList.data[0], id: 'only-1', name: 'Último Produto' };
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        const p = Number(new URL(request.url).searchParams.get('page') ?? 1);
+        requests.push(new URL(request.url));
+        const data = p === 3 ? [one] : productList.data;
+        return HttpResponse.json({ data, pagination: { page: p, limit: 10, total: 21, totalPages: 3 } });
+      }),
+      http.delete(`${API_URL}/products/:id`, () => new HttpResponse(null, { status: 204 })),
+    );
+    renderWithProviders(<ProductListPage />);
+    await screen.findByText('Produtos (21)');
+    await userEvent.click(screen.getByRole('button', { name: 'Próxima' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Próxima' }));
+    await screen.findByText('Último Produto');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Excluir Último Produto' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => expect(screen.getByText('Página 2 de 3')).toBeInTheDocument());
+  });
 });

@@ -111,4 +111,19 @@ describe('ProductEditPage', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Marca não encontrada.'));
     expect(toast.error).toHaveBeenCalledTimes(1);
   });
+
+  test('falha ao carregar marcas mostra erro em vez de carregar para sempre', async () => {
+    server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
+    renderEdit();
+
+    expect(await screen.findByText('Erro ao carregar dados do produto')).toBeInTheDocument();
+    expect(screen.queryByText('Carregando produto...')).not.toBeInTheDocument();
+  });
+
+  test('falha ao carregar categorias mostra erro', async () => {
+    server.use(http.get(`${API_URL}/categories`, () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
+    renderEdit();
+
+    expect(await screen.findByText('Erro ao carregar dados do produto')).toBeInTheDocument();
+  });
 });

@@ -51,6 +51,9 @@ export function ProductListPage() {
 
     try {
       await deleteProduct.mutateAsync(productToDelete.id);
+
+      // Deleting the last item of the last page leaves that page empty.
+      if (page > 1 && (data?.data.length ?? 0) === 1) setPage(page - 1);
     } catch {
       // useDeleteProduct already shows the backend message.
     } finally {

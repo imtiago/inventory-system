@@ -3,6 +3,7 @@
 import {
   type MutationFunction,
   type QueryKey,
+  type QueryClient,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -17,6 +18,9 @@ interface CrudMutationOptions<TData, TVariables> {
 
   invalidateKeys?: readonly QueryKey[];
 
+  /** Runs after the mutation succeeds and before invalidation (e.g. to drop queries of a deleted entity). */
+  onSettledCache?: (queryClient: QueryClient, variables: TVariables) => void;
+
   successMessage?: string;
 
   errorMessage?: string;
@@ -28,6 +32,7 @@ interface CrudMutationOptions<TData, TVariables> {
 export function useCrudMutation<TData, TVariables>({
   mutationFn,
   invalidateKeys = [],
+  onSettledCache,
   successMessage,
   errorMessage = "Ocorreu um erro.",
   silentError = false,
@@ -37,7 +42,9 @@ export function useCrudMutation<TData, TVariables>({
   return useMutation({
     mutationFn,
 
-    async onSuccess() {
+    async onSuccess(_data, variables) {
+      onSettledCache?.(queryClient, variables);
+
       if (invalidateKeys.length) {
         await invalidate(queryClient, ...invalidateKeys);
       }

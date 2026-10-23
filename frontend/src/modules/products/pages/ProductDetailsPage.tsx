@@ -37,11 +37,14 @@ export function ProductDetailsPage() {
   const [variantToDelete, setVariantToDelete] = useState<Variant | null>(null);
   const [confirmDeleteProduct, setConfirmDeleteProduct] = useState(false);
 
-  const { data: product, isLoading, isError } = useProduct(id!);
-
-  const { data: variantsResponse } = useProductVariants(id!, page);
-
   const deleteProduct = useDeleteProduct();
+
+  // Once the delete starts, the product's own queries must not refetch (they would 404).
+  const deleting = deleteProduct.isPending || deleteProduct.isSuccess;
+
+  const { data: product, isLoading, isError } = useProduct(id!, { enabled: !deleting });
+
+  const { data: variantsResponse } = useProductVariants(id!, page, { enabled: !deleting });
 
   const variants = variantsResponse?.data ?? [];
 
@@ -53,7 +56,7 @@ export function ProductDetailsPage() {
     onDelete: setVariantToDelete,
   });
 
-  if (isLoading) {
+  if (isLoading || deleteProduct.isSuccess) {
     return <div>Carregando produto...</div>;
   }
 
