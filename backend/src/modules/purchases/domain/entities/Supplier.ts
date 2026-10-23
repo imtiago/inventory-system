@@ -1,6 +1,6 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
-/** Fornecedor: `document` guarda só dígitos (CPF 11 ou CNPJ 14); o tipo é derivado. */
+/** Fornecedor: `document` normalizado (CPF 11 dígitos ou CNPJ 14 posições, possivelmente alfanumérico); o tipo é derivado. */
 export class Supplier extends BaseEntity {
   private _name: string;
   private _document: string;

@@ -12,7 +12,7 @@
 export type NfeQuantity = string;
 
 export interface NfeSupplier {
-  /** CNPJ (14) ou CPF (11), só dígitos, DV validado. */
+  /** CNPJ (14 posições, numérico ou alfanumérico em maiúsculas) ou CPF (11 dígitos), DV validado. */
   document: string;
   name: string;
   tradeName: string | null;
@@ -28,7 +28,7 @@ export interface NfeTotals {
   freight: number;
   insurance: number;
   other: number;
-  /** vICMSDeson (subtrai do vNF) */
+  /** ICMSTot/vICMSDeson como informado (informativo: o que deduz do vNF depende de indDeduzDeson por item). */
   icmsRelief: number;
   /** vII */
   importTax: number;
@@ -63,7 +63,10 @@ export interface NfeItem {
   freight: number;
   insurance: number;
   other: number;
-  /** vICMSDeson de qualquer grupo ICMS* (subtrai do custo). */
+  /**
+   * vICMSDeson deduzido (subtrai do custo): só de grupos ICMS* com indDeduzDeson = 1
+   * (NT 2023.004); sem o indicador → 0.
+   */
   icmsRelief: number;
   /** II/vII */
   importTax: number;
@@ -71,6 +74,8 @@ export interface NfeItem {
   ipi: number;
   /** vICMSST + vFCPST de qualquer grupo ICMS* */
   icmsSt: number;
+  /** prod/indTot: false (indTot = 0) → o item não compõe vProd/vNF e fica fora da conferência dos totais. */
+  composesTotal: boolean;
   lots: NfeLot[];
 }
 
@@ -108,7 +113,7 @@ export function quantityToNumber(quantity: NfeQuantity): number {
 
 /**
  * Custo do item (centavos), na composição oficial do vNF:
- * vProd − vDesc − vICMSDeson + vICMSST + vFCPST + vFrete + vSeg + vOutro + vII + vIPI + vIPIDevol.
+ * vProd − vDesc − vICMSDeson (deduzido) + vICMSST + vFCPST + vFrete + vSeg + vOutro + vII + vIPI + vIPIDevol.
  */
 export function itemCostCents(item: NfeItem): number {
   return (

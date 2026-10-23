@@ -6,11 +6,11 @@ const digits = (n: number) => Array.from({ length: n }, () => Math.floor(Math.ra
 
 /**
  * Chave de 44 dígitos (modelo 55, SP, emissão normal) com DV válido.
- * `cnpj` (14 dígitos) fixa o emitente; senão um CNPJ válido aleatório.
+ * `cnpj` (14 posições, numérico ou alfanumérico) fixa o emitente; senão um CNPJ válido aleatório.
  */
 export function buildAccessKey(opts: { cnpj?: string; series?: number; number?: number } = {}): string {
   const cnpj = opts.cnpj ?? randomCnpj();
-  if (!/^\d{14}$/.test(cnpj)) throw new RangeError("cnpj deve ter 14 dígitos.");
+  if (!/^[0-9A-Z]{12}\d{2}$/.test(cnpj)) throw new RangeError("cnpj deve ter 14 posições.");
   const series = String(opts.series ?? 1).padStart(3, "0");
   const number = opts.number !== undefined ? String(opts.number).padStart(9, "0") : digits(9);
   const base = `352610${cnpj}55${series}${number}1${digits(8)}`;

@@ -79,6 +79,7 @@ describe("NfeParser", () => {
       importTax: 0,
       ipi: 1205,
       icmsSt: 0,
+      composesTotal: true,
       lots: [
         { batchNumber: "L001", quantity: "1", manufacturingDate: "2026-01-10", expirationDate: "2027-01-10" },
         { batchNumber: "L002", quantity: "1", manufacturingDate: "2026-02-15", expirationDate: "2027-02-15" },
@@ -94,7 +95,7 @@ describe("NfeParser", () => {
     assert.deepEqual(b.lots, []);
     assert.equal(c.barcode, "7890000000017", "cEAN vazio → cEANTrib");
     assert.equal(c.discount, 99);
-    assert.equal(c.icmsRelief, 150, "vICMSDeson do ICMS40");
+    assert.equal(c.icmsRelief, 150, "vICMSDeson do ICMS40 com indDeduzDeson = 1");
 
     assert.deepEqual(doc.installments, [
       { number: "001", dueDate: "2026-11-22", amount: 13236 },
@@ -159,6 +160,47 @@ describe("NfeParser", () => {
     expectInvalidNfe(full.replace("<CNPJ>11222333000181</CNPJ>", "<CNPJ>11222333000180</CNPJ>"), "Emitente sem CNPJ/CPF válido.");
   });
 
+  test("desoneração sem indDeduzDeson = 1 não reduz custo nem vNF (NT 2023.004)", () => {
+    const full = fixture("nfe-completa.xml");
+    const noFlag = full.replace("<indDeduzDeson>1</indDeduzDeson>", "");
+    assert.notEqual(noFlag, full);
+    const doc = parser.parse(noFlag.replace("<vNF>397.09</vNF>", "<vNF>398.59</vNF>"));
+    assert.equal(doc.items[2].icmsRelief, 0);
+    assert.equal(itemCostCents(doc.items[2]), 9900);
+    assert.equal(doc.totals.icmsRelief, 150, "ICMSTot/vICMSDeson informativo");
+    assert.equal(doc.totals.total, 39859);
+    // vNF que deduz uma desoneração sem o indicador não confere
+    expectInvalidNfe(noFlag, "Totais da nota não conferem.");
+    // indicador 0 é o mesmo que ausente
+    const flag0 = full.replace("<indDeduzDeson>1</indDeduzDeson>", "<indDeduzDeson>0</indDeduzDeson>");
+    assert.equal(parser.parse(flag0.replace("<vNF>397.09</vNF>", "<vNF>398.59</vNF>")).items[2].icmsRelief, 0);
+  });
+
+  test("item com indTot = 0 não compõe o vNF: fica nos itens com composesTotal false", () => {
+    const full = fixture("nfe-completa.xml");
+    const notComposing = full.replace(/(<det nItem="3">[\s\S]*?)<indTot>1<\/indTot>/, "$1<indTot>0</indTot>");
+    assert.notEqual(notComposing, full);
+    const doc = parser.parse(notComposing.replace("<vNF>397.09</vNF>", "<vNF>299.59</vNF>"));
+    assert.equal(doc.items.length, 3);
+    assert.deepEqual(doc.items.map((i) => i.composesTotal), [true, true, false]);
+    expectInvalidNfe(notComposing, "Totais da nota não conferem.");
+  });
+
+  test("CNPJ alfanumérico no emitente e na chave de acesso", () => {
+    const key = "35261012ABC34501DE35550010000005001123456781";
+    const doc = parser.parse(
+      fixture("nfe-completa.xml")
+        .replace(`Id="NFe${FULL_KEY}"`, `Id="NFe${key}"`)
+        .replace("<CNPJ>11222333000181</CNPJ>", "<CNPJ>12ABC34501DE35</CNPJ>"),
+    );
+    assert.equal(doc.accessKey, key);
+    assert.equal(doc.supplier.document, "12ABC34501DE35");
+    expectInvalidNfe(
+      fixture("nfe-completa.xml").replace("<CNPJ>11222333000181</CNPJ>", "<CNPJ>12ABC34501DE36</CNPJ>"),
+      "Emitente sem CNPJ/CPF válido.",
+    );
+  });
+
   test("totais: tolerância de 1 centavo por item", () => {
     const full = fixture("nfe-completa.xml");
     assert.equal(parser.parse(full.replace("<vNF>397.09</vNF>", "<vNF>397.12</vNF>")).totals.total, 39712);
@@ -207,6 +249,9 @@ describe("NfeParser", () => {
   test("buildAccessKey gera chaves modelo 55 com DV válido e distintas", () => {
     const keys = new Set(Array.from({ length: 50 }, () => buildAccessKey()));
     assert.equal(keys.size, 50);
+    const alnum = buildAccessKey({ cnpj: "12ABC34501DE35" });
+    assert.equal(isValidAccessKey(alnum), true);
+    assert.equal(alnum.slice(6, 20), "12ABC34501DE35");
     for (const k of keys) {
       assert.match(k, /^\d{44}$/);
       assert.equal(k.slice(20, 22), "55");

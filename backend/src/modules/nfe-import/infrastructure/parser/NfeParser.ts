@@ -17,6 +17,8 @@ import {
 type XmlNode = Record<string, unknown>;
 
 // Anti-XXE / billion laughs: nada de DTD. Checado no texto, antes de qualquer parse.
+// Intencional: um "<!DOCTYPE"/"<!ENTITY" literal dentro de comentário ou CDATA também
+// é rejeitado (falso positivo seguro; NF-e real não tem isso).
 const DTD_PATTERN = /<!DOCTYPE|<!ENTITY/i;
 
 // Entidades predefinidas do XML + referências numéricas. Como DTD é rejeitado,
@@ -148,6 +150,19 @@ function icmsSum(imposto: XmlNode | undefined, fields: string[], what: string): 
   return total;
 }
 
+/** vICMSDeson só dos grupos ICMS* com indDeduzDeson = 1 (NT 2023.004). */
+function icmsReliefOf(imposto: XmlNode | undefined, what: string): number {
+  const icms = child(imposto, "ICMS");
+  if (!icms) return 0;
+  let total = 0;
+  for (const [key, group] of Object.entries(icms)) {
+    if (key.startsWith("ICMS") && isNode(group) && text(group, "indDeduzDeson") === "1") {
+      total += cents(group, "vICMSDeson", what);
+    }
+  }
+  return total;
+}
+
 export class NfeParser {
   parse(input: string | Buffer): NfeDocument {
     const xml = this.decode(input);
@@ -180,8 +195,9 @@ export class NfeParser {
     const items = dets.map((det, i) => this.item(det, i));
     const totals = this.totals(child(child(inf, "total"), "ICMSTot"));
 
-    const itemsTotal = items.reduce((sum, item) => sum + itemCostCents(item), 0);
-    if (Math.abs(itemsTotal - totals.total) > items.length) throw invalidNfe("Totais da nota não conferem.");
+    const composing = items.filter((item) => item.composesTotal);
+    const itemsTotal = composing.reduce((sum, item) => sum + itemCostCents(item), 0);
+    if (Math.abs(itemsTotal - totals.total) > composing.length) throw invalidNfe("Totais da nota não conferem.");
 
     const installments: NfeInstallment[] = children(child(inf, "cobr"), "dup").map((dup, i) => ({
       number: text(dup, "nDup") ?? null,
@@ -217,9 +233,9 @@ export class NfeParser {
   private supplier(emit: XmlNode | undefined): NfeSupplier {
     const cnpj = text(emit, "CNPJ");
     const cpf = text(emit, "CPF");
-    // No XML o documento vem só com dígitos; máscara não é aceita.
+    // No XML o documento vem sem máscara (CNPJ alfanumérico em maiúsculas); máscara não é aceita.
     let document: string | null = null;
-    if (cnpj !== undefined) document = /^\d{14}$/.test(cnpj) && isValidCnpj(cnpj) ? cnpj : null;
+    if (cnpj !== undefined) document = /^[0-9A-Z]{12}\d{2}$/.test(cnpj) && isValidCnpj(cnpj) ? cnpj : null;
     else if (cpf !== undefined) document = /^\d{11}$/.test(cpf) && isValidCpf(cpf) ? cpf : null;
     if (!document) throw invalidNfe("Emitente sem CNPJ/CPF válido.");
     return {
@@ -276,12 +292,13 @@ export class NfeParser {
       freight: cents(prod, "vFrete", what),
       insurance: cents(prod, "vSeg", what),
       other: cents(prod, "vOutro", what),
-      icmsRelief: icmsSum(imposto, ["vICMSDeson"], what),
+      icmsRelief: icmsReliefOf(imposto, what),
       importTax: cents(child(imposto, "II"), "vII", what),
       ipi:
         cents(child(child(imposto, "IPI"), "IPITrib"), "vIPI", what) +
         cents(child(child(det, "impostoDevol"), "IPI"), "vIPIDevol", what),
       icmsSt: icmsSum(imposto, ["vICMSST", "vFCPST"], what),
+      composesTotal: text(prod, "indTot") !== "0",
       lots,
     };
   }
