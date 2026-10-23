@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 
 import { useAuthStore } from "@/shared/store/auth";
 import { useLogout } from "@/shared/auth/useLogout";
 import { can } from "@/shared/auth/permissions";
+import { ChangePasswordModal } from "@/modules/auth/components/ChangePasswordModal";
 import { allRoutes } from "@/routes/routes";
 import type { AppRoute } from "@/routes/types";
 
@@ -36,6 +38,7 @@ function renderItem(item: AppRoute) {
 
 export function Sidebar() {
   const logout = useLogout();
+  const [changingPassword, setChangingPassword] = useState(false);
   const role = useAuthStore((state) => state.user?.role);
 
   const items = allRoutes.filter((route) => route.showInMenu && (!route.permission || can(role, route.permission)));
@@ -67,6 +70,18 @@ export function Sidebar() {
       </nav>
 
       <button
+        onClick={() => setChangingPassword(true)}
+        className="
+          flex items-center gap-3
+          px-6 py-4
+          hover:bg-slate-800
+        "
+      >
+        <KeyRound size={20} />
+        Alterar senha
+      </button>
+
+      <button
         onClick={logout}
         className="
           flex items-center gap-3
@@ -77,6 +92,8 @@ export function Sidebar() {
         <LogOut size={20} />
         Sair
       </button>
+
+      <ChangePasswordModal open={changingPassword} onClose={() => setChangingPassword(false)} />
     </aside>
   );
 }

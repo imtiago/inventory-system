@@ -33,6 +33,12 @@ describe('Sidebar', () => {
   test('ADMIN vê tudo', () => {
     renderSidebar('ADMIN');
     expect(visible()).toEqual(labels);
+    expect(screen.getByText('Usuários')).toBeInTheDocument();
+  });
+
+  test('todo usuário logado vê "Alterar senha" no menu do usuário', async () => {
+    renderSidebar('ESTOQUISTA');
+    expect(screen.getByRole('button', { name: /Alterar senha/ })).toBeInTheDocument();
   });
 
   test('VENDEDOR vê tudo exceto Usuários', () => {

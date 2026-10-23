@@ -3,5 +3,6 @@ import { inventoryHandlers } from './handlers/inventory';
 import { salesHandlers } from './handlers/sales';
 import { receivablesHandlers } from './handlers/receivables';
 import { authHandlers } from './auth';
+import { usersHandlers } from './handlers/users';
 
-export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...authHandlers);
+export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...authHandlers, ...usersHandlers);
