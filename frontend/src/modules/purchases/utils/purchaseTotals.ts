@@ -1,4 +1,4 @@
-import { toCents } from '@/shared/utils/money';
+import { fromCents, toCents } from '@/shared/utils/money';
 
 /** Draft item: numeric fields kept as typed strings (reais for money). */
 export interface IPurchaseDraftItem {
@@ -19,6 +19,16 @@ export function parseNumber(text: string): number {
   return normalized === '' ? 0 : Number(normalized);
 }
 
+/** True when the typed money has more than 2 decimal places (never silently rounded). */
+export function hasTooManyDecimals(text: string): boolean {
+  return !/^\d*(\.\d{0,2})?$/.test(text.trim().replace(',', '.'));
+}
+
+/** Money as sent to the API: always the value derived from cents, i.e. exactly what is shown. */
+export function moneyToSend(text: string): number {
+  return fromCents(toCents(parseNumber(text)));
+}
+
 export function parseQuantity(text: string): number | null {
   const value = parseNumber(text);
 
@@ -30,7 +40,7 @@ export function itemTotalCents(item: IPurchaseDraftItem): number | null {
   const quantity = parseQuantity(item.quantity);
   const money = [item.unitPrice, item.discount, item.freight, item.tax].map(parseNumber);
 
-  if (quantity === null || money.some((value) => !Number.isFinite(value) || value < 0)) return null;
+  if (quantity === null || [item.unitPrice, item.discount, item.freight, item.tax].some(hasTooManyDecimals) || money.some((value) => !Number.isFinite(value) || value < 0)) return null;
 
   const [unitPrice, discount, freight, tax] = money.map(toCents);
 

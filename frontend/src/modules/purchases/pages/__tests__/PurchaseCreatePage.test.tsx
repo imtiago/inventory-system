@@ -123,4 +123,27 @@ describe('PurchaseCreatePage', () => {
 
     expect(await screen.findAllByText('Total do item inválido.')).toHaveLength(1);
   });
+
+  test('mais de 2 casas decimais é inválido: mensagem no campo e nenhum envio', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Preço unitário de Camiseta Azul', '10.555');
+
+    expect(screen.getByText('Use no máximo 2 casas decimais.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('2 casas decimais');
+    expect(screen.getByRole('button', { name: 'Registrar pedido' })).toBeDisabled();
+    expect(posted).toBeUndefined();
+  });
+
+  test('preço com 1 casa envia 10.5 e o total mostrado confere', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Preço unitário de Camiseta Azul', '10.5');
+    expect(screen.getByTestId('purchase-total')).toHaveTextContent('R$ 10,50');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));
+
+    await waitFor(() => expect(posted).toMatchObject({ items: [{ unitPrice: 10.5, discount: 0, freight: 0, tax: 0 }] }));
+  });
 });

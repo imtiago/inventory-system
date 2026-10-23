@@ -19,7 +19,7 @@ import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import type { ISupplier } from '@/modules/suppliers/types';
 
 import { useCreatePurchase } from '../hooks/usePurchases';
-import { itemTotalCents, parseNumber, parseQuantity, type IPurchaseDraftItem } from '../utils/purchaseTotals';
+import { hasTooManyDecimals, itemTotalCents, moneyToSend, parseNumber, parseQuantity, type IPurchaseDraftItem } from '../utils/purchaseTotals';
 
 type PurchaseFormValues = {
   supplierId: string;
@@ -49,6 +49,8 @@ function blockingReason(items: IPurchaseDraftItem[], totalCents: number): string
 
   for (const item of items) {
     if (parseQuantity(item.quantity) === null) return `${item.productName}: informe uma quantidade inteira maior que zero.`;
+
+    if ([item.unitPrice, item.discount, item.freight, item.tax].some(hasTooManyDecimals)) return `${item.productName}: use no máximo 2 casas decimais.`;
 
     const money = [item.unitPrice, item.discount, item.freight, item.tax].map(parseNumber);
 
@@ -153,10 +155,10 @@ export function PurchaseCreatePage() {
         items: items.map((item) => ({
           productVariantId: item.productVariantId,
           quantity: parseQuantity(item.quantity) as number,
-          unitPrice: parseNumber(item.unitPrice),
-          discount: parseNumber(item.discount),
-          freight: parseNumber(item.freight),
-          tax: parseNumber(item.tax),
+          unitPrice: moneyToSend(item.unitPrice),
+          discount: moneyToSend(item.discount),
+          freight: moneyToSend(item.freight),
+          tax: moneyToSend(item.tax),
         })),
         paymentTerms: isInstallments ? { installments, firstDueDate: values.firstDueDate } : { installments: 1 },
       },
@@ -311,8 +313,10 @@ export function PurchaseCreatePage() {
                                 value={item[field.key]}
                                 disabled={createMutation.isPending}
                                 onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
+                                aria-invalid={hasTooManyDecimals(item[field.key]) ? 'true' : undefined}
                                 className={cellInputClass}
                               />
+                              {hasTooManyDecimals(item[field.key]) && <p className="mt-1 text-xs text-red-600">Use no máximo 2 casas decimais.</p>}
                             </td>
                           ))}
                           <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-red-600' : ''}`}>

@@ -26,7 +26,7 @@ export function diffSupplier(supplier: ISupplier, form: SupplierFormValues): Upd
 export function toCreateDTO(form: SupplierFormValues): ICreateSupplierDTO {
   const dto: ICreateSupplierDTO = { name: form.name.trim(), document: digits(form.document) };
 
-  if (form.email.trim()) dto.email = form.email.trim();
+  if (form.email.trim()) dto.email = form.email.trim().toLowerCase();
   if (digits(form.phone)) dto.phone = digits(form.phone);
 
   return dto;

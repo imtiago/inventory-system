@@ -44,6 +44,30 @@ describe('PurchaseListPage', () => {
     });
   });
 
+  test('filtros de fornecedor e período vão para a API', async () => {
+    const urls: URL[] = [];
+    server.use(
+      http.get(`${API_URL}/purchases`, ({ request }) => {
+        urls.push(new URL(request.url));
+        return HttpResponse.json(purchaseList);
+      }),
+    );
+    renderWithProviders(<PurchaseListPage />);
+    await screen.findByRole('link', { name: 'PC000012' });
+
+    await userEvent.type(screen.getByPlaceholderText('Todos os fornecedores'), 'Acm');
+    await userEvent.click(await screen.findByText('Distribuidora Acme Ltda'));
+    await userEvent.type(screen.getByLabelText('Data de'), '2026-10-01');
+    await userEvent.type(screen.getByLabelText('Data até'), '2026-10-31');
+
+    await waitFor(() => {
+      const last = urls[urls.length - 1];
+      expect(last.searchParams.get('supplierId')).toBe('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e');
+      expect(last.searchParams.get('from')).toBe('2026-10-01');
+      expect(last.searchParams.get('to')).toBe('2026-10-31');
+    });
+  });
+
   test('ESTOQUISTA vê a lista mas não "Novo pedido"', async () => {
     loginAs('ESTOQUISTA');
     renderWithProviders(<PurchaseListPage />);
