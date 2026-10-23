@@ -8,4 +8,7 @@ export const salesHandlers = [
   http.get(`${API_URL}/sales`, () => HttpResponse.json(saleList)),
   http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetail)),
   http.post(`${API_URL}/sales`, () => HttpResponse.json(saleDetail, { status: 201 })),
+  http.post(`${API_URL}/sales/:id/cancel`, () =>
+    HttpResponse.json({ data: { ...saleDetail.data, status: 'CANCELED' } }),
+  ),
 ];

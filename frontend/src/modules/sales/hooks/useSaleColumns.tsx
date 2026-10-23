@@ -3,24 +3,9 @@ import { Link } from 'react-router-dom';
 import type { DataTableColumn } from '@/shared/components/table';
 import { CrudBadge } from '@/shared/components/crud';
 
+import { formatCurrency } from '@/shared/utils/money';
+
 import type { ISale } from '../types';
-
-function formatCurrency(value: string | number | null) {
-  if (value === null || value === '') {
-    return '—';
-  }
-
-  const amount = Number(value);
-
-  if (!Number.isFinite(amount)) {
-    return '—';
-  }
-
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(amount);
-}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -38,7 +23,7 @@ function formatDate(value: string) {
 const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'default' }> = {
   COMPLETED: { label: 'Concluída', variant: 'success' },
   PENDING: { label: 'Pendente', variant: 'warning' },
-  CANCELLED: { label: 'Cancelada', variant: 'danger' },
+  CANCELED: { label: 'Cancelada', variant: 'danger' },
 };
 
 export function useSaleColumns(): DataTableColumn<ISale>[] {
@@ -65,7 +50,7 @@ export function useSaleColumns(): DataTableColumn<ISale>[] {
       id: 'items',
       header: 'Itens',
       align: 'center',
-      cell: (sale) => sale.items?.reduce((total, item) => total + item.quantity, 0) ?? 0,
+      cell: (sale) => sale.itemsCount,
     },
     {
       id: 'totalAmount',

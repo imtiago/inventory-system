@@ -1,22 +1,13 @@
-export type SaleStatus = 'COMPLETED' | 'PENDING' | 'CANCELLED';
+export type SaleStatus = 'COMPLETED' | 'PENDING' | 'CANCELED';
 
-export interface ISaleItem {
-  id: string;
-  productVariantId: string;
-  quantity: number;
-  totalPrice: number | null;
-}
-
+/** GET /sales list row (SaleListItemDTO). */
 export interface ISale {
   id: string;
-  createdAt: string;
-  totalAmount: string;
   status: SaleStatus;
-  customer: {
-    id: string;
-    name: string;
-  };
-  items: ISaleItem[];
+  totalAmount: number;
+  createdAt: string;
+  customer: { id: string; name: string };
+  itemsCount: number;
 }
 
 export interface ISalesResponse {

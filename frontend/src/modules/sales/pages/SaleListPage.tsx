@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
 import { CrudPagination } from '@/shared/components/crud';
 import { Section } from '@/shared/components/details/Section';
 import { Page } from '@/shared/components/layout/Page';
@@ -25,12 +24,10 @@ export function SaleListPage() {
       <Section
         title={`Vendas (${data?.pagination.total ?? 0})`}
         actions={
-          <Button className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
-            <Link to="/sales/new">
-              <Plus size={18} />
-              Nova Venda
-            </Link>
-          </Button>
+          <Link to="/sales/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
+            <Plus size={18} />
+            Nova Venda
+          </Link>
         }
       >
         <div className="flex min-h-0 flex-1 flex-col gap-4">

@@ -19,3 +19,15 @@ export async function createSale(data: ICreateSaleDTO): Promise<ISaleDetail> {
 
   return response.data.data;
 }
+
+export async function getSale(id: string): Promise<ISaleDetail> {
+  const response = await api.get<{ data: ISaleDetail }>(`/sales/${id}`);
+
+  return response.data.data;
+}
+
+export async function cancelSale(id: string): Promise<ISaleDetail> {
+  const response = await api.post<{ data: ISaleDetail }>(`/sales/${id}/cancel`);
+
+  return response.data.data;
+}
