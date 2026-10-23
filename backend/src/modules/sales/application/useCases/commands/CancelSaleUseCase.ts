@@ -31,7 +31,11 @@ export class CancelSaleUseCase extends TransactionalUseCase<ICancelSaleInput, Sa
     sale.cancel();
 
     await this.financialService.cancelSaleReceivable(sale.id);
-    await this.inventoryService.returnSaleStock({ saleId: sale.id, userId });
+    await this.inventoryService.returnSaleStock({
+      saleId: sale.id,
+      userId,
+      items: sale.items.map((i) => ({ productVariantId: i.variantId, quantity: i.quantity })),
+    });
 
     return this.saleRepository.update(sale);
   }

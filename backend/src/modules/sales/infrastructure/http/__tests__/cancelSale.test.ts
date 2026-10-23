@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
+import { InternalInvariantError } from "@shared/domain/errors";
+import { FinancialType } from "@finance/domain/enums/FinancialType";
+import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
+import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 
@@ -261,6 +265,79 @@ describe("POST /sales/:id/cancel", () => {
     assert.equal(await inventoryQty(v1), 8);
     assert.equal(await prisma.stockMovement.count({ where: { productVariantId: v1 } }), movementsBefore);
     assert.deepEqual(await lotsOf(v1), lotsBefore);
+  });
+
+  test("venda com itens sem saídas rastreadas → 500 e nada alterado (rollback)", async () => {
+    const v1 = await createPricedVariant(10);
+    const saleId = await createSale([{ productVariantId: v1, quantity: 2 }]);
+    // Simula venda antiga / dado inconsistente: saídas sem originId.
+    await prisma.stockMovement.updateMany({ where: { originId: saleId }, data: { originId: null } });
+    const movementsBefore = await prisma.stockMovement.count({ where: { productVariantId: v1 } });
+
+    const res = await request("POST", `/sales/${saleId}/cancel`);
+    assert.equal(res.statusCode, 500, res.body);
+
+    assert.equal((await prisma.sale.findUniqueOrThrow({ where: { id: saleId } })).status, "COMPLETED");
+    const doc = await prisma.financialDocument.findFirstOrThrow({ where: { originId: saleId } });
+    assert.equal(doc.status, "OPEN");
+    assert.equal(await inventoryQty(v1), 8);
+    assert.equal(await prisma.stockMovement.count({ where: { productVariantId: v1 } }), movementsBefore);
+  });
+
+  test("cancela todos os documentos a receber da venda", async () => {
+    const v1 = await createPricedVariant(10);
+    const saleId = await createSale([{ productVariantId: v1, quantity: 1 }]);
+    const extra = await prisma.financialDocument.create({
+      data: {
+        type: "RECEIVABLE",
+        originType: "SALE",
+        originId: saleId,
+        partyId: customerId,
+        partyType: "CUSTOMER",
+        parcels: { create: [{ amount: 1, dueDate: new Date() }] },
+      },
+    });
+
+    const res = await request("POST", `/sales/${saleId}/cancel`);
+    assert.equal(res.statusCode, 200, res.body);
+    const docs = await prisma.financialDocument.findMany({ where: { originId: saleId } });
+    assert.equal(docs.length, 2);
+    assert.ok(docs.some((d) => d.id === extra.id));
+    for (const d of docs) assert.equal(d.status, "CANCELED");
+  });
+
+  test("pagamento em qualquer documento da venda → 409 SALE_HAS_PAYMENTS", async () => {
+    const v1 = await createPricedVariant(10);
+    const saleId = await createSale([{ productVariantId: v1, quantity: 1 }]);
+    await prisma.financialDocument.create({
+      data: {
+        type: "RECEIVABLE",
+        originType: "SALE",
+        originId: saleId,
+        partyId: customerId,
+        partyType: "CUSTOMER",
+        parcels: {
+          create: [{ amount: 1, dueDate: new Date(), payments: { create: [{ amount: 1, method: "CASH" }] } }],
+        },
+      },
+    });
+
+    const res = await request("POST", `/sales/${saleId}/cancel`);
+    assert.equal(res.statusCode, 409, res.body);
+    assert.equal(res.json().code, "SALE_HAS_PAYMENTS");
+    const docs = await prisma.financialDocument.findMany({ where: { originId: saleId } });
+    for (const d of docs) assert.equal(d.status, "OPEN");
+  });
+
+  test("lockByOrigin fora de transação → InternalInvariantError", async () => {
+    await assert.rejects(
+      new PrismaFinancialDocumentRepository().lockByOrigin(
+        FinancialType.RECEIVABLE,
+        FinancialOriginType.SALE,
+        randomUUID(),
+      ),
+      (e: unknown) => e instanceof InternalInvariantError && e.code === "LOCK_OUTSIDE_TRANSACTION",
+    );
   });
 
   test("venda inexistente → 404 SALE_NOT_FOUND", async () => {

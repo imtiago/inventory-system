@@ -10,6 +10,8 @@ import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/error
 
 export interface IReturnSaleStockInput {
   saleId: string;
+  /** Itens da venda: o total devolvido por variante tem de bater com eles. */
+  items: { productVariantId: string; quantity: number }[];
   /** Usuário que cancelou (auditoria das movimentações RETURN). */
   userId?: string;
 }
@@ -17,7 +19,8 @@ export interface IReturnSaleStockInput {
 /**
  * Devolve ao estoque o que uma venda consumiu: para cada saída (OUT, origin SALE,
  * originId = venda) restaura o mesmo lote e registra uma entrada IN origin RETURN
- * com saldos encadeados. Trava as variantes em ordem crescente (mesma ordem da
+ * com saldos encadeados, ao custo médio registrado na saída (restaura a média
+ * ponderada; sem custo registrado → custo do lote). Trava as variantes em ordem crescente (mesma ordem da
  * criação da venda → sem deadlock).
  */
 export class ReturnSaleStockUseCase extends TransactionalUseCase<
@@ -33,7 +36,7 @@ export class ReturnSaleStockUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  protected async handle({ saleId, userId }: IReturnSaleStockInput): Promise<StockMovement[]> {
+  protected async handle({ saleId, userId, items }: IReturnSaleStockInput): Promise<StockMovement[]> {
     const alreadyReturned = await this.stockMovementRepository.findByOrigin(
       StockMovementOrigin.RETURN,
       saleId,
@@ -57,6 +60,24 @@ export class ReturnSaleStockUseCase extends TransactionalUseCase<
     }
     const variantIds = [...byVariant.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
+    // Saídas rastreadas têm de cobrir exatamente os itens da venda (antes de gravar).
+    const expected = new Map<string, number>();
+    for (const item of items) {
+      expected.set(item.productVariantId, (expected.get(item.productVariantId) ?? 0) + item.quantity);
+    }
+    const mismatch =
+      expected.size !== byVariant.size ||
+      [...expected].some(
+        ([variantId, quantity]) =>
+          (byVariant.get(variantId) ?? []).reduce((sum, m) => sum + m.quantity, 0) !== quantity,
+      );
+    if (mismatch) {
+      throw new InternalInvariantError(
+        "As saídas de estoque da venda não correspondem aos seus itens.",
+        InternalErrorCodes.SALE_STOCK_MISMATCH,
+      );
+    }
+
     const created: StockMovement[] = [];
     for (const productVariantId of variantIds) {
       const inventory = await this.inventoryRepository.lockExistingByProductVariantId(productVariantId);
@@ -78,9 +99,17 @@ export class ReturnSaleStockUseCase extends TransactionalUseCase<
           );
         }
 
+        // Estouro do lote é dado inconsistente, não regra de negócio do cliente.
+        if (lot.remainingQuantity + out.quantity > lot.initialQuantity) {
+          throw new InternalInvariantError(
+            "Devolução excede a quantidade inicial do lote.",
+            InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT,
+          );
+        }
+
         const previousQuantity = inventory.quantity;
         lot.restore(out.quantity);
-        inventory.receive({ quantity: out.quantity, unitCost: lot.unitCost });
+        inventory.receive({ quantity: out.quantity, unitCost: out.averageCost ?? lot.unitCost });
         await this.inventoryLotRepository.update(lot);
 
         const movement = new StockMovement({

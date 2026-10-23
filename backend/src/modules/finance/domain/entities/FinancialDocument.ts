@@ -4,6 +4,7 @@ import { FinancialStatus } from "../enums/FinancialStatus";
 import { FinancialPartyType } from "../enums/FinancialPartyType";
 import { FinancialOriginType } from "../enums/FinancialOriginType";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 
 export class FinancialDocument extends BaseEntity {
   private _type: FinancialType;
@@ -80,7 +81,14 @@ export class FinancialDocument extends BaseEntity {
     return this._originType;
   }
 
+  /** Pagamentos são checados antes (SALE_HAS_PAYMENTS); aqui é só a invariante. */
   cancel(): void {
+    if (this._status === FinancialStatus.PAID || this._status === FinancialStatus.CANCELED) {
+      throw new InternalInvariantError(
+        `Documento financeiro ${this._status} não pode ser cancelado.`,
+        InternalErrorCodes.FINANCIAL_DOCUMENT_NOT_CANCELABLE,
+      );
+    }
     this._status = FinancialStatus.CANCELED;
   }
 

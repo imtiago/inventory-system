@@ -8,6 +8,8 @@ export interface ConsumeStockRequest {
 
 export interface ReturnSaleStockRequest {
   saleId: string;
+  /** Itens da venda; o total devolvido por variante tem de bater com eles. */
+  items: { productVariantId: string; quantity: number }[];
   /** Usuário que cancelou (auditoria das movimentações RETURN). */
   userId?: string;
 }

@@ -23,6 +23,7 @@ export class InventoryApplicationService implements InventoryService {
     await this.returnSaleStockUseCase.execute({
       saleId: request.saleId,
       userId: request.userId,
+      items: request.items,
     });
   }
 }

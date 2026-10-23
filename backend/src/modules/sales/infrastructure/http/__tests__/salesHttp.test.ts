@@ -209,6 +209,20 @@ describe("HTTP de vendas", () => {
     );
   });
 
+  test("POST /sales total R$ 0,02 em 3x → 422 INSTALLMENTS_EXCEED_TOTAL; nada gravado", async () => {
+    const v1 = await createPricedVariant(0.01);
+    const res = await request("POST", "/sales", {
+      customerId,
+      items: [{ productVariantId: v1, quantity: 2 }],
+      paymentTerms: { installments: 3, firstDueDate: addDaysUtc(30) },
+    });
+    assert.equal(res.statusCode, 422, res.body);
+    assert.equal(res.json().code, "INSTALLMENTS_EXCEED_TOTAL");
+    assert.equal(res.json().message, "O valor da venda não permite esse número de parcelas.");
+    assert.equal(await prisma.sale.count({ where: { customerId } }), 0);
+    assert.equal(await inventoryQty(v1), 10);
+  });
+
   test("POST /sales 3x sem firstDueDate → 400 VALIDATION_ERROR field paymentTerms.firstDueDate", async () => {
     const res = await request("POST", "/sales", {
       customerId,

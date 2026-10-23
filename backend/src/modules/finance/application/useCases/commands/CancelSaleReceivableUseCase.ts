@@ -10,8 +10,9 @@ export interface ICancelSaleReceivableInput {
 }
 
 /**
- * Cancela o documento a receber de uma venda. Bloqueia (409 SALE_HAS_PAYMENTS)
- * se houver qualquer pagamento registrado; venda sem documento não faz nada.
+ * Cancela todos os documentos a receber de uma venda (não há unicidade por
+ * origem). Bloqueia (409 SALE_HAS_PAYMENTS) se houver qualquer pagamento em
+ * qualquer um deles; venda sem documento não faz nada.
  */
 export class CancelSaleReceivableUseCase extends TransactionalUseCase<
   ICancelSaleReceivableInput,
@@ -25,21 +26,24 @@ export class CancelSaleReceivableUseCase extends TransactionalUseCase<
   }
 
   protected async handle({ saleId }: ICancelSaleReceivableInput): Promise<void> {
-    const document = await this.documents.findByOrigin(
+    // Trava antes de checar pagamentos: um pagamento concorrente que também
+    // trave o documento fica serializado com este cancelamento.
+    const documents = await this.documents.lockByOrigin(
       FinancialType.RECEIVABLE,
       FinancialOriginType.SALE,
       saleId,
     );
-    if (!document) return;
+    if (documents.length === 0) return;
 
-    if (await this.documents.hasPayments(document.id)) {
+    if (await this.documents.hasPayments(documents.map((d) => d.id))) {
       throw new ConflictError(
         "Venda com pagamentos registrados não pode ser cancelada.",
         ErrorCodes.SALE_HAS_PAYMENTS,
       );
     }
 
-    document.cancel();
-    await this.documents.update(document);
+    // Valida todos antes de gravar qualquer um.
+    for (const document of documents) document.cancel();
+    for (const document of documents) await this.documents.update(document);
   }
 }
