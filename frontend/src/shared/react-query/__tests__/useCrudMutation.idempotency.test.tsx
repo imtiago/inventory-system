@@ -85,14 +85,23 @@ describe('useCrudMutation idempotent', () => {
     expect(keys[1]).not.toBe(keys[0]);
   });
 
-  test('erro 4xx de negócio e 422 IDEMPOTENCY_KEY_REUSED renovam a chave', async () => {
+  test('409 (operação anterior ainda em andamento) e outros erros mantêm a chave com os mesmos dados', async () => {
     const result = setup();
     mode = '409';
     await submit(result, 1);
+    await submit(result, 1);
+    mode = 'ok';
+    await submit(result, 1);
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).toBe(keys[0]);
+  });
+
+  test('422 IDEMPOTENCY_KEY_REUSED renova a chave', async () => {
+    const result = setup();
     mode = '422';
     await submit(result, 1);
     mode = 'ok';
     await submit(result, 1);
-    expect(new Set(keys).size).toBe(3);
+    expect(keys[1]).not.toBe(keys[0]);
   });
 });
