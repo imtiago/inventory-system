@@ -69,6 +69,7 @@ export const ErrorCodes = {
   NFE_IMPORT_NOT_FOUND: "NFE_IMPORT_NOT_FOUND",
   NFE_ALREADY_IMPORTED: "NFE_ALREADY_IMPORTED",
   NFE_IMPORT_CONFIRMED: "NFE_IMPORT_CONFIRMED",
+  INSTALLMENTS_TOTAL_MISMATCH: "INSTALLMENTS_TOTAL_MISMATCH",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

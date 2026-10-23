@@ -1,20 +1,11 @@
-import { BusinessRuleError, ErrorCodes, NotFoundError, ValidationError } from "@shared/domain/errors";
+import { BusinessRuleError, ErrorCodes, ValidationError } from "@shared/domain/errors";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { buildInstallments } from "@shared/domain/installments";
-import { NumberGenerator } from "@shared/application/services/NumberGenerator";
-import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { CatalogService } from "@catalog/application/services/CatalogService";
-import { FinancialService } from "@finance/application/services/FinacialService";
 import { Purchase } from "@purchases/domain/entities/Purchase";
-import { PurchaseItem } from "@purchases/domain/entities/PurchaseItem";
-import { supplierNotFound } from "@purchases/domain/errors/supplierErrors";
-import { PurchaseRepository } from "@purchases/domain/repositories/PurchaseRepository";
-import { SupplierRepository } from "@purchases/domain/repositories/SupplierRepository";
+import { PurchaseCreator } from "../../services/PurchaseCreator";
 import { ICreatePurchaseInput } from "../../dto/PurchaseDTO";
-
-const PURCHASE_CODE_PREFIX = "PC";
 
 /**
  * Cria o pedido numa transação: valida fornecedor e variantes → calcula itens
@@ -24,12 +15,8 @@ const PURCHASE_CODE_PREFIX = "PC";
  */
 export class CreatePurchaseUseCase extends TransactionalUseCase<ICreatePurchaseInput, Purchase> {
   constructor(
-    private readonly purchases: PurchaseRepository,
-    private readonly suppliers: SupplierRepository,
     transactionManager: TransactionManager,
-    private readonly catalogService: CatalogService,
-    private readonly financialService: FinancialService,
-    private readonly numberGenerator: NumberGenerator,
+    private readonly purchaseCreator: PurchaseCreator,
   ) {
     super(transactionManager);
   }
@@ -50,23 +37,11 @@ export class CreatePurchaseUseCase extends TransactionalUseCase<ICreatePurchaseI
       ]);
     }
 
-    const supplier = await this.suppliers.findById(request.supplierId);
-    if (!supplier) throw supplierNotFound();
-
-    const items: PurchaseItem[] = [];
-    for (const item of request.items) {
-      const variant = await this.catalogService.getProductVariant(item.productVariantId);
-      if (!variant) throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
-      items.push(new PurchaseItem({ ...item, productVariantId: variant.id }));
-    }
-
-    const code = await this.numberGenerator.generate(NumberRangeName.PURCHASE, PURCHASE_CODE_PREFIX);
-    const purchase = Purchase.create({
-      code,
-      supplierId: supplier.id,
+    const purchase = await this.purchaseCreator.build({
+      supplierId: request.supplierId,
       purchaseDate,
       notes: request.notes,
-      items,
+      items: request.items,
     });
 
     // Cada parcela precisa de ao menos 1 centavo.
@@ -77,19 +52,11 @@ export class CreatePurchaseUseCase extends TransactionalUseCase<ICreatePurchaseI
       );
     }
 
-    const created = await this.purchases.create(purchase);
-
     const plan = buildInstallments(
       purchase.totalAmountCents,
       installments,
       new Date(`${firstDueDate}T00:00:00.000Z`),
     );
-    await this.financialService.createPurchasePayable({
-      purchaseId: purchase.id,
-      supplierId: supplier.id,
-      parcels: plan.map((p) => ({ amountCents: p.amountCents, dueDate: p.dueDate })),
-    });
-
-    return created;
+    return this.purchaseCreator.save(purchase, plan);
   }
 }
