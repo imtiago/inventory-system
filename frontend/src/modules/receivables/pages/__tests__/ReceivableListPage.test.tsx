@@ -103,6 +103,64 @@ describe('ReceivableListPage', () => {
   });
 });
 
+describe('ReceivableListPage filtros (revisão)', () => {
+  function track(list: unknown = receivableList) {
+    const urls: URL[] = [];
+    server.use(
+      http.get(`${API_URL}/receivables`, ({ request }) => {
+        urls.push(new URL(request.url));
+        return HttpResponse.json(list as object);
+      }),
+    );
+    return urls;
+  }
+
+  test('bookmark com customerId mostra o nome do cliente e permite limpar', async () => {
+    server.use(http.get(`${API_URL}/customers/c-9`, () => HttpResponse.json({ id: 'c-9', name: 'Fulana de Tal', code: 'CLI-9' })));
+    const urls = track();
+    renderWithProviders(<ReceivableListPage />, { route: '/receivables?customerId=c-9' });
+    expect(await screen.findByDisplayValue('Fulana de Tal')).toBeInTheDocument();
+    expect(urls[0].searchParams.get('customerId')).toBe('c-9');
+
+    await userEvent.click(screen.getByRole('button', { name: /limpar/i }));
+    await waitFor(() => expect(urls[urls.length - 1].searchParams.get('customerId')).toBeNull());
+  });
+
+  test('dueFrom maior que dueTo mostra mensagem e não envia a requisição', async () => {
+    const urls = track();
+    renderWithProviders(<ReceivableListPage />, { route: '/receivables?dueFrom=2026-10-31&dueTo=2026-10-01' });
+    expect(await screen.findByText('A data inicial deve ser anterior ou igual à final.')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(urls).toHaveLength(0);
+  });
+
+  test('página acima do total vai para a última página', async () => {
+    const urls = track({ ...receivableList, pagination: { page: 5, limit: 10, total: 25, totalPages: 3 } });
+    renderWithProviders(<ReceivableListPage />, { route: '/receivables?page=5' });
+    await waitFor(() => expect(urls[urls.length - 1].searchParams.get('page')).toBe('3'));
+  });
+
+  test('mudar filtro a partir de ?page=2 volta para a página 1', async () => {
+    const urls = track({ ...receivableList, pagination: { page: 2, limit: 10, total: 25, totalPages: 3 } });
+    renderWithProviders(<ReceivableListPage />, { route: '/receivables?page=2' });
+    await screen.findByText('Carlos Souza');
+    expect(urls[0].searchParams.get('page')).toBe('2');
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'PAID');
+    await waitFor(() => {
+      const last = urls[urls.length - 1];
+      expect(last.searchParams.get('status')).toBe('PAID');
+      expect(last.searchParams.get('page')).toBe('1');
+    });
+  });
+
+  test('filtros vazios são omitidos da requisição', async () => {
+    const urls = track();
+    renderWithProviders(<ReceivableListPage />, { route: '/receivables?status=&customerId=&dueFrom=&dueTo=' });
+    await screen.findByText('Carlos Souza');
+    for (const key of ['status', 'customerId', 'dueFrom', 'dueTo']) expect(urls[0].searchParams.has(key)).toBe(false);
+  });
+});
+
 describe('Sidebar', () => {
   test('menu tem Financeiro → Contas a receber', () => {
     renderWithProviders(<Sidebar />);

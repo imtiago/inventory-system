@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { CrudBadge, CrudPagination } from '@/shared/components/crud';
@@ -6,6 +6,7 @@ import { Autocomplete } from '@/shared/components/form';
 import { Section } from '@/shared/components/details/Section';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
+import { useCustomer } from '@/modules/customers/hooks/useCustomer';
 import { useCustomerSearch } from '@/modules/customers/hooks/useCustomerSearch';
 import type { ICustomer } from '@/modules/customers/types';
 import { formatCurrency } from '@/shared/utils/money';
@@ -81,11 +82,14 @@ export function ReceivableListPage() {
   };
   const page = Math.max(1, Number(searchParams.get('page')) || 1);
 
-  const { data, isLoading, isFetching, isError } = useReceivables(page, filters);
+  const invalidRange = Boolean(filters.dueFrom && filters.dueTo && filters.dueFrom > filters.dueTo);
+  const { data, isLoading, isFetching, isError } = useReceivables(page, filters, !invalidRange);
+  const { data: urlCustomer } = useCustomer(filters.customerId ?? '');
   const { data: customerData, isFetching: customersLoading } = useCustomerSearch(customerSearch);
 
   const customers = customerData?.data ?? [];
-  const customerOptions = selectedCustomer && !customers.some((c) => c.id === selectedCustomer.id) ? [selectedCustomer, ...customers] : customers;
+  const knownCustomer = selectedCustomer?.id === filters.customerId ? selectedCustomer : urlCustomer?.id === filters.customerId ? urlCustomer : null;
+  const customerOptions = knownCustomer && !customers.some((c) => c.id === knownCustomer.id) ? [knownCustomer, ...customers] : customers;
 
   function setFilter(key: (typeof FILTER_KEYS)[number], value: string | null) {
     setSearchParams(
@@ -112,6 +116,14 @@ export function ReceivableListPage() {
   }
 
   const totalPages = data?.pagination.totalPages ?? 1;
+
+  // Clamp a page beyond the last one (e.g. stale bookmark) to the last page.
+  useEffect(() => {
+    if (data && data.pagination.totalPages >= 1 && page > data.pagination.totalPages) {
+      setPage(data.pagination.totalPages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, page]);
   const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 
   return (
@@ -171,6 +183,12 @@ export function ReceivableListPage() {
               <input id="receivable-due-to" type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={inputClass} />
             </div>
           </div>
+
+          {invalidRange && (
+            <p role="alert" className="text-sm text-red-600">
+              A data inicial deve ser anterior ou igual à final.
+            </p>
+          )}
 
           <p className="text-xs text-gray-500">Inclui títulos com alguma parcela no período.</p>
 
