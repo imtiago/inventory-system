@@ -18,62 +18,62 @@ import { makeGetInventoryBoxByLotAndProductVariantController } from "../controll
 export async function inventoryBoxRoutes(app: FastifyInstance) {
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeListInventoryBoxesController(),
   );
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeCreateInventoryBoxController(),
   );
   app.post(
     "/:boxId/items",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeAddProductToBoxController(),
   );
   app.post(
     "/code/:code/product-labels",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeGenerateInventoryProductLabelsController(),
   );
   app.get(
     "/by-lot",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeGetInventoryBoxByLotAndProductVariantController(),
   );
   app.get(
     "/code/:code",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeGetInventoryBoxByCodeController(),
   );
   app.get(
     "/code/:code/label",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeGenerateInventoryBoxLabelController(),
   );
   //   app.get(
   //     "/",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeListInventoryController(),
   //   );
   //   app.get(
   //     "/movements",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeListStockMovementsController(),
   //   );
   //   app.post(
   //     "/remove",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.write")] },
   //     makeRemoveInventoryController(),
   //   );
   //   app.get(
   //     "/:variantId",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeGetInventoryController(),
   //   );
   //   app.get(
   //     "/variants/:variantId",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeGetInventoryByVariantIdController(),
   //   );
 }

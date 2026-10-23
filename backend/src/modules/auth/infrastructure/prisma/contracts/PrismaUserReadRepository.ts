@@ -1,35 +1,46 @@
+import { Prisma } from "@prisma/client";
 import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
-import { UserDTO } from "@auth/application/dto/UserDTO";
+import { IListUsersInput, UserDTO } from "@auth/application/dto/UserDTO";
 import { UserReadMapper } from "@auth/application/mappers/UserReadMapper";
-import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
+// Nunca seleciona a senha.
+const USER_DTO_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  active: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+
 export class PrismaUserReadRepository implements UserReadRepository {
-  async list(pagination: PaginationRequest) {
-    const paginationOptions = buildPagination(pagination);
+  async list({ page, limit, search }: IListUsersInput) {
+    const where: Prisma.UserWhereInput = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {};
 
     const [users, total] = await Promise.all([
       getDb().user.findMany({
-        ...paginationOptions,
-        orderBy: {
-          createdAt: "asc",
-        },
+        where,
+        select: USER_DTO_SELECT,
+        ...buildPagination({ page, limit }),
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       }),
-      getDb().user.count(),
+      getDb().user.count({ where }),
     ]);
-    const dt = users.map((user) => UserReadMapper.toDTO(user));
-    return buildPaginatedResult(dt, total, pagination);
+    return buildPaginatedResult(users.map(UserReadMapper.toDTO), total, { page, limit });
   }
 
   async findById(id: string): Promise<UserDTO | null> {
-    const user = await getDb().user.findUnique({
-      where: {
-        id,
-      },
-    });
-    if (!user) return null;
-    return UserReadMapper.toDTO(user);
+    const user = await getDb().user.findUnique({ where: { id }, select: USER_DTO_SELECT });
+    return user ? UserReadMapper.toDTO(user) : null;
   }
 }

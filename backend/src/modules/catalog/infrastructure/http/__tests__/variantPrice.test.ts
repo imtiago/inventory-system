@@ -2,10 +2,10 @@ import "dotenv/config";
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 app.log.level = "silent";
 
@@ -20,7 +20,7 @@ describe("Preço de venda da variante", () => {
     ({ variantId, cleanup: cleanupVariant } = await createTestVariant());
     const variant = await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } });
     productId = variant.productId;
-    token = jwt.sign({ sub: await getTestUserId(), role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(await getTestUserId());
   });
 
   after(async () => {

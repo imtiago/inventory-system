@@ -2,17 +2,17 @@ import "dotenv/config";
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { getTestUserId } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 app.log.level = "silent";
 
 describe("Erros HTTP de vendas", () => {
   let token: string;
   before(async () => {
-    token = jwt.sign({ sub: await getTestUserId(), role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(await getTestUserId());
   });
   after(async () => {
     await app.close();

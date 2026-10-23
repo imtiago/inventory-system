@@ -25,67 +25,67 @@ import { makeCreateInventoryController } from "../controllers/CreateInventoryCon
 export async function inventoryRoutes(app: FastifyInstance) {
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeListInventoryController(),
   );
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeCreateInventoryController(),
   );
   app.get(
     "/product-variant/barcode/:barcode",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeGetInventoryByProductVariantBarcodeController(),
   );
   app.post(
     "/receive",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeReceiveInventoryController(),
   );
   app.post(
     "/dispatch",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeDispatchInventoryController(),
   );
   app.post(
     "/reserve",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeReserveInventoryController(),
   );
   app.post(
     "/release",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeReleaseInventoryController(),
   );
   app.post(
     "/adjust",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeAdjustInventoryController(),
   );
   app.post(
     "/initial-count",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeRegisterScannedProductController(),
   );
   app.get(
     "/dashboard",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeGetInventoryDashboardController(),
   );
   app.get(
     "/variants/:productVariantId/lots",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeListInventoryLotsByVariantIdController(),
   );
   app.get(
     "/variants/:variantId",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeGetInventoryByVariantIdController(),
   );
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.read")] },
     makeGetInventoryByIdController(),
   );
   app.register(stockMovementRoutes, { prefix: "/movements" });
@@ -94,23 +94,23 @@ export async function inventoryRoutes(app: FastifyInstance) {
 
   // app.post(
   //   "/movements",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   { preHandler: [authorize("inventory.write")] },
   //   makeCreateStockMovementController(),
   // );
   // app.get(
   //   "/movements",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   { preHandler: [authorize("inventory.read")] },
   //   makeListStockMovementsController(),
   // );
 
   // app.post(
   //   "/remove",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   { preHandler: [authorize("inventory.write")] },
   //   makeRemoveInventoryController(),
   // );
   // app.get(
   //   "/:variantId",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   { preHandler: [authorize("inventory.read")] },
   //   makeGetInventoryController(),
   // );
 }

@@ -6,6 +6,8 @@ import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
 import { getTestUserId } from "../../../test/inventoryFixtures";
+import { signTestToken } from "../../../test/authFixtures";
+import { JWT_AUDIENCE, JWT_ISSUER } from "@auth/infrastructure/security/JwtTokenService";
 
 app.log.level = "silent";
 
@@ -14,7 +16,7 @@ const boundary = "----tx-test-boundary-final";
 describe("Correções finais da revisão (HTTP)", () => {
   let token: string;
   before(async () => {
-    token = jwt.sign({ sub: await getTestUserId(), role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(await getTestUserId());
   });
   after(async () => {
     await app.close();
@@ -59,11 +61,13 @@ describe("Correções finais da revisão (HTTP)", () => {
     assert.equal(res.json().imported, 1);
   });
 
-  test("token sem role em rota com authorize → 401 Token inválido", async () => {
-    const t = jwt.sign({ sub: await getTestUserId() }, process.env.JWT_SECRET!);
+  test("token sem claim role usa o papel do banco → 200", async () => {
+    const t = jwt.sign({ sub: await getTestUserId() }, process.env.JWT_SECRET!, {
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    });
     const res = await app.inject({ method: "GET", url: "/users", headers: { authorization: `Bearer ${t}` } });
-    assert.equal(res.statusCode, 401, res.body);
-    assert.deepEqual(res.json(), { message: "Token inválido.", code: "UNAUTHENTICATED" });
+    assert.equal(res.statusCode, 200, res.body);
   });
 
   test("token com payload string → 401 Token inválido", async () => {
@@ -73,10 +77,10 @@ describe("Correções finais da revisão (HTTP)", () => {
     assert.equal(res.json().code, "UNAUTHENTICATED");
   });
 
-  test("GET /users/me com usuário removido → 404 USER_NOT_FOUND", async () => {
-    const t = jwt.sign({ sub: randomUUID(), role: "admin" }, process.env.JWT_SECRET!);
+  test("GET /users/me com usuário removido → 401 Sessão inválida", async () => {
+    const t = signTestToken(randomUUID());
     const res = await app.inject({ method: "GET", url: "/users/me", headers: { authorization: `Bearer ${t}` } });
-    assert.equal(res.statusCode, 404, res.body);
-    assert.equal(res.json().code, "USER_NOT_FOUND");
+    assert.equal(res.statusCode, 401, res.body);
+    assert.deepEqual(res.json(), { message: "Sessão inválida.", code: "UNAUTHENTICATED" });
   });
 });

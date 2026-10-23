@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 
 import type { DataTableColumn } from "@/shared/components/table";
 import type { Product } from "../types";
+import { Can } from "@/shared/auth/Can";
 
 interface ProductColumnsProps {
   onDelete(product: Product): void;
@@ -79,12 +80,14 @@ export function productColumns({
             <Pencil size={18} />
           </Link>
 
-          <button
-            onClick={() => onDelete(product)}
-            className="text-red-600 hover:text-red-800"
-          >
-            <Trash2 size={18} />
-          </button>
+          <Can permission="catalog.delete">
+            <button
+              onClick={() => onDelete(product)}
+              className="text-red-600 hover:text-red-800"
+            >
+              <Trash2 size={18} />
+            </button>
+          </Can>
         </div>
       ),
     },

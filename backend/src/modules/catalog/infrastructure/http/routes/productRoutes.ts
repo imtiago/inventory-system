@@ -11,37 +11,37 @@ import { makeDeleteProductController } from "../controllers/DeleteProductControl
 export async function productRoutes(app: FastifyInstance) {
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.write")] },
     makeCreateProductController(),
   );
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeListProductsController(),
   );
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeGetProductController(),
   );
   app.put(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.write")] },
     makeUpdateProductController(),
   );
   app.delete(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.delete")] },
     makeDeleteProductController(),
   );
   app.post(
     "/:productId/variants",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.write")] },
     makeCreateVariantController(),
   );
   app.get(
     "/:productId/variants",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeListProductVariantsController(),
   );
 }

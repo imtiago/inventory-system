@@ -8,22 +8,22 @@ import { makeGetProductVariantByBarcodeController } from "../controllers/GetProd
 export async function productVariantsRoutes(app: FastifyInstance) {
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeGetProductVariantController(),
   );
   app.get(
     "/barcode/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeGetProductVariantByBarcodeController(),
   );
   app.put(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.write")] },
     makeUpdateVariantController(),
   );
   app.delete(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.delete")] },
     makeDeleteProductVariantController(),
   );
 }

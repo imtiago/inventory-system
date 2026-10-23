@@ -3,6 +3,7 @@ import { CustomerListPage } from '../pages/CustomerListPage';
 // import { ProductEditPage } from '../pages/ProductEditPage';
 // import { ProductDetailsPage } from '../pages/ProductDetailsPage';
 
+import { Users } from 'lucide-react';
 import type { AppRoute } from '@/routes/types';
 // import { ProductCreatePage } from '../pages/ProductCreatePage';
 // import { VariantCreatePage } from '../pages/VariantCreatePage';
@@ -10,13 +11,13 @@ import type { AppRoute } from '@/routes/types';
 
 export const customersRoutes: AppRoute[] = [
   {
-    path: '/customers',
+    path: '/customers', permission: 'customers.read', showInMenu: true, icon: Users,
     label: 'Clientes',
     component: CustomerListPage,
     guard: 'auth',
   },
   {
-    path: '/customers/:id',
+    path: '/customers/:id', permission: 'customers.read',
     label: 'Detalhes do Cliente',
     component: CustomerDetailsPage,
     guard: 'auth',

@@ -4,8 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "tsx --test \"src/shared/**/*.test.ts\" \"src/modules/*/domain/**/*.test.ts\" \"src/modules/*/application/**/*.test.ts\" \"src/modules/*/infrastructure/**/*.test.ts\"",
+    "test": "tsx --test \"src/shared/**/*.test.ts\" \"src/modules/*/domain/**/*.test.ts\" \"src/modules/*/application/**/*.test.ts\" \"src/modules/*/infrastructure/**/*.test.ts\" \"src/scripts/**/*.test.ts\"",
     "dev": "tsx watch src/server.ts",
+    "create-admin": "tsx src/scripts/createAdmin.ts",
     "projesctStructure": "tree -I 'node_modules'"
   },
   "prisma": {

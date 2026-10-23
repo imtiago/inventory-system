@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import multipart from "@fastify/multipart"; // ✔️ pacote correto
 import { makeImportNfeController } from "../controllers/ImportNfeController";
+import { authorize } from "@shared/middleware/authorize";
 // import { PrismaProductRepository } from "@catalog/infrastructure/repositories/PrismaProductRepository";
 import { NfeImportRepository } from "modules/nfe-import/infrastructure/repositories/NfeImportRepository";
 
@@ -16,5 +17,9 @@ export async function importNfeRoutes(app: FastifyInstance) {
   // const productRepository = new PrismaProductRepository();
   const nfeImportRepository = new NfeImportRepository();
 
-  app.post("/nfe-import", makeImportNfeController(nfeImportRepository));
+  app.post(
+    "/nfe-import",
+    { preHandler: [authorize("catalog.write")] },
+    makeImportNfeController(nfeImportRepository),
+  );
 }

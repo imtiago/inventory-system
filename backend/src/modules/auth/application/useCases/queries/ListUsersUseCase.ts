@@ -1,12 +1,10 @@
 import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
-import { PaginationParams } from "@shared/application/pagination";
+import { IListUsersInput } from "@auth/application/dto/UserDTO";
 
 export class ListUsersUseCase {
-  constructor(private userRepo: UserReadRepository) {}
+  constructor(private readonly userRepo: UserReadRepository) {}
 
-  async execute({ page, limit }: PaginationParams) {
-    return this.userRepo.list({ page, limit });
-    // async execute(page: number, limit: number) {
-    //   return this.userRepo.list(page, limit);
+  async execute(params: IListUsersInput) {
+    return this.userRepo.list(params);
   }
 }

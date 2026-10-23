@@ -1,0 +1,10 @@
+{
+  "data": {
+    "id": "7d0c4b1e-3f6a-4b8e-9a51-2f0e6c1d9a10",
+    "name": "Maria Estoque",
+    "email": "maria@example.com",
+    "role": "ESTOQUISTA",
+    "active": true,
+    "createdAt": "2026-10-23T12:00:00.000Z"
+  }
+}

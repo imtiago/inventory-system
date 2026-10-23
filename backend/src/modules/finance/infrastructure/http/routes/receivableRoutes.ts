@@ -9,22 +9,22 @@ export async function receivableRoutes(app: FastifyInstance) {
   // Contas a receber são criadas pelos fluxos de origem (ex.: venda), não por rota própria.
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.read")] },
     makeListReceivablesController(),
   );
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.read")] },
     makeGetReceivableController(),
   );
   app.post(
     "/:id/parcels/:parcelId/payments",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.pay")] },
     makeRegisterPaymentController(),
   );
   app.post(
     "/payments/:paymentId/reverse",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.reverse")] },
     makeReversePaymentController(),
   );
 }

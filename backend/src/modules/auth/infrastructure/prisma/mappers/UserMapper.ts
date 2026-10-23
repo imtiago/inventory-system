@@ -11,6 +11,7 @@ export class UserMapper {
       email: prisma.email,
       password: prisma.password,
       role: prisma.role ?? undefined,
+      active: prisma.active,
       createdAt: prisma.createdAt,
     });
   }
@@ -22,6 +23,7 @@ export class UserMapper {
       email: user.email,
       password: user.password,
       role: user.role,
+      active: user.active,
       createdAt: user.createdAt,
     };
   }
@@ -32,6 +34,7 @@ export class UserMapper {
       email: user.email,
       password: user.password,
       role: user.role,
+      active: user.active,
     };
   }
 }

@@ -3,12 +3,12 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { getTestUserId } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 const FIXTURES_DIR = new URL("../../../../../../../frontend/src/test/fixtures/finance/", import.meta.url);
 const loadFixture = (name: string): unknown =>
@@ -88,7 +88,7 @@ describe("Leitura de contas a receber (GET /receivables)", () => {
 
   before(async () => {
     userId = await getTestUserId();
-    token = jwt.sign({ sub: userId, role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(userId);
     for (const key of ["a", "b"] as const) {
       const tag = `tx-test-${randomUUID()}`;
       const c = await prisma.customer.create({ data: { name: tag, code: tag } });

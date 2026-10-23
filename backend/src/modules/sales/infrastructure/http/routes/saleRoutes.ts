@@ -8,22 +8,22 @@ import { authorize } from "../../../../../shared/middleware/authorize";
 export async function saleRoutes(app: FastifyInstance) {
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("sales.create")] },
     makeCreateSaleController(),
   );
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("sales.read")] },
     makeGetSaleController(),
   );
   app.post(
     "/:id/cancel",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("sales.cancel")] },
     makeCancelSaleController(),
   );
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("sales.read")] },
     makeListSalesController(),
   );
 }

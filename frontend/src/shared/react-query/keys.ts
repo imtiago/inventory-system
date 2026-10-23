@@ -9,6 +9,8 @@ export const queryKeys = {
 
   customers: ['customers'] as const,
 
+  users: ['users'] as const,
+
   product: (id: string) => ['products', id] as const,
 
   productVariants: (id: string) => ['products', id, 'variants'] as const,

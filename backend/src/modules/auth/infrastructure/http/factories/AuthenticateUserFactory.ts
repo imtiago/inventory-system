@@ -2,6 +2,7 @@ import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/P
 import { AuthenticateUserUseCase } from "@auth/application/useCases/commands/AuthenticateUserUseCase";
 import { BcryptPasswordHasher } from "@auth/infrastructure/security/BcryptPasswordHasher";
 import { JwtTokenService } from "@auth/infrastructure/security/JwtTokenService";
+import { loginAttemptLimiter } from "@auth/infrastructure/security/LoginAttemptLimiter";
 import { env } from "@shared/config/env";
 
 export function makeAuthenticateUserUserUseCase() {
@@ -13,5 +14,6 @@ export function makeAuthenticateUserUserUseCase() {
     userRepository,
     passwordHasher,
     tokenService,
+    loginAttemptLimiter,
   );
 }

@@ -1,10 +1,9 @@
 import "dotenv/config";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import jwt from "jsonwebtoken";
+import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
-
-const secret = process.env.JWT_SECRET!;
+import { createTestUser, signTestToken } from "../../../test/authFixtures";
 
 test("authenticate sem header → 401 Token ausente", async () => {
   const res = await app.inject({ method: "GET", url: "/products" });
@@ -32,12 +31,23 @@ test("rota pública com query string continua pública", async () => {
 });
 
 test("authorize papel ausente → 403 FORBIDDEN", async () => {
-  const token = jwt.sign({ sub: "u1", role: "cliente" }, secret);
-  const res = await app.inject({
-    method: "GET",
-    url: "/users",
-    headers: { authorization: `Bearer ${token}` },
-  });
-  assert.equal(res.statusCode, 403);
-  assert.deepEqual(res.json(), { message: "Acesso negado.", code: "FORBIDDEN" });
+  // papel vem do banco: ESTOQUISTA não está entre os permitidos em GET /users
+  const user = await createTestUser({ role: "ESTOQUISTA" });
+  try {
+    const token = signTestToken(user.id, "cliente");
+    const res = await app.inject({
+      method: "GET",
+      url: "/users",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(res.json(), { message: "Acesso negado.", code: "FORBIDDEN" });
+  } finally {
+    await user.cleanup();
+  }
+});
+
+after(async () => {
+  await app.close();
+  await prisma.$disconnect();
 });

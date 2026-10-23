@@ -8,22 +8,22 @@ import { makeUpdateCustomerController } from "../controllers/UpdateCustomerContr
 export async function customerRoutes(app: FastifyInstance) {
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("customers.write")] },
     makeCreateCustomerController(),
   );
   app.put(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("customers.write")] },
     makeUpdateCustomerController(),
   );
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("customers.read")] },
     makeGetCustomerController(),
   );
   app.get(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("customers.read")] },
     makeListCustomersController(),
   );
 }

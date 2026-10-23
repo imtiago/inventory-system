@@ -3,18 +3,18 @@ import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 
 export class User extends BaseEntity {
   private _name: string;
-  private _code: string;
   private _email: string;
   private _password: string;
   private _role: UserRole;
+  private _active: boolean;
 
   constructor(props: {
     id?: string;
     name: string;
-    code: string;
     email: string;
     password: string;
     role?: UserRole;
+    active?: boolean;
     createdAt?: Date;
   }) {
     super({
@@ -23,18 +23,14 @@ export class User extends BaseEntity {
     });
 
     this._name = props.name;
-    this._code = props.code;
     this._email = props.email;
     this._password = props.password;
     this._role = props.role ?? UserRole.VENDEDOR;
+    this._active = props.active ?? true;
   }
 
   get name(): string {
     return this._name;
-  }
-
-  get code(): string {
-    return this._code;
   }
 
   get email(): string {
@@ -47,6 +43,10 @@ export class User extends BaseEntity {
 
   get role(): UserRole {
     return this._role;
+  }
+
+  get active(): boolean {
+    return this._active;
   }
 
   rename(name: string): void {
@@ -63,5 +63,13 @@ export class User extends BaseEntity {
 
   changeRole(role: UserRole): void {
     this._role = role;
+  }
+
+  activate(): void {
+    this._active = true;
+  }
+
+  deactivate(): void {
+    this._active = false;
   }
 }

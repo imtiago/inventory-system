@@ -14,6 +14,7 @@ import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import { useSale } from '../hooks/useSale';
 import { useCancelSale } from '../hooks/useCancelSale';
 import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
+import { Can } from '@/shared/auth/Can';
 
 const saleStatusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
@@ -86,6 +87,7 @@ export function SaleDetailPage() {
               </div>
 
               {sale.status !== 'CANCELED' && (
+                <Can permission="sales.cancel">
                 <button
                   type="button"
                   className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
@@ -96,6 +98,7 @@ export function SaleDetailPage() {
                 >
                   Cancelar venda
                 </button>
+                </Can>
               )}
             </div>
 

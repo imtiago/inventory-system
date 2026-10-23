@@ -1,8 +1,8 @@
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { UserDTO } from "../dto/UserDTO";
-import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { IListUsersInput } from "../dto/UserDTO";
 
 export interface UserReadRepository {
-  list(pagination: PaginationRequest): Promise<PaginatedResult<UserDTO[]>>;
+  list(params: IListUsersInput): Promise<PaginatedResult<UserDTO>>;
   findById(id: string): Promise<UserDTO | null>;
 }

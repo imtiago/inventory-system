@@ -11,19 +11,19 @@ export async function payableRoutes(app: FastifyInstance) {
 
   app.post(
     "/payables",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.pay")] },
     makeCreatePayableController(repo),
   );
 
   app.get(
     "/payables",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.read")] },
     makeListPayablesController(repo),
   );
 
   app.patch(
     "/parcels/:parcelId/pay",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("finance.pay")] },
     makeMarkParcelPaidController(repo),
   );
 }

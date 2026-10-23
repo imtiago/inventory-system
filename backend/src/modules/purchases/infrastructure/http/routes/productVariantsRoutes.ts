@@ -6,17 +6,17 @@ import { makeDeleteProductVariantController } from "../controllers/DeleteProduct
 export async function productVariantsRoutes(app: FastifyInstance) {
   app.get(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.read")] },
     makeGetProductVariantController(),
   );
   // app.put(
   //   "/:id",
-  //   { preHandler: [authorize(["admin", "vendedor"])] },
+  //   { preHandler: [authorize("catalog.write")] },
   //   makeUpdateProductController(),
   // );
   app.delete(
     "/:id",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("catalog.delete")] },
     makeDeleteProductVariantController(),
   );
 }

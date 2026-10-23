@@ -23,14 +23,11 @@ export const app = Fastify({
 registerErrorHandling(app);
 app.register(cors, {
   origin: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
-// Lista de rotas públicas
-const publicRoutes = [
-  "/users", // criação de usuário
-  "/auth/login", // login
-];
+// Única rota pública: login. Todas as demais passam por `authenticate`.
+const publicRoutes = ["/auth/login"];
 
 // Middleware global
 app.addHook("onRequest", async (request, reply) => {

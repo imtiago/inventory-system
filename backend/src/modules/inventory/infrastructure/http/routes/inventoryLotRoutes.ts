@@ -12,37 +12,37 @@ import { makeCreateInventoryLotController } from "../controllers/CreateInventory
 export async function inventoryLotRoutes(app: FastifyInstance) {
   app.post(
     "/",
-    { preHandler: [authorize(["admin", "vendedor"])] },
+    { preHandler: [authorize("inventory.write")] },
     makeCreateInventoryLotController(),
   );
   //   app.get(
   //     "/",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeListInventoryController(),
   //   );
   //   app.post(
   //     "/movements",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.write")] },
   //     makeCreateStockMovementController(),
   //   );
   //   app.get(
   //     "/movements",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeListStockMovementsController(),
   //   );
   //   app.post(
   //     "/remove",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.write")] },
   //     makeRemoveInventoryController(),
   //   );
   //   app.get(
   //     "/:variantId",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeGetInventoryController(),
   //   );
   //   app.get(
   //     "/variants/:variantId",
-  //     { preHandler: [authorize(["admin", "vendedor"])] },
+  //     { preHandler: [authorize("inventory.read")] },
   //     makeGetInventoryByVariantIdController(),
   //   );
 }
