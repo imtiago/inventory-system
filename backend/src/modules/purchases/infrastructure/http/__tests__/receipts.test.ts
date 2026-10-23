@@ -332,6 +332,7 @@ describe("Recebimento de pedidos de compra (POST /purchases/:id/receipts)", () =
     const ok = await receive(purchase.id, [{ purchaseItemId: purchase.items[0].id, quantity: 2 }], estoquista);
     assert.equal(ok.statusCode, 201, ok.body);
     assert.equal(ok.json().data.status, "RECEIVED");
+    assert.equal(ok.json().data.payable, null);
     const m = await prisma.stockMovement.findFirstOrThrow({ where: { originId: purchase.id } });
     assert.equal(m.userId, estoquista.id);
     assert.equal(await stockOf(v1), 2);

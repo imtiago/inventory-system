@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { CrudBadge } from '@/shared/components/crud';
 import { Page } from '@/shared/components/layout/Page';
 import { Can } from '@/shared/auth/Can';
+import { useCan } from '@/shared/auth/useCan';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
@@ -18,6 +19,7 @@ import { PURCHASE_STATUS_LABELS } from '../types';
 export function PurchaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: purchase, isLoading, isError, error } = usePurchase(id);
+  const canReadPayables = useCan('payables.read');
   const [receiving, setReceiving] = useState(false);
   const [canceling, setCanceling] = useState(false);
 
@@ -117,15 +119,14 @@ export function PurchaseDetailPage() {
               <p className="mt-3 text-right text-lg font-semibold">Total: {formatCurrency(purchase.totalAmount)}</p>
             </section>
 
-            {purchase.payable && (
+            {!canReadPayables && <p className="text-sm text-gray-500">Informações financeiras disponíveis para administradores.</p>}
+            {canReadPayables && purchase.payable && (
               <section>
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="font-semibold">Parcelas</h2>
-                  <Can permission="payables.read">
-                    <Link to={`/payables/${purchase.payable.id}`} className="text-sm font-medium hover:underline">
-                      Ver contas a pagar
-                    </Link>
-                  </Can>
+                  <Link to={`/payables/${purchase.payable.id}`} className="text-sm font-medium hover:underline">
+                    Ver contas a pagar
+                  </Link>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

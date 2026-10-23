@@ -14,6 +14,7 @@ interface Row {
 }
 
 const REFRESH_CODES = ['PURCHASE_CANCELED', 'PURCHASE_ALREADY_RECEIVED', 'RECEIPT_EXCEEDS_REMAINING', 'CONCURRENT_UPDATE'];
+const BATCH_HINT = 'Use outro número de lote (ex.: acrescente o código do pedido).';
 const inputClass = 'w-full rounded-md border px-2 py-1.5 text-sm';
 
 function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose: () => void }) {
@@ -73,6 +74,11 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
 
           // The axios interceptor already redirects to /login on 401.
           if (parsed.status === 401) return;
+
+          if (parsed.code === 'BATCH_ALREADY_EXISTS') {
+            setError(`${parsed.message} ${BATCH_HINT}`);
+            return;
+          }
 
           setError(parsed.code === 'UNKNOWN_ERROR' ? 'Não foi possível registrar o recebimento.' : parsed.message);
           if (REFRESH_CODES.includes(parsed.code)) void mutation.refreshDetail();

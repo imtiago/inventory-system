@@ -44,6 +44,7 @@ describe('PurchaseDetailPage', () => {
     expect(screen.getByText('Distribuidora Têxtil Ltda')).toBeInTheDocument();
     expect(screen.getByText('Recebido parcialmente', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText('Camiseta Básica Azul M')).toBeInTheDocument();
+    expect(screen.getByText('Parcelas')).toBeInTheDocument();
     expect(screen.getAllByText('A vencer')).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'Ver contas a pagar' })).toHaveAttribute('href', `/payables/${purchaseDetail.data.payable.id}`);
     // recebimento parcial: não pode cancelar
@@ -59,6 +60,37 @@ describe('PurchaseDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Registrar recebimento' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Ver contas a pagar' })).not.toBeInTheDocument();
+    // sem payables.read: nenhuma parcela, mesmo que o payload traga (defesa em profundidade)
+    expect(screen.queryByText('Parcelas')).not.toBeInTheDocument();
+    expect(screen.queryByText('A vencer')).not.toBeInTheDocument();
+  });
+
+  test('ESTOQUISTA com payable null: página renderiza sem parcelas e sem erro', async () => {
+    loginAs('ESTOQUISTA');
+    server.use(http.get(`${API_URL}/purchases/:id`, () => HttpResponse.json({ data: { ...pending.data, payable: null } })));
+    renderPage();
+
+    expect(await screen.findByText('PC000012')).toBeInTheDocument();
+    expect(screen.queryByText('Parcelas')).not.toBeInTheDocument();
+    expect(screen.getByText('Informações financeiras disponíveis para administradores.')).toBeInTheDocument();
+  });
+
+  test('recebimento: BATCH_ALREADY_EXISTS mostra a mensagem do backend e a dica de outro lote', async () => {
+    server.use(
+      http.post(`${API_URL}/purchases/:id/receipts`, () =>
+        HttpResponse.json({ message: 'Já existe um lote com este número.', code: 'BATCH_ALREADY_EXISTS' }, { status: 409 }),
+      ),
+    );
+    renderPage();
+    await screen.findByText('PC000012');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar recebimento' }));
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Lote de Camiseta Básica Azul M'), 'L-001');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recebimento' }));
+
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent('Já existe um lote com este número.');
+    expect(alert).toHaveTextContent('Use outro número de lote (ex.: acrescente o código do pedido).');
   });
 
   test('recebimento parcial envia { items: [{ purchaseItemId, quantity, batchNumber }] } e omite quantidade 0', async () => {

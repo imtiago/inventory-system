@@ -348,7 +348,12 @@ describe("Pedidos de compra (/purchases)", () => {
       assert.equal((await call("GET", `/purchases?${bad}`, admin)).statusCode, 400, bad);
     }
 
-    const detail = await call("GET", `/purchases/${newer.id}`, estoquista);
+    // ESTOQUISTA (sem payables.read) não recebe os dados financeiros.
+    const stockDetail = await call("GET", `/purchases/${newer.id}`, estoquista);
+    assert.equal(stockDetail.statusCode, 200, stockDetail.body);
+    assert.equal(stockDetail.json().data.payable, null);
+
+    const detail = await call("GET", `/purchases/${newer.id}`, admin);
     assert.equal(detail.statusCode, 200, detail.body);
     const d = detail.json();
     assert.equal(d.data.id, newer.id);
