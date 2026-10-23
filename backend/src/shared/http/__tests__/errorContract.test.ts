@@ -4,12 +4,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import Fastify from "fastify";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
 import { registerErrorHandling } from "../errorHandler";
 import { keyShape } from "../../../test/keyShape";
 import { createTestVariant, getTestUserId } from "../../../test/inventoryFixtures";
+import { signTestToken } from "../../../test/authFixtures";
 
 const FIXTURES_DIR = new URL("../../../../../frontend/src/test/fixtures/errors/", import.meta.url);
 
@@ -26,7 +26,7 @@ describe("Contrato de erro HTTP (fixtures compartilhadas com o frontend)", () =>
 
   beforeEach(async () => {
     ({ variantId, cleanup: cleanupVariant } = await createTestVariant());
-    token = jwt.sign({ sub: await getTestUserId(), role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(await getTestUserId());
   });
 
   afterEach(async () => {

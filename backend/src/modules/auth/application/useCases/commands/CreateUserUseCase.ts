@@ -5,8 +5,7 @@ import { ICreateUserInput, IUserOutput } from "@auth/application/dto/UserDTO";
 import { User } from "@auth/domain/entities/User";
 import { UserRepository } from "@auth/domain/repositories/UserRepository";
 import { IPasswordHasher } from "@auth/application/ports/PasswordHasher";
-import { NumberGenerator } from "@shared/application/services/NumberGenerator";
-import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
+import { normalizeEmail } from "@auth/domain/services/normalizeEmail";
 
 export class CreateUserUseCase extends TransactionalUseCase<
   ICreateUserInput,
@@ -15,7 +14,6 @@ export class CreateUserUseCase extends TransactionalUseCase<
   constructor(
     private userRepo: UserRepository,
     private readonly passwordHasher: IPasswordHasher,
-    private readonly numberGenerator: NumberGenerator,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -24,20 +22,15 @@ export class CreateUserUseCase extends TransactionalUseCase<
   async handle(
     { email, password, name, role }: ICreateUserInput,
   ): Promise<IUserOutput> {
-    const existing = await this.userRepo.findByEmail(email);
+    const normalizedEmail = normalizeEmail(email);
+    const existing = await this.userRepo.findByEmail(normalizedEmail);
     if (existing) throw new ConflictError("E-mail já está em uso.", "EMAIL_ALREADY_IN_USE");
 
     const hashedPassword = await this.passwordHasher.hash(password);
 
-    const userCode = await this.numberGenerator.generate(
-      NumberRangeName.USER,
-      "U",
-    );
-
     const user = new User({
       name,
-      code: userCode,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       role,
     });
@@ -46,7 +39,6 @@ export class CreateUserUseCase extends TransactionalUseCase<
 
     return {
       id: user.id,
-      code: user.code,
       name: user.name,
       role: user.role,
       email: user.email,

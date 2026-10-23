@@ -3,7 +3,6 @@ import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -11,6 +10,7 @@ import {
   createTestVariant,
   getTestUserId,
 } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 const FIXTURES_DIR = new URL(
   "../../../../../../../frontend/src/test/fixtures/inventory/",
@@ -34,10 +34,7 @@ describe("HTTP de estoque", () => {
   beforeEach(async () => {
     ({ variantId, cleanup: cleanupVariant } = await createTestVariant());
     userId = await getTestUserId();
-    token = jwt.sign(
-      { sub: userId, role: "admin" },
-      process.env.JWT_SECRET!,
-    );
+    token = signTestToken(userId);
   });
 
   afterEach(async () => {

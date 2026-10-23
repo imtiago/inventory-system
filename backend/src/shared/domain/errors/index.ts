@@ -6,6 +6,7 @@ export { ValidationError } from "./ValidationError";
 export type { FieldError } from "./ValidationError";
 export { UnauthorizedError } from "./UnauthorizedError";
 export { ForbiddenError } from "./ForbiddenError";
+export { TooManyRequestsError } from "./TooManyRequestsError";
 export { ErrorCodes } from "./errorCodes";
 export { InternalInvariantError, InternalErrorCodes } from "./InternalInvariantError";
 export type { ErrorCode } from "./errorCodes";

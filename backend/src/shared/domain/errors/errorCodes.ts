@@ -39,6 +39,7 @@ export const ErrorCodes = {
   PAYMENT_NOT_FOUND: "PAYMENT_NOT_FOUND",
   FINANCIAL_DOCUMENT_CANCELED: "FINANCIAL_DOCUMENT_CANCELED",
   PAYMENT_EXCEEDS_REMAINING: "PAYMENT_EXCEEDS_REMAINING",
+  TOO_MANY_ATTEMPTS: "TOO_MANY_ATTEMPTS",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

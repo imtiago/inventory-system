@@ -11,8 +11,8 @@ export function makeAuthenticateUserController() {
   ) {
     const data = parseInput(loginSchema, request.body);
 
-    const result = await useCase.execute(data);
+    const result = await useCase.execute({ ...data, ip: request.ip });
 
-    return reply.send(result);
+    return reply.status(200).send({ data: result });
   };
 }

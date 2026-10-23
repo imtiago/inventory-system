@@ -9,7 +9,6 @@ export class GetUserByIdUseCase {
     if (!user) return null;
     return {
       id: user.id,
-      code: user.code,
       name: user.name,
       role: user.role,
       email: user.email,

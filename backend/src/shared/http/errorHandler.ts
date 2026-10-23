@@ -7,6 +7,7 @@ import {
   DomainError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
 } from "../domain/errors";
@@ -18,6 +19,7 @@ function domainStatus(error: DomainError): number {
   if (error instanceof NotFoundError) return 404;
   if (error instanceof ConflictError) return 409;
   if (error instanceof BusinessRuleError) return 422;
+  if (error instanceof TooManyRequestsError) return 429;
   return 500;
 }
 

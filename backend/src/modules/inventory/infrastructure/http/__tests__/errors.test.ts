@@ -2,10 +2,10 @@ import "dotenv/config";
 import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 app.log.level = "silent";
 
@@ -17,7 +17,7 @@ describe("Erros HTTP do estoque", () => {
 
   beforeEach(async () => {
     ({ variantId, cleanup: cleanupVariant } = await createTestVariant());
-    token = jwt.sign({ sub: await getTestUserId(), role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(await getTestUserId());
   });
 
   afterEach(async () => {

@@ -2,13 +2,13 @@ import "dotenv/config";
 import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { InternalInvariantError } from "@shared/domain/errors";
 import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
+import { signTestToken } from "../../../../../test/authFixtures";
 
 app.log.level = "silent";
 
@@ -75,7 +75,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
 
   beforeEach(async () => {
     userId = await getTestUserId();
-    token = jwt.sign({ sub: userId, role: "admin" }, process.env.JWT_SECRET!);
+    token = signTestToken(userId);
     const tag = `tx-test-${randomUUID()}`;
     customerId = (await prisma.customer.create({ data: { name: tag, code: tag } })).id;
   });

@@ -2,18 +2,11 @@ import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTr
 import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/PrismaUserRepository";
 import { CreateUserUseCase } from "@auth/application/useCases/commands/CreateUserUseCase";
 import { BcryptPasswordHasher } from "@auth/infrastructure/security/BcryptPasswordHasher";
-import { makeSequentialNumberGenerator } from "@shared/infrastructure/factories/SequentialNumberGenerator";
+
 export function makeCreateUserUseCase() {
   const repository = new PrismaUserRepository();
   const passwordHasher = new BcryptPasswordHasher();
-
   const transactionManager = new PrismaTransactionManager();
-  const codeGenerator = makeSequentialNumberGenerator();
 
-  return new CreateUserUseCase(
-    repository,
-    passwordHasher,
-    codeGenerator,
-    transactionManager,
-  );
+  return new CreateUserUseCase(repository, passwordHasher, transactionManager);
 }

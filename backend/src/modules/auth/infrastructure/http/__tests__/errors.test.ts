@@ -43,7 +43,7 @@ describe("Erros HTTP de autenticação", () => {
       const res = await app.inject({
         method: "POST",
         url: "/users",
-        payload: { name: "tx-test-dup", email, password: "123456" },
+        payload: { name: "tx-test-dup", email, password: "12345678" },
       });
       assert.equal(res.statusCode, 409);
       assert.equal(res.json().code, "EMAIL_ALREADY_IN_USE");

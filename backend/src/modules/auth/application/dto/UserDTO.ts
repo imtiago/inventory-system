@@ -15,6 +15,20 @@ export interface UserDTO {
 export interface IAuthRequestInput {
   email: string;
   password: string;
+  /** IP de origem (chave do limitador de tentativas). */
+  ip: string;
+}
+
+export interface IAuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface IAuthResult {
+  token: string;
+  user: IAuthUser;
 }
 
 export interface ICreateUserInput {
@@ -27,7 +41,6 @@ export interface ICreateUserInput {
 export interface IUserOutput {
   id: string;
   name: string;
-  code: string;
   email?: string;
   role: UserRole;
 }
