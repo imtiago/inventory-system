@@ -239,4 +239,68 @@ describe('NfeImportReviewPage', () => {
     expect(screen.getByTestId('confirm-error')).toHaveTextContent('A soma das parcelas');
     expect(screen.queryByText('Quantidade do item 2 não resulta em unidades inteiras.')).not.toBeInTheDocument();
   });
+
+  test('erro de cadastro do item ("Item 3: ...") aparece na linha do item 3', async () => {
+    server.use(
+      http.post(`${API_URL}/nfe-imports/:id/confirm`, () =>
+        HttpResponse.json({ message: 'Item 3: Código de barras já cadastrado.', code: 'BARCODE_ALREADY_EXISTS' }, { status: 409 }),
+      ),
+    );
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar importação' }));
+    expect(await within(item(3)).findByText('Item 3: Código de barras já cadastrado.')).toBeInTheDocument();
+    expect(screen.getAllByText('Item 3: Código de barras já cadastrado.')).toHaveLength(1);
+    expect(screen.queryByTestId('confirm-error')).not.toBeInTheDocument();
+  });
+
+  test('item que não compõe o total (indTot=0): aviso e confirmação desabilitada', async () => {
+    server.use(
+      http.get(`${API_URL}/nfe-imports/:id`, () =>
+        HttpResponse.json({ data: { ...draft, items: draft.items.map((i) => (i.index === 3 ? { ...i, composesTotal: false } : i)) } }),
+      ),
+    );
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+
+    expect(screen.getByTestId('unsupported-items')).toHaveTextContent(
+      'Esta nota tem itens que não compõem o total (indTot=0); a importação não é suportada.',
+    );
+    expect(screen.getByRole('button', { name: 'Confirmar importação' })).toBeDisabled();
+  });
+
+  test('total da nota diferente do total do pedido: aviso de arredondamento; iguais: sem aviso', async () => {
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    expect(screen.queryByTestId('note-total-difference')).not.toBeInTheDocument();
+  });
+
+  test('total da nota 0,01 acima do pedido mostra a diferença', async () => {
+    server.use(http.get(`${API_URL}/nfe-imports/:id`, () => HttpResponse.json({ data: { ...draft, totalAmount: 397.1 } })));
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    expect(screen.getByTestId('note-total-difference').textContent?.replace(/\s/g, ' ')).toBe(
+      'Total do pedido difere do total da nota em R$ 0,01 (arredondamento da nota).',
+    );
+  });
+
+  test('chave de acesso alfanumérica agrupada de 4 em 4; duplicata sem número mostra "—"', async () => {
+    const key = '35261011AB2C33000181550010000123451123456784';
+    server.use(
+      http.get(`${API_URL}/nfe-imports/:id`, () =>
+        HttpResponse.json({
+          data: { ...draft, accessKey: key, installments: [{ ...draft.installments[0], number: null }, ...draft.installments.slice(1)] },
+        }),
+      ),
+    );
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+
+    expect(screen.getByText('3526 1011 AB2C 3300 0181 5500 1000 0123 4511 2345 6784')).toBeInTheDocument();
+    expect(screen.getByTestId('installment-number-0')).toHaveTextContent('—');
+    expect(screen.getByTestId('installment-number-1')).toHaveTextContent('002');
+  });
 });

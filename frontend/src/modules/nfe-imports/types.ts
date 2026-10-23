@@ -42,6 +42,8 @@ export interface INfeItem {
   unitCost: number;
   /** Item cost in the vNF composition, reais. */
   total: number;
+  /** indTot of the note; false: the item is outside vNF and the import is not supported. */
+  composesTotal: boolean;
   lots: { batchNumber: string; quantity: number; manufacturingDate: string | null; expirationDate: string | null }[];
   suggestion: INfeSuggestion | null;
 }
@@ -59,7 +61,8 @@ export interface INfeImport {
   createdAt: string;
   supplier: { document: string; name: string; match: { id: string; name: string } | null };
   items: INfeItem[];
-  installments: { number: string; dueDate: string; amount: number }[];
+  /** number: the note's nDup; null when the note has none. */
+  installments: { number: string | null; dueDate: string; amount: number }[];
 }
 
 export interface IConfirmNfeItem {

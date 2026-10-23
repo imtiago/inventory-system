@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
 import { useCan } from '@/shared/auth/useCan';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
-import { formatCents, formatCurrency } from '@/shared/utils/money';
+import { formatCents, formatCurrency, toCents } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import { maskDocument, maskSupplierPhone } from '@/modules/suppliers/utils/formatDocument';
 
@@ -21,6 +21,7 @@ import {
   installmentsSumCents,
   itemProblem,
   itemsTotalCents,
+  UNSUPPORTED_ITEMS_MESSAGE,
   type InstallmentDraft,
   type ItemDraft,
   type SupplierDraft,
@@ -29,8 +30,8 @@ import type { INfeImport } from '../types';
 
 const inputClass = 'w-full rounded-md border px-3 py-2 text-sm';
 
-/** "3526 1011 ..." in groups of 4. */
-const formatAccessKey = (key: string) => key.replace(/(\d{4})(?=\d)/g, '$1 ');
+/** "3526 1011 ..." in groups of 4 (the key may be alphanumeric: CNPJ with letters). */
+const formatAccessKey = (key: string) => key.replace(/([0-9A-Z]{4})(?=[0-9A-Z])/g, '$1 ');
 
 export function NfeImportReviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -84,6 +85,9 @@ function ReviewForm({ note }: { note: INfeImport }) {
   const totalCents = itemsTotalCents(note.items);
   const sumCents = installmentsSumCents(installments);
   const sumMismatch = sumCents !== totalCents;
+  // vNF vs the sum of the items' costs: the note may round its total differently.
+  const noteDifferenceCents = Math.abs(toCents(note.totalAmount) - totalCents);
+  const unsupported = note.items.some((item) => !item.composesTotal);
   const supplierProblem = !note.supplier.match && supplier.name.trim().length < 2 ? 'Informe o nome do fornecedor.' : null;
   const reason =
     note.items.map((item, position) => itemProblem(item, items[position])).find((problem) => problem !== null) ??
@@ -100,7 +104,7 @@ function ReviewForm({ note }: { note: INfeImport }) {
   }
 
   function submit() {
-    if (reason || confirm.isPending) return;
+    if (unsupported || reason || confirm.isPending) return;
 
     setRowErrors({});
     setTopError(null);
@@ -148,7 +152,18 @@ function ReviewForm({ note }: { note: INfeImport }) {
             <dd className="font-medium">{formatCurrency(note.totalAmount)}</dd>
           </div>
         </dl>
+        {noteDifferenceCents !== 0 && (
+          <p data-testid="note-total-difference" className="mt-3 text-sm text-amber-700">
+            Total do pedido difere do total da nota em {formatCents(noteDifferenceCents)} (arredondamento da nota).
+          </p>
+        )}
       </section>
+
+      {unsupported && (
+        <div role="alert" data-testid="unsupported-items" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {UNSUPPORTED_ITEMS_MESSAGE}
+        </div>
+      )}
 
       <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Fornecedor</h2>
@@ -198,7 +213,7 @@ function ReviewForm({ note }: { note: INfeImport }) {
             type="button"
             variant="outline"
             disabled={disabled}
-            onClick={() => setInstallments((current) => [...current, { dueDate: current[current.length - 1]?.dueDate ?? note.issueDate, amount: '' }])}
+            onClick={() => setInstallments((current) => [...current, { number: null, dueDate: current[current.length - 1]?.dueDate ?? note.issueDate, amount: '' }])}
           >
             <Plus size={16} />
             Adicionar parcela
@@ -208,6 +223,9 @@ function ReviewForm({ note }: { note: INfeImport }) {
         <ul className="space-y-2">
           {installments.map((row, position) => (
             <li key={position} className="flex flex-wrap items-end gap-3">
+              <div className="pb-2 text-sm text-gray-500">
+                Nº <span data-testid={`installment-number-${position}`}>{row.number ?? '—'}</span>
+              </div>
               <div>
                 <label htmlFor={`due-${position}`} className="mb-1 block text-xs font-medium text-gray-600">
                   Vencimento da parcela {position + 1}
@@ -264,7 +282,7 @@ function ReviewForm({ note }: { note: INfeImport }) {
         ) : (
           <span />
         )}
-        <Button type="button" onClick={submit} disabled={reason !== null || disabled}>
+        <Button type="button" onClick={submit} disabled={unsupported || reason !== null || disabled}>
           {disabled ? 'Confirmando...' : 'Confirmar importação'}
         </Button>
       </div>

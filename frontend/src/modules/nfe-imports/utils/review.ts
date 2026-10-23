@@ -30,6 +30,8 @@ export interface ItemDraft {
 }
 
 export interface InstallmentDraft {
+  /** The note's nDup; null for rows the user added or without a number in the note. */
+  number: string | null;
   dueDate: string;
   amount: string;
 }
@@ -58,9 +60,9 @@ export function initialItemDraft(item: INfeItem): ItemDraft {
 }
 
 export function initialInstallments(note: INfeImport): InstallmentDraft[] {
-  if (note.installments.length > 0) return note.installments.map((i) => ({ dueDate: i.dueDate, amount: fromCents(toCents(i.amount)).toFixed(2) }));
+  if (note.installments.length > 0) return note.installments.map((i) => ({ number: i.number, dueDate: i.dueDate, amount: fromCents(toCents(i.amount)).toFixed(2) }));
 
-  return [{ dueDate: note.issueDate, amount: fromCents(itemsTotalCents(note.items)).toFixed(2) }];
+  return [{ number: null, dueDate: note.issueDate, amount: fromCents(itemsTotalCents(note.items)).toFixed(2) }];
 }
 
 /** The purchase total the backend checks installments against: the sum of the items' costs (not vNF). */
@@ -186,7 +188,13 @@ export function buildConfirmBody(args: {
   };
 }
 
-/** Which item (note index) a confirm error refers to: field path "items.<n>..." or "item <n>" in the message. */
+export const UNSUPPORTED_ITEMS_MESSAGE = 'Esta nota tem itens que não compõem o total (indTot=0); a importação não é suportada.';
+
+/**
+ * Which item (note index) a confirm error refers to: field path "items.<n>..." or "item <n>" in the message
+ * (case-insensitive). The backend prefixes per-item errors with "Item <n>: " (catalog errors on confirm) or
+ * mentions "item <n>" (NFE_QUANTITY_NOT_INTEGER, NFE_UNSUPPORTED_ITEM, ...).
+ */
 export function errorItemIndex(error: { message: string; fieldErrors: Record<string, string> }, note: INfeImport): number | null {
   for (const field of Object.keys(error.fieldErrors)) {
     const match = /^items\.(\d+)\b/.exec(field);
