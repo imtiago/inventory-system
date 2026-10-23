@@ -1,5 +1,5 @@
 import { SaleReadRepository } from "@sales/application/contracts/SaleReadRepository";
-import { SaleDetailsDTO } from "@sales/application/dto/SaleDTO";
+import { SaleDetailDTO, SaleListItemDTO } from "@sales/application/dto/SaleDTO";
 import { SaleReadMapper } from "@sales/application/mappers/SaleReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -7,40 +7,35 @@ import { buildPaginatedResult } from "@shared/infrastructure/database/buildPagin
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
+const personSelect = { select: { id: true, name: true } } as const;
+
 export class PrismaSaleReadRepository implements SaleReadRepository {
-  async list(
-    pagination: PaginationRequest,
-  ): Promise<PaginatedResult<SaleDetailsDTO>> {
+  async list(pagination: PaginationRequest): Promise<PaginatedResult<SaleListItemDTO>> {
     const paginationOptions = buildPagination(pagination);
     const [sales, total] = await Promise.all([
       getDb().sale.findMany({
         ...paginationOptions,
-
         include: {
-          customer: true,
-          items: true,
+          customer: personSelect,
+          _count: { select: { items: true } },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       }),
       getDb().sale.count(),
     ]);
 
-    const dt = sales.map((sale) => SaleReadMapper.toDTO(sale));
-
-    return buildPaginatedResult(dt, total, pagination);
+    return buildPaginatedResult(sales.map(SaleReadMapper.toListItemDTO), total, pagination);
   }
 
-  async getById(id: string): Promise<SaleDetailsDTO | null> {
+  async getById(id: string): Promise<SaleDetailDTO | null> {
     const sale = await getDb().sale.findUnique({
       where: { id },
       include: {
-        customer: true,
+        customer: personSelect,
+        seller: personSelect,
         items: {
-          include: {
-            productVariant: true,
-          },
+          include: { productVariant: { select: { code: true } } },
+          orderBy: { id: "asc" },
         },
       },
     });
@@ -49,6 +44,25 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       return null;
     }
 
-    return SaleReadMapper.toDTO(sale);
+    // Documento de contas a receber gerado pela venda (origem SALE, originId = venda).
+    const receivable = await getDb().financialDocument.findFirst({
+      where: { type: "RECEIVABLE", originType: "SALE", originId: id },
+      select: {
+        id: true,
+        status: true,
+        parcels: {
+          select: {
+            id: true,
+            amount: true,
+            dueDate: true,
+            payments: { select: { amount: true } },
+          },
+          orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return SaleReadMapper.toDetailDTO(sale, receivable);
   }
 }

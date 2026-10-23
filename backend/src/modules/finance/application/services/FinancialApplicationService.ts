@@ -1,23 +1,18 @@
-import { CreateReceivable } from "../useCases/commands/CreateReceivableUseCase";
-import {
-  CreateFinancialServicenput,
-  FinancialService,
-} from "./FinacialService";
+import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
+import { CreateReceivableUseCase } from "../useCases/commands/CreateReceivableUseCase";
+import { CreateSaleReceivableInput, FinancialService } from "./FinacialService";
 
 export class FinancialApplicationService implements FinancialService {
-  constructor(private readonly createReceivableUseCase: CreateReceivable) {}
+  constructor(
+    private readonly createReceivableUseCase: Pick<CreateReceivableUseCase, "execute">,
+  ) {}
 
-  async createReceivable(
-    input: CreateFinancialServicenput,
-  ): Promise<void> {
-    await this.createReceivableUseCase.execute(
-      {
-        customerId: input.customerId,
-        originType: input.originType,
-        parcels: input.parcels,
-        originId: input.originId,
-        totalAmount: input.totalAmount,
-      }
-    );
+  async createSaleReceivable(input: CreateSaleReceivableInput): Promise<void> {
+    await this.createReceivableUseCase.execute({
+      originType: FinancialOriginType.SALE,
+      originId: input.saleId,
+      customerId: input.customerId,
+      parcels: input.parcels,
+    });
   }
 }

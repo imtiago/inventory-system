@@ -1,64 +1,34 @@
-// src/modules/sales/infrastructure/mappers/SaleMapper.ts
-
-import { Sale as PrismaSale, Prisma } from "@prisma/client";
-
+import { Sale as PrismaSale, SaleItem as PrismaSaleItem, Prisma } from "@prisma/client";
 import { SaleItemMapper } from "./SaleItemMapper";
 import { SaleStatusMapper } from "./SaleStatusMapper";
 import { Sale } from "@sales/domain/entities/Sale";
+import { fromCents } from "@shared/domain/money";
 
 export class SaleMapper {
   // Banco -> Domínio
-
-  static toDomain(
-    prisma: PrismaSale & {
-      items?: any[];
-    },
-  ): Sale {
+  static toDomain(prisma: PrismaSale & { items: PrismaSaleItem[] }): Sale {
     return new Sale({
       id: prisma.id,
-
       customerId: prisma.customerId,
-
+      sellerId: prisma.sellerId,
       status: SaleStatusMapper.toDomain(prisma.status),
-
       createdAt: prisma.createdAt,
-
-      // items: prisma.items?.map(SaleItemMapper.toDomain) ?? [],
-      items: [],
+      items: prisma.items.map(SaleItemMapper.toDomain),
     });
   }
 
   // Domínio -> Banco
-
-  static toCreatePersistence(sale: Sale): Prisma.SaleCreateInput {
+  static toCreatePersistence(sale: Sale): Prisma.SaleUncheckedCreateInput {
     return {
       id: sale.id,
-
-      totalAmount: sale.totalAmount,
-
+      customerId: sale.customerId,
+      sellerId: sale.sellerId,
+      totalAmount: fromCents(sale.totalAmountCents),
       status: SaleStatusMapper.toPrisma(sale.status),
-
       createdAt: sale.createdAt,
-
-      customer: {
-        connect: {
-          id: sale.customerId,
-        },
-      },
-
       items: {
         create: sale.items.map(SaleItemMapper.toCreatePersistence),
       },
-    };
-  }
-
-  // Update
-
-  static toUpdatePersistence(sale: Sale): Prisma.SaleUpdateInput {
-    return {
-      status: SaleStatusMapper.toPrisma(sale.status),
-
-      totalAmount: sale.totalAmount,
     };
   }
 }

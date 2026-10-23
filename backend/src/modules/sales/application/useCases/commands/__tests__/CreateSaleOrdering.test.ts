@@ -20,7 +20,7 @@ function build(variantIds: string[]) {
   const customerService = {
     getCustomer: async (id: string) => ({ id }),
   } as unknown as CustomerService;
-  const financialService: FinancialService = { createReceivable: async () => {} };
+  const financialService: FinancialService = { createSaleReceivable: async () => {} };
   const uc = new CreateSaleUseCase(
     saleRepository,
     new InMemoryTransactionManager(),
@@ -35,11 +35,11 @@ function build(variantIds: string[]) {
 test("CreateSale processa itens em ordem crescente de productVariantId", async () => {
   const { uc, calls } = build(["v-a", "v-b", "v-c"]);
   const items = [
-    { productVariantId: "v-c", quantity: 3, price: 1 },
-    { productVariantId: "v-a", quantity: 1, price: 1 },
-    { productVariantId: "v-b", quantity: 2, price: 1 },
+    { productVariantId: "v-c", quantity: 3 },
+    { productVariantId: "v-a", quantity: 1 },
+    { productVariantId: "v-b", quantity: 2 },
   ];
-  await uc.execute({ customerId: "c-1", items });
+  await uc.execute({ customerId: "c-1", sellerId: "u-1", items, paymentTerms: { installments: 1 } });
 
   assert.deepEqual(
     calls.map((c) => [c.productVariantId, c.quantity]),
@@ -53,10 +53,12 @@ test("venda com dois itens da mesma variante conclui", async () => {
   const { uc, calls } = build(["v-a", "v-b"]);
   await uc.execute({
     customerId: "c-1",
+    sellerId: "u-1",
+    paymentTerms: { installments: 1 },
     items: [
-      { productVariantId: "v-b", quantity: 1, price: 1 },
-      { productVariantId: "v-a", quantity: 2, price: 1 },
-      { productVariantId: "v-b", quantity: 4, price: 1 },
+      { productVariantId: "v-b", quantity: 1 },
+      { productVariantId: "v-a", quantity: 2 },
+      { productVariantId: "v-b", quantity: 4 },
     ],
   });
   assert.deepEqual(

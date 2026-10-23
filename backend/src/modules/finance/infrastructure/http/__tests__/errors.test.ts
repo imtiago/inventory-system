@@ -19,15 +19,19 @@ describe("Erros HTTP de finanças", () => {
   });
   const auth = () => ({ authorization: `Bearer ${token}` });
 
-  test("POST /receivables com corpo inválido → 400 VALIDATION_ERROR", async () => {
+  test("POST /receivables → 404 ROUTE_NOT_FOUND (rota removida)", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/receivables",
       headers: auth(),
-      payload: { totalAmount: -1, parcels: "x" },
+      payload: { totalAmount: 10, parcels: [] },
     });
-    assert.equal(res.statusCode, 400, res.body);
-    assert.equal(res.json().code, "VALIDATION_ERROR");
-    assert.ok(res.json().errors.length > 0);
+    assert.equal(res.statusCode, 404, res.body);
+    assert.equal(res.json().code, "ROUTE_NOT_FOUND");
+  });
+
+  test("GET /receivables continua disponível → 200", async () => {
+    const res = await app.inject({ method: "GET", url: "/receivables?page=1&limit=1", headers: auth() });
+    assert.equal(res.statusCode, 200, res.body);
   });
 });

@@ -276,7 +276,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const customerService = {
       getCustomer: async (id: string) => ({ id }),
     } as unknown as CustomerService;
-    const financialService: FinancialService = { createReceivable: async () => {} };
+    const financialService: FinancialService = { createSaleReceivable: async () => {} };
     return new CreateSaleUseCase(
       saleRepository,
       new PrismaTransactionManager(),
@@ -294,9 +294,11 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
 
     await sale.execute({
       customerId: "c-1",
+      sellerId: "u-1",
+      paymentTerms: { installments: 1 },
       items: [
-        { productVariantId: variantId, quantity: 2, price: 1 },
-        { productVariantId: variantId, quantity: 1, price: 1 },
+        { productVariantId: variantId, quantity: 2 },
+        { productVariantId: variantId, quantity: 1 },
       ],
     });
 
@@ -328,16 +330,20 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const results = await Promise.allSettled([
       sale1.execute({
         customerId: "c-1",
+        sellerId: "u-1",
+        paymentTerms: { installments: 1 },
         items: [
-          { productVariantId: a, quantity: 1, price: 1 },
-          { productVariantId: b, quantity: 1, price: 1 },
+          { productVariantId: a, quantity: 1 },
+          { productVariantId: b, quantity: 1 },
         ],
       }),
       sale2.execute({
         customerId: "c-1",
+        sellerId: "u-1",
+        paymentTerms: { installments: 1 },
         items: [
-          { productVariantId: b, quantity: 1, price: 1 },
-          { productVariantId: a, quantity: 1, price: 1 },
+          { productVariantId: b, quantity: 1 },
+          { productVariantId: a, quantity: 1 },
         ],
       }),
     ]);

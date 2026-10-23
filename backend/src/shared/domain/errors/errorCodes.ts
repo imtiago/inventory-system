@@ -30,6 +30,8 @@ export const ErrorCodes = {
   INVALID_PAYMENT_AMOUNT: "INVALID_PAYMENT_AMOUNT",
   INVALID_PRICE: "INVALID_PRICE",
   CONCURRENT_UPDATE: "CONCURRENT_UPDATE",
+  VARIANT_WITHOUT_PRICE: "VARIANT_WITHOUT_PRICE",
+  SALE_HAS_PAYMENTS: "SALE_HAS_PAYMENTS",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
