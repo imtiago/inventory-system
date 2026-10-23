@@ -16,6 +16,8 @@ export interface ICreateProductInput {
   description?: string | null;
   brandId: string;
   categoryId: string;
+  /** Variante inicial; ausente → variante "Padrão" sem código de barras e preço 0. */
+  variant?: { name: string; barcode?: string | null; salePrice?: number };
 }
 
 export interface IUpdateProductInput {

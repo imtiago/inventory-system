@@ -67,6 +67,18 @@ export class PrismaNfeImportRepository implements NfeImportRepository {
     await getDb().nfeImport.update({ where: { id }, data: contentOf(document) });
   }
 
+  async findDocument(id: string): Promise<NfeDocument | null> {
+    const row = await getDb().nfeImport.findUnique({ where: { id }, select: { payload: true } });
+    return row ? (row.payload as unknown as NfeDocument) : null;
+  }
+
+  async markConfirmed({ id, purchaseId, confirmedById }: { id: string; purchaseId: string; confirmedById: string }) {
+    await getDb().nfeImport.update({
+      where: { id },
+      data: { status: "CONFIRMED", purchaseId, confirmedById, confirmedAt: new Date() },
+    });
+  }
+
   async delete(id: string): Promise<void> {
     await getDb().nfeImport.delete({ where: { id } });
   }

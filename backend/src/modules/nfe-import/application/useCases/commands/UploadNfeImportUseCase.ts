@@ -1,6 +1,6 @@
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { NfeDocument } from "@nfe-import/domain/NfeDocument";
-import { nfeAlreadyImported, unsupportedFileType } from "@nfe-import/domain/errors/nfeImportErrors";
+import { concurrentUpload, nfeAlreadyImported, unsupportedFileType } from "@nfe-import/domain/errors/nfeImportErrors";
 import { NfeDocumentParser } from "../../contracts/NfeDocumentParser";
 import { NfeImportAccessKeyTaken, NfeImportRepository } from "../../contracts/NfeImportRepository";
 import { NfeImportDTO } from "../../dto/NfeImportDTO";
@@ -26,6 +26,7 @@ const PDF_SIGNATURE = Buffer.from("%PDF");
  * Dois envios simultâneos de uma chave nova: o segundo INSERT falha na unicidade
  * (sua transação aborta); repetimos uma vez numa transação nova, que agora encontra
  * o rascunho do primeiro e segue o caminho de substituição (ou 409 se já confirmado).
+ * Se a repetição também perder a corrida → 409 CONCURRENT_UPDATE.
  */
 export class UploadNfeImportUseCase {
   constructor(
@@ -45,7 +46,13 @@ export class UploadNfeImportUseCase {
       saved = await this.save(document, userId);
     } catch (e) {
       if (!(e instanceof NfeImportAccessKeyTaken)) throw e;
-      saved = await this.save(document, userId);
+      try {
+        saved = await this.save(document, userId);
+      } catch (retryError) {
+        // Perdeu a corrida de novo (rascunho criado e apagado entre as tentativas): 409, não 500.
+        if (retryError instanceof NfeImportAccessKeyTaken) throw concurrentUpload();
+        throw retryError;
+      }
     }
     return { created: saved.created, nfeImport: await this.getNfeImport.execute(saved.id) };
   }

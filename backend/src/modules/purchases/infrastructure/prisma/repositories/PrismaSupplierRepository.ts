@@ -35,6 +35,17 @@ export class PrismaSupplierRepository implements SupplierRepository {
     return SupplierMapper.toDomain(created);
   }
 
+  async createOrGetByDocument(supplier: Supplier): Promise<Supplier> {
+    // ON CONFLICT DO NOTHING espera a transação concorrente com o mesmo documento e não
+    // aborta a nossa (um P2002 abortaria); o SELECT seguinte (novo snapshot) vê a linha dela.
+    await getDb().$executeRaw`
+      INSERT INTO "Supplier" ("id", "name", "document", "email", "phone", "createdAt", "updatedAt")
+      VALUES (${supplier.id}, ${supplier.name}, ${supplier.document}, ${supplier.email}, ${supplier.phone}, now(), now())
+      ON CONFLICT ("document") DO NOTHING`;
+    const row = await getDb().supplier.findUniqueOrThrow({ where: { document: supplier.document } });
+    return SupplierMapper.toDomain(row);
+  }
+
   async update(id: string, patch: SupplierPatchData): Promise<Supplier> {
     const updated = await getDb()
       .supplier.update({

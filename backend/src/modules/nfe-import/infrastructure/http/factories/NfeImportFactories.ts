@@ -1,5 +1,9 @@
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { NfeSuggestionService } from "@nfe-import/application/services/NfeSuggestionService";
+import { makeCatalogService, makeCatalogWriteService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
+import { makePurchaseCreator, makeReceivePurchaseUseCase } from "@purchases/infrastructure/http/factories/PurchaseFactories";
+import { PrismaSupplierRepository } from "@purchases/infrastructure/prisma/repositories/PrismaSupplierRepository";
+import { ConfirmNfeImportUseCase } from "@nfe-import/application/useCases/commands/ConfirmNfeImportUseCase";
 import { DiscardNfeImportUseCase } from "@nfe-import/application/useCases/commands/DiscardNfeImportUseCase";
 import { UploadNfeImportUseCase } from "@nfe-import/application/useCases/commands/UploadNfeImportUseCase";
 import { GetNfeImportUseCase } from "@nfe-import/application/useCases/queries/GetNfeImportUseCase";
@@ -8,6 +12,7 @@ import { NfeParser } from "../../parser/NfeParser";
 import { PrismaNfeImportReadRepository } from "../../prisma/PrismaNfeImportReadRepository";
 import { PrismaNfeImportRepository } from "../../prisma/PrismaNfeImportRepository";
 import { PrismaNfeSuggestionLookup } from "../../prisma/PrismaNfeSuggestionLookup";
+import { PrismaSupplierProductMappingRepository } from "../../prisma/PrismaSupplierProductMappingRepository";
 
 export const makeGetNfeImportUseCase = () =>
   new GetNfeImportUseCase(
@@ -27,3 +32,19 @@ export const makeUploadNfeImportUseCase = () =>
 
 export const makeDiscardNfeImportUseCase = () =>
   new DiscardNfeImportUseCase(new PrismaNfeImportRepository(), new PrismaTransactionManager());
+
+/**
+ * Confirmação: transação com prazo maior (cria catálogo, pedido, contas a pagar e estoque de uma vez);
+ * lock_timeout maior para a confirmação concorrente esperar a primeira e responder NFE_IMPORT_CONFIRMED.
+ */
+export const makeConfirmNfeImportUseCase = () =>
+  new ConfirmNfeImportUseCase(
+    new PrismaNfeImportRepository(),
+    new PrismaSupplierRepository(),
+    makeCatalogService(),
+    makeCatalogWriteService(),
+    new PrismaSupplierProductMappingRepository(),
+    makePurchaseCreator(),
+    makeReceivePurchaseUseCase(),
+    new PrismaTransactionManager({ timeout: 30_000, lockTimeoutMs: 15_000 }),
+  );

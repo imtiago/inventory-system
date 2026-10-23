@@ -1,12 +1,16 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { parseInput } from "@shared/http/parseInput";
 import { HttpResponse } from "@shared/http/response";
-import { fileRequired } from "@nfe-import/domain/errors/nfeImportErrors";
+import { hasPermission } from "@shared/auth/permissions";
+import { ForbiddenError } from "@shared/domain/errors";
+import { fileRequired, fileTooLarge } from "@nfe-import/domain/errors/nfeImportErrors";
 import {
+  confirmNfeImportBodySchema,
   listNfeImportsSchema,
   nfeImportIdParamsSchema,
 } from "@nfe-import/interfaces/http/schemas/nfeImportSchemas";
 import {
+  makeConfirmNfeImportUseCase,
   makeDiscardNfeImportUseCase,
   makeGetNfeImportUseCase,
   makeListNfeImportsUseCase,
@@ -22,7 +26,10 @@ async function readUploadedFile(request: FastifyRequest): Promise<Buffer> {
     part.file.resume();
     throw fileRequired();
   }
-  return part.toBuffer();
+  const content = await part.toBuffer();
+  // Acima de 10 MB o conteúdo vem cortado (throwFileSizeLimit: false no registro).
+  if (part.file.truncated) throw fileTooLarge();
+  return content;
 }
 
 export function makeUploadNfeImportController() {
@@ -56,5 +63,17 @@ export function makeDiscardNfeImportController() {
     const { id } = parseInput(nfeImportIdParamsSchema, request.params);
     await useCase.execute({ id });
     return reply.status(204).send();
+  };
+}
+
+export function makeConfirmNfeImportController() {
+  const useCase = makeConfirmNfeImportUseCase();
+  return async function ConfirmNfeImportController(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = parseInput(nfeImportIdParamsSchema, request.params);
+    const body = parseInput(confirmNfeImportBodySchema, request.body);
+    // A rota exige purchases.write; dar entrada no estoque exige também purchases.receive.
+    if (body.receive && !hasPermission(request.user!.role, "purchases.receive")) throw new ForbiddenError();
+    const result = await useCase.execute({ id, userId: request.user!.sub, ...body });
+    return reply.status(201).send(HttpResponse.created(result));
   };
 }

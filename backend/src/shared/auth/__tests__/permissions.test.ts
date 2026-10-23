@@ -100,6 +100,8 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["purchases.write", { method: "GET", url: "/nfe-imports?limit=1", allowed: 200 }],
   ["purchases.write", { method: "GET", url: `/nfe-imports/${missing}`, allowed: 404 }],
   ["purchases.write", { method: "DELETE", url: `/nfe-imports/${missing}`, allowed: 404 }],
+  // Confirmação: corpo validado antes de buscar o rascunho → 400 sem gravar nada.
+  ["purchases.write", { method: "POST", url: `/nfe-imports/${missing}/confirm`, payload: {}, allowed: 400 }],
   ["payables.read", { method: "GET", url: `/payables/${missing}`, allowed: 404 }],
 ];
 
