@@ -16,7 +16,7 @@ const nameSchema = z
       .max(120, "O nome deve ter no máximo 120 caracteres."),
   );
 
-/** Aceita com ou sem máscara; guarda só dígitos (CPF 11 ou CNPJ 14, dígitos verificadores válidos). */
+/** Aceita com ou sem máscara; guarda normalizado (CPF 11 dígitos ou CNPJ 14 posições, numérico ou alfanumérico em maiúsculas; DVs válidos). */
 const documentSchema = z
   .string({ error: "O documento é obrigatório." })
   .transform(normalizeDocument)

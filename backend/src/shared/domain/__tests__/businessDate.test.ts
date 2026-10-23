@@ -24,3 +24,15 @@ describe("todayInBusinessTz", () => {
     assert.equal(parsed.success, true);
   });
 });
+
+describe("businessDateOfInstant", () => {
+  test("data-hora ISO com fuso → data no fuso de negócio", async () => {
+    const { businessDateOfInstant } = await import("../businessDate");
+    assert.equal(businessDateOfInstant("2026-10-23T23:30:00-03:00"), "2026-10-23");
+    assert.equal(businessDateOfInstant("2026-10-24T02:30:00Z"), "2026-10-23");
+    assert.equal(businessDateOfInstant("2026-10-24T01:30:00-01:00"), "2026-10-23");
+    assert.equal(businessDateOfInstant("2026-10-23T23:30:00"), null, "sem fuso é ambíguo");
+    assert.equal(businessDateOfInstant("23/10/2026"), null);
+    assert.equal(businessDateOfInstant("2026-13-40T10:00:00-03:00"), null);
+  });
+});

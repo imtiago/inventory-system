@@ -1,4 +1,4 @@
-import { InternalErrorCodes, InternalInvariantError, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes, InternalErrorCodes, InternalInvariantError, NotFoundError } from "@shared/domain/errors";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
@@ -47,9 +47,21 @@ export class CreateProductUseCase extends TransactionalUseCase<
       }),
     );
 
-    // Variante padrão: todo produto nasce com uma variante.
+    // Todo produto nasce com uma variante: a informada (nome/código de barras/preço) ou a "Padrão".
+    const initial = request.variant;
+    if (initial?.barcode && (await this.variantRepo.findByBarcode(initial.barcode))) {
+      throw new ConflictError("Código de barras já cadastrado.", ErrorCodes.BARCODE_ALREADY_EXISTS);
+    }
     const variantCode = await this.numberGenerator.generate(NumberRangeName.PRODUCT_VARIANT, "V");
-    await this.variantRepo.create(new ProductVariant({ code: variantCode, productId: created.id }));
+    await this.variantRepo.create(
+      new ProductVariant({
+        code: variantCode,
+        productId: created.id,
+        name: initial?.name,
+        barcode: initial?.barcode ?? null,
+        salePrice: initial?.salePrice,
+      }),
+    );
 
     // Leitura dentro da mesma transação.
     const detail = await this.productReadRepo.getById(created.id);

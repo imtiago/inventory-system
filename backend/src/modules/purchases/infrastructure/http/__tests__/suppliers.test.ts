@@ -7,7 +7,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
-import { randomCnpj, randomCpf } from "../../../../../test/documentFixtures";
+import { randomAlphanumericCnpj, randomCnpj, randomCpf } from "../../../../../test/documentFixtures";
 
 app.log.level = "silent";
 
@@ -97,6 +97,23 @@ describe("Fornecedores (/suppliers)", () => {
     assert.equal(full.statusCode, 201);
     assert.equal(full.json().data.email, "contato@acme.com");
     assert.equal(full.json().data.phone, "11987654321");
+  });
+
+  test("CNPJ alfanumérico: aceito com máscara/minúsculas, gravado em maiúsculas; busca pelo valor normalizado", async () => {
+    const cnpj = randomAlphanumericCnpj();
+    const res = await create({ name: tag(), document: maskCnpj(cnpj).toLowerCase() });
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.json().data.document, cnpj);
+    assert.equal(res.json().data.documentType, "CNPJ");
+
+    const byMasked = await call("GET", `/suppliers?search=${encodeURIComponent(maskCnpj(cnpj).toLowerCase())}`, admin);
+    assert.deepEqual(byMasked.json().data.map((s: { id: string }) => s.id), [res.json().data.id]);
+    // Últimas 8 posições: sempre incluem os DVs numéricos (um trecho só de letras não busca por documento).
+    const byFragment = await call("GET", `/suppliers?search=${encodeURIComponent(cnpj.slice(6).toLowerCase())}`, admin);
+    assert.ok(byFragment.json().data.some((s: { id: string }) => s.id === res.json().data.id));
+
+    const wrongDv = `${cnpj.slice(0, 13)}${(Number(cnpj[13]) + 1) % 10}`;
+    assert.equal((await create({ name: tag(), document: wrongDv })).statusCode, 400);
   });
 
   test("documento inválido → 400 VALIDATION_ERROR com erro em document; nome curto e e-mail inválido → 400", async () => {

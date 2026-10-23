@@ -34,3 +34,20 @@ export function randomCnpj(): string {
     return [...base, d1, d2].join("");
   }
 }
+
+/** CNPJ alfanumérico válido (12 posições [0-9A-Z] com ao menos uma letra + 2 DVs numéricos). */
+export function randomAlphanumericCnpj(): string {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const dv = (s: string, w: number[]) => {
+    const rest = [...s].reduce((acc, c, i) => acc + (c.charCodeAt(0) - 48) * w[i], 0) % 11;
+    return rest < 2 ? 0 : 11 - rest;
+  };
+  for (;;) {
+    const base = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    if (!/[A-Z]/.test(base)) continue;
+    const d1 = dv(base, w1);
+    return `${base}${d1}${dv(`${base}${d1}`, w2)}`;
+  }
+}

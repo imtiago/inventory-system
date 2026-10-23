@@ -6,6 +6,7 @@ import { receivablesRoutes } from "@/modules/receivables/routes";
 import { payablesRoutes } from "@/modules/payables/routes";
 import { supplierRoutes } from "@/modules/suppliers/routes";
 import { purchaseRoutes } from "@/modules/purchases/routes";
+import { nfeImportRoutes } from "@/modules/nfe-imports/routes";
 import { dashboardRoutes } from "@/modules/dashboard/routes";
 import { usersRoutes } from "@/modules/users/routes";
 import { brandRoutes } from "@/modules/brands/routes";
@@ -23,6 +24,7 @@ export const allRoutes: AppRoute[] = [
   ...inventoryRoutes,
   ...supplierRoutes,
   ...purchaseRoutes,
+  ...nfeImportRoutes,
   ...receivablesRoutes,
   ...payablesRoutes,
   ...usersRoutes,

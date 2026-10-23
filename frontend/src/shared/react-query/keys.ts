@@ -11,6 +11,8 @@ export const queryKeys = {
 
   purchases: ['purchases'] as const,
 
+  nfeImports: ['nfe-imports'] as const,
+
   products: ['products'] as const,
 
   customers: ['customers'] as const,

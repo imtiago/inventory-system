@@ -12,6 +12,17 @@ function axiosError(status: number, data: unknown): AxiosError {
 }
 
 describe('parseApiError', () => {
+  test('carrega details quando o corpo traz um objeto', async () => {
+    const result = await parseApiError(axiosError(409, { message: 'Nota já importada.', code: 'NFE_ALREADY_IMPORTED', details: { purchaseId: 'pc-1' } }));
+
+    expect(result.details).toEqual({ purchaseId: 'pc-1' });
+  });
+
+  test('details é omitido quando ausente ou não é objeto', async () => {
+    expect((await parseApiError(axiosError(409, { message: 'x', code: 'X' }))).details).toBeUndefined();
+    expect((await parseApiError(axiosError(409, { message: 'x', code: 'X', details: 'texto' }))).details).toBeUndefined();
+  });
+
   test('lê {message, code, errors}', async () => {
     const result = await parseApiError(axiosError(400, validation));
 

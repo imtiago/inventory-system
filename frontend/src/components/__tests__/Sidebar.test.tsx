@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 
 import { Sidebar } from '../Sidebar';
 import { createTestQueryClient } from '@/test/render';
@@ -23,7 +23,7 @@ function renderSidebar(role: UserRole, client = createTestQueryClient()) {
   return client;
 }
 
-const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra', 'Financeiro', 'Contas a receber', 'Contas a pagar'];
+const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra', 'Importar NF-e', 'Financeiro', 'Contas a receber', 'Contas a pagar'];
 
 function visible() {
   return labels.filter((l) => screen.queryByText(l));
@@ -43,7 +43,7 @@ describe('Sidebar', () => {
 
   test('VENDEDOR vê tudo exceto Usuários, Compras e Contas a pagar', () => {
     renderSidebar('VENDEDOR');
-    expect(visible()).toEqual(labels.filter((l) => !['Compras', 'Fornecedores', 'Pedidos de compra', 'Contas a pagar'].includes(l)));
+    expect(visible()).toEqual(labels.filter((l) => !['Compras', 'Fornecedores', 'Pedidos de compra', 'Importar NF-e', 'Contas a pagar'].includes(l)));
     expect(screen.queryByText('Usuários')).not.toBeInTheDocument();
     expect(screen.getByText('Contas a receber')).toBeInTheDocument();
   });
@@ -53,6 +53,15 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Compras')).not.toBeInTheDocument();
     expect(screen.queryByText('Fornecedores')).not.toBeInTheDocument();
     expect(screen.queryByText('Pedidos de compra')).not.toBeInTheDocument();
+    expect(screen.queryByText('Importar NF-e')).not.toBeInTheDocument();
+  });
+
+  test('só ADMIN vê Importar NF-e', () => {
+    renderSidebar('ADMIN');
+    expect(screen.getByText('Importar NF-e')).toBeInTheDocument();
+    cleanup();
+    renderSidebar('ESTOQUISTA');
+    expect(screen.queryByText('Importar NF-e')).not.toBeInTheDocument();
   });
 
   test('ESTOQUISTA não vê Contas a pagar', () => {

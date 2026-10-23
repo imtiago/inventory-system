@@ -4,6 +4,7 @@ import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { normalizeDocument } from "@shared/domain/document";
 import {
   SupplierListFilters,
   SupplierReadRepository,
@@ -11,7 +12,7 @@ import {
 import { SupplierDTO } from "@purchases/application/dto/SupplierDTO";
 import { SupplierReadMapper } from "@purchases/application/mappers/SupplierReadMapper";
 
-/** Busca por documento só a partir de 3 dígitos, para não casar com qualquer coisa. */
+/** Busca por documento só a partir de 3 caracteres, para não casar com qualquer coisa. */
 const MIN_DOCUMENT_SEARCH_DIGITS = 3;
 
 function buildWhere(search?: string): Prisma.SupplierWhereInput {
@@ -24,13 +25,17 @@ function buildWhere(search?: string): Prisma.SupplierWhereInput {
   const contains = (field: "name" | "email") => ({
     [field]: { contains: literal, mode: "insensitive" as const },
   });
-  const digits = term.replace(/\D/g, "");
+  // Documento: termo só com dígitos (e máscara) casa pelos dígitos, como antes; termo
+  // com letras e dígitos (CNPJ alfanumérico) casa pelo valor normalizado em maiúsculas.
+  const normalized = normalizeDocument(term);
+  const isAlphanumeric = /[A-Z]/.test(normalized) && /\d/.test(normalized);
+  const documentTerm = isAlphanumeric ? normalized : term.replace(/\D/g, "");
 
   return {
     OR: [
       contains("name"),
       contains("email"),
-      ...(digits.length >= MIN_DOCUMENT_SEARCH_DIGITS ? [{ document: { contains: digits } }] : []),
+      ...(documentTerm.length >= MIN_DOCUMENT_SEARCH_DIGITS ? [{ document: { contains: documentTerm } }] : []),
     ],
   };
 }

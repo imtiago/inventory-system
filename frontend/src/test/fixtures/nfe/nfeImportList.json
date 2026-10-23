@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "id": "3b6f1c2e-8a4d-4e7b-9c1a-2d5e8f0a1b30",
+      "accessKey": "35261011222333000181550010000123451123456784",
+      "status": "DRAFT",
+      "number": "12345",
+      "series": "1",
+      "issueDate": "2026-10-23",
+      "totalAmount": 397.09,
+      "supplier": {
+        "document": "11222333000181",
+        "name": "Distribuidora Exemplo Ltda"
+      },
+      "itemsCount": 3,
+      "purchaseId": null,
+      "createdAt": "2026-10-23T14:10:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}

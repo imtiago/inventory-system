@@ -17,3 +17,20 @@ export function todayInBusinessTz(now: Date = new Date()): string {
 export function businessTodayAsUtcDate(now: Date = new Date()): Date {
   return new Date(`${todayInBusinessTz(now)}T00:00:00.000Z`);
 }
+
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Data ("YYYY-MM-DD") no fuso de negócio de uma data-hora ISO com fuso explícito
+ * (ex.: `dhEmi` da NF-e). Sem fuso, formato inválido ou data inexistente → null.
+ */
+export function businessDateOfInstant(iso: string): string | null {
+  if (!ISO_INSTANT.test(iso)) return null;
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return null;
+  // Date normaliza dias inexistentes (31/02 → 03/03): confere a data local declarada.
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const declared = new Date(Date.UTC(y, m - 1, d));
+  if (declared.getUTCFullYear() !== y || declared.getUTCMonth() !== m - 1 || declared.getUTCDate() !== d) return null;
+  return todayInBusinessTz(instant);
+}

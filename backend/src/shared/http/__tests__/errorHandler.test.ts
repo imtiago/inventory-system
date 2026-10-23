@@ -135,6 +135,20 @@ test("InternalInvariantError → 500 sem vazar mensagem", async () => {
   assert.deepEqual(r.body, { message: "Erro interno do servidor.", code: "INTERNAL_ERROR" });
 });
 
+test("DomainError com details → details no corpo; sem details → corpo sem a chave", async () => {
+  const withDetails = await call(
+    () => new ConflictError("Esta NF-e já foi importada.", "NFE_ALREADY_IMPORTED", { purchaseId: "p1", importId: "i1" }),
+  );
+  assert.equal(withDetails.status, 409);
+  assert.deepEqual(withDetails.body, {
+    message: "Esta NF-e já foi importada.",
+    code: "NFE_ALREADY_IMPORTED",
+    details: { purchaseId: "p1", importId: "i1" },
+  });
+  const plain = await call(() => new ConflictError("Conflito.", "CONFLICT"));
+  assert.deepEqual(plain.body, { message: "Conflito.", code: "CONFLICT" });
+});
+
 test("ValidationError aceita código customizado", async () => {
   const errors = [{ field: "file", message: "Arquivo obrigatório." }];
   const r = await call(() => new ValidationError("Arquivo obrigatório.", errors, "FILE_REQUIRED"));

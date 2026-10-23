@@ -89,7 +89,12 @@ export function errorHandler(
   if (error instanceof DomainError) {
     const status = domainStatus(error);
     if (status < 500) {
-      return reply.status(status).send({ message: error.message, code: error.code });
+      // `details` (opcional) só aparece quando o erro traz dados extras (ex.: NFE_ALREADY_IMPORTED).
+      return reply.status(status).send({
+        message: error.message,
+        code: error.code,
+        ...(error.details !== undefined ? { details: error.details } : {}),
+      });
     }
   }
 

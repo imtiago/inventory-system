@@ -1,4 +1,5 @@
 export { DomainError } from "./DomainError";
+export type { ErrorDetails } from "./DomainError";
 export { NotFoundError } from "./NotFoundError";
 export { ConflictError } from "./ConflictError";
 export { BusinessRuleError } from "./BusinessRuleError";

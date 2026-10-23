@@ -47,6 +47,37 @@ describe('SupplierListPage', () => {
     await waitFor(() => expect(posted).toEqual({ name: 'Fornecedor Novo', document: '11222333000181', phone: '11987654321' }));
   });
 
+  test('criar aceita CNPJ alfanumérico: maiúsculo, máscara e envio sem pontuação', async () => {
+    server.use(
+      http.post(`${API_URL}/suppliers`, async ({ request }) => {
+        posted = await request.json();
+        return HttpResponse.json({ data: {} }, { status: 201 });
+      }),
+    );
+    renderWithProviders(<SupplierListPage />);
+    await screen.findByText('Distribuidora Acme Ltda');
+
+    await userEvent.click(screen.getByRole('button', { name: /Novo fornecedor/ }));
+    await userEvent.type(screen.getByLabelText(/Nome/), 'Fornecedor Alfa');
+    await userEvent.type(screen.getByLabelText(/Documento/), 'ab12cde3000135');
+    expect(screen.getByLabelText(/Documento/)).toHaveValue('AB.12C.DE3/0001-35');
+    await userEvent.click(screen.getByRole('button', { name: 'Cadastrar fornecedor' }));
+
+    await waitFor(() => expect(posted).toEqual({ name: 'Fornecedor Alfa', document: 'AB12CDE3000135' }));
+  });
+
+  test('CNPJ alfanumérico com dígitos verificadores não numéricos é recusado', async () => {
+    renderWithProviders(<SupplierListPage />);
+    await screen.findByText('Distribuidora Acme Ltda');
+
+    await userEvent.click(screen.getByRole('button', { name: /Novo fornecedor/ }));
+    await userEvent.type(screen.getByLabelText(/Nome/), 'Fornecedor Alfa');
+    await userEvent.type(screen.getByLabelText(/Documento/), 'AB12CDE30001XY');
+    await userEvent.click(screen.getByRole('button', { name: 'Cadastrar fornecedor' }));
+
+    expect(await screen.findByText(/CPF \(11 dígitos\) ou CNPJ/)).toBeInTheDocument();
+  });
+
   test('409 de documento duplicado aparece no campo documento', async () => {
     server.use(
       http.post(`${API_URL}/suppliers`, () =>

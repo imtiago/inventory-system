@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
-import { maskDocument, maskSupplierPhone } from '../utils/formatDocument';
+import { isValidDocumentFormat, maskDocument, maskSupplierPhone } from '../utils/formatDocument';
 import type { ISupplier } from '../types';
 import type { SupplierFormValues } from '../utils/diffSupplier';
 
@@ -75,14 +75,10 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
           <input
             id="supplier-document"
             type="text"
-            inputMode="numeric"
             maxLength={18}
             aria-invalid={errors.document ? 'true' : undefined}
             {...register('document', {
-              validate: (value) => {
-                const length = value.replace(/\D/g, '').length;
-                return length === 11 || length === 14 || 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).';
-              },
+              validate: (value) => isValidDocumentFormat(value) || 'Informe um CPF (11 dígitos) ou CNPJ (14 caracteres, os 2 últimos numéricos).',
               onChange: (event) => {
                 const input = event.target as HTMLInputElement;
                 input.value = maskDocument(input.value);

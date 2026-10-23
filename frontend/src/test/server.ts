@@ -6,5 +6,6 @@ import { payablesHandlers } from './handlers/payables';
 import { authHandlers } from './auth';
 import { usersHandlers } from './handlers/users';
 import { purchasesHandlers } from './handlers/purchases';
+import { nfeHandlers } from './handlers/nfe';
 
-export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...payablesHandlers, ...authHandlers, ...usersHandlers, ...purchasesHandlers);
+export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...payablesHandlers, ...authHandlers, ...usersHandlers, ...purchasesHandlers, ...nfeHandlers);
