@@ -1,8 +1,7 @@
-// infrastructure/prisma/queries/PrismaProductQuery.ts
-
+import { Prisma } from "@prisma/client";
 import { ProductListFilters } from "@catalog/application/contracts/ProductListFilters";
 import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
-import { ProductListDTO } from "@catalog/application/dto/ProductDTO";
+import { ProductDetailDTO, ProductListItemDTO } from "@catalog/application/dto/ProductDTO";
 import { ProductReadMapper } from "@catalog/application/mappers/ProductReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -10,76 +9,56 @@ import { buildPaginatedResult } from "@shared/infrastructure/database/buildPagin
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
+const productReadInclude = {
+  brand: { select: { id: true, name: true } },
+  category: { select: { id: true, name: true } },
+  _count: { select: { variants: true } },
+} satisfies Prisma.ProductInclude;
+
+function buildWhere(filters?: ProductListFilters): Prisma.ProductWhereInput {
+  const and: Prisma.ProductWhereInput[] = [];
+  const search = filters?.search?.trim();
+  if (search) {
+    const contains = { contains: search, mode: "insensitive" as const };
+    and.push({
+      OR: [
+        { name: contains },
+        { code: contains },
+        { variants: { some: { barcode: contains } } },
+      ],
+    });
+  }
+  if (filters?.brandId) and.push({ brandId: filters.brandId });
+  if (filters?.categoryId) and.push({ categoryId: filters.categoryId });
+  return and.length > 0 ? { AND: and } : {};
+}
+
 export class PrismaProductReadRepository implements ProductReadRepository {
   async list(
     pagination: PaginationRequest,
     filters?: ProductListFilters,
-  ): Promise<PaginatedResult<ProductListDTO>> {
-    const paginationOptions = buildPagination(pagination);
-    const search = filters?.search?.trim();
-
-    const where = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              code: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-          ],
-        }
-      : {};
+  ): Promise<PaginatedResult<ProductListItemDTO>> {
+    const where = buildWhere(filters);
 
     const [products, total] = await Promise.all([
       getDb().product.findMany({
-        ...paginationOptions,
-
+        ...buildPagination(pagination),
         where,
-
-        include: {
-          brand: true,
-          category: true,
-          _count: {
-            select: {
-              variants: true,
-            },
-          },
-        },
-
-        orderBy: {
-          name: "asc",
-        },
+        include: productReadInclude,
+        orderBy: [{ name: "asc" }, { id: "asc" }],
       }),
-
-      getDb().product.count({
-        where,
-      }),
+      getDb().product.count({ where }),
     ]);
 
-    const dt = products.map((product) => ProductReadMapper.toDTO(product));
-    return buildPaginatedResult(dt, total, pagination);
+    return buildPaginatedResult(products.map(ProductReadMapper.toDTO), total, pagination);
   }
 
-  async getById(id: string): Promise<ProductListDTO | null> {
+  async getById(id: string): Promise<ProductDetailDTO | null> {
     const product = await getDb().product.findUnique({
       where: { id },
-
-      include: {
-        brand: true,
-        category: true,
-        _count: true,
-      },
+      include: productReadInclude,
     });
 
-    if (!product) return null;
-
-    return ProductReadMapper.toDTO(product);
+    return product ? ProductReadMapper.toDTO(product) : null;
   }
 }

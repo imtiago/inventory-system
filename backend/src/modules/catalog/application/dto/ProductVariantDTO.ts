@@ -14,6 +14,9 @@ export interface ProductVariantDTO {
   createdAt: Date;
 }
 
+/** Contrato HTTP da variante (spec 4B). */
+export type VariantDTO = ProductVariantDTO;
+
 export interface ICreateVariantInput {
   productId: string;
   name: string;

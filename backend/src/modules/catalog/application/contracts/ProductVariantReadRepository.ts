@@ -1,12 +1,8 @@
-// application/queries/ProductQuery.ts
-
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { ProductVariantDTO } from "../dto/ProductVariantDTO";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
+import { ProductVariantDTO } from "../dto/ProductVariantDTO";
 
 export interface ProductVariantReadRepository {
-  list(pagination: PaginationRequest): Promise<ProductVariantDTO>;
-
   getByProductId(
     productId: string,
     pagination: PaginationRequest,

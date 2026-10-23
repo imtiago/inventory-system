@@ -1,5 +1,3 @@
-// infrastructure/prisma/queries/PrismaProductQuery.ts
-
 import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
 import { ProductVariantDTO } from "@catalog/application/dto/ProductVariantDTO";
 import { ProductVariantReadMapper } from "@catalog/application/mappers/ProductVariantReadMapper";
@@ -25,9 +23,7 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
         include: {
           product: true,
         },
-        orderBy: {
-          name: "asc",
-        },
+        orderBy: [{ name: "asc" }, { id: "asc" }],
       }),
       getDb().productVariant.count({
         where: {
@@ -38,30 +34,6 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
     const dt = productsVariant.map((variant) =>
       ProductVariantReadMapper.toDTO(variant),
     );
-    return buildPaginatedResult(dt, total, pagination);
-  }
-
-  async list(
-    pagination: PaginationRequest,
-  ): Promise<PaginatedResult<ProductVariantDTO>> {
-    const paginationOptions = buildPagination(pagination);
-
-    const [productsVariant, total] = await Promise.all([
-      getDb().productVariant.findMany({
-        ...paginationOptions,
-        include: {
-          product: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
-      }),
-      getDb().productVariant.count(),
-    ]);
-    const dt = productsVariant.map((variant) =>
-      ProductVariantReadMapper.toDTO(variant),
-    );
-
     return buildPaginatedResult(dt, total, pagination);
   }
 
