@@ -34,7 +34,7 @@ interface Last7Row {
 interface TopRow {
   productVariantId: string;
   label: string;
-  quantity: number;
+  quantity: bigint;
   total: string;
 }
 interface FinancialRow {
@@ -98,7 +98,7 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
       db.$queryRaw<TopRow[]>`
         SELECT v.id AS "productVariantId",
                p.name || ' — ' || v.name AS label,
-               SUM(si.quantity)::int AS quantity,
+               SUM(si.quantity)::bigint AS quantity,
                SUM(si.quantity * si."unitPrice")::text AS total
         FROM "SaleItem" si
         JOIN "Sale" s ON s.id = si."saleId"
@@ -120,7 +120,7 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
         (r): TopVariantDTO => ({
           productVariantId: r.productVariantId,
           label: r.label,
-          quantity: r.quantity,
+          quantity: Number(r.quantity),
           total: money(r.total),
         }),
       ),

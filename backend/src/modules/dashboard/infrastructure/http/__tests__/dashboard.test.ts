@@ -8,13 +8,19 @@ import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
+import { makeGetDashboardUseCase } from "../factories/GetDashboardFactory";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 
 const FIXTURE = new URL("../../../../../../../frontend/src/test/fixtures/dashboard/dashboard.json", import.meta.url);
 
 app.log.level = "silent";
 
-const TODAY = todayInBusinessTz();
+// Janela de datas exclusiva: um dia aleatório de 2099, para não colidir com dados reais
+// (outras suítes rodam em paralelo no mesmo banco) nem com outra execução deste arquivo.
+const pad = (n: number) => String(n).padStart(2, "0");
+const TODAY = `2099-${pad(2 + Math.floor(Math.random() * 10))}-${pad(1 + Math.floor(Math.random() * 28))}`;
+const NOW = new Date(`${TODAY}T15:00:00.000Z`); // 12h em Brasília
+assert.equal(todayInBusinessTz(NOW), TODAY);
 const addDays = (days: number) => {
   const d = new Date(`${TODAY}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -48,6 +54,9 @@ describe("Dashboard (GET /dashboard)", () => {
     assert.equal(res.statusCode, 200, res.body);
     return res.json().data;
   };
+
+  // Leitura com "agora" injetado na janela de 2099.
+  const readWindow = (): Promise<Dash> => makeGetDashboardUseCase().execute("ADMIN", NOW);
 
   const createSale = async (
     status: "COMPLETED" | "CANCELED",
@@ -139,12 +148,12 @@ describe("Dashboard (GET /dashboard)", () => {
   });
 
   test("vendas: hoje e mês por delta; cancelada não conta; venda 23h30 BRT conta hoje; last7Days e topVariants", async () => {
-    const before = await read(admin);
+    const before = await readWindow();
     assert.equal(before.sales.last7Days.length, 7);
     assert.equal(before.sales.last7Days[6].date, TODAY);
     assert.equal(before.sales.last7Days[0].date, addDays(-6));
 
-    const [va, vb] = variants;
+    const [va, vb, vc] = variants;
     const yesterday = addDays(-1);
     // 23h30 em Brasília de hoje = 02h30 UTC de amanhã: não pode cair no dia seguinte.
     await createSale("COMPLETED", new Date(`${TODAY}T23:30:00-03:00`), [
@@ -153,6 +162,10 @@ describe("Dashboard (GET /dashboard)", () => {
     // 00h10 em Brasília de hoje = 03h10 UTC de hoje: não pode cair em ontem.
     await createSale("COMPLETED", new Date(`${TODAY}T00:10:00-03:00`), [
       { variantId: vb.variantId, quantity: 500_000, unitPrice: 0.1 },
+    ]);
+    // 00h10 em Brasília de amanhã: ainda não é hoje (fora de today, month, last7Days e top).
+    await createSale("COMPLETED", new Date(`${addDays(1)}T00:10:00-03:00`), [
+      { variantId: vc.variantId, quantity: 7, unitPrice: 3 },
     ]);
     // ontem ao meio-dia
     await createSale("COMPLETED", new Date(`${yesterday}T12:00:00-03:00`), [
@@ -163,7 +176,7 @@ describe("Dashboard (GET /dashboard)", () => {
       { variantId: vb.variantId, quantity: 9_000_000, unitPrice: 5 },
     ]);
 
-    const after = await read(admin);
+    const after = await readWindow();
     const todayTotal = 1_000_000 * 1.1 + 500_000 * 0.1;
     assert.equal(after.sales.today.count - before.sales.today.count, 2);
     assert.equal(round2(after.sales.today.total - before.sales.today.total), round2(todayTotal));
@@ -184,20 +197,20 @@ describe("Dashboard (GET /dashboard)", () => {
     assert.equal(d5.count - b5.count, 1);
     assert.equal(round2(d5.total - b5.total), 20);
 
+    // Janela isolada: só as variantes deste teste têm vendas no mês de 2099.
     const top = after.sales.topVariants;
-    assert.ok(top.length <= 5);
     assert.equal(top[0].productVariantId, va.variantId);
     assert.equal(top[0].quantity, 1_000_000);
     assert.equal(top[0].total, 1_100_000);
     assert.match(top[0].label, / — /);
-    const second = top.find((t: any) => t.productVariantId === vb.variantId);
-    assert.ok(second, "variante vb no top do mês");
-    assert.equal(second.quantity, 500_000 + (yesterdayInMonth ? 2 : 0));
-    assert.equal(second.total, round2(50_000 + (yesterdayInMonth ? 20 : 0)));
+    assert.equal(top[1].productVariantId, vb.variantId);
+    assert.equal(top[1].quantity, 500_000 + (yesterdayInMonth ? 2 : 0));
+    assert.equal(top[1].total, round2(50_000 + (yesterdayInMonth ? 20 : 0)));
+    assert.ok(!top.some((t: Dash) => t.productVariantId === vc.variantId), "venda de amanhã fora do top");
   });
 
   test("last7Days: sempre 7 datas consecutivas terminando hoje, com 0 onde não há venda", async () => {
-    const data = await read(admin);
+    const data = await readWindow();
     const days: any[] = data.sales.last7Days;
     assert.deepEqual(
       days.map((d) => d.date),
@@ -214,7 +227,7 @@ describe("Dashboard (GET /dashboard)", () => {
     ["PAYABLE", "payables"],
   ] as const) {
     test(`${key}: open, overdue e dueNext7Days usam o restante; pago, estornado e cancelado`, async () => {
-      const before = await read(admin);
+      const before = await readWindow();
       await createDoc(type, "OPEN", [
         { amount: 100, dueDate: addDays(-1), paid: 30 }, // restante 70, vencida
         { amount: 40, dueDate: addDays(-1), paid: 40 }, // paga: não conta
@@ -224,11 +237,12 @@ describe("Dashboard (GET /dashboard)", () => {
         { amount: 200, dueDate: addDays(10), reversedPaid: 20 }, // pagamento estornado não abate
       ]);
       await createDoc(type, "CANCELED", [{ amount: 999, dueDate: addDays(-1) }]);
-      const after = await read(admin);
+      const after = await readWindow();
       const b = before[key];
       const a = after[key];
-      assert.equal(round2(a.open - b.open), 70 + 50 + 10 + 30 + 200);
-      assert.equal(round2(a.overdue - b.overdue), 70);
+      // open e overdue incluem parcelas reais de outras suítes (todas vencidas em 2099): >=.
+      assert.ok(round2(a.open - b.open) >= 70 + 50 + 10 + 30 + 200);
+      assert.ok(round2(a.overdue - b.overdue) >= 70);
       assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 2);
       assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 60);
     });
@@ -236,7 +250,7 @@ describe("Dashboard (GET /dashboard)", () => {
 
   test("estoque: variante zerada entra; lote vencendo em 30 dias entra, vencido/fora do prazo/zerado não", async () => {
     const [v0, v1, v2, v3] = variants;
-    const before = await read(admin);
+    const before = await readWindow();
 
     const mkInv = (variantId: string, quantity: number) =>
       prisma.inventory.create({ data: { productVariantId: variantId, quantity } });
@@ -265,8 +279,9 @@ describe("Dashboard (GET /dashboard)", () => {
     await mkLot(inv2.id, v2.variantId, "tx-far", 4, addDays(31)); // fora do prazo
     await mkLot(inv3.id, v3.variantId, "tx-empty", 0, addDays(5)); // zerado
 
-    const after = await read(admin);
-    assert.equal(after.inventory.outOfStockCount - before.inventory.outOfStockCount, 1);
+    const after = await readWindow();
+    // Não janelado: outras suítes também criam estoques zerados.
+    assert.ok(after.inventory.outOfStockCount - before.inventory.outOfStockCount >= 1);
     assert.ok(after.inventory.outOfStock.length <= 10);
     const out = after.inventory.outOfStock.find((i: any) => i.productVariantId === v0.variantId);
     assert.ok(out, "variante zerada na lista");
@@ -275,7 +290,10 @@ describe("Dashboard (GET /dashboard)", () => {
     assert.ok(!after.inventory.outOfStock.some((i: any) => i.productVariantId === v1.variantId));
 
     assert.equal(after.inventory.expiringLots.count - before.inventory.expiringLots.count, 2);
-    assert.ok(after.inventory.expiringLots.items.length <= 5);
+    assert.deepEqual(
+      after.inventory.expiringLots.items.map((i: Dash) => i.batchNumber),
+      ["tx-in", "tx-edge"],
+    );
     const lot = after.inventory.expiringLots.items.find((i: any) => i.lotId === inWindow.id);
     assert.ok(lot, "lote vencendo hoje na lista");
     assert.equal(lot.batchNumber, "tx-in");
@@ -290,7 +308,7 @@ describe("Dashboard (GET /dashboard)", () => {
   });
 
   test("compras aguardando recebimento: PENDING e PARTIALLY_RECEIVED", async () => {
-    const before = await read(admin);
+    const before = await readWindow();
     const mk = async (status: "PENDING" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELED", total: number) => {
       const p = await prisma.purchase.create({
         data: {
@@ -308,9 +326,10 @@ describe("Dashboard (GET /dashboard)", () => {
     await mk("PARTIALLY_RECEIVED", 20.25);
     await mk("RECEIVED", 999);
     await mk("CANCELED", 5);
-    const after = await read(admin);
-    assert.equal(after.purchases.awaitingReceipt.count - before.purchases.awaitingReceipt.count, 2);
-    assert.equal(round2(after.purchases.awaitingReceipt.total - before.purchases.awaitingReceipt.total), 120.75);
+    const after = await readWindow();
+    // Não janelado: outras suítes criam compras pendentes.
+    assert.ok(after.purchases.awaitingReceipt.count - before.purchases.awaitingReceipt.count >= 2);
+    assert.ok(round2(after.purchases.awaitingReceipt.total - before.purchases.awaitingReceipt.total) >= 120.75);
   });
 
   test("seções por papel", async () => {
@@ -330,7 +349,7 @@ describe("Dashboard (GET /dashboard)", () => {
   });
 
   test("chaves = fixture", async () => {
-    const data = await read(admin);
+    const data = await readWindow(); // janela com dados: listas não vazias
     const fixture = JSON.parse(readFileSync(FIXTURE, "utf8"));
     assert.deepEqual(keyShape(data), keyShape(fixture.data));
   });
