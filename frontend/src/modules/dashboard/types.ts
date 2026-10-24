@@ -25,7 +25,7 @@ export interface IDashboard {
     outOfStock: { productVariantId: string; label: string; quantity: number }[];
     expiringLots: {
       count: number;
-      items: { lotId: string; batchNumber: string; label: string; expirationDate: string; remainingQuantity: number }[];
+      items: { lotId: string; batchNumber: string | null; label: string; expirationDate: string; remainingQuantity: number }[];
     };
   };
   purchases?: { awaitingReceipt: { count: number; total: number } };

@@ -150,7 +150,8 @@ export function DashboardPage() {
                   <li key={item.productVariantId}>
                     <Link to="/inventory" className="hover:underline">
                       {item.label}
-                    </Link>
+                    </Link>{' '}
+                    <span className="text-gray-500">{item.quantity < 0 ? `−${Math.abs(item.quantity)}` : item.quantity} un.</span>
                   </li>
                 ))}
               </ul>
@@ -166,7 +167,7 @@ export function DashboardPage() {
                       {lot.label}
                     </Link>{' '}
                     <span className="text-gray-500">
-                      lote {lot.batchNumber} · vence em {formatDateOnly(lot.expirationDate)} · {lot.remainingQuantity} un.
+                      {lot.batchNumber ? `lote ${lot.batchNumber} · ` : ''}vence em {formatDateOnly(lot.expirationDate)} · {lot.remainingQuantity} un.
                     </span>
                   </li>
                 ))}

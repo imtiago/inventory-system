@@ -36,6 +36,7 @@ describe('DashboardPage', () => {
 
     const stock = screen.getByRole('region', { name: 'Estoque' });
     expect(within(stock).getByText('Calça Jeans — 42')).toBeInTheDocument();
+    expect(within(stock).getByText('0 un.')).toBeInTheDocument();
     expect(within(stock).getByText(/L2310-A/)).toBeInTheDocument();
     expect(within(stock).getByText(/05\/11\/2026/)).toBeInTheDocument();
 
@@ -56,15 +57,30 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('region', { name: 'Contas a pagar' })).not.toBeInTheDocument();
   });
 
-  test('VENDEDOR vê só vendas e estoque', async () => {
-    const { payables: _p, receivables: _r, purchases: _c, ...rest } = fixture.data;
-    void _p; void _r; void _c;
+  test('VENDEDOR vê vendas, contas a receber e estoque', async () => {
+    const { payables: _p, purchases: _c, ...rest } = fixture.data;
+    void _p; void _c;
     serve(rest);
     renderWithProviders(<DashboardPage />);
 
     expect(await screen.findByRole('region', { name: 'Vendas' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Contas a receber' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Estoque' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Compras' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Contas a pagar' })).not.toBeInTheDocument();
+  });
+
+  test('lote sem número não mostra "lote"', async () => {
+    const lot = { ...fixture.data.inventory.expiringLots.items[0], batchNumber: null };
+    serve({
+      ...fixture.data,
+      inventory: { ...fixture.data.inventory, expiringLots: { count: 1, items: [lot] } },
+    });
+    renderWithProviders(<DashboardPage />);
+
+    const stock = await screen.findByRole('region', { name: 'Estoque' });
+    expect(within(stock).getByText(/vence em/)).toBeInTheDocument();
+    expect(within(stock).queryByText(/\blote\b/i)).not.toBeInTheDocument();
   });
 
   test('gráfico tem 7 barras com rótulos acessíveis, incluindo dias com zero', async () => {
