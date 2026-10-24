@@ -3,6 +3,7 @@ export type { ErrorDetails } from "./DomainError";
 export { NotFoundError } from "./NotFoundError";
 export { ConflictError } from "./ConflictError";
 export { BusinessRuleError } from "./BusinessRuleError";
+export { ExportTooLargeError } from "./ExportTooLargeError";
 export { ValidationError } from "./ValidationError";
 export type { FieldError } from "./ValidationError";
 export { UnauthorizedError } from "./UnauthorizedError";

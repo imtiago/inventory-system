@@ -104,6 +104,12 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   // Confirmação: corpo validado antes de buscar o rascunho → 400 sem gravar nada.
   ["purchases.write", { method: "POST", url: `/nfe-imports/${missing}/confirm`, payload: {}, allowed: 400 }],
   ["payables.read", { method: "GET", url: `/payables/${missing}`, allowed: 404 }],
+  // Exportações CSV (fase 9): mesma permissão de leitura da lista correspondente.
+  ["sales.read", { method: "GET", url: "/reports/sales.csv?from=2095-01-01&to=2095-01-02", allowed: 200 }],
+  ["sales.read", { method: "GET", url: "/reports/sale-items.csv?from=2095-01-01&to=2095-01-02", allowed: 200 }],
+  ["inventory.read", { method: "GET", url: "/reports/stock.csv", allowed: 200 }],
+  ["finance.read", { method: "GET", url: `/reports/receivables.csv?customerId=${missing}`, allowed: 200 }],
+  ["payables.read", { method: "GET", url: `/reports/payables.csv?supplierId=${missing}`, allowed: 200 }],
 ];
 
 describe("hasPermission (matriz)", () => {

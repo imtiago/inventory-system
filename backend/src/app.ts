@@ -16,6 +16,7 @@ import cors from "@fastify/cors";
 import { nfeImportRoutes } from "@nfe-import/infrastructure/http/routes/nfeImportRoutes";
 import { payableRoutes, receivableRoutes } from "@finance/infrastructure/http/routes/financialDocumentRoutes";
 import { dashboardRoutes } from "./modules/dashboard/infrastructure/http/routes/dashboardRoutes";
+import { reportRoutes } from "./modules/reports/infrastructure/http/routes/reportRoutes";
 import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/productVariantsRoutes";
 
 export const app = Fastify({
@@ -54,3 +55,4 @@ app.register(payableRoutes, { prefix: "/payables" });
 app.register(userRoutes);
 app.register(nfeImportRoutes, { prefix: "/nfe-imports" });
 app.register(dashboardRoutes, { prefix: "/dashboard" });
+app.register(reportRoutes, { prefix: "/reports" });

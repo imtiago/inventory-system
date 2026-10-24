@@ -4,6 +4,7 @@ import {
   FinancialDocumentDetailDTO,
   FinancialListFilters,
   FinancialListResult,
+  FinancialParcelExportRow,
   FinancialReadDTOs,
   PayableParty,
   PersonRefDTO,
@@ -17,6 +18,7 @@ import {
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { fromDateOnly, remainingCents, toDateOnly } from "@finance/domain/services/receivableStatus";
+import { ExportTooLargeError } from "@shared/domain/errors";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { fromCents, toCents } from "@shared/domain/money";
@@ -149,6 +151,37 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
     pagination: PaginationRequest,
     today: string,
   ): Promise<FinancialListResult<T>> {
+    const entries = await this.loadEntries(type, filters, today);
+
+    const totals = { open: 0, overdue: 0, paid: 0 };
+    for (const { figures } of entries) {
+      totals.open += figures.notDueCents;
+      totals.overdue += figures.overdueCents;
+      totals.paid += figures.paidCents;
+    }
+
+    const profile: TypeProfile<T> = PROFILES[type];
+    const start = (pagination.page - 1) * pagination.limit;
+    const page = entries.slice(start, start + pagination.limit);
+    const partyOf = await profile.parties(page.map((e) => e.row));
+
+    const result = buildPaginatedResult(
+      page.map((e) => ({
+        ...FinancialDocumentReadMapper.toListItemDTO(e.row, today, e.figures),
+        ...partyOf(e.row),
+      })),
+      entries.length,
+      pagination,
+    );
+
+    return { ...result, summary: profile.summary(totals) } as FinancialListResult<T>;
+  }
+
+  /**
+   * Documentos do tipo que passam nos filtros da lista, já ordenados (próximo vencimento
+   * em aberto; pagos/cancelados por último). Base única da lista e da exportação CSV.
+   */
+  private async loadEntries<T extends FinancialType>(type: T, filters: FinancialListFilters, today: string) {
     const where: Prisma.FinancialDocumentWhereInput = { type };
     if (filters.partyId) where.partyId = filters.partyId;
     if (filters.status) where.status = { in: STORED_STATUSES[filters.status] };
@@ -198,28 +231,40 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
       return a.row.createdAt.getTime() - b.row.createdAt.getTime() || a.row.id.localeCompare(b.row.id);
     });
 
-    const totals = { open: 0, overdue: 0, paid: 0 };
-    for (const { figures } of entries) {
-      totals.open += figures.notDueCents;
-      totals.overdue += figures.overdueCents;
-      totals.paid += figures.paidCents;
-    }
+    return entries;
+  }
+
+  async listParcelsForExport<T extends FinancialType>(
+    type: T,
+    filters: FinancialListFilters,
+    today: string,
+    maxRows: number,
+  ): Promise<FinancialParcelExportRow[]> {
+    const entries = await this.loadEntries(type, filters, today);
+    if (entries.reduce((n, e) => n + e.row.parcels.length, 0) > maxRows) throw new ExportTooLargeError();
 
     const profile: TypeProfile<T> = PROFILES[type];
-    const start = (pagination.page - 1) * pagination.limit;
-    const page = entries.slice(start, start + pagination.limit);
-    const partyOf = await profile.parties(page.map((e) => e.row));
+    const partyOf = (await profile.parties(entries.map((e) => e.row))) as (
+      row: PartyKeyRow,
+    ) => Partial<ReceivableParty & PayableParty>;
 
-    const result = buildPaginatedResult(
-      page.map((e) => ({
-        ...FinancialDocumentReadMapper.toListItemDTO(e.row, today, e.figures),
-        ...partyOf(e.row),
-      })),
-      entries.length,
-      pagination,
-    );
-
-    return { ...result, summary: profile.summary(totals) } as FinancialListResult<T>;
+    return entries.flatMap(({ row }) => {
+      const party = partyOf(row);
+      const summary = FinancialDocumentReadMapper.toSummaryDTO(row, today);
+      return summary.parcels.map((p) => ({
+        documentId: row.id,
+        partyName: (party.customer ?? party.supplier)?.name ?? "",
+        purchaseCode: party.purchaseCode ?? null,
+        originType: row.originType,
+        originId: row.originId,
+        number: p.number,
+        dueDate: p.dueDate,
+        amount: p.amount,
+        paidAmount: p.paidAmount,
+        remainingAmount: p.remainingAmount,
+        status: p.status,
+      }));
+    });
   }
 
   async getById<T extends FinancialType>(

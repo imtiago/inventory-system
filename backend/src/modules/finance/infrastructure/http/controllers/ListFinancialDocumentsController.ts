@@ -9,7 +9,7 @@ import {
 import { makeListFinancialDocumentsUseCase } from "../factories/FinancialDocumentReadFactory";
 
 /** Query da lista do tipo; a contraparte (customerId | supplierId) vira `partyId`. */
-function parseListQuery(type: FinancialType, query: unknown) {
+export function parseListQuery(type: FinancialType, query: unknown) {
   if (type === FinancialType.RECEIVABLE) {
     const { page, limit, customerId, ...rest } = parseInput(listReceivablesQuerySchema, query);
     return { pagination: { page, limit }, filters: { ...rest, partyId: customerId } as FinancialListFilters };
