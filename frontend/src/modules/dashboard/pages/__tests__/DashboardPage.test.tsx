@@ -98,7 +98,7 @@ describe('DashboardPage', () => {
     expect(within(pay).getByRole('link', { name: /7 dias/i })).toHaveAttribute('href', '/payables?dueFrom=2026-10-23&dueTo=2026-10-30');
     expect(within(pay).getByRole('link', { name: /em aberto/i })).toHaveAttribute('href', '/payables');
 
-    expect(within(screen.getByRole('region', { name: 'Compras' })).getByRole('link')).toHaveAttribute('href', '/purchases?status=PENDING');
+    expect(within(screen.getByRole('region', { name: 'Compras' })).getByRole('link')).toHaveAttribute('href', '/purchases');
     const stock = screen.getByRole('region', { name: 'Estoque' });
     expect(within(stock).getByRole('link', { name: /Calça Jeans/ })).toHaveAttribute('href', '/inventory');
     expect(within(stock).getByRole('link', { name: /Creme Hidratante/ })).toHaveAttribute('href', '/inventory');

@@ -182,7 +182,7 @@ export function DashboardPage() {
               label="Aguardando recebimento"
               value={pluralize(purchases.awaitingReceipt.count, 'pedido', 'pedidos')}
               hint={formatCurrency(purchases.awaitingReceipt.total)}
-              to="/purchases?status=PENDING"
+              to="/purchases"
             />
           </Card>
         )}
