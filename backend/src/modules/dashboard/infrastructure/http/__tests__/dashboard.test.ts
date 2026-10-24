@@ -43,7 +43,6 @@ describe("Dashboard (GET /dashboard)", () => {
   const saleIds: string[] = [];
   const docIds: string[] = [];
   const purchaseIds: string[] = [];
-  const lotInventoryIds: string[] = [];
 
   const read = async (user: TestUser): Promise<Dash> => {
     const res = await app.inject({
@@ -272,7 +271,6 @@ describe("Dashboard (GET /dashboard)", () => {
     await mkInv(v1.variantId, 5); // com estoque: não entra
     const inv2 = await mkInv(v2.variantId, 20);
     const inv3 = await mkInv(v3.variantId, 20);
-    lotInventoryIds.push(inv0.id, inv2.id, inv3.id);
     const inWindow = await mkLot(inv2.id, v2.variantId, "tx-in", 4, TODAY);
     await mkLot(inv2.id, v2.variantId, "tx-edge", 4, addDays(30)); // limite: entra
     await mkLot(inv2.id, v2.variantId, "tx-expired", 4, addDays(-1)); // vencido

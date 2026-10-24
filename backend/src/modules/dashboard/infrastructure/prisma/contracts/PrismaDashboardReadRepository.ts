@@ -145,12 +145,13 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
         COALESCE(SUM(remaining) FILTER (WHERE remaining > 0 AND due >= ${today}::date AND due <= ${today}::date + 7), 0)::text AS next_amount
       FROM (
         SELECT fp."dueDate"::date AS due,
-               fp.amount - COALESCE((
-                 SELECT SUM(pay.amount) FROM "Payment" pay
-                 WHERE pay."parcelId" = fp.id AND pay."reversedAt" IS NULL
-               ), 0) AS remaining
+               fp.amount - COALESCE(pay.paid, 0) AS remaining
         FROM "FinancialParcel" fp
         JOIN "FinancialDocument" fd ON fd.id = fp."financialDocumentId"
+        LEFT JOIN (
+          SELECT "parcelId", SUM("amount") AS paid
+          FROM "Payment" WHERE "reversedAt" IS NULL GROUP BY "parcelId"
+        ) pay ON pay."parcelId" = fp.id
         WHERE fd.type = ${type}::"FinancialType" AND fd.status <> 'CANCELED'
       ) p`;
     return {
