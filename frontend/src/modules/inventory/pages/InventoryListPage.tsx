@@ -10,6 +10,8 @@ import { Section } from '@/shared/components/details/Section';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Page } from '@/shared/components/layout/Page';
+import { ExportButton } from '@/shared/components/export/ExportButton';
+import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { Can } from '@/shared/auth/Can';
 
 export function InventoryListPage() {
@@ -34,6 +36,7 @@ export function InventoryListPage() {
         // description="Unidades comercializadas deste produto"
         actions={
           <div className="flex items-center gap-4">
+            <ExportButton permission="inventory.read" url="/reports/stock.csv" params={{}} fallbackName={`estoque-${todayInBusinessTz()}.csv`} />
             <Link to={`/products/new`} className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
               <Plus size={18} />
               Novo

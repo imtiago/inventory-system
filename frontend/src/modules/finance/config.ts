@@ -25,6 +25,10 @@ export interface IFinanceKindConfig {
   originText: (item: Pick<IFinanceListItem, 'originId' | 'originType' | 'purchaseCode'>) => string | null;
   originDetailText: (item: Pick<IFinanceListItem, 'originId' | 'originType' | 'purchaseCode'>) => string;
   originType: 'SALE' | 'PURCHASE';
+  /** CSV report route, its read permission and the file name prefix (used when the server name is unreadable). */
+  exportPath: '/reports/receivables.csv' | '/reports/payables.csv';
+  exportPermission: 'finance.read' | 'payables.read';
+  exportFilePrefix: 'contas-a-receber' | 'contas-a-pagar';
 }
 
 export const FINANCE_KINDS: Record<FinanceKind, IFinanceKindConfig> = {
@@ -48,6 +52,9 @@ export const FINANCE_KINDS: Record<FinanceKind, IFinanceKindConfig> = {
     originText: (item) => `Venda #${item.originId.slice(0, 8).toUpperCase()}`,
     originDetailText: () => 'Venda de origem',
     originType: 'SALE',
+    exportPath: '/reports/receivables.csv',
+    exportPermission: 'finance.read',
+    exportFilePrefix: 'contas-a-receber',
   },
   payable: {
     basePath: '/payables',
@@ -69,6 +76,9 @@ export const FINANCE_KINDS: Record<FinanceKind, IFinanceKindConfig> = {
     originText: (item) => `Pedido ${item.purchaseCode ?? `#${item.originId.slice(0, 8).toUpperCase()}`}`,
     originDetailText: (item) => `Pedido ${item.purchaseCode ?? `#${item.originId.slice(0, 8).toUpperCase()}`}`,
     originType: 'PURCHASE',
+    exportPath: '/reports/payables.csv',
+    exportPermission: 'payables.read',
+    exportFilePrefix: 'contas-a-pagar',
   },
 };
 
