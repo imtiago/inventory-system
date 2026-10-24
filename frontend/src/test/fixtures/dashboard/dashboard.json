@@ -1,0 +1,61 @@
+{
+  "data": {
+    "generatedAt": "2026-10-23T14:30:00.000Z",
+    "sales": {
+      "today": { "count": 3, "total": 412.9 },
+      "month": { "count": 41, "total": 8734.5 },
+      "last7Days": [
+        { "date": "2026-10-17", "count": 4, "total": 530.0 },
+        { "date": "2026-10-18", "count": 0, "total": 0 },
+        { "date": "2026-10-19", "count": 6, "total": 1020.4 },
+        { "date": "2026-10-20", "count": 5, "total": 870.0 },
+        { "date": "2026-10-21", "count": 2, "total": 199.8 },
+        { "date": "2026-10-22", "count": 7, "total": 1310.25 },
+        { "date": "2026-10-23", "count": 3, "total": 412.9 }
+      ],
+      "topVariants": [
+        {
+          "productVariantId": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+          "label": "Camiseta Básica — Azul M",
+          "quantity": 38,
+          "total": 1520.0
+        }
+      ]
+    },
+    "receivables": {
+      "open": 5230.75,
+      "overdue": 640.0,
+      "dueNext7Days": { "count": 5, "amount": 1180.5 }
+    },
+    "payables": {
+      "open": 3100.0,
+      "overdue": 0,
+      "dueNext7Days": { "count": 2, "amount": 750.0 }
+    },
+    "inventory": {
+      "outOfStockCount": 4,
+      "outOfStock": [
+        {
+          "productVariantId": "b4e0f3a2-8d5c-4f9b-86e7-2a3f4d5e6b71",
+          "label": "Calça Jeans — 42",
+          "quantity": 0
+        }
+      ],
+      "expiringLots": {
+        "count": 2,
+        "items": [
+          {
+            "lotId": "c5f1a4b3-9e6d-4a0c-97f8-3b4a5e6f7c82",
+            "batchNumber": "L2310-A",
+            "label": "Creme Hidratante — 200 ml",
+            "expirationDate": "2026-11-05",
+            "remainingQuantity": 12
+          }
+        ]
+      }
+    },
+    "purchases": {
+      "awaitingReceipt": { "count": 3, "total": 4520.3 }
+    }
+  }
+}
