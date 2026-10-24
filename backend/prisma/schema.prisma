@@ -197,6 +197,8 @@ model InventoryLot {
   stockMovements StockMovement[]
 
   @@unique([productVariantId, batchNumber])
+
+  @@index([expirationDate])
 }
 
 model Inventory {
@@ -278,6 +280,8 @@ model Sale {
   seller User? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
 
   items SaleItem[]
+
+  @@index([status, createdAt])
 }
 
 model SaleItem {
@@ -300,6 +304,8 @@ model SaleItem {
   sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@index([saleId])
 }
 
 model Customer {
@@ -364,6 +370,8 @@ model FinancialParcel {
   document FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Cascade)
 
   payments Payment[]
+
+  @@index([financialDocumentId])
 }
 
 model Payment {
@@ -390,6 +398,8 @@ model Payment {
   reversalReason String?
 
   parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+
+  @@index([parcelId])
 }
 
 model NumberRange {
@@ -457,6 +467,8 @@ model Purchase {
   items PurchaseItem[]
 
   nfeImport NfeImport?
+
+  @@index([status])
 }
 
 model PurchaseItem {

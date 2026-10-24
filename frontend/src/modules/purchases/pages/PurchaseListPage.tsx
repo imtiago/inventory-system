@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
 import { CrudBadge, CrudPagination } from '@/shared/components/crud';
@@ -39,7 +39,9 @@ const columns: DataTableColumn<IPurchaseListItem>[] = [
 
 export function PurchaseListPage() {
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<PurchaseStatus | ''>('');
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status');
+  const [status, setStatus] = useState<PurchaseStatus | ''>(STATUSES.includes(initialStatus as PurchaseStatus) ? (initialStatus as PurchaseStatus) : '');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [codeSearch, setCodeSearch] = useState('');

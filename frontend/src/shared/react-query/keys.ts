@@ -1,6 +1,8 @@
 // src/shared/react-query/keys.ts
 
 export const queryKeys = {
+  dashboard: ['dashboard'] as const,
+
   sales: ['sales'] as const,
 
   receivables: ['receivables'] as const,

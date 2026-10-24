@@ -39,7 +39,7 @@ describe('RouteGuard / AppRoutes', () => {
     const { useAuthStore } = await import('@/shared/store/auth');
     useAuthStore.setState({ token: 'token-ADMIN', user: null });
     renderWithProviders(<AppRoutes />, { route: '/' });
-    expect(await screen.findByText('Bem-vindo ao Inventory System.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
   });
 
