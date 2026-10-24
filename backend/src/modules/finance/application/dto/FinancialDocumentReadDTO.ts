@@ -117,6 +117,8 @@ export interface FinancialListFilters {
   partyId?: string;
   dueFrom?: string;
   dueTo?: string;
+  /** Só documentos não cancelados com saldo (e, com intervalo, parcela com saldo nele). */
+  openOnly?: boolean;
 }
 
 export interface FinancialListResult<T extends FinancialType = FinancialType> {

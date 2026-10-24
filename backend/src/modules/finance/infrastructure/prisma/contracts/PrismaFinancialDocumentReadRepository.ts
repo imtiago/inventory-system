@@ -16,10 +16,10 @@ import {
 } from "@finance/application/mappers/FinancialDocumentReadMapper";
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
-import { fromDateOnly } from "@finance/domain/services/receivableStatus";
+import { fromDateOnly, remainingCents, toDateOnly } from "@finance/domain/services/receivableStatus";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
-import { fromCents } from "@shared/domain/money";
+import { fromCents, toCents } from "@shared/domain/money";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 const personSelect = { select: { id: true, name: true } } as const;
@@ -35,6 +35,22 @@ const STORED_STATUSES: Record<NonNullable<FinancialListFilters["status"]>, Finan
 
 const isClosed = (row: FinancialDocumentRow, f: FinancialFigures) =>
   row.status === FinancialStatus.PAID || row.status === FinancialStatus.CANCELED || f.nextDueDate === null;
+
+/**
+ * "Com saldo": mesma regra do dashboard (restante da parcela = valor − pagamentos não
+ * estornados > 0; documento não cancelado). Com intervalo, a parcela com saldo precisa
+ * vencer dentro dele.
+ */
+function hasOpenBalance(row: FinancialDocumentRow, filters: FinancialListFilters): boolean {
+  if (row.status === FinancialStatus.CANCELED) return false;
+  return row.parcels.some((p) => {
+    const due = toDateOnly(p.dueDate);
+    if (filters.dueFrom && due < filters.dueFrom) return false;
+    if (filters.dueTo && due > filters.dueTo) return false;
+    const paid = p.payments.reduce((sum, pay) => (pay.reversedAt ? sum : sum + toCents(Number(pay.amount))), 0);
+    return remainingCents({ amountCents: toCents(Number(p.amount)), paidCents: paid }) > 0;
+  });
+}
 
 /** Linha mínima para juntar a contraparte e a origem (não há FK de partyId/originId). */
 interface PartyKeyRow {
@@ -169,6 +185,7 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
 
     const entries = rows
       .map((row) => ({ row, figures: FinancialDocumentReadMapper.figures(row, today) }))
+      .filter((e) => !filters.openOnly || hasOpenBalance(e.row, filters))
       .filter((e) => !filters.status || e.figures.displayStatus === filters.status);
 
     entries.sort((a, b) => {
