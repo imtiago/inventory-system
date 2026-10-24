@@ -76,3 +76,20 @@ describe('PurchaseListPage', () => {
     expect(screen.queryByRole('link', { name: /Novo pedido/ })).not.toBeInTheDocument();
   });
 });
+
+describe('PurchaseListPage filtros pela URL', () => {
+  test('?status=PENDING inicia o filtro e envia à API', async () => {
+    const urls: URL[] = [];
+    server.use(
+      http.get(`${API_URL}/purchases`, ({ request }) => {
+        urls.push(new URL(request.url));
+        return HttpResponse.json(purchaseList);
+      }),
+    );
+    renderWithProviders(<PurchaseListPage />, { route: '/purchases?status=PENDING' });
+    await screen.findByRole('link', { name: 'PC000012' });
+
+    expect(screen.getByLabelText('Status')).toHaveValue('PENDING');
+    expect(urls.every((u) => u.searchParams.get('status') === 'PENDING')).toBe(true);
+  });
+});

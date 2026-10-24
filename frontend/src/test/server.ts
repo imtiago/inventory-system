@@ -7,5 +7,6 @@ import { authHandlers } from './auth';
 import { usersHandlers } from './handlers/users';
 import { purchasesHandlers } from './handlers/purchases';
 import { nfeHandlers } from './handlers/nfe';
+import { dashboardHandlers } from './handlers/dashboard';
 
-export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...payablesHandlers, ...authHandlers, ...usersHandlers, ...purchasesHandlers, ...nfeHandlers);
+export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...payablesHandlers, ...authHandlers, ...usersHandlers, ...purchasesHandlers, ...nfeHandlers, ...dashboardHandlers);
