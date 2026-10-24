@@ -27,6 +27,8 @@ registerErrorHandling(app);
 app.register(cors, {
   origin: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  // O front lê o nome do CSV exportado e a marca de resposta repetida (idempotência).
+  exposedHeaders: ["Content-Disposition", "Idempotent-Replayed"],
 });
 
 // Única rota pública: login. Todas as demais passam por `authenticate`.
