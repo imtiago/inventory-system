@@ -1,4 +1,7 @@
+import { useId, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
+
+import { useDialogBehavior } from "./Modal/useDialogBehavior";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -21,6 +24,13 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  // Destructive confirmation: focus starts on cancel; Escape cancels unless the action is running.
+  useDialogBehavior({ open, dialogRef, onEscape: onCancel, escapeEnabled: !loading, getInitialFocus: () => cancelRef.current });
+
   if (!open) {
     return null;
   }
@@ -28,8 +38,10 @@ export function ConfirmDialog({
   return (
     <div
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
+      aria-labelledby={titleId}
       className="
         fixed inset-0
         bg-black/40
@@ -62,7 +74,7 @@ export function ConfirmDialog({
           </div>
 
           <div className="flex-1">
-            <h2 id="confirm-dialog-title" className="text-xl font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-xl font-semibold">{title}</h2>
 
             <p className="mt-2 text-gray-600">{description}</p>
           </div>
@@ -71,6 +83,7 @@ export function ConfirmDialog({
         <div className="flex justify-end gap-3 mt-8">
           <button
             type="button"
+            ref={cancelRef}
             onClick={onCancel}
             disabled={loading}
             className="

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 
+import { toast } from 'sonner';
+
 import { api } from '../api';
 import { queryClient } from '@/shared/react-query/queryClient';
 import { useAuthStore } from '@/shared/store/auth';
@@ -65,5 +67,39 @@ describe('api 401 interceptor', () => {
     await expect(pending).rejects.toBeTruthy();
 
     expect(useAuthStore.getState().sessionExpired).toBe(false);
+  });
+});
+
+describe('api 403 interceptor', () => {
+  const forbidden = () => HttpResponse.json({ message: 'x', code: 'FORBIDDEN' }, { status: 403 });
+
+  test('403 mostra o aviso uma única vez numa rajada e revalida /users/me com o novo papel', async () => {
+    let meCalls = 0;
+    server.use(
+      http.get(`${API_URL}/sales`, forbidden),
+      http.get(`${API_URL}/users/me`, () => {
+        meCalls++;
+        return HttpResponse.json({ data: { id: 'u', name: 'U', email: 'u@x.com', role: 'VENDEDOR' } });
+      }),
+    );
+    const error = vi.spyOn(toast, 'error').mockImplementation(() => '');
+
+    await Promise.allSettled([api.get('/sales'), api.get('/sales'), api.get('/sales')]);
+    await vi.waitFor(() => expect(useAuthStore.getState().user?.role).toBe('VENDEDOR'));
+
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith('Você não tem permissão para esta ação.', expect.anything());
+    expect(meCalls).toBeGreaterThanOrEqual(1);
+    expect(useAuthStore.getState().token).toBe('token-ADMIN');
+  });
+});
+
+describe('auth store cache handling', () => {
+  test('setSession limpa o cache; setToken não', () => {
+    queryClient.setQueryData(['x'], 1);
+    useAuthStore.getState().setToken('token-novo');
+    expect(queryClient.getQueryData(['x'])).toBe(1);
+    useAuthStore.getState().setSession('token-ADMIN', { id: '1', name: 'A', email: 'a@x.com', role: 'ADMIN' });
+    expect(queryClient.getQueryData(['x'])).toBeUndefined();
   });
 });

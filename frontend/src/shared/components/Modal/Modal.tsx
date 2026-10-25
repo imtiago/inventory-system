@@ -1,6 +1,6 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useId, useRef } from 'react';
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { FOCUSABLE, useDialogBehavior } from './useDialogBehavior';
 
 interface ModalProps {
   open: boolean;
@@ -31,91 +31,17 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
   const dialogRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // Move focus in on open, trap Tab while open, restore focus on close.
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
+  const titleId = useId();
+  const descriptionId = useId();
 
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const dialog = dialogRef.current;
-
-    function getFocusable() {
-      return dialog ? Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
-    }
-
-    // Respect children that already took focus (e.g. autoFocus); otherwise prefer the body over the header.
-    if (dialog && !dialog.contains(document.activeElement)) {
-      const [bodyFirst] = bodyRef.current ? Array.from(bodyRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
-      const [first] = getFocusable();
-      (bodyFirst ?? first ?? dialog).focus();
-    }
-
-    function handleTab(event: KeyboardEvent) {
-      if (event.key !== 'Tab' || !dialog) {
-        return;
-      }
-
-      const focusable = getFocusable();
-
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-
-      const firstEl = focusable[0];
-      const lastEl = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey && (active === firstEl || !dialog.contains(active))) {
-        event.preventDefault();
-        lastEl.focus();
-      } else if (!event.shiftKey && (active === lastEl || !dialog.contains(active))) {
-        event.preventDefault();
-        firstEl.focus();
-      }
-    }
-
-    document.addEventListener('keydown', handleTab);
-
-    return () => {
-      document.removeEventListener('keydown', handleTab);
-      previouslyFocused?.focus?.();
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || !closeOnEscape) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [open, closeOnEscape, onClose]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const originalOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [open]);
+  // Prefer the body over the header when picking the initial focus.
+  useDialogBehavior({
+    open,
+    dialogRef,
+    onEscape: onClose,
+    escapeEnabled: closeOnEscape,
+    getInitialFocus: () => bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE),
+  });
 
   if (!open) {
     return null;
@@ -139,21 +65,21 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
       ref={dialogRef}
       tabIndex={-1}
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
-      aria-describedby={description ? 'modal-description' : undefined}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={description ? descriptionId : undefined}
     >
       <div className={`relative flex max-h-[90vh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl bg-white shadow-2xl`}>
         {(title || description || showCloseButton) && (
           <div className="flex shrink-0 items-start justify-between border-b px-6 py-4">
             <div className="pr-8">
               {title && (
-                <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
+                <h2 id={titleId} className="text-xl font-semibold text-gray-900">
                   {title}
                 </h2>
               )}
 
               {description && (
-                <p id="modal-description" className="mt-1 text-sm text-gray-500">
+                <p id={descriptionId} className="mt-1 text-sm text-gray-500">
                   {description}
                 </p>
               )}

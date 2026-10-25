@@ -33,6 +33,9 @@ export function useAuth() {
     sessionExpired,
     // Until /users/me resolves (or fails) there is a token but no user yet: wait instead of redirecting.
     isRestoring: !!token && !user && !userQuery.isError,
+    // Transient failure (network/5xx) while restoring: the token is kept; a 401 already logged out via the interceptor.
+    restoreFailed: !!token && !user && userQuery.isError,
+    retryRestore: () => void userQuery.refetch(),
     isAuthenticated: !!token && !!user,
   };
 }
