@@ -41,9 +41,12 @@ const defaultHealthCheck = async () => {
   await prisma.$queryRaw`SELECT 1`;
 };
 
-function pathOf(url: string): string {
-  return url.split("?")[0];
-}
+// Classificação pela rota casada (já decodificada pelo roteador), nunca pela URL crua:
+// `/%72eports/x` é servida por /reports/x. Sem rota casada (404) → `undefined`:
+// exige token e cai no balde "api".
+const routeOf = (request: FastifyRequest): string | undefined => request.routeOptions?.url;
+const isReportsRoute = (route: string | undefined) =>
+  route === "/reports" || (route?.startsWith("/reports/") ?? false);
 
 // Rotas públicas: login e health check. Todas as demais passam por `authenticate`.
 const publicRoutes = ["/auth/login", "/health"];
@@ -85,12 +88,12 @@ export function buildApp(options: BuildAppOptions = {}) {
     const limit = rateLimitOptions
       ? (() => {
           const { max, reportsMax } = rateLimitOptions;
-          const isReports = (url: string) => /^\/reports(\/|$)/.test(pathOf(url));
+          const isReports = (request: FastifyRequest) => isReportsRoute(routeOf(request));
           return instance.rateLimit({
             timeWindow: "1 minute",
-            max: (request: FastifyRequest) => (isReports(request.url) ? reportsMax : max),
+            max: (request: FastifyRequest) => (isReports(request) ? reportsMax : max),
             keyGenerator: (request: FastifyRequest) =>
-              `${isReports(request.url) ? "reports" : "api"}:${verifiedSubject(request) ?? request.ip}`,
+              `${isReports(request) ? "reports" : "api"}:${verifiedSubject(request) ?? request.ip}`,
             errorResponseBuilder: () =>
               new TooManyRequestsError(
                 "Muitas requisições. Aguarde um instante e tente novamente.",
@@ -101,11 +104,11 @@ export function buildApp(options: BuildAppOptions = {}) {
       : null;
 
     instance.addHook("onRequest", async (request, reply) => {
-      const path = pathOf(request.url);
-      if (limit && path !== "/health") {
+      const route = routeOf(request);
+      if (limit && route !== "/health") {
         await limit.call(instance, request, reply);
       }
-      if (!publicRoutes.includes(path)) {
+      if (route === undefined || !publicRoutes.includes(route)) {
         await authenticate(request);
       }
     });
@@ -139,10 +142,6 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(nfeImportRoutes, { prefix: "/nfe-imports" });
   app.register(dashboardRoutes, { prefix: "/dashboard" });
   app.register(reportRoutes, { prefix: "/reports" });
-
-  app.addHook("onClose", async () => {
-    await prisma.$disconnect();
-  });
 
   return app;
 }

@@ -1,32 +1,14 @@
 import { env } from "./shared/config/env";
 import { app } from "./app";
+import { prisma } from "./shared/prisma";
+import { installGracefulShutdown } from "./shared/http/gracefulShutdown";
 
-const SHUTDOWN_TIMEOUT_MS = 10_000;
+// Só o processo do servidor desconecta o Prisma ao fechar (testes compartilham o client).
+app.addHook("onClose", async () => {
+  await prisma.$disconnect();
+});
 
-let shuttingDown = false;
-
-async function shutdown(signal: string) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  app.log.info(`${signal} recebido: encerrando...`);
-  const timer = setTimeout(() => {
-    app.log.error("Encerramento excedeu 10 s; saindo à força.");
-    process.exit(1);
-  }, SHUTDOWN_TIMEOUT_MS);
-  timer.unref();
-  try {
-    // Para de aceitar conexões e espera as requisições em andamento; o hook
-    // onClose desconecta o Prisma.
-    await app.close();
-    process.exit(0);
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
-}
-
-process.on("SIGTERM", () => void shutdown("SIGTERM"));
-process.on("SIGINT", () => void shutdown("SIGINT"));
+installGracefulShutdown(app, { timeoutMs: 10_000, exit: (code) => process.exit(code) });
 
 const start = async () => {
   try {

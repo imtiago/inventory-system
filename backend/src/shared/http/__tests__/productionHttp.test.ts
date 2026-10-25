@@ -69,8 +69,8 @@ test("rate limit: /reports/* tem limite próprio", async () => {
     healthCheck: async () => {},
     rateLimit: { max: 100, reportsMax: 1 },
   });
-  const a = await app.inject({ method: "GET", url: "/reports/x" });
-  const b = await app.inject({ method: "GET", url: "/reports/x" });
+  const a = await app.inject({ method: "GET", url: "/reports/sales.csv" });
+  const b = await app.inject({ method: "GET", url: "/reports/sales.csv" });
   const c = await app.inject({ method: "GET", url: "/products" });
   await app.close();
   assert.equal(a.statusCode, 401);
@@ -161,4 +161,39 @@ test("desligamento gracioso: app.close() espera a requisição em andamento", as
   const res = await pending;
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { status: "ok" });
+});
+
+test("rate limit: /%72eports/* (codificado) cai no limite de /reports", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {},
+    rateLimit: { max: 100, reportsMax: 1 },
+  });
+  const a = await app.inject({ method: "GET", url: "/%72eports/sales.csv" });
+  const b = await app.inject({ method: "GET", url: "/reports/sales.csv" });
+  await app.close();
+  assert.equal(a.statusCode, 401);
+  assert.equal(b.statusCode, 429);
+});
+
+test("/%68ealth (codificado) se comporta como /health: público e fora do limite", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {},
+    rateLimit: { max: 1, reportsMax: 1 },
+  });
+  for (let i = 0; i < 3; i++) {
+    const r = await app.inject({ method: "GET", url: "/%68ealth" });
+    assert.equal(r.statusCode, 200);
+  }
+  await app.close();
+});
+
+test("rota inexistente continua exigindo token (nunca pula a auth)", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {}, rateLimit: false });
+  const a = await app.inject({ method: "GET", url: "/health/" });
+  const b = await app.inject({ method: "GET", url: "/%61uth/login" });
+  await app.close();
+  assert.equal(a.statusCode, 401);
+  assert.notEqual(b.statusCode, 200);
 });

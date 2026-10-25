@@ -62,6 +62,7 @@ npm start            # node dist/server.js
 ```
 
 - Variáveis (veja `.env.example`): `DATABASE_URL`, `JWT_SECRET`, `PORT` (3000), `HOST` (0.0.0.0), `CORS_ORIGINS`, `TRUST_PROXY`. A subida falha listando as variáveis inválidas; com `NODE_ENV=production` o `JWT_SECRET` precisa ter 32+ caracteres e `CORS_ORIGINS` é obrigatório.
+- `TRUST_PROXY=true` confia em qualquer `X-Forwarded-For` (o cliente pode forjar o IP e fugir do rate limit); prefira o número de saltos (ex.: `1`) ou a lista de IPs dos proxies.
 - `GET /health` (público): `200 {"status":"ok"}` ou `503 {"status":"unavailable"}` se o banco estiver fora.
 - Rate limit: 300 req/min por usuário autenticado (ou IP), 20/min em `/reports/*`; excedido → `429 RATE_LIMITED` com `Retry-After`.
 - SIGTERM/SIGINT: para de aceitar conexões, espera as requisições em andamento (até 10 s) e desconecta o banco.
