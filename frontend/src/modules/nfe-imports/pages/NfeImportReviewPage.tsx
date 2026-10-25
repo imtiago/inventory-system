@@ -109,9 +109,12 @@ function ReviewForm({ note }: { note: INfeImport }) {
     setRowErrors({});
     setTopError(null);
 
-    confirm.mutate(buildConfirmBody({ note, items, supplier, installments, receive: canReceive && receive }), {
-      onSuccess: (result) => navigate(`/purchases/${result.purchaseId}`),
-      onError: (error) => {
+    // mutateAsync (not the per-call callbacks of mutate): the callbacks are dropped when this form unmounts,
+    // which happens as soon as the note is re-read as CONFIRMED, so the redirect would be lost.
+    confirm
+      .mutateAsync(buildConfirmBody({ note, items, supplier, installments, receive: canReceive && receive }))
+      .then((result) => navigate(`/purchases/${result.purchaseId}`))
+      .catch((error: unknown) => {
         const parsed = parseApiErrorSync(error);
 
         // The axios interceptor already redirects to /login on 401.
@@ -124,8 +127,7 @@ function ReviewForm({ note }: { note: INfeImport }) {
 
         if (itemIndex !== null) setRowErrors({ [itemIndex]: text });
         else setTopError(text);
-      },
-    });
+      });
   }
 
   return (

@@ -65,6 +65,28 @@ describe('PurchaseDetailPage', () => {
     expect(screen.queryByText('A vencer')).not.toBeInTheDocument();
   });
 
+  test('pedido pendente com pagamento registrado esconde "Cancelar pedido" e explica', async () => {
+    const paid = {
+      data: {
+        ...pending.data,
+        payable: { ...pending.data.payable, parcels: pending.data.payable.parcels.map((p, i) => (i === 0 ? { ...p, paidAmount: 5, remainingAmount: p.amount - 5 } : p)) },
+      },
+    };
+    server.use(http.get(`${API_URL}/purchases/:id`, () => HttpResponse.json(paid)));
+    renderPage();
+
+    expect(await screen.findByTestId('cancel-blocked')).toHaveTextContent(/pagamento registrado/i);
+    expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).not.toBeInTheDocument();
+  });
+
+  test('pedido pendente sem pagamento mostra "Cancelar pedido"', async () => {
+    server.use(http.get(`${API_URL}/purchases/:id`, () => HttpResponse.json(pending)));
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Cancelar pedido' })).toBeInTheDocument();
+    expect(screen.queryByTestId('cancel-blocked')).not.toBeInTheDocument();
+  });
+
   test('ESTOQUISTA com payable null: página renderiza sem parcelas e sem erro', async () => {
     loginAs('ESTOQUISTA');
     server.use(http.get(`${API_URL}/purchases/:id`, () => HttpResponse.json({ data: { ...pending.data, payable: null } })));

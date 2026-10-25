@@ -9,6 +9,7 @@ import { DataTable } from '@/shared/components/table';
 import { ExportButton } from '@/shared/components/export/ExportButton';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 
+import type { SaleStatus } from '../types';
 import { useSales } from '../hooks/useSales';
 import { useSaleColumns } from '../hooks/useSaleColumns';
 
@@ -20,10 +21,11 @@ export function SaleListPage() {
   const today = todayInBusinessTz();
   const [from, setFrom] = useState(`${today.slice(0, 8)}01`);
   const [to, setTo] = useState(today);
+  const [status, setStatus] = useState<SaleStatus | ''>('');
   const periodTooLong = Boolean(from && to && from <= to && (Date.parse(to) - Date.parse(from)) / DAY_MS + 1 > MAX_PERIOD_DAYS);
   const invalidPeriod = !from || !to || from > to || periodTooLong;
 
-  const { data, isLoading, isFetching, isError } = useSales(page);
+  const { data, isLoading, isFetching, isError } = useSales(page, { from, to, status }, !invalidPeriod);
 
   const columns = useSaleColumns();
 
@@ -35,7 +37,7 @@ export function SaleListPage() {
         title={`Vendas (${data?.pagination.total ?? 0})`}
         actions={
           <div className="flex items-start gap-3">
-            <ExportButton permission="sales.read" url="/reports/sales.csv" params={{ from, to }} fallbackName={`vendas-${today}.csv`} disabled={invalidPeriod} />
+            <ExportButton permission="sales.read" url="/reports/sales.csv" params={{ from, to, status: status || undefined }} fallbackName={`vendas-${today}.csv`} disabled={invalidPeriod} />
             <ExportButton label="Exportar itens" permission="sales.read" url="/reports/sale-items.csv" params={{ from, to }} fallbackName={`itens-vendidos-${today}.csv`} disabled={invalidPeriod} />
             <Link to="/sales/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
               <Plus size={18} />
@@ -47,23 +49,33 @@ export function SaleListPage() {
         <div className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label htmlFor="sales-export-from" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="sales-from" className="mb-1 block text-sm font-medium text-gray-700">
                 De
               </label>
-              <input id="sales-export-from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <input id="sales-from" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
             <div>
-              <label htmlFor="sales-export-to" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="sales-to" className="mb-1 block text-sm font-medium text-gray-700">
                 Até
               </label>
-              <input id="sales-export-to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <input id="sales-to" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
             {periodTooLong && (
               <p role="alert" className="text-sm text-red-600">
                 O período deve ter no máximo {MAX_PERIOD_DAYS} dias.
               </p>
             )}
-            <p className="text-xs text-gray-500">Período usado na exportação (a lista mostra todas as vendas).</p>
+            <div>
+              <label htmlFor="sales-status" className="mb-1 block text-sm font-medium text-gray-700">
+                Status
+              </label>
+              <select id="sales-status" value={status} onChange={(e) => { setStatus(e.target.value as SaleStatus | ''); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                <option value="">Todos</option>
+                <option value="PENDING">Pendente</option>
+                <option value="COMPLETED">Concluída</option>
+                <option value="CANCELED">Cancelada</option>
+              </select>
+            </div>
           </div>
           {isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}
 

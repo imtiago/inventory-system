@@ -137,6 +137,11 @@ export function SaleCreatePage() {
       return;
     }
 
+    if (isInstallments && firstDueDate < todayInBusinessTz()) {
+      setError('firstDueDate', { type: 'validate', message: 'O primeiro vencimento não pode ser anterior a hoje.' });
+      return;
+    }
+
     if (createSaleMutation.isPending) {
       return;
     }

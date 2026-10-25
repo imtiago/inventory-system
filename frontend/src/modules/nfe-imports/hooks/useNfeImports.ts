@@ -54,7 +54,7 @@ export function useConfirmNfeImport(id: string) {
     mutationFn: (data: IConfirmNfeDTO) => keys.run(data, (key) => confirmNfeImport(id, data, key)),
     async onSuccess() {
       await Promise.all([
-        ...[queryKeys.nfeImports, queryKeys.purchases, queryKeys.payables, queryKeys.suppliers, queryKeys.products, queryKeys.brands, queryKeys.categories].map((queryKey) =>
+        ...[queryKeys.nfeImports, queryKeys.purchases, queryKeys.payables, queryKeys.dashboard, queryKeys.suppliers, queryKeys.products, queryKeys.brands, queryKeys.categories].map((queryKey) =>
           queryClient.invalidateQueries({ queryKey }),
         ),
         invalidateInventoryQueries(queryClient),

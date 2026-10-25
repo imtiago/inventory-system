@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
@@ -109,6 +109,20 @@ describe('SaleCreatePage', () => {
     expect(body.items).toEqual([{ productVariantId: 'v-1', quantity: 1 }]);
     expect(body.paymentTerms.installments).toBe(3);
     expect(body.paymentTerms.firstDueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  test('primeiro vencimento no passado: mostra o erro no campo e não envia (mesma regra do backend)', async () => {
+    renderPage();
+    await pickCustomer();
+    await addBarcode('111');
+    await screen.findByLabelText('Quantidade de Camiseta Azul');
+    await userEvent.click(screen.getByLabelText('Parcelado'));
+
+    fireEvent.change(document.getElementById('sale-first-due') as HTMLInputElement, { target: { value: '2020-01-01' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar venda' }));
+
+    expect(await screen.findByText('O primeiro vencimento não pode ser anterior a hoje.')).toBeInTheDocument();
+    expect(posted).toBeUndefined();
   });
 
   test('à vista envia 1 parcela sem firstDueDate', async () => {
