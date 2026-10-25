@@ -4,6 +4,7 @@ import { UserAccessChanges, UserRepository } from "@auth/domain/repositories/Use
 import { IPasswordHasher } from "@auth/application/ports/PasswordHasher";
 import { ILoginAttemptLimiter } from "@auth/application/ports/LoginAttemptLimiter";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
+import { ITokenService } from "@auth/application/ports/ITokenService";
 
 type UserRecord = {
   id: string;
@@ -13,6 +14,7 @@ type UserRecord = {
   role: UserRole;
   active: boolean;
   createdAt: Date;
+  passwordChangedAt: Date | null;
 };
 
 /**
@@ -32,6 +34,7 @@ export class InMemoryUserRepository implements UserRepository {
       role: props.role,
       active: props.active ?? true,
       createdAt: new Date(),
+      passwordChangedAt: null,
     });
   }
 
@@ -45,6 +48,7 @@ export class InMemoryUserRepository implements UserRepository {
 
   private store(user: User) {
     this.rows.set(user.id, {
+      passwordChangedAt: this.rows.get(user.id)?.passwordChangedAt ?? null,
       id: user.id,
       name: user.name,
       email: user.email,
@@ -83,10 +87,10 @@ export class InMemoryUserRepository implements UserRepository {
     this.rows.set(id, { ...row, ...changes });
     return this.toEntity(this.rows.get(id))!;
   }
-  async updatePassword(id: string, passwordHash: string) {
+  async updatePassword(id: string, passwordHash: string, changedAt: Date) {
     this.calls.push("updatePassword");
     const row = this.row(id);
-    this.rows.set(id, { ...row, password: passwordHash });
+    this.rows.set(id, { ...row, password: passwordHash, passwordChangedAt: changedAt });
   }
   async delete(id: string) {
     this.rows.delete(id);
@@ -131,5 +135,13 @@ export class FakeLimiter implements ILoginAttemptLimiter {
   }
   clear(key: string) {
     this.counts.delete(key);
+  }
+}
+
+export class FakeTokenService implements ITokenService {
+  readonly signed: { sub: string; role: string }[] = [];
+  async sign(payload: { sub: string; role: string }) {
+    this.signed.push(payload);
+    return `token:${payload.sub}:${payload.role}`;
   }
 }

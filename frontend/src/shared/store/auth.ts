@@ -15,6 +15,8 @@ type AuthState = {
   sessionExpired: boolean;
   setSession: (token: string, user: SessionUser) => void;
   setUser: (user: SessionUser) => void;
+  /** Replaces the token of the current session (e.g. after a password change), keeping the user. */
+  setToken: (token: string) => void;
   /** Clears token and user. `expired` marks a forced logout (401). Callers must also clear the query cache. */
   logout: (expired?: boolean) => void;
 };
@@ -39,6 +41,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setUser: (user) => {
     if (get().token) set({ user });
+  },
+
+  setToken: (token) => {
+    if (!get().token) return;
+    localStorage.setItem("token", token);
+    set({ token });
   },
 
   logout: (expired = false) => {

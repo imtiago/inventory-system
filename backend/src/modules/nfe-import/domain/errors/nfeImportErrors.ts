@@ -50,6 +50,21 @@ export const nfeUnsupportedItem = (index: number) =>
     ErrorCodes.NFE_UNSUPPORTED_ITEM,
   );
 
+/** Unidades do item (qCom × unidades por embalagem) acima do teto do pedido. */
+export const nfeItemUnitsTooLarge = (index: number) =>
+  new BusinessRuleError(
+    `Item ${index}: quantidade em unidades acima do máximo permitido (1.000.000).`,
+    ErrorCodes.INVALID_NFE,
+  );
+
+/** Valor do item do pedido (preço, desconto, frete, imposto ou total) acima de DECIMAL(12,2). */
+export const nfeItemAmountTooLarge = (index: number) =>
+  new BusinessRuleError(`Item ${index}: valor acima do máximo permitido.`, ErrorCodes.INVALID_NFE);
+
+/** Total do pedido gerado da nota acima de DECIMAL(12,2). */
+export const nfeTotalTooLarge = () =>
+  new BusinessRuleError("O total da nota excede o máximo permitido.", ErrorCodes.INVALID_NFE);
+
 /** Lotes (rastro) somando mais unidades que o próprio item: nota inconsistente. */
 export const nfeLotsExceedQuantity = (index: number) =>
   new BusinessRuleError(`Os lotes do item ${index} excedem a quantidade do item.`, ErrorCodes.INVALID_NFE);

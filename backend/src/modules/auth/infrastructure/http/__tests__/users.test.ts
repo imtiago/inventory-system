@@ -3,6 +3,7 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
+import jwt from "jsonwebtoken";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -201,9 +202,23 @@ describe("Gestão de usuários (/users)", () => {
     const target = await createViaApi("VENDEDOR");
     loginAttemptLimiter.reset();
 
+    // sessão aberta antes da redefinição (iat um segundo antes)
+    const oldSession = jwt.sign(
+      { sub: target.id, role: "VENDEDOR", iat: Math.floor(Date.now() / 1000) - 1 },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1h", issuer: "my-api", audience: "my-api-client" },
+    );
+    assert.equal((await call("GET", "/users/me", oldSession)).statusCode, 200);
+
     const res = await call("POST", `/users/${target.id}/password`, admin.token, { password: "nova-senha-123" });
     assert.equal(res.statusCode, 204, res.body);
     assert.equal(res.body, "");
+
+    const afterReset = await call("GET", "/users/me", oldSession);
+    assert.equal(afterReset.statusCode, 401, afterReset.body);
+    assert.deepEqual(afterReset.json(), { message: "Sessão inválida.", code: "UNAUTHENTICATED" });
+    // a sessão do admin que redefiniu continua valendo
+    assert.equal((await call("GET", "/users/me", admin.token)).statusCode, 200);
 
     const oldLogin = await call("POST", "/auth/login", undefined, { email: target.email, password: "senha-inicial" });
     assert.equal(oldLogin.statusCode, 401);
@@ -221,7 +236,7 @@ describe("Gestão de usuários (/users)", () => {
     );
   });
 
-  test("PUT /users/me/password com atual errada → 422 INVALID_CURRENT_PASSWORD; certa → 204", async () => {
+  test("PUT /users/me/password com atual errada → 422 INVALID_CURRENT_PASSWORD; certa → 200 com token novo", async () => {
     const user = await createTestUser({ role: "ESTOQUISTA", password: "senha-atual-1" });
     try {
       const wrong = await call("PUT", "/users/me/password", user.token, {
@@ -237,11 +252,28 @@ describe("Gestão de usuários (/users)", () => {
       });
       assert.equal(weak.statusCode, 400, weak.body);
 
+      const oldSession = jwt.sign(
+        { sub: user.id, role: "ESTOQUISTA", iat: Math.floor(Date.now() / 1000) - 1 },
+        process.env.JWT_SECRET!,
+        { expiresIn: "1h", issuer: "my-api", audience: "my-api-client" },
+      );
       const ok = await call("PUT", "/users/me/password", user.token, {
         currentPassword: "senha-atual-1",
         newPassword: "senha-nova-12",
       });
-      assert.equal(ok.statusCode, 204, ok.body);
+      assert.equal(ok.statusCode, 200, ok.body);
+      assert.deepEqual(Object.keys(ok.json()), ["data"]);
+      assert.deepEqual(Object.keys(ok.json().data), ["token"]);
+      const newToken: string = ok.json().data.token;
+      assert.equal(typeof newToken, "string");
+
+      // sessão anterior à troca cai; o token devolvido continua logado
+      const stale = await call("GET", "/users/me", oldSession);
+      assert.equal(stale.statusCode, 401, stale.body);
+      assert.deepEqual(stale.json(), { message: "Sessão inválida.", code: "UNAUTHENTICATED" });
+      const me = await call("GET", "/users/me", newToken);
+      assert.equal(me.statusCode, 200, me.body);
+      assert.equal(me.json().data.id, user.id);
 
       loginAttemptLimiter.reset();
       const login = await call("POST", "/auth/login", undefined, { email: user.email, password: "senha-nova-12" });

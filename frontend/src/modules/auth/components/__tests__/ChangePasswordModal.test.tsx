@@ -7,6 +7,8 @@ import { ChangePasswordModal } from '../ChangePasswordModal';
 import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
+import { loginAs } from '@/test/auth';
+import { useAuthStore } from '@/shared/store/auth';
 
 async function fill(current: string, next: string, confirm: string) {
   const dialog = await screen.findByRole('dialog');
@@ -24,7 +26,7 @@ describe('ChangePasswordModal', () => {
     server.use(
       http.put(`${API_URL}/users/me/password`, async ({ request }) => {
         bodies.push(await request.json());
-        return new HttpResponse(null, { status: 204 });
+        return HttpResponse.json({ data: { token: 'token-novo' } });
       }),
     );
     renderWithProviders(<ChangePasswordModal open onClose={onClose} />);
@@ -34,9 +36,42 @@ describe('ChangePasswordModal', () => {
     expect(bodies).toEqual([{ currentPassword: 'SenhaAtual1', newPassword: 'NovaSenha123' }]);
   });
 
+  test('sucesso troca o token guardado pelo novo e mantém o usuário logado', async () => {
+    loginAs('VENDEDOR');
+    const user = useAuthStore.getState().user;
+    const onClose = vi.fn();
+    server.use(
+      http.put(`${API_URL}/users/me/password`, () => HttpResponse.json({ data: { token: 'token-novo' } })),
+    );
+    renderWithProviders(<ChangePasswordModal open onClose={onClose} />);
+    await fill('SenhaAtual1', 'NovaSenha123', 'NovaSenha123');
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(useAuthStore.getState().token).toBe('token-novo');
+    expect(localStorage.getItem('token')).toBe('token-novo');
+    expect(useAuthStore.getState().user).toEqual(user);
+    expect(useAuthStore.getState().sessionExpired).toBe(false);
+  });
+
+  test('erro não troca o token', async () => {
+    loginAs('VENDEDOR');
+    server.use(
+      http.put(`${API_URL}/users/me/password`, () =>
+        HttpResponse.json({ message: 'Senha atual incorreta.', code: 'INVALID_CURRENT_PASSWORD' }, { status: 422 }),
+      ),
+    );
+    renderWithProviders(<ChangePasswordModal open onClose={() => {}} />);
+    const dialog = await fill('errada1234', 'NovaSenha123', 'NovaSenha123');
+
+    expect(await within(dialog).findByText('Senha atual incorreta.')).toBeInTheDocument();
+    expect(useAuthStore.getState().token).toBe('token-VENDEDOR');
+  });
+
   test('confirmação diferente não envia', async () => {
     let called = false;
-    server.use(http.put(`${API_URL}/users/me/password`, () => ((called = true), new HttpResponse(null, { status: 204 }))));
+    server.use(
+      http.put(`${API_URL}/users/me/password`, () => ((called = true), HttpResponse.json({ data: { token: 'token-novo' } }))),
+    );
     renderWithProviders(<ChangePasswordModal open onClose={() => {}} />);
     const dialog = await fill('SenhaAtual1', 'NovaSenha123', 'Outra123456');
 

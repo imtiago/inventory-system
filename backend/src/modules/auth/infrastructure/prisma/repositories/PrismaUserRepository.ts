@@ -66,8 +66,11 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(updated);
   }
 
-  async updatePassword(id: string, passwordHash: string): Promise<void> {
-    await getDb().user.update({ where: { id }, data: { password: passwordHash } });
+  async updatePassword(id: string, passwordHash: string, changedAt: Date): Promise<void> {
+    await getDb().user.update({
+      where: { id },
+      data: { password: passwordHash, passwordChangedAt: changedAt },
+    });
   }
 
   async delete(id: string): Promise<void> {

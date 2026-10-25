@@ -531,6 +531,30 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.equal((await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: same } })).quantity, 25);
   });
 
+  test("unidades do item acima de 1.000.000 → 422 INVALID_NFE \"Item 3: ...\" e nada criado", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    const draft = await uploadNote(note, (xml) => xml.replace("<qCom>1.0000</qCom>", "<qCom>20.0000</qCom>"));
+    const variant = await existingVariant();
+
+    const res = await confirm(draft.id, {
+      supplier: { id: supplier.id },
+      items: [
+        { index: 1, link: { productVariantId: variant } },
+        { index: 2, link: { productVariantId: variant, unitsPerPackage: 2 } },
+        { index: 3, link: { productVariantId: variant, unitsPerPackage: 100_000 } },
+      ],
+      receive: true,
+    });
+    assert.equal(res.statusCode, 422, res.body);
+    assert.deepEqual(res.json(), {
+      message: "Item 3: quantidade em unidades acima do máximo permitido (1.000.000).",
+      code: "INVALID_NFE",
+    });
+    assert.equal(await prisma.purchase.count({ where: { supplierId: supplier.id } }), 0);
+    assert.equal((await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } })).status, "DRAFT");
+  });
+
   test("fornecedor existente com documento diferente → 422 SUPPLIER_DOCUMENT_MISMATCH; validações do corpo → 400; VENDEDOR → 403", async () => {
     const note = newNote();
     const draft = await uploadNote(note);

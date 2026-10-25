@@ -45,6 +45,8 @@ export async function createAdmin(input: CreateAdminInput): Promise<CreateAdminR
     existing.activate();
     existing.changePassword(passwordHash);
     await users.update(existing);
+    // Senha redefinida → derruba as sessões abertas (passwordChangedAt).
+    await users.updatePassword(existing.id, passwordHash, new Date());
     return { id: existing.id, email, created: false };
   }
 

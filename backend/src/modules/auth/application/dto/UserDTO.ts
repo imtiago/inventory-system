@@ -62,3 +62,8 @@ export interface IChangeOwnPasswordInput {
   currentPassword: string;
   newPassword: string;
 }
+
+/** Token novo da sessão atual (as anteriores à troca deixam de valer). */
+export interface IChangeOwnPasswordResult {
+  token: string;
+}
