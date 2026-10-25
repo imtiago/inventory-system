@@ -38,6 +38,25 @@ describe('api 401 interceptor', () => {
     expect(useAuthStore.getState().sessionExpired).toBe(true);
   });
 
+  test('401 de requisição feita com o token antigo não derruba a sessão com o token novo', async () => {
+    let release: () => void = () => {};
+    let arrived: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const reached = new Promise<void>((resolve) => { arrived = resolve; });
+    server.use(http.get(`${API_URL}/sales`, async () => { arrived(); await gate; return unauthorized(); }));
+    const clear = vi.spyOn(queryClient, 'clear');
+
+    const pending = api.get('/sales');
+    await reached; // a requisição já saiu com o token antigo
+    useAuthStore.getState().setToken('token-novo');
+    release();
+    await expect(pending).rejects.toBeTruthy();
+
+    expect(clear).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().token).toBe('token-novo');
+    expect(useAuthStore.getState().sessionExpired).toBe(false);
+  });
+
   test('401 tardio após logout voluntário não marca sessão expirada', async () => {
     server.use(http.get(`${API_URL}/sales`, unauthorized));
     const pending = api.get('/sales');

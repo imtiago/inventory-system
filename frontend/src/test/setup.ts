@@ -30,6 +30,7 @@ const COVERED_POSTS = [
   /\/nfe-imports\/[^/]+\/confirm$/,
   /\/inventory\/(receive|dispatch|adjust|reserve|release|initial-count|lots)$/,
   /\/inventory\/boxes\/[^/]+\/items$/,
+  /\/inventory\/boxes\/[^/]+\/items\/remove$/,
 ];
 const missingKey: string[] = [];
 
