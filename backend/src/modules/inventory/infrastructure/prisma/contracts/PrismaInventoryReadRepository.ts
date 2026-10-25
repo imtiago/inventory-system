@@ -1,5 +1,6 @@
 import { InventoryReadRepository } from "@inventory/application/contracts/InventoryReadRepository";
 import { InventoryWithExtendsDTO } from "@inventory/application/dto/InventoryDTO";
+import { InventoryBalanceDTO } from "@inventory/application/dto/InventoryBalanceDTO";
 import { InventoryReadMapper } from "@inventory/application/mappers/InventoryReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -57,6 +58,20 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
     if (!data) return null;
 
     return InventoryReadMapper.toDTO(data);
+  }
+
+  async listBalancesByVariantIds(ids: string[]): Promise<InventoryBalanceDTO[]> {
+    const rows = await getDb().inventory.findMany({
+      where: { productVariantId: { in: ids } },
+      select: { productVariantId: true, quantity: true, reservedQuantity: true },
+    });
+
+    return rows.map((row) => ({
+      productVariantId: row.productVariantId,
+      quantity: row.quantity,
+      reserved: row.reservedQuantity,
+      available: row.quantity - row.reservedQuantity,
+    }));
   }
 
   async getDashboard() {

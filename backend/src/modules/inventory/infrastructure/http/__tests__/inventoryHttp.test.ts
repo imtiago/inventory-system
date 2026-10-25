@@ -81,6 +81,32 @@ describe("HTTP de estoque", () => {
     return box;
   };
 
+  test("GET /inventory?productVariantIds devolve saldos em lote e omite ids sem estoque", async () => {
+    const lotRes = await request("POST", "/inventory/lots", lotBody({ quantity: 7 }));
+    assert.equal(lotRes.statusCode, 200, lotRes.body);
+    const inventory = await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: variantId } });
+    await prisma.inventory.update({ where: { id: inventory.id }, data: { reservedQuantity: 2 } });
+    const unknown = randomUUID();
+
+    const res = await request("GET", `/inventory?productVariantIds=${variantId},${unknown}`);
+
+    assert.equal(res.statusCode, 200, res.body);
+    assert.deepEqual(res.json(), {
+      data: [{ productVariantId: variantId, quantity: 7, reserved: 2, available: 5 }],
+    });
+  });
+
+  test("GET /inventory?productVariantIds valida: vazio, não-uuid e mais de 100 ids → 400; 100 ids → 200", async () => {
+    const ids = (n: number) => Array.from({ length: n }, () => randomUUID()).join(",");
+    for (const bad of ["", "abc", `${variantId},abc`, ids(101)]) {
+      const res = await request("GET", `/inventory?productVariantIds=${bad}`);
+      assert.equal(res.statusCode, 400, `${bad.slice(0, 20)}: ${res.body}`);
+    }
+    const ok = await request("GET", `/inventory?productVariantIds=${ids(100)}`);
+    assert.equal(ok.statusCode, 200, ok.body);
+    assert.deepEqual(ok.json(), { data: [] });
+  });
+
   test("GET /inventory/:id retorna 200 com averageCost e productVariant", async () => {
     const lotRes = await request("POST", "/inventory/lots", lotBody({ unitCost: 12.5 }));
     assert.equal(lotRes.statusCode, 200, lotRes.body);

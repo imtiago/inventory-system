@@ -51,6 +51,41 @@ beforeEach(() => {
 });
 
 describe('ProductDetailsPage', () => {
+  test('estoque das variantes: uma única consulta em lote por página (sem GET por variante)', async () => {
+    const batches: string[][] = [];
+    let perVariant = 0;
+    server.use(
+      http.get(`${API_URL}/inventory`, ({ request }) => {
+        const ids = (new URL(request.url).searchParams.get('productVariantIds') ?? '').split(',');
+        batches.push(ids);
+        return HttpResponse.json({
+          data: ids.filter((id) => id !== 'v-1-1').map((id) => ({ productVariantId: id, quantity: 9, reserved: 1, available: 8 })),
+        });
+      }),
+      http.get(`${API_URL}/inventory/variants/:variantId`, () => {
+        perVariant += 1;
+        return HttpResponse.json({ message: 'x', code: 'INVENTORY_NOT_FOUND' }, { status: 404 });
+      }),
+    );
+    renderDetails();
+
+    expect(await screen.findByText('Variante 1-0')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('8')).toHaveLength(9));
+    expect(screen.getAllByText('Sem estoque')).toHaveLength(1);
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toHaveLength(10);
+    expect(perVariant).toBe(0);
+  });
+
+  test('falha na consulta de estoque mostra erro nas linhas, sem virar "Sem estoque"', async () => {
+    server.use(http.get(`${API_URL}/inventory`, () => HttpResponse.json({ message: 'x', code: 'INTERNAL_ERROR' }, { status: 500 })));
+    renderDetails();
+
+    expect(await screen.findByText('Variante 1-0')).toBeInTheDocument();
+    expect((await screen.findAllByText('Erro ao carregar estoque', {}, { timeout: 5000 })).length).toBe(10);
+    expect(screen.queryByText('Sem estoque')).not.toBeInTheDocument();
+  });
+
   test('mostra marca, categoria e contagem; 12 variantes: título mostra 12 e página 2 busca page=2', async () => {
     renderDetails();
 

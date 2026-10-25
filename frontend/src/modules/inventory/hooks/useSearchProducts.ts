@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
 import { api } from '@/shared/services/api';
 import type { Paginated } from '@/shared/types/pagination';
 
@@ -23,47 +25,39 @@ export interface InventoryProductSearchResult {
 
 type SearchProductsResponse = Paginated<InventoryProductSearchResult>;
 
+/**
+ * Wizard product search. The term is part of the query key, so an old, slower response
+ * lands in its own cache entry and never replaces the results of the current term.
+ */
 export function useSearchProducts() {
-  const [products, setProducts] = useState<InventoryProductSearchResult[]>([]);
+  // null = no search requested yet (modal closed): nothing is fetched.
+  const [term, setTerm] = useState<string | null>(null);
 
-  const [loading, setLoading] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-
-  async function searchProducts(search: string) {
-    try {
-      setLoading(true);
-      setError(null);
-
+  const query = useQuery({
+    queryKey: ['products', 'wizard-search', term],
+    queryFn: async ({ signal }) => {
       const response = await api.get<SearchProductsResponse>('/products', {
-        params: {
-          page: 1,
-          limit: 20,
-          search: search.trim(),
-        },
+        params: { page: 1, limit: 20, search: term },
+        signal,
       });
 
-      setProducts(response.data.data ?? []);
-    } catch (error) {
-      console.error('Erro ao pesquisar produtos:', error);
+      return response.data.data ?? [];
+    },
+    enabled: term !== null,
+  });
 
-      setError('Não foi possível pesquisar os produtos.');
-
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
+  function searchProducts(search: string) {
+    setTerm(search.trim());
   }
 
   function clearProducts() {
-    setProducts([]);
-    setError(null);
+    setTerm(null);
   }
 
   return {
-    products,
-    loading,
-    error,
+    products: term === null ? [] : (query.data ?? []),
+    loading: term !== null && query.isFetching,
+    error: term !== null && query.isError ? 'Não foi possível pesquisar os produtos.' : null,
     searchProducts,
     clearProducts,
   };

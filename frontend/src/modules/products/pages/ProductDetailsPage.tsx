@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { useProduct } from "../hooks/useProduct";
 import { useProductVariants } from "../hooks/useProductVariants";
 import { useDeleteProduct } from "../hooks/useDeleteProduct";
+import { useInventoryBalances } from "@/modules/inventory/hooks/useInventoryBalances";
 import { useDeleteVariant } from "../hooks/useDeleteVariant";
 
 import { useProductVariantColumns } from "../components/ProductVariantColumns";
@@ -52,8 +53,11 @@ export function ProductDetailsPage() {
 
   const deleteVariant = useDeleteVariant(id!);
 
+  const stock = useInventoryBalances(variants.map((variant) => variant.id));
+
   const columns = useProductVariantColumns({
     onDelete: setVariantToDelete,
+    stock,
   });
 
   if (isLoading || deleteProduct.isSuccess) {

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { useInventoryBoxes } from '../hooks/useInventoryBox';
 import type { InventoryBox, InventoryLot } from '../types';
 
@@ -18,18 +19,6 @@ interface Props {
   onCreateBox(): void | Promise<void>;
   onAddToBox(quantity: number): void | Promise<void>;
   onBack(): void;
-}
-
-function useDebouncedValue(value: string, delay = 300) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debounced;
 }
 
 export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, loading, error, onSelectBox, onCreateBox, onAddToBox, onBack }: Props) {
@@ -168,7 +157,7 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
         )}
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" onClick={onBack} className="rounded-lg border px-6 py-3">
+          <button type="button" onClick={onBack} disabled={loading} className="rounded-lg border px-6 py-3 disabled:opacity-50">
             Voltar
           </button>
 

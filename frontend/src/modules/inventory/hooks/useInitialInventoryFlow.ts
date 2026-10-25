@@ -7,7 +7,7 @@ import { useProductByBarcode } from './useProductByBarcode';
 import { useInventoryLots } from './useInventoryLots';
 import { useInventoryBox } from './useInventoryBox';
 import { useCreateInventoryLot } from './useCreateInventoryLot';
-import { useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
+import { downloadPdf, useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
 import { useSearchProducts } from './useSearchProducts';
 
 export type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
@@ -110,7 +110,6 @@ export function useInitialInventoryFlow() {
     resetLotAndBox();
     setLabelQuantity('1');
     setLabelError(null);
-    setLabelError(null);
     barcodeLookup.clearFoundVariant();
     productSearch.clearProducts();
   }
@@ -203,7 +202,9 @@ export function useInitialInventoryFlow() {
 
   /** Closing a modal never leaves the wizard on an empty step. */
   function closeModal() {
-    // Cancels pending modal work (e.g. a lot being created) so its result can't move the wizard.
+    // A lot being created can't be abandoned: its result selects the lot and moves the wizard on.
+    if (lotCreation.loading) return;
+
     nextToken();
 
     if (modal === 'product-selection' && step === 'product-search') {
@@ -271,7 +272,10 @@ export function useInitialInventoryFlow() {
     if (!isCurrent(token)) return;
 
     if (!result.ok) {
-      setLotError(result.error);
+      // Field errors are shown inline by the form; the generic banner would repeat them.
+      const hasFieldErrors = Object.keys(result.fieldErrors ?? {}).length > 0;
+
+      setLotError(hasFieldErrors ? null : result.error);
       return { fieldErrors: result.fieldErrors };
     }
 
@@ -291,12 +295,17 @@ export function useInitialInventoryFlow() {
   /* ---------------------------------------------------------------- caixa */
 
   function handleBackToLot() {
+    // The add-to-box request is already on its way: wait for its result instead of discarding it.
+    if (boxMutations.loading) return;
+
     nextToken();
     setBoxError(null);
     setStep('lot');
   }
 
   function handleSelectBox(box: InventoryBox) {
+    if (boxMutations.loading) return;
+
     nextToken();
     setSelectedBox(box);
     setBoxError(null);
@@ -346,7 +355,6 @@ export function useInitialInventoryFlow() {
     setPlacement({ quantity, boxCode: selectedBox.code });
     setLabelQuantity('1');
     setLabelError(null);
-    setLabelError(null);
     setStep('label-choice');
   }
 
@@ -355,13 +363,11 @@ export function useInitialInventoryFlow() {
   function handleGenerateLabel() {
     setLabelQuantity('1');
     setLabelError(null);
-    setLabelError(null);
     setStep('label-quantity');
   }
 
   function handleBackToLabelChoice() {
     nextToken();
-    setLabelError(null);
     setLabelError(null);
     setStep('label-choice');
   }
@@ -391,6 +397,13 @@ export function useInitialInventoryFlow() {
 
     if (!result.ok) {
       setLabelError(result.error);
+      return;
+    }
+
+    try {
+      downloadPdf(result.data, `etiquetas-${selectedBox.code}.pdf`);
+    } catch {
+      setLabelError('Não foi possível entregar o PDF das etiquetas. Tente gerar novamente.');
       return;
     }
 
@@ -429,6 +442,7 @@ export function useInitialInventoryFlow() {
     selectedLot,
     lotAvailableForBoxes,
     createLotLoading: lotCreation.loading,
+    modalLocked: lotCreation.loading,
     createLotError: lotError,
 
     selectedBox,
