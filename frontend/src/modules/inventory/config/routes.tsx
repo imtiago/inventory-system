@@ -1,8 +1,10 @@
 import { Boxes } from 'lucide-react';
 import type { AppRoute } from '@/routes/types';
-import { InitialInventoryPage } from '../pages/InitialInventoryPage';
-import { InventoryListPage } from '../pages/InventoryListPage';
-import { InventoryDetailsPage } from '../pages/InventoryDetailsPage';
+import { lazyPage } from '@/routes/lazyPage';
+
+const InitialInventoryPage = lazyPage(() => import('../pages/InitialInventoryPage'), 'InitialInventoryPage');
+const InventoryListPage = lazyPage(() => import('../pages/InventoryListPage'), 'InventoryListPage');
+const InventoryDetailsPage = lazyPage(() => import('../pages/InventoryDetailsPage'), 'InventoryDetailsPage');
 
 export const inventoryRoutes: AppRoute[] = [
   {

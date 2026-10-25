@@ -17,7 +17,8 @@ export function useInventoryBalances(productVariantIds: string[]) {
 
   return {
     balances,
-    loading: query.isLoading,
+    // isPlaceholderData: the previous page's balances are shown only to avoid flicker; the new ids are not loaded yet.
+    loading: query.isLoading || query.isPlaceholderData,
     error: query.isError,
   };
 }

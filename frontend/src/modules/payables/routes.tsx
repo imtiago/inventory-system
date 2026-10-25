@@ -1,7 +1,9 @@
 import { Receipt } from 'lucide-react';
 import type { AppRoute } from '@/routes/types';
-import { PayableDetailPage } from './pages/PayableDetailPage';
-import { PayableListPage } from './pages/PayableListPage';
+import { lazyPage } from '@/routes/lazyPage';
+
+const PayableDetailPage = lazyPage(() => import('./pages/PayableDetailPage'), 'PayableDetailPage');
+const PayableListPage = lazyPage(() => import('./pages/PayableListPage'), 'PayableListPage');
 
 export const payablesRoutes: AppRoute[] = [
   { path: '/payables', permission: 'payables.read', showInMenu: true, icon: Receipt, group: 'Financeiro', label: 'Contas a pagar', component: PayableListPage, guard: 'auth' },

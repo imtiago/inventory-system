@@ -1,7 +1,9 @@
 import { FileUp } from 'lucide-react';
 import type { AppRoute } from '@/routes/types';
-import { NfeImportListPage } from './pages/NfeImportListPage';
-import { NfeImportReviewPage } from './pages/NfeImportReviewPage';
+import { lazyPage } from '@/routes/lazyPage';
+
+const NfeImportListPage = lazyPage(() => import('./pages/NfeImportListPage'), 'NfeImportListPage');
+const NfeImportReviewPage = lazyPage(() => import('./pages/NfeImportReviewPage'), 'NfeImportReviewPage');
 
 export const nfeImportRoutes: AppRoute[] = [
   { path: '/nfe-imports', permission: 'purchases.write', showInMenu: true, icon: FileUp, group: 'Compras', label: 'Importar NF-e', component: NfeImportListPage, guard: 'auth' },

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 
 import { NfeImportReviewPage } from '../NfeImportReviewPage';
 import { renderWithProviders } from '@/test/render';
@@ -331,5 +331,37 @@ describe('NfeImportReviewPage', () => {
     expect(screen.getByText('3526 1011 AB2C 3300 0181 5500 1000 0123 4511 2345 6784')).toBeInTheDocument();
     expect(screen.getByTestId('installment-number-0')).toHaveTextContent('—');
     expect(screen.getByTestId('installment-number-1')).toHaveTextContent('002');
+  });
+
+  test('confirmar redireciona ao pedido só se o usuário ainda está na tela da importação', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    server.use(
+      http.post(`${API_URL}/nfe-imports/:id/confirm`, async () => {
+        await gate;
+        return HttpResponse.json({ data: { importId: draft.id, purchaseId: 'pc-1' } }, { status: 201 });
+      }),
+    );
+    renderWithProviders(
+      <>
+        <Link to="/outra">Ir para outra tela</Link>
+        <Routes>
+          <Route path="/nfe-imports/:id" element={<NfeImportReviewPage />} />
+          <Route path="/purchases/:id" element={<div>Detalhe do pedido</div>} />
+          <Route path="/outra" element={<div>Outra tela</div>} />
+        </Routes>
+      </>,
+      { route: `/nfe-imports/${draft.id}` },
+    );
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar importação' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Ir para outra tela' }));
+    expect(await screen.findByText('Outra tela')).toBeInTheDocument();
+
+    release();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByText('Detalhe do pedido')).not.toBeInTheDocument();
+    expect(screen.getByText('Outra tela')).toBeInTheDocument();
   });
 });

@@ -84,7 +84,7 @@ describe("Dashboard (GET /dashboard)", () => {
 
   const createDoc = async (
     type: "RECEIVABLE" | "PAYABLE",
-    status: "OPEN" | "PAID" | "CANCELED",
+    status: "OPEN" | "PARTIALLY_PAID" | "PAID" | "CANCELED",
     parcels: { amount: number; dueDate: string; paid?: number; reversedPaid?: number }[],
   ) => {
     const doc = await prisma.financialDocument.create({
@@ -244,6 +244,28 @@ describe("Dashboard (GET /dashboard)", () => {
       assert.ok(round2(a.overdue - b.overdue) >= 70);
       assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 2);
       assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 60);
+    });
+
+    test(`${key}: documento quitado não soma; parcial com pagamento estornado soma só o restante`, async () => {
+      const before = await readWindow();
+      // Quitado (PAID): restante 0 em todas as parcelas, inclusive vencidas e nos próximos 7 dias.
+      await createDoc(type, "PAID", [
+        { amount: 80, dueDate: addDays(-2), paid: 80 },
+        { amount: 25, dueDate: addDays(2), paid: 25 },
+      ]);
+      // Parcial: pagamento ativo abate, o estornado não.
+      await createDoc(type, "PARTIALLY_PAID", [
+        { amount: 100, dueDate: addDays(-3), paid: 10, reversedPaid: 50 }, // restante 90, vencida
+        { amount: 40, dueDate: addDays(1), reversedPaid: 40 }, // restante 40, próximos 7 dias
+        { amount: 15, dueDate: addDays(5), paid: 15 }, // quitada
+      ]);
+      const after = await readWindow();
+      const b = before[key];
+      const a = after[key];
+      assert.ok(round2(a.open - b.open) >= 130);
+      assert.ok(round2(a.overdue - b.overdue) >= 90);
+      assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 1);
+      assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 40);
     });
   }
 

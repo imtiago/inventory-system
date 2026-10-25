@@ -39,6 +39,20 @@ function verifyToken(token: string): VerifiedToken {
 }
 
 /**
+ * Subject do token quando a assinatura é válida (sem consultar o banco); `null`
+ * caso contrário. Serve de chave do rate limit, que roda antes de `authenticate`.
+ */
+export function verifiedSubject(request: FastifyRequest): string | null {
+  const token = extractBearerToken(request.headers.authorization);
+  if (!token) return null;
+  try {
+    return verifyToken(token).sub;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Token emitido antes da última troca/redefinição de senha? Comparação em segundos
  * inteiros (o `iat` do JWT é em segundos): recusa quando iat < floor(passwordChangedAt).
  * Um token do mesmo segundo da troca é aceito (o token devolvido pela troca é assinado

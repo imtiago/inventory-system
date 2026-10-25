@@ -55,6 +55,29 @@ describe('UserListPage', () => {
     expect(bodies).toEqual([{ name: 'Ana Nova', email: 'ana@example.com', password: 'SenhaForte123', role: 'VENDEDOR' }]);
   });
 
+  test('clique duplo em "Criar usuário" envia uma única criação', async () => {
+    let posts = 0;
+    server.use(
+      http.post(`${API_URL}/users`, async ({ request }) => {
+        posts += 1;
+        const body = (await request.json()) as Record<string, unknown>;
+        await new Promise((r) => setTimeout(r, 100));
+        return HttpResponse.json({ data: { ...maria, id: 'new', ...body, active: true } }, { status: 201 });
+      }),
+    );
+    await openList();
+    await userEvent.click(screen.getByRole('button', { name: /Novo usuário/ }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText(/Nome/), 'Ana Nova');
+    await userEvent.type(within(dialog).getByLabelText(/E-mail/), 'ana@example.com');
+    await userEvent.type(within(dialog).getByLabelText(/Senha/), 'SenhaForte123');
+    await userEvent.selectOptions(within(dialog).getByLabelText(/Papel/), 'VENDEDOR');
+    await userEvent.dblClick(within(dialog).getByRole('button', { name: 'Criar usuário' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(posts).toBe(1);
+  });
+
   test('criar: e-mail duplicado mostra erro no campo e mantém o modal', async () => {
     server.use(
       http.post(`${API_URL}/users`, () =>

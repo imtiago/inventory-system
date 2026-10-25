@@ -47,6 +47,26 @@ describe('SupplierListPage', () => {
     await waitFor(() => expect(posted).toEqual({ name: 'Fornecedor Novo', document: '11222333000181', phone: '11987654321' }));
   });
 
+  test('clique duplo em "Cadastrar fornecedor" envia um único cadastro', async () => {
+    let posts = 0;
+    server.use(
+      http.post(`${API_URL}/suppliers`, async () => {
+        posts += 1;
+        await new Promise((r) => setTimeout(r, 100));
+        return HttpResponse.json({ data: {} }, { status: 201 });
+      }),
+    );
+    renderWithProviders(<SupplierListPage />);
+    await screen.findByText('Distribuidora Acme Ltda');
+    await userEvent.click(screen.getByRole('button', { name: /Novo fornecedor/ }));
+    await userEvent.type(screen.getByLabelText(/Nome/), 'Fornecedor Novo');
+    await userEvent.type(screen.getByLabelText(/Documento/), '11222333000181');
+    await userEvent.dblClick(screen.getByRole('button', { name: 'Cadastrar fornecedor' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(posts).toBe(1);
+  });
+
   test('criar aceita CNPJ alfanumérico: maiúsculo, máscara e envio sem pontuação', async () => {
     server.use(
       http.post(`${API_URL}/suppliers`, async ({ request }) => {

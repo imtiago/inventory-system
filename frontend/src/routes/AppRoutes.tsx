@@ -1,9 +1,11 @@
+import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { RouteGuard } from './RouteGuard';
 import { useAuth } from '../shared/hooks/useAuth';
 import { authRoutes } from '../modules/auth/routes';
 import { allRoutes } from './routes';
+import { ChunkErrorBoundary } from '@/shared/components/ChunkErrorBoundary';
 import { DashboardLayout } from '@/shared/layouts/DashboardLayout';
 
 const publicRoutes = [...authRoutes];
@@ -15,7 +17,19 @@ export const AppRoutes = () => {
       {publicRoutes.map((route) => {
         const element = route.element ? route.element : <route.component />;
 
-        return <Route key={route.path} path={route.path} element={<RouteGuard guard={route.guard}>{element}</RouteGuard>} />;
+        return (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              <RouteGuard guard={route.guard}>
+                <ChunkErrorBoundary>
+                  <Suspense fallback={null}>{element}</Suspense>
+                </ChunkErrorBoundary>
+              </RouteGuard>
+            }
+          />
+        );
       })}
 
       <Route

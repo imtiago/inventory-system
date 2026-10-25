@@ -1,10 +1,12 @@
-import { CustomerDetailsPage } from '../pages/CustomerDetailsPage';
-import { CustomerListPage } from '../pages/CustomerListPage';
 // import { ProductEditPage } from '../pages/ProductEditPage';
 // import { ProductDetailsPage } from '../pages/ProductDetailsPage';
 
 import { Users } from 'lucide-react';
 import type { AppRoute } from '@/routes/types';
+import { lazyPage } from '@/routes/lazyPage';
+
+const CustomerDetailsPage = lazyPage(() => import('../pages/CustomerDetailsPage'), 'CustomerDetailsPage');
+const CustomerListPage = lazyPage(() => import('../pages/CustomerListPage'), 'CustomerListPage');
 // import { ProductCreatePage } from '../pages/ProductCreatePage';
 // import { VariantCreatePage } from '../pages/VariantCreatePage';
 // import { VariantEditPage } from '../pages/VariantEditPage';

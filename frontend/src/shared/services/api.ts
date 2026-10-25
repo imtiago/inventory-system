@@ -25,10 +25,10 @@ let lastForbiddenAt = 0;
 /** Global 403: tells the user once per burst and revalidates the session user (the role may have changed). */
 function handleForbidden(url: unknown) {
   const now = Date.now();
-  if (now - lastForbiddenAt > FORBIDDEN_DEDUPE_MS) {
-    lastForbiddenAt = now;
-    toast.error("Você não tem permissão para esta ação.", { id: "forbidden" });
-  }
+  // Same window for the message and the revalidation: a burst of 403s triggers one of each.
+  if (now - lastForbiddenAt <= FORBIDDEN_DEDUPE_MS) return;
+  lastForbiddenAt = now;
+  toast.error("Você não tem permissão para esta ação.", { id: "forbidden" });
 
   if (typeof url === "string" && url.endsWith("/users/me")) return;
   api

@@ -105,6 +105,17 @@ export function errorHandler(
     });
   }
 
+  // Pool de conexões esgotado / espera pela transação (P2028 que não é expiração; P2024).
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2028" || error.code === "P2024")
+  ) {
+    return reply.status(503).send({
+      message: "Sistema ocupado. Tente novamente em instantes.",
+      code: "SERVICE_BUSY",
+    });
+  }
+
   if (isForeignKeyViolation(error)) {
     return reply
       .status(409)
@@ -123,6 +134,27 @@ export function errorHandler(
   }
 
   const statusCode = (error as FastifyError | undefined)?.statusCode;
+  const fastifyCode = (error as FastifyError | undefined)?.code;
+  if (statusCode === 413) {
+    return reply.status(413).send({
+      message: "Arquivo ou requisição grande demais.",
+      code: "PAYLOAD_TOO_LARGE",
+    });
+  }
+  if (statusCode === 415) {
+    return reply.status(415).send({
+      message: "Tipo de conteúdo não suportado.",
+      code: "UNSUPPORTED_MEDIA_TYPE",
+    });
+  }
+  if (
+    statusCode === 400 &&
+    (error instanceof SyntaxError ||
+      fastifyCode === "FST_ERR_CTP_INVALID_JSON_BODY" ||
+      fastifyCode === "FST_ERR_CTP_EMPTY_JSON_BODY")
+  ) {
+    return reply.status(400).send({ message: "JSON inválido.", code: "INVALID_JSON" });
+  }
   if (
     typeof error === "object" &&
     error !== null &&

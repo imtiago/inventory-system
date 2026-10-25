@@ -27,15 +27,20 @@ export function useAuth() {
     if (userQuery.data) setUser(userQuery.data);
   }, [userQuery.data, setUser]);
 
+  // Once a restore attempt failed, a retry keeps showing the error screen (button busy) instead of going blank:
+  // while refetching, react-query reports the query as pending again (isError false).
+  const restoreFailed = !!token && !user && !userQuery.data && (userQuery.isError || userQuery.errorUpdateCount > 0);
+
   return {
     token,
     user,
     sessionExpired,
     // Until /users/me resolves (or fails) there is a token but no user yet: wait instead of redirecting.
-    isRestoring: !!token && !user && !userQuery.isError,
+    isRestoring: !!token && !user && !restoreFailed,
     // Transient failure (network/5xx) while restoring: the token is kept; a 401 already logged out via the interceptor.
-    restoreFailed: !!token && !user && userQuery.isError,
+    restoreFailed,
     retryRestore: () => void userQuery.refetch(),
+    isRetrying: restoreFailed && userQuery.isFetching,
     isAuthenticated: !!token && !!user,
   };
 }
