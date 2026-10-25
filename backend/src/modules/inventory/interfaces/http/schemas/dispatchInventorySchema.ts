@@ -1,21 +1,26 @@
 import { z } from "zod";
+import { MAX_QUANTITY } from "@shared/domain/limits";
+import {
+  manualNotesSchema,
+  manualOriginReferenceIdSchema,
+  manualStockOriginSchema,
+} from "./manualStockOrigin";
 
+/** Saída manual: origem só MANUAL/INVENTORY/TRANSFER (venda/devolução são internas). */
 export const dispatchInventorySchema = z.object({
   productVariantId: z.string().uuid("ID da variante inválido."),
 
   quantity: z
     .number()
     .int("A quantidade deve ser um número inteiro.")
-    .positive("A quantidade deve ser maior que zero."),
+    .positive("A quantidade deve ser maior que zero.")
+    .max(MAX_QUANTITY, "Quantidade excede o máximo permitido."),
 
-  origin: z.enum(["SALE", "TRANSFER", "RETURN", "MANUAL"]),
+  origin: manualStockOriginSchema,
 
-  originReferenceId: z.string().uuid("ID de referência inválido.").optional(),
+  originReferenceId: manualOriginReferenceIdSchema,
 
-  notes: z
-    .string()
-    .max(500, "As observações devem ter no máximo 500 caracteres.")
-    .optional(),
+  notes: manualNotesSchema,
 });
 
 export type DispatchInventorySchema = z.infer<typeof dispatchInventorySchema>;

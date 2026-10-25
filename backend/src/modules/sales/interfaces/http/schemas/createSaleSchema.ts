@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_QUANTITY } from "@shared/domain/limits";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -17,7 +18,8 @@ const saleItemSchema = z.object({
   quantity: z
     .number({ error: "A quantidade deve ser um número." })
     .int("A quantidade deve ser um número inteiro.")
-    .positive("A quantidade deve ser maior que zero."),
+    .positive("A quantidade deve ser maior que zero.")
+    .max(MAX_QUANTITY, "Quantidade excede o máximo permitido."),
 });
 
 const paymentTermsSchema = z.object(

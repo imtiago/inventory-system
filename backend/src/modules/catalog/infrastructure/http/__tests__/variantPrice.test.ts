@@ -73,6 +73,23 @@ describe("Preço de venda da variante", () => {
     assert.ok(body.errors.some((e: { field: string }) => e.field === "salePrice"));
   });
 
+  test("salePrice acima de 9.999.999.999,99 → 400 no campo (criar e editar); no teto → 201", async () => {
+    const MAX_ERROR = "O preço de venda deve ser no máximo 9.999.999.999,99.";
+    for (const salePrice of [10_000_000_000, 1e12, 1e300]) {
+      const res = await call("POST", `/products/${productId}/variants`, { name: "tx-test-max", salePrice });
+      assert.equal(res.statusCode, 400, `${salePrice}: ${res.body}`);
+      assert.deepEqual(res.json().errors, [{ field: "salePrice", message: MAX_ERROR }]);
+    }
+    const atMax = await call("POST", `/products/${productId}/variants`, { name: "tx-test-atmax", salePrice: 9_999_999_999.99 });
+    assert.equal(atMax.statusCode, 201, atMax.body);
+    createdVariantIds.push(atMax.json().data.id);
+    assert.equal(atMax.json().data.salePrice, 9_999_999_999.99);
+
+    const put = await call("PUT", `/variants/${atMax.json().data.id}`, { salePrice: 10_000_000_000 });
+    assert.equal(put.statusCode, 400, put.body);
+    assert.deepEqual(put.json().errors, [{ field: "salePrice", message: MAX_ERROR }]);
+  });
+
   test("PUT /variants/:id altera salePrice → GET mostra", async () => {
     const create = await call("POST", `/products/${productId}/variants`, { name: "tx-test-upd", salePrice: 5 });
     const id = create.json().data.id;

@@ -23,6 +23,11 @@ export async function resetUserPassword(id: string, password: string): Promise<v
   await api.post(`/users/${id}/password`, { password });
 }
 
-export async function changeOwnPassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
-  await api.put('/users/me/password', input);
+/** Returns the new session token: the backend revokes tokens issued before the change. */
+export async function changeOwnPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ token: string }> {
+  const response = await api.put('/users/me/password', input);
+  return response.data.data;
 }

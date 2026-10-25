@@ -1,6 +1,7 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { BusinessRuleError, ErrorCodes, ValidationError } from "@shared/domain/errors";
 import { isValidAccessKey } from "@shared/domain/accessKey";
+import { MAX_AMOUNT_CENTS, MAX_QUANTITY } from "@shared/domain/limits";
 import { businessDateOfInstant } from "@shared/domain/businessDate";
 import { isValidCnpj, isValidCpf } from "@shared/domain/document";
 import {
@@ -102,7 +103,23 @@ function canonicalDecimal(int: string, frac: string | undefined): string {
   return f ? `${i}.${f}` : i;
 }
 
-function cents(node: unknown, name: string, what: string): number {
+/**
+ * Onde o valor está, para as mensagens: `item` (nItem) → "Item n: …" (o front marca a
+ * linha); senão o trecho da nota ("totais", "duplicata 2").
+ */
+type Where = string | { item: number };
+
+const whatOf = (where: Where) => (typeof where === "string" ? where : `item ${where.item}`);
+
+function amountTooLarge(where: Where): BusinessRuleError {
+  return typeof where === "string"
+    ? invalidNfe(`Valor acima do máximo permitido na NF-e (${where}).`)
+    : invalidNfe(`Item ${where.item}: valor acima do máximo permitido.`);
+}
+
+/** Centavos de um campo monetário; acima do teto de DECIMAL(12,2) → 422 INVALID_NFE. */
+function cents(node: unknown, name: string, where: Where): number {
+  const what = whatOf(where);
   const raw = text(node, name);
   if (raw === undefined) return 0;
   const m = MONEY_PATTERN.exec(raw);
@@ -112,14 +129,19 @@ function cents(node: unknown, name: string, what: string): number {
   let value = Number(int) * 100 + Number(padded.slice(0, 2));
   // Mais de 2 casas (fora do layout): meio para cima, pelo 3º dígito.
   if (Number(padded[2]) >= 5) value += 1;
+  // Antes do "inteiro seguro": um valor enorme é "acima do máximo", não "inválido".
+  if (value > MAX_AMOUNT_CENTS) throw amountTooLarge(where);
   if (!Number.isSafeInteger(value)) throw invalidNfe(`Valor inválido na NF-e (${what}).`);
   return value;
 }
 
-function quantity(node: unknown, name: string, what: string): NfeQuantity {
+/** Quantidade (qCom/qLote) até 4 casas; acima de 1.000.000 → `tooLarge` (mesmo teto do pedido manual). */
+function quantity(node: unknown, name: string, what: string, tooLarge: string): NfeQuantity {
   const raw = text(node, name);
   const m = raw === undefined ? null : QUANTITY_PATTERN.exec(raw);
   if (!m) throw invalidNfe(`Quantidade inválida na NF-e (${what}).`);
+  const int = Number(m[1]);
+  if (int > MAX_QUANTITY || (int === MAX_QUANTITY && /[1-9]/.test(m[2] ?? ""))) throw invalidNfe(tooLarge);
   const q = canonicalDecimal(m[1], m[2]);
   if (!Number.isSafeInteger(Number(m[1]) * 10_000)) throw invalidNfe(`Quantidade inválida na NF-e (${what}).`);
   return q;
@@ -139,7 +161,7 @@ function barcodeOf(prod: XmlNode): string | null {
 }
 
 /** Soma de campos em qualquer grupo ICMS* (ICMS10, ICMS40, ICMS90, ICMSPart, ICMSSN201...). */
-function icmsSum(imposto: XmlNode | undefined, fields: string[], what: string): number {
+function icmsSum(imposto: XmlNode | undefined, fields: string[], what: Where): number {
   const icms = child(imposto, "ICMS");
   if (!icms) return 0;
   let total = 0;
@@ -151,7 +173,7 @@ function icmsSum(imposto: XmlNode | undefined, fields: string[], what: string): 
 }
 
 /** vICMSDeson só dos grupos ICMS* com indDeduzDeson = 1 (NT 2023.004). */
-function icmsReliefOf(imposto: XmlNode | undefined, what: string): number {
+function icmsReliefOf(imposto: XmlNode | undefined, what: Where): number {
   const icms = child(imposto, "ICMS");
   if (!icms) return 0;
   let total = 0;
@@ -259,8 +281,10 @@ export class NfeParser {
   }
 
   private item(det: XmlNode, position: number): NfeItem {
-    const index = Number(text(det, "@_nItem") ?? position + 1);
+    const nItem = Number(text(det, "@_nItem") ?? position + 1);
+    const index = Number.isSafeInteger(nItem) ? nItem : position + 1;
     const what = `item ${index}`;
+    const where: Where = { item: index };
     const prod = child(det, "prod") ?? {};
     const imposto = child(det, "imposto");
 
@@ -269,16 +293,22 @@ export class NfeParser {
 
     const lots: NfeLot[] = children(prod, "rastro").map((rastro) => ({
       batchNumber: text(rastro, "nLote") ?? "",
-      quantity: quantity(rastro, "qLote", `lote do ${what}`),
+      quantity: quantity(
+        rastro,
+        "qLote",
+        `lote do ${what}`,
+        `Item ${index}: quantidade do lote acima do máximo permitido (1.000.000).`,
+      ),
       manufacturingDate: date(rastro, "dFab"),
       expirationDate: date(rastro, "dVal"),
     }));
 
-    const qty = quantity(prod, "qCom", what);
+    // Unidades por embalagem são conferidas na confirmação (qCom × unidades ≤ 1.000.000).
+    const qty = quantity(prod, "qCom", what, `Item ${index}: quantidade acima do máximo permitido (1.000.000).`);
     if (/^0(\.0+)?$/.test(qty)) throw invalidNfe(`Quantidade inválida na NF-e (${what}).`);
 
     return {
-      index: Number.isSafeInteger(index) ? index : position + 1,
+      index,
       supplierCode: text(prod, "cProd") ?? "",
       barcode: barcodeOf(prod),
       name: text(prod, "xProd") ?? "",
@@ -287,17 +317,17 @@ export class NfeParser {
       unit: text(prod, "uCom") ?? "",
       quantity: qty,
       unitPrice: unitPriceMatch ? canonicalDecimal(unitPriceMatch[1], unitPriceMatch[2]) : "0",
-      productsTotal: cents(prod, "vProd", what),
-      discount: cents(prod, "vDesc", what),
-      freight: cents(prod, "vFrete", what),
-      insurance: cents(prod, "vSeg", what),
-      other: cents(prod, "vOutro", what),
-      icmsRelief: icmsReliefOf(imposto, what),
-      importTax: cents(child(imposto, "II"), "vII", what),
+      productsTotal: cents(prod, "vProd", where),
+      discount: cents(prod, "vDesc", where),
+      freight: cents(prod, "vFrete", where),
+      insurance: cents(prod, "vSeg", where),
+      other: cents(prod, "vOutro", where),
+      icmsRelief: icmsReliefOf(imposto, where),
+      importTax: cents(child(imposto, "II"), "vII", where),
       ipi:
-        cents(child(child(imposto, "IPI"), "IPITrib"), "vIPI", what) +
-        cents(child(child(det, "impostoDevol"), "IPI"), "vIPIDevol", what),
-      icmsSt: icmsSum(imposto, ["vICMSST", "vFCPST"], what),
+        cents(child(child(imposto, "IPI"), "IPITrib"), "vIPI", where) +
+        cents(child(child(det, "impostoDevol"), "IPI"), "vIPIDevol", where),
+      icmsSt: icmsSum(imposto, ["vICMSST", "vFCPST"], where),
       composesTotal: text(prod, "indTot") !== "0",
       lots,
     };

@@ -14,6 +14,7 @@ function build() {
     s.inventories,
     s.lots,
     s.movements,
+    s.stocks,
     s.tx,
   );
   return { ...s, dispatch };

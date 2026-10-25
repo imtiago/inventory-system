@@ -15,6 +15,11 @@ import { withIdempotencyKey } from "../../../../../test/idempotency";
 
 app.log.level = "silent";
 
+const SALE_STOCK_INCONSISTENT = {
+  message: "Movimentações de estoque da venda inconsistentes; contate o administrador.",
+  code: "SALE_STOCK_INCONSISTENT",
+};
+
 const addDaysUtc = (days: number) => {
   const d = new Date(`${todayInBusinessTz()}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -269,7 +274,7 @@ describe("POST /sales/:id/cancel", () => {
     assert.deepEqual(await lotsOf(v1), lotsBefore);
   });
 
-  test("venda com itens sem saídas rastreadas → 500 e nada alterado (rollback)", async () => {
+  test("venda com itens sem saídas rastreadas → 409 SALE_STOCK_INCONSISTENT e nada alterado (rollback)", async () => {
     const v1 = await createPricedVariant(10);
     const saleId = await createSale([{ productVariantId: v1, quantity: 2 }]);
     // Simula venda antiga / dado inconsistente: saídas sem originId.
@@ -277,7 +282,8 @@ describe("POST /sales/:id/cancel", () => {
     const movementsBefore = await prisma.stockMovement.count({ where: { productVariantId: v1 } });
 
     const res = await request("POST", `/sales/${saleId}/cancel`);
-    assert.equal(res.statusCode, 500, res.body);
+    assert.equal(res.statusCode, 409, res.body);
+    assert.deepEqual(res.json(), SALE_STOCK_INCONSISTENT);
 
     assert.equal((await prisma.sale.findUniqueOrThrow({ where: { id: saleId } })).status, "COMPLETED");
     const doc = await prisma.financialDocument.findFirstOrThrow({ where: { originId: saleId } });
@@ -285,6 +291,37 @@ describe("POST /sales/:id/cancel", () => {
     assert.equal(await inventoryQty(v1), 8);
     assert.equal(await prisma.stockMovement.count({ where: { productVariantId: v1 } }), movementsBefore);
   });
+
+  for (const [label, stray] of [
+    ["IN RETURN avulsa com a venda como origem", { type: "IN", origin: "RETURN" }],
+    ["OUT SALE avulsa com a venda como origem", { type: "OUT", origin: "SALE" }],
+  ] as const) {
+    test(`movimentação ${label} → 409 SALE_STOCK_INCONSISTENT e nada alterado`, async () => {
+      const v1 = await createPricedVariant(10);
+      const saleId = await createSale([{ productVariantId: v1, quantity: 2 }]);
+      const inventory = await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: v1 } });
+      // Dado inconsistente inserido direto no banco (as rotas manuais já não aceitam SALE/RETURN).
+      await prisma.stockMovement.create({
+        data: {
+          inventoryId: inventory.id,
+          productVariantId: v1,
+          type: stray.type,
+          origin: stray.origin,
+          quantity: 1,
+          originId: saleId,
+        },
+      });
+      const movementsBefore = await prisma.stockMovement.count({ where: { productVariantId: v1 } });
+
+      const res = await request("POST", `/sales/${saleId}/cancel`);
+      assert.equal(res.statusCode, 409, res.body);
+      assert.deepEqual(res.json(), SALE_STOCK_INCONSISTENT);
+
+      assert.equal((await prisma.sale.findUniqueOrThrow({ where: { id: saleId } })).status, "COMPLETED");
+      assert.equal(await inventoryQty(v1), 8);
+      assert.equal(await prisma.stockMovement.count({ where: { productVariantId: v1 } }), movementsBefore);
+    });
+  }
 
   test("cancela todos os documentos a receber da venda", async () => {
     const v1 = await createPricedVariant(10);

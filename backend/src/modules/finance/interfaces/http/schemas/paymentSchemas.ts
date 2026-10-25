@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_AMOUNT } from "@shared/domain/limits";
 import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FINANCIAL_TYPE_LABEL } from "@finance/domain/enums/financialTypeLabels";
@@ -17,6 +18,7 @@ export const registerPaymentBodySchema = z.object({
   amount: z
     .number({ message: "Informe o valor do pagamento." })
     .positive("O valor do pagamento deve ser maior que zero.")
+    .max(MAX_AMOUNT, "O valor do pagamento excede o máximo permitido.")
     .refine(hasAtMostTwoDecimals, "O valor deve ter no máximo 2 casas decimais."),
   method: z.enum(PaymentMethod, { message: "Forma de pagamento inválida." }),
   paymentDate: dateOnly("Data do pagamento").optional(),

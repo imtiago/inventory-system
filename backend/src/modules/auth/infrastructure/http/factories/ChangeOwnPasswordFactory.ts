@@ -3,6 +3,8 @@ import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/P
 import { ChangeOwnPasswordUseCase } from "@auth/application/useCases/commands/ChangeOwnPasswordUseCase";
 import { BcryptPasswordHasher } from "@auth/infrastructure/security/BcryptPasswordHasher";
 import { passwordChangeAttemptLimiter } from "@auth/infrastructure/security/LoginAttemptLimiter";
+import { JwtTokenService } from "@auth/infrastructure/security/JwtTokenService";
+import { env } from "@shared/config/env";
 
 export function makeChangeOwnPasswordUseCase() {
   return new ChangeOwnPasswordUseCase(
@@ -10,5 +12,6 @@ export function makeChangeOwnPasswordUseCase() {
     new BcryptPasswordHasher(),
     new PrismaTransactionManager(),
     passwordChangeAttemptLimiter,
+    new JwtTokenService(env.JWT_SECRET),
   );
 }

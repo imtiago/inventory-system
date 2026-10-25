@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_QUANTITY } from "@shared/domain/limits";
 
 export const reserveInventorySchema = z.object({
   productVariantId: z.string().uuid("ID da variante inválido."),
@@ -6,7 +7,8 @@ export const reserveInventorySchema = z.object({
   quantity: z
     .number()
     .int("A quantidade deve ser um número inteiro.")
-    .positive("A quantidade deve ser maior que zero."),
+    .positive("A quantidade deve ser maior que zero.")
+    .max(MAX_QUANTITY, "Quantidade excede o máximo permitido."),
 
   originId: z.string().uuid("ID de origem inválido."),
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_AMOUNT } from "@shared/domain/limits";
 
 /** Trim; vazio/só espaços vira `fallback` (o código de barras é opcional e único). */
 export const blankTo = (fallback: null | undefined) => (value: unknown) => {
@@ -10,6 +11,8 @@ export const blankTo = (fallback: null | undefined) => (value: unknown) => {
 export const salePriceSchema = z
   .number({ error: "O preço de venda deve ser um número." })
   .min(0, "O preço de venda não pode ser negativo.")
+  // Teto da coluna DECIMAL(12,2): acima disso o banco estoura (500).
+  .max(MAX_AMOUNT, "O preço de venda deve ser no máximo 9.999.999.999,99.")
   .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, "O preço deve ter no máximo 2 casas decimais.");
 
 export const createVariantSchema = z.object({

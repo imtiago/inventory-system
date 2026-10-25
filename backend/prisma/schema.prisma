@@ -327,6 +327,8 @@ model User {
   role                UserRole
   active              Boolean         @default(true)
   createdAt           DateTime        @default(now())
+  /// Última troca/redefinição de senha: tokens com `iat` anterior (em segundos) são recusados.
+  passwordChangedAt   DateTime?
   stockMovements      StockMovement[]
   sales               Sale[]
   paymentsCreated     Payment[]       @relation("paymentsCreated")

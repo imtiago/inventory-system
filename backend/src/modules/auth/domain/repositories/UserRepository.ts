@@ -18,8 +18,11 @@ export interface UserRepository extends ICrudRepository<User> {
   findByIdForUpdate(id: string): Promise<User | null>;
   /** Grava apenas os campos informados (não reescreve senha nem os demais). */
   updateAccess(id: string, changes: UserAccessChanges): Promise<User>;
-  /** Grava apenas o hash da senha (não reescreve papel/ativo). */
-  updatePassword(id: string, passwordHash: string): Promise<void>;
+  /**
+   * Grava apenas o hash da senha e `passwordChangedAt` (não reescreve papel/ativo).
+   * Tokens emitidos antes de `changedAt` deixam de valer.
+   */
+  updatePassword(id: string, passwordHash: string, changedAt: Date): Promise<void>;
   /**
    * Conta os ADMIN ativos diferentes de `id`. Dentro de uma transação, a
    * implementação deve bloquear as linhas dos admins ativos (em ordem de id)

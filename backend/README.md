@@ -29,3 +29,25 @@ npm run create-admin
   inexistente ou desativado → `401 "Sessão inválida."`.
 - 10 falhas de login para o mesmo IP + e-mail em 15 minutos →
   `429 TOO_MANY_ATTEMPTS` (contador em memória, zerado após login com sucesso).
+
+## Banco de testes
+
+`npm test` roda em um banco separado, definido por `TEST_DATABASE_URL` (veja `.env.example`). O nome do banco **deve terminar em `_test`**; caso contrário os testes abortam antes de tocar em qualquer dado (em CI, com `CI=true`, vale `DATABASE_URL`). Para criar e migrar o banco de testes (idempotente):
+
+```
+npm run test:db:prepare
+```
+
+## Backup e restauração
+
+```
+PGCONTAINER=api_db_1 npm run backup-db           # sem PGCONTAINER usa o pg_dump local
+npm run restore-db -- <arquivo.dump> <banco-destino> [--yes]
+```
+
+O backup vai para `${BACKUP_DIR:-$HOME/backups/inventory}/inventory-AAAAMMDD-HHMMSS.dump` e remove dumps com mais de `RETENTION_DAYS` (padrão 14) dias. A restauração recusa o banco `inventory` (e o de `DATABASE_URL`) sem `--force` e, para eles, sempre pede confirmação digitada; para outros bancos, `--yes` dispensa a confirmação. Credenciais vêm de `DATABASE_URL` (`backend/.env`). Exemplo de cron diário às 02:00:
+
+```
+PATH=/usr/local/bin:/usr/bin:/bin  # inclua o diretório do node/npm (ex.: ~/.nvm/versions/node/<versão>/bin)
+0 2 * * * mkdir -p $HOME/backups/inventory && cd /caminho/inventory-system/backend && PGCONTAINER=api_db_1 npm run backup-db >> $HOME/backups/inventory/cron.log 2>&1
+```

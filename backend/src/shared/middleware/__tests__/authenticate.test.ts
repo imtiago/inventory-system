@@ -115,4 +115,31 @@ describe("authenticate (JWT estrito + sessão verificada no banco)", () => {
       await estoquista.cleanup();
     }
   });
+  test("token emitido antes de passwordChangedAt (segundos) → 401; no mesmo segundo ou depois → 200", async () => {
+    const user = await createTestUser({ role: "ESTOQUISTA" });
+    try {
+      const changedAt = new Date();
+      await prisma.user.update({ where: { id: user.id }, data: { passwordChangedAt: changedAt } });
+      const changedSec = Math.floor(changedAt.getTime() / 1000);
+      const at = (iat: number) =>
+        jwt.sign({ sub: user.id, role: "ESTOQUISTA", iat }, process.env.JWT_SECRET!, {
+          expiresIn: "1h",
+          issuer: "my-api",
+          audience: "my-api-client",
+        });
+
+      const before = await getMe(`Bearer ${at(changedSec - 1)}`);
+      assert.equal(before.statusCode, 401, before.body);
+      assert.deepEqual(before.json(), SESSION_INVALID);
+
+      assert.equal((await getMe(`Bearer ${at(changedSec)}`)).statusCode, 200);
+      assert.equal((await getMe(`Bearer ${at(changedSec + 1)}`)).statusCode, 200);
+
+      // sem passwordChangedAt (usuário antigo) qualquer iat válido entra
+      await prisma.user.update({ where: { id: user.id }, data: { passwordChangedAt: null } });
+      assert.equal((await getMe(`Bearer ${at(changedSec - 600)}`)).statusCode, 200);
+    } finally {
+      await user.cleanup();
+    }
+  });
 });

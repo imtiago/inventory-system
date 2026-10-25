@@ -6,12 +6,17 @@ import { InventoryApplicationService } from "../../../services/InventoryApplicat
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
-import { InternalInvariantError } from "@shared/domain/errors";
+import { ConflictError } from "@shared/domain/errors";
 import { setupStock, snapshot } from "./helpers";
+
+const isInconsistent = (e: unknown) =>
+  e instanceof ConflictError &&
+  e.code === "SALE_STOCK_INCONSISTENT" &&
+  e.message === "Movimentações de estoque da venda inconsistentes; contate o administrador.";
 
 function build() {
   const s = setupStock();
-  const dispatch = new DispatchInventoryUseCase(s.inventories, s.lots, s.movements, s.tx);
+  const dispatch = new DispatchInventoryUseCase(s.inventories, s.lots, s.movements, s.stocks, s.tx);
   const returnStock = new ReturnSaleStockUseCase(s.inventories, s.lots, s.movements, s.tx);
   const sell = (quantity: number, saleId: string) =>
     dispatch.execute({
@@ -116,18 +121,18 @@ test("returnSaleStock só devolve as saídas da venda indicada", async () => {
   assert.deepEqual(returns.map((m) => [m.originId, m.quantity]), [["sale-1", 2]]);
 });
 
-test("venda com itens mas sem saídas rastreadas → InternalInvariantError sem gravar", async () => {
+test("venda com itens mas sem saídas rastreadas → 409 SALE_STOCK_INCONSISTENT sem gravar", async () => {
   const s = build();
   await s.addLot(3, 5);
   const before = await snapshot(s);
   await assert.rejects(
     () => s.returnStock.execute({ saleId: "sale-x", items: s.items(1) }),
-    (e: unknown) => e instanceof InternalInvariantError && e.code === "SALE_STOCK_MISMATCH",
+    isInconsistent,
   );
   assert.equal(await snapshot(s), before);
 });
 
-test("quantidade devolvida por variante ≠ itens da venda → InternalInvariantError sem gravar", async () => {
+test("quantidade devolvida por variante ≠ itens da venda → 409 SALE_STOCK_INCONSISTENT sem gravar", async () => {
   const s = build();
   await s.addLot(10, 5);
   await s.sell(3, "sale-1");
@@ -138,7 +143,7 @@ test("quantidade devolvida por variante ≠ itens da venda → InternalInvariant
   ]) {
     await assert.rejects(
       () => s.returnStock.execute({ saleId: "sale-1", items }),
-      (e: unknown) => e instanceof InternalInvariantError && e.code === "SALE_STOCK_MISMATCH",
+      isInconsistent,
     );
   }
   assert.equal(await snapshot(s), before);
@@ -152,7 +157,7 @@ test("venda sem itens e sem saídas não altera nada", async () => {
   assert.equal(await snapshot(s), before);
 });
 
-test("devolução que estouraria o lote → InternalInvariantError sem gravar", async () => {
+test("devolução que estouraria o lote → 409 SALE_STOCK_INCONSISTENT sem gravar", async () => {
   const s = build();
   const { lot } = await s.addLot(5, 5);
   await s.sell(2, "sale-1");
@@ -163,18 +168,18 @@ test("devolução que estouraria o lote → InternalInvariantError sem gravar", 
   const before = await snapshot(s);
   await assert.rejects(
     () => s.returnStock.execute({ saleId: "sale-1", items: s.items(2) }),
-    (e: unknown) => e instanceof InternalInvariantError && e.code === "INVENTORY_LOTS_INCONSISTENT",
+    isInconsistent,
   );
   assert.equal(await snapshot(s), before);
 });
 
-test("returnSaleStock repetido para a mesma venda lança InternalInvariantError sem gravar", async () => {
+test("returnSaleStock repetido para a mesma venda → 409 SALE_STOCK_INCONSISTENT sem gravar", async () => {
   const s = build();
   await s.addLot(3, 5);
   await s.sell(2, "sale-1");
   await s.returnStock.execute({ saleId: "sale-1", items: s.items(2) });
   const before = await snapshot(s);
-  await assert.rejects(() => s.returnStock.execute({ saleId: "sale-1", items: s.items(2) }), InternalInvariantError);
+  await assert.rejects(() => s.returnStock.execute({ saleId: "sale-1", items: s.items(2) }), isInconsistent);
   assert.equal(await snapshot(s), before);
 });
 

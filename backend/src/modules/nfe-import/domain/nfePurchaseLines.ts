@@ -1,7 +1,15 @@
 import { divideCentsRoundHalfUp } from "@shared/domain/money";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { itemCostCents, NfeItem, QUANTITY_SCALE, quantityToScaled } from "./NfeDocument";
-import { nfeLotsExceedQuantity, nfeQuantityNotInteger, nfeUnsupportedItem } from "./errors/nfeImportErrors";
+import { MAX_AMOUNT_CENTS, MAX_QUANTITY } from "@shared/domain/limits";
+import {
+  nfeItemAmountTooLarge,
+  nfeItemUnitsTooLarge,
+  nfeLotsExceedQuantity,
+  nfeQuantityNotInteger,
+  nfeTotalTooLarge,
+  nfeUnsupportedItem,
+} from "./errors/nfeImportErrors";
 
 /** Lote em unidades (quantidade da nota × unidades por embalagem). */
 export interface NfeUnitLot {
@@ -23,7 +31,8 @@ export interface NfeItemUnits {
  * unitsPerPackage) precisa ser inteiro → senão 422 NFE_QUANTITY_NOT_INTEGER.
  * Item com indTot = 0 → 422 NFE_UNSUPPORTED_ITEM (não entra no vNF; não suportado).
  * Lotes sem número são ignorados (as unidades entram sem lote); lotes somando mais que
- * o item → 422 INVALID_NFE.
+ * o item → 422 INVALID_NFE. Unidades acima de 1.000.000 (teto do pedido manual) → 422
+ * INVALID_NFE "Item n: …".
  */
 export function nfeItemUnits(item: NfeItem, unitsPerPackage: number): NfeItemUnits {
   if (!item.composesTotal) throw nfeUnsupportedItem(item.index);
@@ -34,6 +43,7 @@ export function nfeItemUnits(item: NfeItem, unitsPerPackage: number): NfeItemUni
   };
   const units = toUnits(item.quantity);
   if (units < 1) throw nfeQuantityNotInteger(item.index);
+  if (units > MAX_QUANTITY) throw nfeItemUnitsTooLarge(item.index);
   const lots = item.lots
     .filter((lot) => lot.batchNumber.trim() !== "")
     .map((lot) => ({
@@ -75,16 +85,27 @@ export interface NfePurchaseLine {
  * unitPrice = round-half-up(produtos / unidades); o resíduo r = unidades × unitPrice − produtos
  * vai para o desconto (r > 0) ou para o imposto (r < 0), de modo que
  * total do item = unidades × unitPrice − desconto + frete + imposto = custo do item na nota, exato.
+ * Cada valor do item e o total do pedido têm de caber em DECIMAL(12,2) → senão 422 INVALID_NFE
+ * (com o primeiro item da nota daquela variante).
  */
 export function toPurchaseLines(resolved: NfeResolvedItem[]): NfePurchaseLine[] {
   const byVariant = new Map<
     string,
-    { units: number; products: number; discount: number; freight: number; tax: number; cost: number; lots: NfeUnitLot[] }
+    {
+      firstIndex: number;
+      units: number;
+      products: number;
+      discount: number;
+      freight: number;
+      tax: number;
+      cost: number;
+      lots: NfeUnitLot[];
+    }
   >();
   for (const { item, productVariantId, units } of resolved) {
     const acc =
       byVariant.get(productVariantId) ??
-      { units: 0, products: 0, discount: 0, freight: 0, tax: 0, cost: 0, lots: [] as NfeUnitLot[] };
+      { firstIndex: item.index, units: 0, products: 0, discount: 0, freight: 0, tax: 0, cost: 0, lots: [] as NfeUnitLot[] };
     acc.units += units.units;
     acc.products += item.productsTotal;
     acc.discount += item.discount + item.icmsRelief;
@@ -99,7 +120,7 @@ export function toPurchaseLines(resolved: NfeResolvedItem[]): NfePurchaseLine[] 
     byVariant.set(productVariantId, acc);
   }
 
-  return [...byVariant].map(([productVariantId, acc]) => {
+  const lines = [...byVariant].map(([productVariantId, acc]) => {
     const unitPriceCents = divideCentsRoundHalfUp(acc.products, acc.units);
     const residue = acc.units * unitPriceCents - acc.products;
     const line: NfePurchaseLine = {
@@ -112,10 +133,14 @@ export function toPurchaseLines(resolved: NfeResolvedItem[]): NfePurchaseLine[] 
       costCents: acc.cost,
       lots: acc.lots,
     };
+    const amounts = [acc.products, line.unitPriceCents, line.discountCents, line.freightCents, line.taxCents, line.costCents];
+    if (amounts.some((cents) => cents > MAX_AMOUNT_CENTS)) throw nfeItemAmountTooLarge(acc.firstIndex);
     const total = line.quantity * line.unitPriceCents - line.discountCents + line.freightCents + line.taxCents;
     if (total !== line.costCents) {
       throw new InternalInvariantError("Total do item do pedido difere do custo da nota.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
     }
     return line;
   });
+  if (lines.reduce((sum, line) => sum + line.costCents, 0) > MAX_AMOUNT_CENTS) throw nfeTotalTooLarge();
+  return lines;
 }

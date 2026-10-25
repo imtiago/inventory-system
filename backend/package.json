@@ -4,11 +4,15 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "tsx --test \"src/shared/**/*.test.ts\" \"src/modules/*/domain/**/*.test.ts\" \"src/modules/*/application/**/*.test.ts\" \"src/modules/*/infrastructure/**/*.test.ts\" \"src/scripts/**/*.test.ts\"",
+    "test": "tsx --import ./src/test/bootstrap.ts --test \"src/shared/**/*.test.ts\" \"src/modules/*/domain/**/*.test.ts\" \"src/modules/*/application/**/*.test.ts\" \"src/modules/*/infrastructure/**/*.test.ts\" \"src/scripts/**/*.test.ts\"",
+    "test:db:prepare": "tsx src/scripts/prepareTestDb.ts",
+    "backup-db": "bash scripts/backup-db.sh",
+    "restore-db": "bash scripts/restore-db.sh",
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/server.ts",
     "create-admin": "tsx src/scripts/createAdmin.ts",
     "purge-idempotency": "tsx src/scripts/purgeIdempotency.ts",
+    "fix-box-stock": "tsx src/scripts/fixBoxStock.ts",
     "projesctStructure": "tree -I 'node_modules'"
   },
   "prisma": {

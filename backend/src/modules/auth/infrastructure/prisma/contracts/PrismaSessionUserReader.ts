@@ -6,9 +6,14 @@ export class PrismaSessionUserReader implements SessionUserReader {
   async findById(id: string): Promise<SessionUser | null> {
     const user = await getDb().user.findUnique({
       where: { id },
-      select: { id: true, role: true, active: true },
+      select: { id: true, role: true, active: true, passwordChangedAt: true },
     });
     if (!user) return null;
-    return { id: user.id, role: user.role as UserRole, active: user.active };
+    return {
+      id: user.id,
+      role: user.role as UserRole,
+      active: user.active,
+      passwordChangedAt: user.passwordChangedAt,
+    };
   }
 }

@@ -4,6 +4,8 @@ import { parseInput } from "@shared/http/parseInput";
 import { makeReceiveInventory } from "../factories/ReceiveInventoryFactory";
 import { receiveInventorySchema } from "@inventory/interfaces/http/schemas/receiveInventorySchema";
 import { makeGetInventoryByIdUseCase } from "../factories/GetInventoryByIdFactory";
+import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
+import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 
 export function makeReceiveInventoryController() {
   const useCase = makeReceiveInventory();
@@ -16,7 +18,17 @@ export function makeReceiveInventoryController() {
     const data = parseInput(receiveInventorySchema, request.body);
 
     const { inventory } = await useCase.execute({
-      ...data,
+      productVariantId: data.productVariantId,
+      quantity: data.quantity,
+      unitCost: data.unitCost,
+      batchNumber: data.batchNumber,
+      expirationDate: data.expirationDate,
+      manufacturingDate: data.manufacturingDate,
+      origin: StockMovementOrigin[data.origin],
+      // Entrada manual: o lote é sempre MANUAL (PURCHASE/IMPORT/RETURN são internos).
+      sourceType: InventoryLotSource.MANUAL,
+      originReferenceId: data.originReferenceId,
+      notes: data.notes,
       userId: request.user?.sub,
     });
     const inventoryRead = await getInventoryById.execute(inventory.id);

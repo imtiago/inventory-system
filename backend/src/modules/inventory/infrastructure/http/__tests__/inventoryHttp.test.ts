@@ -215,8 +215,7 @@ describe("HTTP de estoque", () => {
       quantity: 1,
       unitCost: 1,
       batchNumber: "   ",
-      origin: "PURCHASE",
-      sourceType: "PURCHASE",
+      origin: "MANUAL",
     });
     assert.equal(res.statusCode, 400, res.body);
     assert.equal(res.json().errors[0].field, "batchNumber");
@@ -325,8 +324,8 @@ describe("HTTP de estoque", () => {
           productVariantId: variantId,
           quantity: 1,
           unitCost: 10,
-          origin: "PURCHASE",
-          sourceType: "PURCHASE",
+          origin: "MANUAL",
+          sourceType: "MANUAL",
         })
       ).json(),
     );

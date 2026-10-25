@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { NfeItem } from "../NfeDocument";
 import { nfeItemUnits, toPurchaseLines } from "../nfePurchaseLines";
+import { BusinessRuleError } from "@shared/domain/errors";
 
 const item = (overrides: Partial<NfeItem>): NfeItem => ({
   index: 1,
@@ -74,4 +75,39 @@ test("não inteiro, indTot 0 e lotes acima da quantidade → 422", () => {
   assert.throws(() => nfeItemUnits(item({ quantity: "1", lots: [{ batchNumber: "L", quantity: "0.5", manufacturingDate: null, expirationDate: null }] }), 1), { code: "NFE_QUANTITY_NOT_INTEGER" });
   assert.throws(() => nfeItemUnits(item({ index: 3, composesTotal: false }), 1), { code: "NFE_UNSUPPORTED_ITEM" });
   assert.throws(() => nfeItemUnits(item({ quantity: "1", lots: [{ batchNumber: "L", quantity: "2", manufacturingDate: null, expirationDate: null }] }), 1), { code: "INVALID_NFE" });
+});
+
+test("unidades por item (qCom × unidades por embalagem) acima de 1.000.000 → 422 INVALID_NFE com o item; no teto passa", () => {
+  const big = item({ index: 4, quantity: "30000", productsTotal: 100 });
+  assert.throws(
+    () => nfeItemUnits(big, 100_000),
+    (e: unknown) =>
+      e instanceof BusinessRuleError &&
+      e.code === "INVALID_NFE" &&
+      e.message === "Item 4: quantidade em unidades acima do máximo permitido (1.000.000).",
+  );
+  assert.throws(() => nfeItemUnits(item({ index: 2, quantity: "1000000" }), 2), /Item 2: quantidade em unidades/);
+  assert.equal(nfeItemUnits(item({ quantity: "500000" }), 2).units, 1_000_000);
+});
+
+test("componentes do item do pedido acima de Decimal(12,2) → 422 com o item; total do pedido acima → 422", () => {
+  const MAX = 999_999_999_999;
+  const resolve = (it: NfeItem, productVariantId: string) => ({ item: it, productVariantId, units: nfeItemUnits(it, 1) });
+  // Duas linhas da mesma variante: cada uma no teto, a soma estoura (reporta o primeiro item da variante).
+  const a = item({ index: 2, quantity: "1", productsTotal: MAX });
+  const b = item({ index: 5, quantity: "1", productsTotal: 1 });
+  assert.throws(
+    () => toPurchaseLines([resolve(a, "v"), resolve(b, "v")]),
+    (e: unknown) =>
+      e instanceof BusinessRuleError && e.code === "INVALID_NFE" && e.message === "Item 2: valor acima do máximo permitido.",
+  );
+  // Linhas de variantes diferentes, cada uma no teto: o total do pedido estoura.
+  assert.throws(
+    () => toPurchaseLines([resolve(a, "v1"), resolve(b, "v2")]),
+    (e: unknown) =>
+      e instanceof BusinessRuleError && e.code === "INVALID_NFE" && e.message === "O total da nota excede o máximo permitido.",
+  );
+  // No teto passa.
+  const [line] = toPurchaseLines([resolve(a, "v")]);
+  assert.equal(line.costCents, MAX);
 });

@@ -9,6 +9,7 @@ import { idempotent } from "@shared/http/idempotency/idempotent";
 import { makeCreateInventoryBoxController } from "../controllers/CreateInventoryBoxController";
 import { makeListInventoryBoxesController } from "../controllers/ListInventoryBoxesController";
 import { makeAddProductToBoxController } from "../controllers/AddProductToBoxController";
+import { makeRemoveProductFromBoxController } from "../controllers/RemoveProductFromBoxController";
 import { makeGetInventoryBoxByCodeController } from "../controllers/GetInventoryBoxByCodeController";
 import { makeGenerateInventoryBoxLabelController } from "../controllers/GenerateInventoryBoxLabelController";
 import { makeGenerateInventoryProductLabelsController } from "../controllers/GenerateInventoryProductLabelsController";
@@ -31,6 +32,11 @@ export async function inventoryBoxRoutes(app: FastifyInstance) {
     "/:boxId/items",
     { preHandler: [authorize("inventory.write")] },
     idempotent(makeAddProductToBoxController()),
+  );
+  app.post(
+    "/:boxId/items/remove",
+    { preHandler: [authorize("inventory.write")] },
+    idempotent(makeRemoveProductFromBoxController()),
   );
   app.post(
     "/code/:code/product-labels",

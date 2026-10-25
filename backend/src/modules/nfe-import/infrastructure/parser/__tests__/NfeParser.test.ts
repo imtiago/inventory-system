@@ -246,6 +246,44 @@ describe("NfeParser", () => {
     );
   });
 
+  test("valores acima de 999.999.999.999 centavos → INVALID_NFE com o item; no teto passa", () => {
+    const full = fixture("nfe-completa.xml");
+    expectInvalidNfe(
+      full.replace("<vProd>241.00</vProd>", "<vProd>10000000000.00</vProd>"),
+      "Item 1: valor acima do máximo permitido.",
+    );
+    expectInvalidNfe(
+      full.replace("<vProd>41.90</vProd>", "<vProd>99999999999999.00</vProd>"),
+      "Item 2: valor acima do máximo permitido.",
+    );
+    expectInvalidNfe(
+      full.replace("<vNF>397.09</vNF>", "<vNF>10000000000.00</vNF>"),
+      "Valor acima do máximo permitido na NF-e (totais).",
+    );
+    expectInvalidNfe(
+      full.replace("<vDup>132.36</vDup>", "<vDup>10000000000.00</vDup>"),
+      "Valor acima do máximo permitido na NF-e (duplicata 1).",
+    );
+    // 9.999.999.999,99 é aceito como valor (aqui só não confere com o total).
+    expectInvalidNfe(
+      full.replace("<vProd>241.00</vProd>", "<vProd>9999999999.99</vProd>"),
+      "Totais da nota não conferem.",
+    );
+  });
+
+  test("qCom acima de 1.000.000 → INVALID_NFE com o item; 1.000.000 passa", () => {
+    const full = fixture("nfe-completa.xml");
+    expectInvalidNfe(
+      full.replace("<qCom>10.5000</qCom>", "<qCom>1000000.0001</qCom>"),
+      "Item 2: quantidade acima do máximo permitido (1.000.000).",
+    );
+    expectInvalidNfe(
+      full.replace("<qCom>1.0000</qCom>", "<qCom>900719925474099</qCom>"),
+      "Item 3: quantidade acima do máximo permitido (1.000.000).",
+    );
+    assert.equal(parser.parse(full.replace("<qCom>1.0000</qCom>", "<qCom>1000000</qCom>")).items[2].quantity, "1000000");
+  });
+
   test("buildAccessKey gera chaves modelo 55 com DV válido e distintas", () => {
     const keys = new Set(Array.from({ length: 50 }, () => buildAccessKey()));
     assert.equal(keys.size, 50);

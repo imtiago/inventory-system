@@ -6,6 +6,7 @@ import {
 } from "@shared/domain/errors";
 import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
 import { fromCents, toCents } from "@shared/domain/money";
+import { MAX_AMOUNT_CENTS } from "@shared/domain/limits";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { CustomerService } from "@customer/application/services/CustomerService";
@@ -76,6 +77,13 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       sellerId: request.sellerId,
       items: saleItems,
     });
+
+    // Teto de DECIMAL(12,2): antes de baixar estoque (senão o banco estoura → 500).
+    if (sale.totalAmountCents > MAX_AMOUNT_CENTS) {
+      throw new ValidationError("Dados inválidos.", [
+        { field: "items", message: "O total da venda excede o máximo permitido." },
+      ]);
+    }
 
     // Cada parcela precisa de ao menos 1 centavo.
     if (sale.totalAmountCents < installments) {

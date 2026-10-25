@@ -1,3 +1,4 @@
+import { PrismaInventoryBoxStockRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxStockRepository";
 import { AdjustInventoryUseCase } from "@inventory/application/useCases/commands/AdjustInventoryUseCase";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";
@@ -14,6 +15,7 @@ export function makeAdjustInventoryFactory() {
     inventoryRepository,
     inventoryLotRepository,
     movementRepository,
+    new PrismaInventoryBoxStockRepository(),
     transactionManager,
   );
 }

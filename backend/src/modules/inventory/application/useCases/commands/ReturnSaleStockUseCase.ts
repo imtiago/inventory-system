@@ -6,7 +6,17 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes } from "@shared/domain/errors";
+
+/**
+ * Movimentações da venda que não fecham (já devolvidas, saídas que não batem com os
+ * itens, lote/estoque ausente ou estourado): 409 claro em vez de 500, sem gravar nada.
+ */
+const saleStockInconsistent = () =>
+  new ConflictError(
+    "Movimentações de estoque da venda inconsistentes; contate o administrador.",
+    ErrorCodes.SALE_STOCK_INCONSISTENT,
+  );
 
 export interface IReturnSaleStockInput {
   saleId: string;
@@ -42,10 +52,7 @@ export class ReturnSaleStockUseCase extends TransactionalUseCase<
       saleId,
     );
     if (alreadyReturned.length > 0) {
-      throw new InternalInvariantError(
-        "O estoque desta venda já foi devolvido.",
-        InternalErrorCodes.SALE_STOCK_ALREADY_RETURNED,
-      );
+      throw saleStockInconsistent();
     }
 
     const outs = (
@@ -72,20 +79,14 @@ export class ReturnSaleStockUseCase extends TransactionalUseCase<
           (byVariant.get(variantId) ?? []).reduce((sum, m) => sum + m.quantity, 0) !== quantity,
       );
     if (mismatch) {
-      throw new InternalInvariantError(
-        "As saídas de estoque da venda não correspondem aos seus itens.",
-        InternalErrorCodes.SALE_STOCK_MISMATCH,
-      );
+      throw saleStockInconsistent();
     }
 
     const created: StockMovement[] = [];
     for (const productVariantId of variantIds) {
       const inventory = await this.inventoryRepository.lockExistingByProductVariantId(productVariantId);
       if (!inventory) {
-        throw new InternalInvariantError(
-          "Estoque da venda não encontrado para devolução.",
-          InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT,
-        );
+        throw saleStockInconsistent();
       }
 
       for (const out of byVariant.get(productVariantId)!) {
@@ -93,18 +94,12 @@ export class ReturnSaleStockUseCase extends TransactionalUseCase<
           ? await this.inventoryLotRepository.findById(out.inventoryLotId)
           : null;
         if (!lot || lot.inventoryId !== inventory.id) {
-          throw new InternalInvariantError(
-            "Lote da saída da venda não encontrado para devolução.",
-            InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT,
-          );
+          throw saleStockInconsistent();
         }
 
-        // Estouro do lote é dado inconsistente, não regra de negócio do cliente.
+        // Estouro do lote é dado inconsistente (não regra de negócio do cliente).
         if (lot.remainingQuantity + out.quantity > lot.initialQuantity) {
-          throw new InternalInvariantError(
-            "Devolução excede a quantidade inicial do lote.",
-            InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT,
-          );
+          throw saleStockInconsistent();
         }
 
         const previousQuantity = inventory.quantity;

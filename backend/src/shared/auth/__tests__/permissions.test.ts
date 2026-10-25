@@ -108,6 +108,8 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["sales.read", { method: "GET", url: "/reports/sales.csv?from=2095-01-01&to=2095-01-02", allowed: 200 }],
   ["sales.read", { method: "GET", url: "/reports/sale-items.csv?from=2095-01-01&to=2095-01-02", allowed: 200 }],
   ["inventory.read", { method: "GET", url: "/reports/stock.csv", allowed: 200 }],
+  // Retirar produto da caixa (onda 1 §5): corpo inválido → 400 sem gravar nada.
+  ["inventory.write", { method: "POST", url: `/inventory/boxes/${missing}/items/remove`, payload: {}, allowed: 400 }],
   ["finance.read", { method: "GET", url: `/reports/receivables.csv?customerId=${missing}`, allowed: 200 }],
   ["payables.read", { method: "GET", url: `/reports/payables.csv?supplierId=${missing}`, allowed: 200 }],
 ];

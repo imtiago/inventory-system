@@ -10,6 +10,10 @@ import { IInventoryLotRepository } from "@inventory/domain/repositories/Inventor
 import { IInventoryBoxRepository } from "@inventory/domain/repositories/InventoryBoxRepository";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
+import {
+  BoxAllocationChange,
+  planBoxAllocationReduction,
+} from "@inventory/domain/services/boxAllocations";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 
 function cloneValue(value: unknown): unknown {
@@ -150,10 +154,39 @@ export class InMemoryInventoryBoxStockRepository
     );
   }
 
+  /** `lots`: saldo dos lotes para a reconciliação (opcional nos testes que não a usam). */
+  constructor(private readonly lots?: IInventoryLotRepository) {
+    super();
+  }
+
   async sumAllocatedByLot(inventoryLotId: string): Promise<number> {
     return this.all()
       .filter((s) => s.inventoryLotId === inventoryLotId)
       .reduce((sum, s) => sum + s.quantity, 0);
+  }
+
+  async reconcileBoxAllocations(lotIds: readonly string[]): Promise<BoxAllocationChange[]> {
+    if (!this.lots) throw new Error("InMemoryInventoryBoxStockRepository sem repositório de lotes.");
+    const ids = new Set(lotIds);
+    const remaining = new Map<string, number>();
+    for (const id of ids) {
+      const lot = await this.lots.findById(id);
+      if (lot) remaining.set(id, lot.remainingQuantity);
+    }
+    const changes = planBoxAllocationReduction(
+      this.all().filter((s) => ids.has(s.inventoryLotId)),
+      remaining,
+    );
+    for (const change of changes) {
+      if (change.quantity === 0) {
+        await this.delete(change.id);
+      } else {
+        const stock = (await this.findById(change.id))!;
+        stock.removeQuantity(change.previousQuantity - change.quantity);
+        await this.update(stock);
+      }
+    }
+    return changes;
   }
 }
 

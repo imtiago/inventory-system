@@ -19,7 +19,9 @@ function extractBearerToken(header: string | undefined): string | null {
   return token.length > 0 ? token : null;
 }
 
-function verifyToken(token: string): string {
+type VerifiedToken = { sub: string; iat: number | undefined };
+
+function verifyToken(token: string): VerifiedToken {
   let payload: string | jwt.JwtPayload;
   try {
     payload = jwt.verify(token, env.JWT_SECRET, {
@@ -33,7 +35,19 @@ function verifyToken(token: string): string {
   if (typeof payload !== "object" || payload === null || typeof payload.sub !== "string") {
     throw new UnauthorizedError("Token inválido.");
   }
-  return payload.sub;
+  return { sub: payload.sub, iat: typeof payload.iat === "number" ? payload.iat : undefined };
+}
+
+/**
+ * Token emitido antes da última troca/redefinição de senha? Comparação em segundos
+ * inteiros (o `iat` do JWT é em segundos): recusa quando iat < floor(passwordChangedAt).
+ * Um token do mesmo segundo da troca é aceito (o token devolvido pela troca é assinado
+ * depois de gravar passwordChangedAt, então nunca fica para trás).
+ */
+function issuedBeforePasswordChange(iat: number | undefined, passwordChangedAt: Date | null): boolean {
+  if (!passwordChangedAt) return false;
+  if (iat === undefined) return true;
+  return iat < Math.floor(passwordChangedAt.getTime() / 1000);
 }
 
 export function makeAuthenticate(sessionUsers: SessionUserReader) {
@@ -43,12 +57,13 @@ export function makeAuthenticate(sessionUsers: SessionUserReader) {
       throw new UnauthorizedError("Token ausente.");
     }
 
-    const sub = verifyToken(token);
+    const { sub, iat } = verifyToken(token);
 
     // Sessão verificada no banco a cada requisição: usuário apagado ou
-    // desativado perde o acesso imediatamente; o papel vem do banco.
+    // desativado perde o acesso imediatamente; troca/redefinição de senha derruba
+    // os tokens emitidos antes dela; o papel vem do banco.
     const user = await sessionUsers.findById(sub);
-    if (!user || !user.active) {
+    if (!user || !user.active || issuedBeforePasswordChange(iat, user.passwordChangedAt)) {
       throw new UnauthorizedError("Sessão inválida.");
     }
 

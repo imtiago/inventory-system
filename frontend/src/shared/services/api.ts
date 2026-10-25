@@ -23,8 +23,13 @@ api.interceptors.response.use(
   (error) => {
     const isLogin = typeof error.config?.url === "string" && error.config.url.endsWith("/auth/login");
 
-    // Only an active session can expire: a late 401 after a voluntary logout must not flag "expired".
-    if (error.response?.status === 401 && !isLogin && useAuthStore.getState().token) {
+    // Only the current session can expire: a late 401 after a voluntary logout, or for a request
+    // sent with a token that was replaced meanwhile (password change), must not end the session.
+    const sentAuth = error.config?.headers?.Authorization;
+    const currentToken = useAuthStore.getState().token;
+    const sentWithCurrentToken = !sentAuth || sentAuth === `Bearer ${currentToken}`;
+
+    if (error.response?.status === 401 && !isLogin && currentToken && sentWithCurrentToken) {
       // Session ended: clear it (RouteGuard then sends the user to /login?expired=1 without a reload).
       useAuthStore.getState().logout(true);
       queryClient.clear();

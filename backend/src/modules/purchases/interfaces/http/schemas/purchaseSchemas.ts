@@ -1,14 +1,11 @@
 import { z } from "zod";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { toCents } from "@shared/domain/money";
+import { MAX_AMOUNT_CENTS, MAX_QUANTITY, MAX_UNIT_VALUE } from "@shared/domain/limits";
 import { dateOnlySchema } from "@shared/interfaces/http/schemas/dateOnlySchema";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 import { PurchaseStatus } from "@purchases/domain/enums/PurchaseStatus";
 
-/** Limite das colunas DECIMAL(12,2), em centavos. */
-const MAX_AMOUNT_CENTS = 999_999_999_999;
-const MAX_QUANTITY = 1_000_000;
-const MAX_UNIT_VALUE = 1_000_000;
 
 const hasAtMostTwoDecimals = (v: number) => Number.isInteger(Number((v * 100).toPrecision(15)));
 
