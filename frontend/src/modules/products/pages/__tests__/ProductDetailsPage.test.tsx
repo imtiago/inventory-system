@@ -110,7 +110,7 @@ describe('ProductDetailsPage', () => {
     renderDetails();
     await screen.findByText('Natura');
 
-    await userEvent.click(screen.getByRole('button', { name: /Excluir/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Excluir' }));
     expect(deletes).toBe(0);
     const buttons = screen.getAllByRole('button', { name: 'Excluir' });
     await userEvent.click(buttons[buttons.length - 1]);
@@ -140,7 +140,7 @@ describe('ProductDetailsPage', () => {
     await screen.findByText('Natura');
     const before = detailGets;
 
-    await userEvent.click(screen.getByRole('button', { name: /Excluir/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Excluir' }));
     const buttons = screen.getAllByRole('button', { name: 'Excluir' });
     await userEvent.click(buttons[buttons.length - 1]);
 

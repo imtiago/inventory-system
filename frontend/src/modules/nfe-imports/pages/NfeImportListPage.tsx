@@ -68,14 +68,15 @@ export function NfeImportListPage() {
   }
 
   const columns: DataTableColumn<INfeImportSummary>[] = [
-    { id: 'number', header: 'Número/série', cell: (item) => `${item.number}/${item.series}` },
-    { id: 'supplier', header: 'Fornecedor', cell: (item) => item.supplier.name },
-    { id: 'issueDate', header: 'Emissão', align: 'center', cell: (item) => formatDateOnly(item.issueDate) },
-    { id: 'total', header: 'Total', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-    { id: 'status', header: 'Status', align: 'center', cell: (item) => <CrudBadge>{NFE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+    { id: 'number', header: 'Número/série', mobile: 'title', cell: (item) => `${item.number}/${item.series}` },
+    { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
+    { id: 'issueDate', header: 'Emissão', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.issueDate) },
+    { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
+    { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{NFE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
     {
       id: 'actions',
       header: 'Ações',
+      mobile: 'actions',
       align: 'center',
       cell: (item) =>
         item.status === 'DRAFT' ? (

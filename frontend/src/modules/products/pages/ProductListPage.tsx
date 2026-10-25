@@ -133,7 +133,7 @@ export function ProductListPage() {
                 Carregando produtos...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(product) => product.id} />
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(product) => product.id} getRowHref={(product) => `/products/${product.id}`} />
             )}
           </div>
 

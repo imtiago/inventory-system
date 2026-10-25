@@ -31,6 +31,7 @@ export function useSaleColumns(): DataTableColumn<ISale>[] {
     {
       id: 'sale',
       header: 'Venda',
+      mobile: 'title',
       cell: (sale) => (
         <div>
           <Link to={`/sales/${sale.id}`} className="font-medium hover:underline">
@@ -44,23 +45,27 @@ export function useSaleColumns(): DataTableColumn<ISale>[] {
     {
       id: 'customer',
       header: 'Cliente',
+      mobile: 'subtitle',
       cell: (sale) => sale.customer?.name ?? 'Cliente não identificado',
     },
     {
       id: 'items',
       header: 'Itens',
+      mobile: 'meta',
       align: 'center',
       cell: (sale) => sale.itemsCount,
     },
     {
       id: 'totalAmount',
       header: 'Valor total',
+      mobile: 'meta',
       align: 'center',
       cell: (sale) => formatCurrency(sale.totalAmount),
     },
     {
       id: 'status',
       header: 'Status',
+      mobile: 'meta',
       align: 'center',
       cell: (sale) => {
         const config = statusConfig[sale.status] ?? {

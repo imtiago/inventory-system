@@ -25,17 +25,18 @@ const columns: DataTableColumn<IPurchaseListItem>[] = [
   {
     id: 'code',
     header: 'Código',
+    mobile: 'title',
     cell: (item) => (
       <Link to={`/purchases/${item.id}`} className="font-medium hover:underline">
         {item.code}
       </Link>
     ),
   },
-  { id: 'supplier', header: 'Fornecedor', cell: (item) => item.supplier.name },
-  { id: 'date', header: 'Data', align: 'center', cell: (item) => formatDateOnly(item.purchaseDate) },
-  { id: 'total', header: 'Total', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-  { id: 'progress', header: 'Recebimento', align: 'center', cell: (item) => `${item.receivedPercent}%` },
-  { id: 'status', header: 'Status', align: 'center', cell: (item) => <CrudBadge>{PURCHASE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+  { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
+  { id: 'date', header: 'Data', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.purchaseDate) },
+  { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
+  { id: 'progress', header: 'Recebimento', mobile: 'meta', align: 'center', cell: (item) => `${item.receivedPercent}%` },
+  { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{PURCHASE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
 ];
 
 export function PurchaseListPage() {
@@ -153,7 +154,7 @@ export function PurchaseListPage() {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar os pedidos. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `/purchases/${item.id}`} />
             </div>
           )}
 

@@ -49,18 +49,19 @@ export function SupplierListPage() {
   }
 
   const columns: DataTableColumn<ISupplier>[] = [
-    { id: 'name', header: 'Nome', cell: (item) => item.name },
-    { id: 'document', header: 'Documento', cell: (item) => maskDocument(item.document) },
-    { id: 'email', header: 'E-mail', cell: (item) => item.email ?? '-' },
-    { id: 'phone', header: 'Telefone', cell: (item) => formatPhone(item.phone) },
+    { id: 'name', header: 'Nome', mobile: 'title', cell: (item) => item.name },
+    { id: 'document', header: 'Documento', mobile: 'subtitle', cell: (item) => maskDocument(item.document) },
+    { id: 'email', header: 'E-mail', mobile: 'meta', cell: (item) => item.email ?? '-' },
+    { id: 'phone', header: 'Telefone', mobile: 'meta', cell: (item) => formatPhone(item.phone) },
     {
       id: 'actions',
       header: 'Ações',
+      mobile: 'actions',
       align: 'center',
       cell: (item) => (
         <Can permission="purchases.write">
-          <div className="flex justify-center gap-3">
-            <button type="button" onClick={() => setEditing(item)} className="text-blue-600 hover:text-blue-800" aria-label={`Editar ${item.name}`}>
+          <div className="flex justify-center gap-1">
+            <button type="button" onClick={() => setEditing(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800" aria-label={`Editar ${item.name}`}>
               <Pencil size={18} />
             </button>
             <button
@@ -69,7 +70,7 @@ export function SupplierListPage() {
                 setDeleteError(null);
                 setDeleting(item);
               }}
-              className="text-red-600 hover:text-red-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800"
               aria-label={`Excluir ${item.name}`}
             >
               <Trash2 size={18} />

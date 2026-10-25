@@ -61,7 +61,7 @@ export function InventoryListPage() {
           ) : items.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500">Nenhum item em estoque.</div>
           ) : (
-            <DataTable data={items} columns={columns} getRowId={(item) => item.id} />
+            <DataTable data={items} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `/inventory/${item.id}`} />
           )}
         </div>
 

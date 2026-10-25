@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
 export interface DataTableColumn<T> {
   id: string;
@@ -7,10 +7,19 @@ export interface DataTableColumn<T> {
 
   width?: string;
 
-  align?: "left" | "center" | "right";
+  align?: 'left' | 'center' | 'right';
 
   cell: (row: T) => ReactNode;
+
+  /**
+   * Papel da coluna nos cartões (abaixo de `md`): `title` e `subtitle` em destaque, `meta` em
+   * "rótulo: valor", `hidden` omitida, `actions` vira o menu "⋯" (mesmo conteúdo da célula, com
+   * as mesmas permissões e handlers). Sem valor, a coluna é `meta`.
+   */
+  mobile?: DataTableMobileRole;
 }
+
+export type DataTableMobileRole = 'title' | 'subtitle' | 'meta' | 'hidden' | 'actions';
 
 export interface DataTableProps<T> {
   data: T[];
@@ -22,6 +31,9 @@ export interface DataTableProps<T> {
   emptyMessage?: string;
 
   getRowId?: (row: T) => string;
+
+  /** Quando a linha leva a um detalhe, o cartão inteiro (abaixo de `md`) abre esse caminho. */
+  getRowHref?: (row: T) => string | undefined;
 
   className?: string;
 

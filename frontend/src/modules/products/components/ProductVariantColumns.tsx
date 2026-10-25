@@ -25,6 +25,7 @@ export function useProductVariantColumns({
     {
       id: "code",
       header: "Código",
+      mobile: "subtitle",
 
       cell: (variant) => variant.code,
     },
@@ -32,6 +33,7 @@ export function useProductVariantColumns({
     {
       id: "name",
       header: "Nome",
+      mobile: "title",
 
       cell: (variant) => <span className="font-medium">{variant.name}</span>,
     },
@@ -39,6 +41,7 @@ export function useProductVariantColumns({
     {
       id: "barcode",
       header: "Código de barras",
+      mobile: "meta",
 
       cell: (variant) => variant.barcode ?? "Não informado",
     },
@@ -46,6 +49,7 @@ export function useProductVariantColumns({
     {
       id: "salePrice",
       header: "Preço de venda",
+      mobile: "meta",
 
       cell: (variant) => formatCurrency(variant.salePrice),
     },
@@ -53,6 +57,7 @@ export function useProductVariantColumns({
     {
       id: "stock",
       header: "Estoque",
+      mobile: "meta",
 
       cell: (variant) => <VariantStock balance={stock.balances.get(variant.id)} loading={stock.loading} error={stock.error} />,
     },
@@ -60,16 +65,15 @@ export function useProductVariantColumns({
     {
       id: "actions",
       header: "Ações",
+      mobile: "actions",
       align: "center",
 
       cell: (variant) => (
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-1">
           <Link
             to={`/variants/${variant.id}/edit`}
-            className="
-              text-blue-600
-              hover:text-blue-800
-            "
+            aria-label={`Editar ${variant.name}`}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
           >
             <Pencil size={18} />
           </Link>
@@ -77,10 +81,8 @@ export function useProductVariantColumns({
           <Can permission="catalog.delete">
             <button
               onClick={() => onDelete(variant)}
-              className="
-              text-red-600
-              hover:text-red-800
-            "
+              aria-label={`Excluir ${variant.name}`}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800"
             >
               <Trash2 size={18} />
             </button>

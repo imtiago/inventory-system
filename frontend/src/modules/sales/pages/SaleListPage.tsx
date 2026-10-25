@@ -88,7 +88,7 @@ export function SaleListPage() {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as vendas. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(sale) => sale.id} />
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(sale) => sale.id} getRowHref={(sale) => `/sales/${sale.id}`} />
             </div>
           )}
 

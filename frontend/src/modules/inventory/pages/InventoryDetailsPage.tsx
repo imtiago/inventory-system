@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { useInventoryById } from '../hooks/useInventoryById';
 import { useInventoryLots } from '../hooks/useInventoryLots';
+import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 export function InventoryDetailsPage() {
+  const isTabletUp = useBreakpoint('md');
   const navigate = useNavigate();
   const { id: inventoryId } = useParams<{ id: string }>();
 
@@ -106,6 +108,36 @@ export function InventoryDetailsPage() {
           <div className="rounded-lg border p-8 text-center">
             <p className="text-muted-foreground text-sm">Nenhum lote cadastrado para esta variante.</p>
           </div>
+        ) : !isTabletUp ? (
+          <ul className="space-y-3">
+            {lots.map((lot) => (
+              <li key={lot.id} className="rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="break-words font-medium">{lot.batchNumber ?? 'Sem lote'}</p>
+                  <p className="text-muted-foreground shrink-0 text-sm">Validade: {formatDateOnly(lot.expirationDate)}</p>
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wide">Recebido</dt>
+                    <dd>{lot.initialQuantity}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wide">Restante</dt>
+                    <dd>{lot.remainingQuantity}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wide">Em caixas</dt>
+                    <dd>{lot.allocatedQuantity}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wide">Custo</dt>
+                    <dd>{formatCurrency(lot.unitCost)}</dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full min-w-[640px]">

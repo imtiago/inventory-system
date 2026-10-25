@@ -7,6 +7,7 @@ import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import { renderWithProviders } from '@/test/render';
 import inventoryLotList from '@/test/fixtures/inventory/inventoryLotList.json';
+import { setViewport } from '@/test/viewport';
 import { InventoryDetailsPage } from '../InventoryDetailsPage';
 
 function renderPage() {
@@ -40,6 +41,19 @@ describe('InventoryDetailsPage', () => {
     for (const h of ['Lote', 'Recebido', 'Restante', 'Em caixas', 'Custo', 'Validade']) {
       expect(screen.getByRole('columnheader', { name: h })).toBeInTheDocument();
     }
+  });
+
+  test('no celular os lotes viram cartões com lote, validade, quantidades e custo (sem tabela)', async () => {
+    setViewport(375);
+    renderPage();
+    const card = (await screen.findByText('L2026-10-A')).closest('li')!;
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(within(card).getByText('Validade: 15/09/2028')).toBeInTheDocument();
+    expect(within(card).getByText('Recebido').nextSibling).toHaveTextContent('30');
+    expect(within(card).getByText('Restante').nextSibling).toHaveTextContent('30');
+    expect(within(card).getByText('Em caixas').nextSibling).toHaveTextContent('12');
+    expect(within(card).getByText('Custo').nextSibling).toHaveTextContent(/R\$\s?18,50/);
   });
 
   test('validade 2026-12-31T00:00:00.000Z aparece como 31/12/2026', async () => {

@@ -18,6 +18,7 @@ export function useInventoryColumns(): DataTableColumn<IInventory>[] {
     {
       id: 'code',
       header: 'Código',
+      mobile: 'title',
 
       cell: (data) => (
         <Link to={`/inventory/${data.id}`} className="font-medium hover:underline">
@@ -28,24 +29,28 @@ export function useInventoryColumns(): DataTableColumn<IInventory>[] {
     {
       id: 'product',
       header: 'Produto / Variante',
+      mobile: 'subtitle',
 
       cell: (data) => data.productVariant.name,
     },
     {
       id: 'quantity',
       header: 'Estoque',
+      mobile: 'meta',
 
       cell: (data) => <CrudBadge>{data.quantity}</CrudBadge>,
     },
     {
       id: 'availableQuantity',
       header: 'Disponível',
+      mobile: 'meta',
 
       cell: (data) => <CrudBadge>{data.availableQuantity}</CrudBadge>,
     },
     {
       id: 'status',
       header: 'Status',
+      mobile: 'meta',
 
       cell: (data) => <CrudBadge>{inventoryStatus(data)}</CrudBadge>,
     },

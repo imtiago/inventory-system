@@ -36,11 +36,13 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
   {
     id: 'party',
     header: config.partyLabel,
+    mobile: 'title',
     cell: (item) => partyOf(kind, item)?.name ?? '—',
   },
   {
     id: 'origin',
     header: config.originColumn,
+    mobile: 'subtitle',
     cell: (item) =>
       item.originType === config.originType ? (
         <Link to={config.originHref(item)} className="hover:underline">
@@ -50,19 +52,21 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
         item.originType
       ),
   },
-  { id: 'total', header: 'Total', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-  { id: 'paid', header: 'Pago', align: 'center', cell: (item) => formatCurrency(item.paidAmount) },
-  { id: 'remaining', header: 'Saldo', align: 'center', cell: (item) => formatCurrency(item.remainingAmount) },
-  { id: 'nextDueDate', header: 'Próx. vencimento', align: 'center', cell: (item) => formatDateOnly(item.nextDueDate) },
+  { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
+  { id: 'paid', header: 'Pago', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.paidAmount) },
+  { id: 'remaining', header: 'Saldo', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.remainingAmount) },
+  { id: 'nextDueDate', header: 'Próx. vencimento', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.nextDueDate) },
   {
     id: 'status',
     header: 'Status',
+    mobile: 'meta',
     align: 'center',
     cell: (item) => <CrudBadge>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</CrudBadge>,
   },
   {
     id: 'actions',
     header: '',
+    mobile: 'hidden',
     align: 'center',
     cell: (item) => (
       <Link to={`${config.basePath}/${item.id}`} className="text-sm font-medium hover:underline">
@@ -200,7 +204,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `${config.basePath}/${item.id}`} />
             </div>
           )}
 
