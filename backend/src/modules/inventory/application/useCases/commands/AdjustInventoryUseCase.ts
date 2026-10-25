@@ -4,6 +4,7 @@ import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
+import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
@@ -19,6 +20,10 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
     private readonly inventoryRepository: IInventoryRepository,
     private readonly inventoryLotRepository: IInventoryLotRepository,
     private readonly stockMovementRepository: IStockMovementRepository,
+    private readonly inventoryBoxStockRepository: Pick<
+      IInventoryBoxStockRepository,
+      "reconcileBoxAllocations"
+    >,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -67,6 +72,10 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       for (const lot of touched) {
         await this.inventoryLotRepository.update(lot);
       }
+      // Saldo dos lotes caiu: alocações em caixas não podem passar dele.
+      await this.inventoryBoxStockRepository.reconcileBoxAllocations(
+        touched.map((lot) => lot.id),
+      );
     } else {
       const lot = new InventoryLot({
         inventoryId: inventory.id,

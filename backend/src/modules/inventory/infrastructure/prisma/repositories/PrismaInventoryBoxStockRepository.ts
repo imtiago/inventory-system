@@ -1,4 +1,11 @@
-import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { Prisma } from "@prisma/client";
+import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import {
+  BoxAllocation,
+  BoxAllocationChange,
+  planBoxAllocationReduction,
+} from "@inventory/domain/services/boxAllocations";
 import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { InventoryBoxStockMapper } from "../mappers/InventoryBoxStockMapper";
 import { InventoryBoxStock } from "@inventory/domain/entities/InventoryBoxStock";
@@ -67,5 +74,41 @@ export class PrismaInventoryBoxStockRepository implements IInventoryBoxStockRepo
     });
 
     return result._sum.quantity ?? 0;
+  }
+
+  async reconcileBoxAllocations(lotIds: readonly string[]): Promise<BoxAllocationChange[]> {
+    if (!hasActiveTransaction()) {
+      throw new InternalInvariantError(
+        "Reconciliação de caixas exige transação ativa.",
+        InternalErrorCodes.LOCK_OUTSIDE_TRANSACTION,
+      );
+    }
+    const ids = [...new Set(lotIds)];
+    if (ids.length === 0) return [];
+
+    // Trava só as alocações (os lotes já foram gravados nesta transação, depois
+    // do inventário): ordem inventário → lote → alocações em todos os caminhos.
+    const rows = await getDb().$queryRaw<(BoxAllocation & { remainingQuantity: number })[]>`
+      SELECT bs."id", bs."inventoryLotId", bs."boxId", bs."quantity", bs."createdAt",
+             l."remainingQuantity"
+        FROM "InventoryBoxStock" bs
+        JOIN "InventoryLot" l ON l."id" = bs."inventoryLotId"
+       WHERE bs."inventoryLotId" IN (${Prisma.join(ids)})
+       ORDER BY bs."createdAt", bs."id"
+         FOR UPDATE OF bs`;
+
+    const remaining = new Map(rows.map((r) => [r.inventoryLotId, r.remainingQuantity]));
+    const changes = planBoxAllocationReduction(rows, remaining);
+    for (const change of changes) {
+      if (change.quantity === 0) {
+        await getDb().inventoryBoxStock.delete({ where: { id: change.id } });
+      } else {
+        await getDb().inventoryBoxStock.update({
+          where: { id: change.id },
+          data: { quantity: change.quantity },
+        });
+      }
+    }
+    return changes;
   }
 }

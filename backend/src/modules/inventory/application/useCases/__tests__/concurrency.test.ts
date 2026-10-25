@@ -17,6 +17,7 @@ import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/r
 import { ReserveInventoryUseCase } from "@inventory/application/useCases/commands/ReserveInventoryUseCase";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaStockMovementRepository } from "@inventory/infrastructure/prisma/repositories/PrismaStockMovementRepository";
+import { PrismaInventoryBoxStockRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryBoxStockRepository";
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { Sale } from "@sales/domain/entities/Sale";
@@ -227,6 +228,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       new HoldingRepo(),
       new PrismaInventoryLotRepository(),
       new PrismaStockMovementRepository(),
+      new PrismaInventoryBoxStockRepository(),
       tmShort,
     );
     const shortLock = makeDispatchWith(tmShort);
@@ -371,6 +373,7 @@ function makeDispatchWith(tm: PrismaTransactionManager) {
     new PrismaInventoryRepository(),
     new PrismaInventoryLotRepository(),
     new PrismaStockMovementRepository(),
+    new PrismaInventoryBoxStockRepository(),
     tm,
   );
 }

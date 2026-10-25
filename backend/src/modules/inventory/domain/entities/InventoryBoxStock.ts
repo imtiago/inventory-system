@@ -61,7 +61,7 @@ export class InventoryBoxStock extends BaseEntity {
     }
 
     if (quantity > this._quantity) {
-      throw new BusinessRuleError("Quantidade insuficiente na caixa.", ErrorCodes.INSUFFICIENT_BOX_STOCK);
+      throw new BusinessRuleError("Quantidade maior que a alocada nesta caixa.", ErrorCodes.BOX_STOCK_INSUFFICIENT);
     }
 
     this._quantity -= quantity;

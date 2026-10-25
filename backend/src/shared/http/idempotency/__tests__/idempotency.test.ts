@@ -43,6 +43,7 @@ const COVERED_ROUTES: string[] = [
   "/inventory/initial-count",
   "/inventory/lots",
   `/inventory/boxes/${missing}/items`,
+  `/inventory/boxes/${missing}/items/remove`,
 ];
 
 describe("Idempotency-Key nas operações de dinheiro e estoque", () => {

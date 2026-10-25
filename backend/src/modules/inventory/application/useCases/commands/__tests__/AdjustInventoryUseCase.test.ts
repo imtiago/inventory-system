@@ -9,7 +9,7 @@ import { setupStock, snapshot } from "./helpers";
 
 function build() {
   const s = setupStock();
-  return { ...s, adjust: new AdjustInventoryUseCase(s.inventories, s.lots, s.movements, s.tx) };
+  return { ...s, adjust: new AdjustInventoryUseCase(s.inventories, s.lots, s.movements, s.stocks, s.tx) };
 }
 
 test("adjust sem diferença retorna null e não grava", async () => {

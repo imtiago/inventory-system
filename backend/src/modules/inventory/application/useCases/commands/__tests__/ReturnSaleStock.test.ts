@@ -16,7 +16,7 @@ const isInconsistent = (e: unknown) =>
 
 function build() {
   const s = setupStock();
-  const dispatch = new DispatchInventoryUseCase(s.inventories, s.lots, s.movements, s.tx);
+  const dispatch = new DispatchInventoryUseCase(s.inventories, s.lots, s.movements, s.stocks, s.tx);
   const returnStock = new ReturnSaleStockUseCase(s.inventories, s.lots, s.movements, s.tx);
   const sell = (quantity: number, saleId: string) =>
     dispatch.execute({

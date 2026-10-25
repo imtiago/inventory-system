@@ -4,6 +4,7 @@ import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
 import {
   FakeCatalogService,
+  InMemoryInventoryBoxStockRepository,
   InMemoryInventoryLotRepository,
   InMemoryInventoryRepository,
   InMemoryStockMovementRepository,
@@ -14,6 +15,8 @@ export function setupStock() {
   const inventories = new InMemoryInventoryRepository();
   const lots = new InMemoryInventoryLotRepository();
   const movements = new InMemoryStockMovementRepository();
+  // Alocações por caixa enxergam o saldo dos lotes (reconciliação após saídas).
+  const stocks = new InMemoryInventoryBoxStockRepository(lots);
   const tx = new InMemoryTransactionManager();
   const receive = new ReceiveInventoryUseCase(
     new FakeCatalogService([makeVariant()]),
@@ -30,10 +33,12 @@ export function setupStock() {
       origin: StockMovementOrigin.PURCHASE,
       sourceType: InventoryLotSource.PURCHASE,
     });
-  return { inventories, lots, movements, tx, addLot };
+  return { inventories, lots, movements, stocks, tx, addLot };
 }
 
 export async function snapshot(s: ReturnType<typeof setupStock>) {
   const strip = (xs: object[]) => JSON.stringify(xs);
-  return strip(s.inventories.all()) + strip(s.lots.all()) + strip(s.movements.all());
+  return (
+    strip(s.inventories.all()) + strip(s.lots.all()) + strip(s.movements.all()) + strip(s.stocks.all())
+  );
 }

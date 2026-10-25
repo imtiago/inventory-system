@@ -1,6 +1,7 @@
 import { IDispatchInventoryInput } from "@inventory/application/dto/InventoryDTO";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
+import { IInventoryBoxStockRepository } from "@inventory/domain/repositories/InventoryBoxStockRepository";
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
@@ -16,6 +17,10 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
     private readonly inventoryRepository: IInventoryRepository,
     private readonly inventoryLotRepository: IInventoryLotRepository,
     private readonly stockMovementRepository: IStockMovementRepository,
+    private readonly inventoryBoxStockRepository: Pick<
+      IInventoryBoxStockRepository,
+      "reconcileBoxAllocations"
+    >,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -76,6 +81,11 @@ export class DispatchInventoryUseCase extends TransactionalUseCase<
       await this.stockMovementRepository.create(movement);
       movements.push(movement);
     }
+
+    // Saldo dos lotes caiu: alocações em caixas não podem passar dele.
+    await this.inventoryBoxStockRepository.reconcileBoxAllocations(
+      consumptions.map(({ lot }) => lot.id),
+    );
 
     return movements;
   }
