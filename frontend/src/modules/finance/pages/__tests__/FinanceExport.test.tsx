@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 
@@ -87,7 +87,9 @@ describe('Exportar CSV', () => {
     expect(q.get('openOnly')).toBe('true');
     expect(q.get('page')).toBeNull();
     expect(createObjectURL).toHaveBeenCalledTimes(1);
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
+    // Revogação adiada (Safari): não imediatamente, mas logo depois do clique.
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake'), { timeout: 3000 });
   });
 
   test('sem Content-Disposition legível usa o nome padrão', async () => {
@@ -147,6 +149,43 @@ describe('Exportar CSV', () => {
     await waitFor(() => expect(items).toHaveLength(1));
     expect(items[0].searchParams.get('from')).toBe(monthStart);
     expect(clicked).toEqual([`vendas-${today}.csv`, `itens-vendidos-${today}.csv`]);
+  });
+
+  test('vendas: período acima de 366 dias mostra o aviso, desabilita os botões e não envia requisição', async () => {
+    const sales = trackCsv('/reports/sales.csv');
+    renderWithProviders(<SaleListPage />);
+    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2025-01-01' } });
+    fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2026-01-01' } }); // 366 dias: ok
+    expect(screen.queryByText('O período deve ter no máximo 366 dias.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2026-01-02' } }); // 367 dias
+    expect(screen.getByText('O período deve ter no máximo 366 dias.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Exportar itens' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    expect(sales).toHaveLength(0);
+  });
+
+  test('erro 400 com errors[] mostra a primeira mensagem de campo em vez da genérica', async () => {
+    server.use(
+      http.get(`${API_URL}/reports/sales.csv`, () =>
+        HttpResponse.json({ code: 'VALIDATION_ERROR', message: 'Dados inválidos.', errors: [{ field: 'to', message: 'Data final inválida.' }, { field: 'from', message: 'outra' }] }, { status: 400 }),
+      ),
+    );
+    renderWithProviders(<SaleListPage />);
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    expect(await screen.findByText('Data final inválida.')).toBeInTheDocument();
+    expect(screen.queryByText('Dados inválidos.')).toBeNull();
+  });
+
+  test('o erro some quando os filtros mudam', async () => {
+    server.use(http.get(`${API_URL}/reports/sales.csv`, () => HttpResponse.json({ code: 'EXPORT_TOO_LARGE', message: 'Muitas linhas.' }, { status: 422 })));
+    renderWithProviders(<SaleListPage />);
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    expect(await screen.findByText('Muitas linhas.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2026-01-01' } });
+    await waitFor(() => expect(screen.queryByText('Muitas linhas.')).toBeNull());
   });
 
   test('estoque exporta sem filtros', async () => {

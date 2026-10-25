@@ -12,12 +12,16 @@ import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { useSales } from '../hooks/useSales';
 import { useSaleColumns } from '../hooks/useSaleColumns';
 
+const DAY_MS = 86_400_000;
+const MAX_PERIOD_DAYS = 366;
+
 export function SaleListPage() {
   const [page, setPage] = useState(1);
   const today = todayInBusinessTz();
   const [from, setFrom] = useState(`${today.slice(0, 8)}01`);
   const [to, setTo] = useState(today);
-  const invalidPeriod = !from || !to || from > to;
+  const periodTooLong = Boolean(from && to && from <= to && (Date.parse(to) - Date.parse(from)) / DAY_MS + 1 > MAX_PERIOD_DAYS);
+  const invalidPeriod = !from || !to || from > to || periodTooLong;
 
   const { data, isLoading, isFetching, isError } = useSales(page);
 
@@ -54,6 +58,11 @@ export function SaleListPage() {
               </label>
               <input id="sales-export-to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
+            {periodTooLong && (
+              <p role="alert" className="text-sm text-red-600">
+                O período deve ter no máximo {MAX_PERIOD_DAYS} dias.
+              </p>
+            )}
             <p className="text-xs text-gray-500">Período usado na exportação (a lista mostra todas as vendas).</p>
           </div>
           {isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}

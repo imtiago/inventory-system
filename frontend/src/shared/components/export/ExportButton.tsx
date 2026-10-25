@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 
 import { Can } from '@/shared/auth/Can';
@@ -22,6 +22,13 @@ export function ExportButton({ label = 'Exportar CSV', permission, url, params, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const paramsKey = JSON.stringify([url, params]);
+
+  // Um erro anterior não vale para filtros diferentes.
+  useEffect(() => {
+    setError(null);
+  }, [paramsKey]);
+
   async function handleClick() {
     setBusy(true);
     setError(null);
@@ -29,7 +36,8 @@ export function ExportButton({ label = 'Exportar CSV', permission, url, params, 
     try {
       await downloadFile(url, params, fallbackName);
     } catch (err) {
-      setError((await parseApiError(err)).message);
+      const parsed = await parseApiError(err);
+      setError(Object.values(parsed.fieldErrors)[0] ?? parsed.message);
     } finally {
       setBusy(false);
     }
