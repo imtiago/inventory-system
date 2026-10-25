@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Camera, Search, X } from 'lucide-react';
 
 import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { useFinePointer } from '@/shared/hooks/useMediaQuery';
 
 interface SaleBarcodeInputProps {
   loading: boolean;
@@ -9,6 +10,7 @@ interface SaleBarcodeInputProps {
 }
 
 export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputProps) {
+  const finePointer = useFinePointer();
   const [barcode, setBarcode] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -60,7 +62,7 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 
           <input
-            autoFocus
+            autoFocus={finePointer}
             value={barcode}
             onChange={(event) => setBarcode(event.target.value)}
             placeholder="Código de barras"

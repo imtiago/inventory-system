@@ -8,6 +8,7 @@ import { Section } from '@/shared/components/details/Section';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable } from '@/shared/components/table';
 import { ExportButton } from '@/shared/components/export/ExportButton';
+import { ExportMenu } from '@/shared/components/export/ExportMenu';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 
 import type { SaleStatus } from '../types';
@@ -39,10 +40,12 @@ export function SaleListPage() {
       <Section
         title={`Vendas (${data?.pagination.total ?? 0})`}
         actions={
-          <div className="flex items-start gap-3">
-            <ExportButton permission="sales.read" url="/reports/sales.csv" params={{ from, to, status: status || undefined }} fallbackName={`vendas-${today}.csv`} disabled={invalidPeriod} />
-            <ExportButton label="Exportar itens" permission="sales.read" url="/reports/sale-items.csv" params={{ from, to }} fallbackName={`itens-vendidos-${today}.csv`} disabled={invalidPeriod} />
-            <Link to="/sales/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
+          <div className="flex flex-wrap items-start gap-3">
+            <ExportMenu>
+              <ExportButton permission="sales.read" url="/reports/sales.csv" params={{ from, to, status: status || undefined }} fallbackName={`vendas-${today}.csv`} disabled={invalidPeriod} />
+              <ExportButton label="Exportar itens" permission="sales.read" url="/reports/sale-items.csv" params={{ from, to }} fallbackName={`itens-vendidos-${today}.csv`} disabled={invalidPeriod} />
+            </ExportMenu>
+            <Link to="/sales/new" className="flex min-h-11 items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
               <Plus size={18} />
               Nova Venda
             </Link>
@@ -88,7 +91,7 @@ export function SaleListPage() {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as vendas. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(sale) => sale.id} getRowHref={(sale) => `/sales/${sale.id}`} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhuma venda encontrada" emptyHint="Ajuste o período ou o status, ou registre uma nova venda." getRowId={(sale) => sale.id} getRowHref={(sale) => `/sales/${sale.id}`} />
             </div>
           )}
 

@@ -105,7 +105,7 @@ export function CustomerListPage() {
                 Carregando clientes...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `/customers/${item.id}`} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum cliente encontrado" emptyHint="Tente novamente ou cadastre um novo cliente." getRowId={(item) => item.id} getRowHref={(item) => `/customers/${item.id}`} />
             )}
           </div>
 

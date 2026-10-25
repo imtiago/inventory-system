@@ -225,6 +225,8 @@ export function ProductDetailsPage() {
               ) : (
                 <DataTable
                   data={variants}
+                  emptyMessage="Nenhuma variante cadastrada"
+                  emptyHint="Cadastre uma variante para vender este produto."
                   columns={columns}
                   getRowId={(variant) => variant.id}
                 />

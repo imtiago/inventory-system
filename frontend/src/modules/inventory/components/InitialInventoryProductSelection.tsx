@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useFinePointer } from '@/shared/hooks/useMediaQuery';
 
 import type { InventoryProductSearchResult } from '../hooks/useSearchProducts';
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function InitialInventoryProductSelection({ products, loading, error, onSearch, onSelect, onBack }: Props) {
+  const finePointer = useFinePointer();
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function InitialInventoryProductSelection({ products, loading, error, onS
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Digite o nome ou código do produto..."
             className="w-full rounded-lg border p-3"
-            autoFocus
+            autoFocus={finePointer}
           />
         </div>
       </div>

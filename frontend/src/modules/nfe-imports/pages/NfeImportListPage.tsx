@@ -167,7 +167,7 @@ export function NfeImportListPage() {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as importações. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhuma nota importada" emptyHint="Envie um XML de NF-e para começar." getRowId={(item) => item.id} />
             </div>
           )}
 

@@ -28,7 +28,11 @@ export interface DataTableProps<T> {
 
   loading?: boolean;
 
+  /** Título da lista vazia, específico da lista (ex.: "Nenhuma venda encontrada"). */
   emptyMessage?: string;
+
+  /** Texto de apoio abaixo do título da lista vazia. */
+  emptyHint?: string;
 
   getRowId?: (row: T) => string;
 

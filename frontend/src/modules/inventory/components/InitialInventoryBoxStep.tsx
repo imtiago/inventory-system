@@ -1,3 +1,4 @@
+import { QuantityInput } from '@/shared/components/form';
 import { useState } from 'react';
 
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -160,18 +161,7 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
           Quantidade de unidades
         </label>
 
-        <input
-          id="box-quantity"
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={availableForBoxes}
-          step={1}
-          value={noRoom ? '' : quantity}
-          disabled={noRoom}
-          onChange={(event) => setQuantity(event.target.value)}
-          className="w-full rounded-lg border p-3 disabled:bg-gray-100"
-        />
+        <QuantityInput id="box-quantity" min={1} max={availableForBoxes} value={noRoom ? '' : String(quantity)} disabled={noRoom} onChange={(value) => setQuantity(value)} />
 
         {error && (
           <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">

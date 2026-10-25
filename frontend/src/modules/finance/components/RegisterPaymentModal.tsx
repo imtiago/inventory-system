@@ -5,7 +5,8 @@ import { Modal } from '@/shared/components/Modal/Modal';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
-import { formatCurrency, toCents } from '@/shared/utils/money';
+import { MoneyInput } from '@/shared/components/form';
+import { formatCurrency, parseMoneyText, parseMoneyToCents, toCents } from '@/shared/utils/money';
 
 import { useRegisterPayment } from '../hooks/useRegisterPayment';
 import { PAYMENT_METHOD_LABELS, type IFinanceParcel, type PaymentMethod } from '../types';
@@ -56,7 +57,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
       await mutation.mutateAsync({
         parcelId: parcel.id,
         input: {
-          amount: Number(values.amount.trim().replace(',', '.')),
+          amount: (parseMoneyToCents(values.amount) ?? 0) / 100,
           method: values.method,
           paymentDate: values.paymentDate,
           ...(values.reference.trim() ? { reference: values.reference.trim() } : {}),
@@ -79,17 +80,13 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
           <label htmlFor="payment-amount" className="mb-2 block text-sm font-medium text-gray-700">
             Valor
           </label>
-          <input
+          <MoneyInput
             id="payment-amount"
-            type="text"
-            inputMode="decimal"
-            className={inputClass}
             {...register('amount', {
               validate: (value) => {
-                const normalized = value.trim().replace(',', '.');
-                if (!/^\d+(\.\d+)?$/.test(normalized)) return 'Informe um valor válido.';
-                if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return 'Use no máximo 2 casas decimais.';
-                const cents = toCents(Number(normalized));
+                if (!Number.isFinite(parseMoneyText(value))) return 'Informe um valor válido.';
+                const cents = parseMoneyToCents(value);
+                if (cents === null) return 'Use no máximo 2 casas decimais.';
                 if (cents <= 0) return 'O valor deve ser maior que zero.';
                 if (cents > remainingCents) return 'O valor não pode ser maior que o saldo da parcela.';
                 return true;

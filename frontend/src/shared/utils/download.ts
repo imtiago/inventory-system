@@ -54,6 +54,6 @@ export async function downloadFile(url: string, params: Record<string, string | 
   document.body.appendChild(link);
   link.click();
   link.remove();
-  // Revogação adiada: o Safari pode iniciar o download depois do clique.
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  // Revogação adiada (60 s): o Safari do iPhone/iPad pode ler o arquivo bem depois do clique.
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }

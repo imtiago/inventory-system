@@ -28,7 +28,10 @@ beforeEach(() => {
     clicked.push(this.download);
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 function trackCsv(path: string, disposition?: string) {
   const urls: URL[] = [];
@@ -72,6 +75,7 @@ describe('openOnly (Somente com saldo)', () => {
 
 describe('Exportar CSV', () => {
   test('contas a receber: envia os filtros da tela e baixa o arquivo com o nome do cabeçalho', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const urls = trackCsv('/reports/receivables.csv', 'attachment; filename="contas-a-receber-2026-10-24.csv"');
     server.use(http.get(`${API_URL}/receivables`, () => HttpResponse.json(receivableList)));
     renderWithProviders(<ReceivableListPage />, { route: '/receivables?status=OVERDUE&customerId=c-1&dueFrom=2026-10-01&dueTo=2026-10-31&openOnly=true&page=2' });
@@ -87,9 +91,12 @@ describe('Exportar CSV', () => {
     expect(q.get('openOnly')).toBe('true');
     expect(q.get('page')).toBeNull();
     expect(createObjectURL).toHaveBeenCalledTimes(1);
-    // Revogação adiada (Safari): não imediatamente, mas logo depois do clique.
+    // Revogação adiada em 60 s (Safari/iOS lê o arquivo depois do clique).
     expect(revokeObjectURL).not.toHaveBeenCalled();
-    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake'), { timeout: 3000 });
+    vi.advanceTimersByTime(59_000);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1_500);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
   });
 
   test('sem Content-Disposition legível usa o nome padrão', async () => {

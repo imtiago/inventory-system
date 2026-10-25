@@ -136,7 +136,7 @@ export function SupplierListPage() {
                 Carregando fornecedores...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum fornecedor encontrado" emptyHint="Tente novamente ou cadastre um novo fornecedor." getRowId={(item) => item.id} />
             )}
           </div>
 

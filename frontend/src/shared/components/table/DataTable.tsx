@@ -12,16 +12,16 @@ const alignment = {
   right: 'text-right',
 } as const;
 
-function EmptyState() {
+function EmptyState({ message = 'Nenhum registro encontrado', hint = 'Tente novamente ou ajuste os filtros.' }: { message?: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
         <span className="text-xl text-gray-400">—</span>
       </div>
 
-      <p className="font-medium text-gray-700">Nenhum cliente encontrado</p>
+      <p className="font-medium text-gray-700">{message}</p>
 
-      <p className="text-sm text-gray-500">Tente novamente ou cadastre um novo cliente.</p>
+      <p className="text-sm text-gray-500">{hint}</p>
     </div>
   );
 }
@@ -37,6 +37,20 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
   useLayoutEffect(() => {
     if (root.current) root.current.hidden = panel.current?.querySelector('a, button') == null;
   }, [content]);
+
+  // Cada ação só com ícone ganha o texto do seu aria-label/title: o menu é uma lista de linhas legíveis.
+  useLayoutEffect(() => {
+    panel.current?.querySelectorAll<HTMLElement>('a, button').forEach((el) => {
+      if (el.querySelector('[data-menu-label]') || el.textContent?.trim()) return;
+      const text = el.getAttribute('aria-label') ?? el.getAttribute('title');
+      if (!text) return;
+      const label = document.createElement('span');
+      label.dataset.menuLabel = '';
+      label.className = 'text-sm font-medium text-gray-800';
+      label.textContent = text;
+      el.appendChild(label);
+    });
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +86,7 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
       <div
         ref={panel}
         hidden={!open}
-        className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 min-w-[8rem] flex-wrap items-center justify-end gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-lg [&_a]:inline-flex [&_a]:min-h-[44px] [&_a]:min-w-[44px] [&_a]:items-center [&_a]:justify-center [&_button]:inline-flex [&_button]:min-h-[44px] [&_button]:min-w-[44px] [&_button]:items-center [&_button]:justify-center`}
+        className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-lg [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-start [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:text-left [&_a]:hover:bg-gray-50 [&_button]:flex [&_button]:min-h-[44px] [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:gap-3 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-left [&_button]:hover:bg-gray-50 [&_div]:contents`}
       >
         {content}
       </div>
@@ -134,14 +148,14 @@ function Card<T>({ row, columns, href }: { row: T; columns: DataTableColumn<T>[]
   );
 }
 
-export function DataTable<T>({ data, columns, getRowId, getRowHref }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage, emptyHint }: DataTableProps<T>) {
   const isTabletUp = useBreakpoint('md');
 
   if (!isTabletUp) {
     if (data.length === 0) {
       return (
         <div className="px-5 py-12 text-center">
-          <EmptyState />
+          <EmptyState message={emptyMessage} hint={emptyHint} />
         </div>
       );
     }
@@ -186,7 +200,7 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref }: DataTableP
           {data.length === 0 && (
             <tr>
               <td colSpan={Math.max(columns.length, 1)} className="px-5 py-12 text-center">
-                <EmptyState />
+                <EmptyState message={emptyMessage} hint={emptyHint} />
               </td>
             </tr>
           )}

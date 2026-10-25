@@ -1,3 +1,5 @@
+import { MoneyInput } from '@/shared/components/form';
+import { parseMoneyText } from '@/shared/utils/money';
 import { useForm } from 'react-hook-form';
 
 import { useCreateVariant } from '@/modules/products/hooks/useCreateVariant';
@@ -105,19 +107,14 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
             Preço de venda (R$)
           </label>
 
-          <input
+          <MoneyInput
             id="variant-sale-price"
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="0,00"
             disabled={loading}
             aria-invalid={errors.salePrice ? 'true' : undefined}
             {...register('salePrice', {
-              setValueAs: (value) => (value === '' || value == null ? undefined : Number(value)),
+              setValueAs: (value) => (value === '' || value == null ? undefined : parseMoneyText(String(value))),
               validate: validateSalePrice,
             })}
-            className="w-full rounded-lg border p-3 disabled:opacity-50"
           />
 
           {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}

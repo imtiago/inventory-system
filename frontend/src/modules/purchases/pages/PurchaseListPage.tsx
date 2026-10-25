@@ -154,7 +154,7 @@ export function PurchaseListPage() {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar os pedidos. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `/purchases/${item.id}`} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum pedido de compra encontrado" emptyHint="Ajuste os filtros ou registre um novo pedido." getRowId={(item) => item.id} getRowHref={(item) => `/purchases/${item.id}`} />
             </div>
           )}
 

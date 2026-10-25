@@ -177,7 +177,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 Carregando {plural}...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} emptyMessage={`Nenhuma ${singular} encontrada`} emptyHint="Tente outra busca ou cadastre uma nova." />
             )}
           </div>
 

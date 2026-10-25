@@ -1,3 +1,4 @@
+import { QuantityInput } from '@/shared/components/form';
 import { useState } from 'react';
 
 import { Modal } from '@/shared/components/Modal/Modal';
@@ -104,17 +105,14 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
               <div className="grid gap-3 sm:grid-cols-4">
                 <div>
                   <label htmlFor={`rq-${item.id}`} className="mb-1 block text-xs text-gray-500">Quantidade</label>
-                  <input
+                  <QuantityInput
                     id={`rq-${item.id}`}
                     aria-label={`Quantidade a receber de ${name}`}
-                    type="number"
                     min={0}
                     max={item.remainingQuantity}
-                    step={1}
                     value={row.quantity}
                     disabled={mutation.isPending}
-                    onChange={(event) => setField(item.id, 'quantity', event.target.value)}
-                    className={inputClass}
+                    onChange={(value) => setField(item.id, 'quantity', value)}
                   />
                 </div>
                 <div>

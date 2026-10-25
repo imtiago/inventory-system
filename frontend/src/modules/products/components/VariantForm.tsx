@@ -1,3 +1,5 @@
+import { MoneyInput } from '@/shared/components/form';
+import { parseMoneyText } from '@/shared/utils/money';
 import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
@@ -151,22 +153,12 @@ export function VariantForm({
         <div>
           <label htmlFor="variant-sale-price" className="block mb-1">Preço de venda (R$)</label>
 
-          <input
+          <MoneyInput
             id="variant-sale-price"
-            type="number"
-            step="0.01"
-            inputMode="decimal"
             {...register("salePrice", {
-              setValueAs: (value) => (value === "" || value == null ? undefined : Number(value)),
+              setValueAs: (value) => (value === "" || value == null ? undefined : parseMoneyText(String(value))),
               validate: (value) => validateSalePrice(value, requireSalePrice),
             })}
-            className="
-              w-full
-              border
-              rounded-lg
-              p-3
-            "
-            placeholder="0,00"
           />
           {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}
         </div>

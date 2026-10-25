@@ -126,7 +126,7 @@ export function UserListPage() {
                 Carregando usuários...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum usuário encontrado" emptyHint="Tente novamente ou cadastre um novo usuário." getRowId={(item) => item.id} />
             )}
           </div>
 

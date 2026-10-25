@@ -204,7 +204,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `${config.basePath}/${item.id}`} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage={`Nenhuma ${config.singular.toLowerCase()} encontrada`} emptyHint="Ajuste os filtros para ver outros resultados." getRowId={(item) => item.id} getRowHref={(item) => `${config.basePath}/${item.id}`} />
             </div>
           )}
 

@@ -1,5 +1,8 @@
 import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+
+import { MoneyInput, QuantityInput } from '@/shared/components/form';
+import { parseMoneyText } from '@/shared/utils/money';
 
 export interface InventoryLotFormData {
   batchNumber: string;
@@ -25,6 +28,7 @@ const LOT_FIELDS = ['batchNumber', 'manufacturingDate', 'expirationDate', 'quant
 export function InventoryLotForm({ initialValues, submitting = false, submitError = null, onSubmit, onCancel }: Props) {
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -111,30 +115,19 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             Custo unitário
           </label>
 
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
-
-            <input
-              id="unitCost"
-              type="number"
-              min={0}
-              step="0.01"
-              {...register('unitCost', {
-                required: 'Informe o custo unitário.',
-
-                valueAsNumber: true,
-
-                min: {
-                  value: 0,
-                  message: 'O custo não pode ser negativo.',
-                },
-
-                validate: (value) => Number.isFinite(value) || 'Informe um custo válido.',
-              })}
-              className="w-full rounded-lg border p-3 pl-10"
-              placeholder="0,00"
-            />
-          </div>
+          <MoneyInput
+            id="unitCost"
+            {...register('unitCost', {
+              required: 'Informe o custo unitário.',
+              setValueAs: (value: string) => (typeof value === 'string' ? parseMoneyText(value) : value),
+              validate: (value) => {
+                if (!Number.isFinite(value)) return 'Informe um custo válido.';
+                if (value < 0) return 'O custo não pode ser negativo.';
+                if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return 'O custo deve ter no máximo 2 casas decimais.';
+                return true;
+              },
+            })}
+          />
 
           {errors.unitCost && <p className="mt-1 text-sm text-red-600">{errors.unitCost.message}</p>}
 
@@ -147,24 +140,19 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             Quantidade
           </label>
 
-          <input
-            id="quantity"
-            type="number"
-            min={1}
-            step={1}
-            {...register('quantity', {
-              required: 'Informe a quantidade.',
-
-              valueAsNumber: true,
-
-              min: {
-                value: 1,
-                message: 'A quantidade deve ser maior que zero.',
+          <Controller
+            control={control}
+            name="quantity"
+            rules={{
+              validate: (value) => {
+                if (!Number.isFinite(value)) return 'Informe a quantidade.';
+                if (value < 1) return 'A quantidade deve ser maior que zero.';
+                return Number.isInteger(value) || 'A quantidade deve ser um número inteiro.';
               },
-
-              validate: (value) => Number.isInteger(value) || 'A quantidade deve ser um número inteiro.',
-            })}
-            className="w-full rounded-lg border p-3"
+            }}
+            render={({ field }) => (
+              <QuantityInput id="quantity" value={Number.isFinite(field.value) ? String(field.value) : ''} onChange={(value) => field.onChange(value === '' ? Number.NaN : Number(value))} onBlur={field.onBlur} />
+            )}
           />
 
           {errors.quantity && <p className="mt-1 text-sm text-red-600">{errors.quantity.message}</p>}

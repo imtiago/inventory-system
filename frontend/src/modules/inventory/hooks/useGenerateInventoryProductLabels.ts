@@ -14,13 +14,12 @@ async function labelErrorMessage(error: unknown): Promise<string> {
 }
 
 /**
- * Hands the PDF to the user as a downloaded file. Unlike window.open after an await,
- * a download is not subject to pop-up blocking. Throws if the browser refuses.
+ * Hands the PDF to the user as a downloaded file; call it from a direct user click (iOS/Safari ignore
+ * downloads started later, e.g. after an await). Unlike window.open, a download is not subject to pop-up
+ * blocking. Throws if the browser refuses.
  *
- * Known limitation (kept on purpose, no behaviour change): a browser that blocks the programmatic
- * `<a download>` click silently gives no signal to detect it, so we show no "blocked" warning
- * (it would be a false alarm for every user whose download simply started). Only a thrown error
- * reaches the caller, which then offers the failure message.
+ * The link is attached to the DOM for the click and the object URL is revoked only after 60 s, so slow
+ * viewers (iOS opens the PDF in a new view) can still read the blob.
  */
 export function downloadPdf(blob: Blob, fileName: string) {
   const url = window.URL.createObjectURL(blob);
@@ -31,10 +30,33 @@ export function downloadPdf(blob: Blob, fileName: string) {
     link.href = url;
     link.download = fileName;
     link.rel = 'noopener';
-    link.click();
+    document.body.appendChild(link);
+    try {
+      link.click();
+    } finally {
+      link.remove();
+    }
   } finally {
-    // Give the browser time to start reading the blob before releasing it.
-    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+  }
+}
+
+export function pdfFile(blob: Blob, fileName: string): File {
+  return new File([blob], fileName, { type: 'application/pdf' });
+}
+
+/** True when the device can share files (Web Share Level 2): opens AirPrint / printer apps on iOS and Android. */
+export function canSharePdf(file: File): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+}
+
+/** Shares the PDF; resolves quietly when the user dismisses the share sheet. */
+export async function sharePdf(file: File, title: string): Promise<void> {
+  try {
+    await navigator.share({ files: [file], title });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return;
+    throw error;
   }
 }
 

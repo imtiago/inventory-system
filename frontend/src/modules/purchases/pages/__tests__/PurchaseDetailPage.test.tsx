@@ -129,7 +129,7 @@ describe('PurchaseDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Registrar recebimento' }));
     const dialog = screen.getByRole('dialog');
     const qty1 = within(dialog).getByLabelText('Quantidade a receber de Camiseta Básica Azul M');
-    expect(qty1).toHaveValue(2); // padrão = restante
+    expect(qty1).toHaveValue('2'); // padrão = restante
     await userEvent.clear(qty1);
     await userEvent.type(qty1, '1');
     await userEvent.type(within(dialog).getByLabelText('Lote de Camiseta Básica Azul M'), 'L-001');

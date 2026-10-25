@@ -35,7 +35,11 @@ export function useDialogBehavior({ open, dialogRef, onEscape, escapeEnabled = t
     const getFocusable = () => (dialog ? Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)) : []);
 
     // Respect children that already took focus (e.g. autoFocus).
-    if (dialog && !dialog.contains(document.activeElement)) {
+    // Em toque (sem ponteiro fino) o foco vai para o próprio diálogo, para não abrir o teclado sozinho.
+    const finePointer = typeof window.matchMedia !== 'function' || window.matchMedia('(pointer: fine)').matches;
+    if (dialog && !finePointer) {
+      dialog.focus();
+    } else if (dialog && !dialog.contains(document.activeElement)) {
       (latest.current.getInitialFocus?.() ?? getFocusable()[0] ?? dialog).focus();
     }
 
