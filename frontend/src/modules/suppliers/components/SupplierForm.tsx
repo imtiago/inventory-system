@@ -1,3 +1,4 @@
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { useForm } from 'react-hook-form';
 
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
@@ -31,7 +32,9 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
     },
   });
 
-  const submit = handleSubmit(async (data) => {
+  const once = useSingleSubmit();
+
+  const submit = handleSubmit(once(async (data) => {
     try {
       await onSubmit(data);
     } catch (error) {
@@ -43,7 +46,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
         setError('root.server', { type: 'server', message: parsed.message });
       }
     }
-  });
+  }));
 
   return (
     <form onSubmit={submit} className="space-y-6" noValidate>

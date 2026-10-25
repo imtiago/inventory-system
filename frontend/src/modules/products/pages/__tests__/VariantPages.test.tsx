@@ -6,7 +6,7 @@ import { Route, Routes } from 'react-router-dom';
 
 import { VariantCreatePage } from '../VariantCreatePage';
 import { VariantEditPage } from '../VariantEditPage';
-import { renderWithProviders } from '@/test/render';
+import { createTestQueryClient, renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 
@@ -87,5 +87,44 @@ describe('Variant pages', () => {
 
     expect(await screen.findByText('Informe o preço de venda.')).toBeInTheDocument();
     expect(captured.body).toBeUndefined();
+  });
+
+  test('reabrir a edição após salvar mostra o preço novo e não reverte o preço ao mudar só o nome', async () => {
+    let current = { ...variant };
+    const puts: Record<string, unknown>[] = [];
+    server.use(
+      http.get(`${API_URL}/variants/v-1`, () => HttpResponse.json({ data: current })),
+      http.put(`${API_URL}/variants/v-1`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        puts.push(body);
+        current = { ...current, ...body } as typeof current;
+        return HttpResponse.json({ data: current });
+      }),
+    );
+    const queryClient = createTestQueryClient();
+    const tree = (
+      <Routes>
+        <Route path="/variants/:variantId/edit" element={<VariantEditPage />} />
+        <Route path="*" element={<div>destino</div>} />
+      </Routes>
+    );
+
+    const first = renderWithProviders(tree, { route: '/variants/v-1/edit', queryClient });
+    const price = await screen.findByLabelText('Preço de venda (R$)');
+    await userEvent.clear(price);
+    await userEvent.type(price, '12');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
+    await screen.findByText('destino');
+    first.unmount();
+
+    renderWithProviders(tree, { route: '/variants/v-1/edit', queryClient });
+    expect(await screen.findByLabelText('Preço de venda (R$)')).toHaveValue(12);
+    const name = screen.getByPlaceholderText('Ex: Kaiak 100ml');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Novo nome');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
+
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(puts[1]).toMatchObject({ name: 'Novo nome', salePrice: 12 });
   });
 });

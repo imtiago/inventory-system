@@ -10,6 +10,7 @@ import { Page } from "@/shared/components/layout/Page";
 import { Can } from "@/shared/auth/Can";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
 
+import { EntitySearchSelect } from "@/shared/components/form/EntitySearchSelect";
 import { useBrands } from "@/modules/brands/hooks/useBrands";
 import { useCategories } from "@/modules/categories/hooks/useCategories";
 
@@ -37,8 +38,6 @@ export function ProductListPage() {
     categoryId,
   });
 
-  const { data: brands = [] } = useBrands();
-  const { data: categories = [] } = useCategories();
 
   const deleteProduct = useDeleteProduct();
 
@@ -93,39 +92,31 @@ export function ProductListPage() {
               />
             </div>
 
-            <select
-              aria-label="Filtrar por marca"
-              value={brandId}
-              onChange={(event) => {
-                setBrandId(event.target.value);
-                setPage(1);
-              }}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
-            >
-              <option value="">Todas as marcas</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-full sm:w-56">
+              <EntitySearchSelect
+                useOptions={useBrands}
+                ariaLabel="Filtrar por marca"
+                placeholder="Todas as marcas"
+                value={brandId}
+                onChange={(id) => {
+                  setBrandId(id);
+                  setPage(1);
+                }}
+              />
+            </div>
 
-            <select
-              aria-label="Filtrar por categoria"
-              value={categoryId}
-              onChange={(event) => {
-                setCategoryId(event.target.value);
-                setPage(1);
-              }}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
-            >
-              <option value="">Todas as categorias</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-full sm:w-56">
+              <EntitySearchSelect
+                useOptions={useCategories}
+                ariaLabel="Filtrar por categoria"
+                placeholder="Todas as categorias"
+                value={categoryId}
+                onChange={(id) => {
+                  setCategoryId(id);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">

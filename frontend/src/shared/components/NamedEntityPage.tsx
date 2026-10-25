@@ -1,3 +1,4 @@
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
@@ -242,7 +243,9 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
     formState: { errors, isSubmitting },
   } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
 
-  const submit = handleSubmit(async ({ name }) => {
+  const once = useSingleSubmit();
+
+  const submit = handleSubmit(once(async ({ name }) => {
     try {
       await onSubmit(name.trim());
     } catch (error) {
@@ -251,7 +254,7 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
       const { code, message } = parseApiErrorSync(error);
       setError(code === existsCode ? 'name' : 'root.server', { type: 'server', message });
     }
-  });
+  }));
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">

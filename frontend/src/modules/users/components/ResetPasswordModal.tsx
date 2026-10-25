@@ -1,3 +1,4 @@
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { useForm } from 'react-hook-form';
 
 import { Modal } from '@/shared/components/Modal/Modal';
@@ -27,7 +28,9 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
     formState: { errors, isSubmitting },
   } = useForm<Values>({ defaultValues: { password: '', confirm: '' } });
 
-  const submit = handleSubmit(async ({ password }) => {
+  const once = useSingleSubmit();
+
+  const submit = handleSubmit(once(async ({ password }) => {
     try {
       await mutateAsync(password);
       onClose();
@@ -36,7 +39,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
         setError('root.server', { type: 'server', message: parseApiErrorSync(error).message });
       }
     }
-  });
+  }));
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">

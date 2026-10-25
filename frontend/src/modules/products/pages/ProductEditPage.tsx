@@ -5,29 +5,20 @@ import { parseApiErrorSync } from "@/shared/services/parseApiError";
 import { handleMutationError } from "@/shared/utils/mutation";
 import { notify } from "@/shared/utils/notify";
 
-import { useBrands } from "@/modules/brands/hooks/useBrands";
-import { useCategories } from "@/modules/categories/hooks/useCategories";
 
 import { ProductForm, type ProductFormData } from "../components/ProductForm";
 import { useProduct } from "../hooks/useProduct";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
 import type { UpdateProductInput } from "../types";
 
-function withCurrent<T extends { id: string }>(items: T[], current?: T): T[] {
-  return current && !items.some((item) => item.id === current.id) ? [current, ...items] : items;
-}
-
 export function ProductEditPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const { data: product, isLoading, isError } = useProduct(id);
-  const { data: brands, isError: brandsError } = useBrands();
-  const { data: categories, isError: categoriesError } = useCategories();
   const updateProduct = useUpdateProduct({ silentError: true });
 
-  if (brandsError || categoriesError) return <p>Erro ao carregar dados do produto</p>;
-  if (isLoading || (!isError && (!brands || !categories))) return <p>Carregando produto...</p>;
+  if (isLoading) return <p>Carregando produto...</p>;
   if (isError || !product) return <p>Produto não encontrado</p>;
 
   const initialValues: ProductFormData = {
@@ -69,8 +60,8 @@ export function ProductEditPage() {
       <ProductForm
         title="Editar Produto"
         description={`Código ${product.code}`}
-        brands={withCurrent(brands ?? [], product.brand)}
-        categories={withCurrent(categories ?? [], product.category)}
+        initialBrand={product.brand}
+        initialCategory={product.category}
         initialValues={initialValues}
         onSubmit={handleSubmit}
         onCancel={() => navigate(`/products/${id}`)}

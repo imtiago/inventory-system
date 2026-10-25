@@ -12,6 +12,8 @@ export type AutocompleteProps<TOption, TValue extends string | number> = {
   filterOption?: (option: TOption, query: string) => boolean;
 
   label?: string;
+  /** Accessible name when no visible `label` is rendered. */
+  ariaLabel?: string;
   placeholder?: string;
   emptyMessage?: string;
   minSearchLength?: number;
@@ -32,6 +34,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
   getOptionDescription,
   filterOption,
   label,
+  ariaLabel,
   placeholder = 'Pesquisar...',
   emptyMessage = 'Nenhum resultado encontrado.',
   minSearchLength = 0,
@@ -147,6 +150,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
         <input
           id={inputId}
           name={name}
+          aria-label={label ? undefined : ariaLabel}
           type="text"
           role="combobox"
           aria-autocomplete="list"

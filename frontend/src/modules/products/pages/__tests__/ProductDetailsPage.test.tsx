@@ -113,4 +113,32 @@ describe('ProductDetailsPage', () => {
     expect(screen.queryByText('Erro ao carregar produto')).not.toBeInTheDocument();
     expect(detailGets - before).toBe(0);
   });
+
+  test('falha ao listar variantes mostra mensagem e "Tentar novamente" que refaz a consulta', async () => {
+    let fail = true;
+    server.use(
+      http.get(`${API_URL}/products/:id/variants`, () =>
+        fail ? HttpResponse.json({ message: 'boom' }, { status: 500 }) : HttpResponse.json(variantsPage(1)),
+      ),
+    );
+    renderDetails();
+
+    expect(await screen.findByText('Não foi possível carregar as variantes.')).toBeInTheDocument();
+    expect(screen.queryByText('Variantes (0)')).not.toBeInTheDocument();
+
+    fail = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+
+    expect(await screen.findByText('Variantes (12)')).toBeInTheDocument();
+    expect(screen.queryByText('Não foi possível carregar as variantes.')).not.toBeInTheDocument();
+  });
+
+  test('não mostra cards de placeholder sem dados', async () => {
+    renderDetails();
+    await screen.findByText('Natura');
+
+    expect(screen.queryByText('Estoque atual')).not.toBeInTheDocument();
+    expect(screen.queryByText('Movimentações')).not.toBeInTheDocument();
+    expect(screen.queryByText('--')).not.toBeInTheDocument();
+  });
 });

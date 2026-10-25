@@ -7,6 +7,10 @@ export const productQueryKeys = {
     return ["products", id] as const;
   },
 
+  variant(variantId: string) {
+    return ["variant", variantId] as const;
+  },
+
   variants(productId: string) {
     return ["products", productId, "variants"] as const;
   },

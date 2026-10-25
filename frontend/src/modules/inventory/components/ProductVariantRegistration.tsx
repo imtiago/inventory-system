@@ -1,12 +1,8 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
-import { useQueryClient } from '@tanstack/react-query';
-
-import { api } from '@/shared/services/api';
-import { queryKeys } from '@/shared/react-query/keys';
-import { notify } from '@/shared/utils/notify';
+import { useCreateVariant } from '@/modules/products/hooks/useCreateVariant';
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import type { ProductVariant } from '../types';
-import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 interface ProductVariantRegistrationProps {
   /** Scanned barcode not found in the catalog; null when registering without barcode. */
@@ -17,43 +13,46 @@ interface ProductVariantRegistrationProps {
   onCancel: () => void;
 }
 
+interface FormValues {
+  name: string;
+  salePrice: number | undefined;
+}
+
+function validateSalePrice(value: number | undefined) {
+  if (value === undefined) return 'Informe o preço de venda.';
+  if (Number.isNaN(value)) return 'Informe um preço válido.';
+  if (value < 0) return 'O preço não pode ser negativo.';
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return 'O preço deve ter no máximo 2 casas decimais.';
+
+  return true;
+}
+
 export function ProductVariantRegistration({ barcode, productId, productName, onSuccess, onCancel }: ProductVariantRegistrationProps) {
-  const queryClient = useQueryClient();
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const createVariant = useCreateVariant(productId);
+  const once = useSingleSubmit();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({ defaultValues: { name: '' } });
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  const loading = isSubmitting;
 
-    if (!name.trim()) {
-      notify.warning('Informe o nome da variante.');
-      return;
-    }
+  const submit = handleSubmit(
+    once(async ({ name, salePrice }) => {
+      try {
+        // The shared hook shows the success/error toast and refreshes the product's variants.
+        const variant = await createVariant.mutateAsync({ name: name.trim(), ...(barcode ? { barcode } : {}), salePrice });
 
-    try {
-      setLoading(true);
-
-      const response = await api.post<{ data: ProductVariant }>(`/products/${productId}/variants`, {
-        name: name.trim(),
-        ...(barcode ? { barcode } : {}),
-      });
-
-      const variant = response.data.data;
-
-      void queryClient.invalidateQueries({ queryKey: queryKeys.productVariants(productId) });
-
-      notify.success('Variante cadastrada com sucesso!');
-
-      onSuccess(variant);
-    } catch (error: unknown) {
-      notify.error(apiErrorMessage(error, 'Não foi possível cadastrar a variante.'));
-    } finally {
-      setLoading(false);
-    }
-  }
+        onSuccess(variant as ProductVariant);
+      } catch {
+        // Error already notified; keep the form open.
+      }
+    }),
+  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={submit} noValidate className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Cadastrar variante</h1>
 
@@ -87,14 +86,41 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
           <input
             id="variant-name"
             type="text"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+            aria-invalid={errors.name ? 'true' : undefined}
+            {...register('name', { validate: (value) => value.trim().length > 0 || 'Informe o nome da variante.' })}
             placeholder="Ex.: Kaiak 100ml"
             disabled={loading}
             className="w-full rounded-lg border p-3 disabled:opacity-50"
           />
 
+          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+
           <p className="mt-2 text-sm text-gray-500">Informe a descrição da apresentação do produto.</p>
+        </div>
+
+        {/* Preço de venda */}
+
+        <div>
+          <label htmlFor="variant-sale-price" className="mb-1 block">
+            Preço de venda (R$)
+          </label>
+
+          <input
+            id="variant-sale-price"
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0,00"
+            disabled={loading}
+            aria-invalid={errors.salePrice ? 'true' : undefined}
+            {...register('salePrice', {
+              setValueAs: (value) => (value === '' || value == null ? undefined : Number(value)),
+              validate: validateSalePrice,
+            })}
+            className="w-full rounded-lg border p-3 disabled:opacity-50"
+          />
+
+          {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}
         </div>
       </div>
 
