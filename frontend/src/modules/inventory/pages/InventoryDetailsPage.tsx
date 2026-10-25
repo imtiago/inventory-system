@@ -69,7 +69,7 @@ export function InventoryDetailsPage() {
       <section>
         <h2 className="text-muted-foreground mb-3 text-sm font-medium uppercase tracking-wide">Estoque</h2>
 
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StockCard label="Saldo" value={inventory.quantity} />
 
           <StockCard label="Reservado" value={inventory.reservedQuantity} />
@@ -107,8 +107,8 @@ export function InventoryDetailsPage() {
             <p className="text-muted-foreground text-sm">Nenhum lote cadastrado para esta variante.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="bg-muted/40 border-b">
                   <th className="px-4 py-3 text-left text-sm font-medium">Lote</th>

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
 import { ExportButton } from '@/shared/components/export/ExportButton';
 import { Page } from '@/shared/components/layout/Page';
@@ -146,6 +147,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <SummaryCard id={config.summaryId} label={config.summaryLabel} value={summaryValue(kind, data?.summary)} />
           </div>
 
+          <FilterPanel activeCount={[filters.status, filters[config.partyFilterKey], filters.dueFrom, filters.dueTo, filters.openOnly].filter(Boolean).length}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label htmlFor={`${kind}-status`} className="mb-2 block text-sm font-medium text-gray-700">
@@ -182,6 +184,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <input type="checkbox" checked={Boolean(filters.openOnly)} onChange={(e) => setFilter('openOnly', e.target.checked ? 'true' : null)} />
             Somente com saldo
           </label>
+          </FilterPanel>
 
           {invalidRange && (
             <p role="alert" className="text-sm text-red-600">

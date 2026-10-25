@@ -49,12 +49,15 @@ export function ConfirmDialog({
         items-center
         justify-center
         z-50
+        p-4
       "
     >
       <div
         className="
           w-full
           max-w-md
+          max-h-[90dvh]
+          overflow-y-auto
           bg-white
           rounded-xl
           shadow-xl
@@ -80,7 +83,7 @@ export function ConfirmDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-8">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-8">
           <button
             type="button"
             ref={cancelRef}

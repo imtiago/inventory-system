@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 
 import { CrudBadge, CrudPagination } from '@/shared/components/crud';
 import { Autocomplete } from '@/shared/components/form';
+import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
@@ -84,6 +85,7 @@ export function PurchaseListPage() {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col gap-4">
+          <FilterPanel activeCount={[status, supplierId, from, to, codeSearch].filter(Boolean).length}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <label htmlFor="purchase-status" className="mb-2 block text-sm font-medium text-gray-700">
@@ -137,6 +139,7 @@ export function PurchaseListPage() {
               <input id="purchase-search" type="search" value={codeSearch} placeholder="PC000012" onChange={(e) => filter(setCodeSearch)(e.target.value)} className={inputClass} />
             </div>
           </div>
+          </FilterPanel>
 
           {invalidRange && (
             <p role="alert" className="text-sm text-red-600">

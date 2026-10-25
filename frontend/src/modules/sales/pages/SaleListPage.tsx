@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { CrudPagination } from '@/shared/components/crud';
+import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable } from '@/shared/components/table';
@@ -49,6 +50,7 @@ export function SaleListPage() {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col gap-4">
+          <FilterPanel activeCount={[from, to, status].filter(Boolean).length}>
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label htmlFor="sales-from" className="mb-1 block text-sm font-medium text-gray-700">
@@ -79,6 +81,7 @@ export function SaleListPage() {
               </select>
             </div>
           </div>
+          </FilterPanel>
           {!invalidPeriod && isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}
 
           {invalidPeriod ? null : isError ? (

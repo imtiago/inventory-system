@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
 import { server } from './server';
 import { loginAs } from './auth';
+import { resetViewport } from './viewport';
 
 // Páginas grandes (pedido de compra, venda) com userEvent ficam lentas sob carga
 // (CI com poucos núcleos); o padrão de 1 s do findBy* gera falsos negativos.
@@ -13,6 +14,7 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => loginAs('ADMIN'));
 afterEach(() => {
   cleanup();
+  resetViewport();
   server.resetHandlers();
 });
 afterAll(() => server.close());

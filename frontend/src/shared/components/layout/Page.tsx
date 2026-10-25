@@ -10,11 +10,11 @@ export function Page({ children }: PageProps) {
   return (
     <div
       className="
-        h-full
+        lg:h-full
         min-h-0
         flex
         flex-col
-        overflow-hidden
+        lg:overflow-hidden
       "
     >
       {children}
