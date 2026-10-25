@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { csvMoney, formatDateBr, formatMoneyBr, formatQuantityBr, toCsv } from "../csv";
+import { csvCents, csvMoney, formatDateBr, formatCentsBr, formatMoneyBr, formatQuantityBr, toCsv } from "../csv";
 import { parseCsv } from "../../../test/csvParse";
 
 test("csv: BOM, ';', CRLF e cabeçalho na primeira linha", () => {
@@ -16,13 +16,13 @@ test("csv: aspas duplicadas e campo entre aspas com ';', aspas ou quebra de linh
 
 test("csv: injeção de fórmula neutralizada só em texto; números e valores formatados ficam intactos", () => {
   const out = toCsv(["T", "N", "M"], [
-    ["=1+1", -3, csvMoney(-1050)],
+    ["=1+1", -3, csvCents(-1050)],
     ["+x", 2, csvMoney("-0.5")],
-    ["-x", 0, csvMoney(0)],
-    ["@SUM(A1)", 1, csvMoney(5)],
-    ["\tx", 1, csvMoney(5)],
-    ["\rx", 1, csvMoney(5)],
-    ["ok=", 1, csvMoney(5)],
+    ["-x", 0, csvCents(0)],
+    ["@SUM(A1)", 1, csvCents(5)],
+    ["\tx", 1, csvCents(5)],
+    ["\rx", 1, csvCents(5)],
+    ["ok=", 1, csvCents(5)],
   ]);
   const rows = parseCsv(out);
   assert.deepEqual(rows[1], ["'=1+1", "-3", "-10,50"]);
@@ -36,8 +36,8 @@ test("csv: injeção de fórmula neutralizada só em texto; números e valores f
 });
 
 test("formatadores pt-BR", () => {
-  assert.equal(formatMoneyBr(123450), "1234,50");
-  assert.equal(formatMoneyBr(5), "0,05");
+  assert.equal(formatCentsBr(123450), "1234,50");
+  assert.equal(formatCentsBr(5), "0,05");
   assert.equal(formatMoneyBr("1234.5"), "1234,50");
   assert.equal(formatMoneyBr("1234"), "1234,00");
   assert.equal(formatMoneyBr("0.005"), "0,01");

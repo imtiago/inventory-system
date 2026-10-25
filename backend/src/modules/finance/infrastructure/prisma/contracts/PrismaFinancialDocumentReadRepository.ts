@@ -241,17 +241,24 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
     maxRows: number,
   ): Promise<FinancialParcelExportRow[]> {
     const entries = await this.loadEntries(type, filters, today);
-    if (entries.reduce((n, e) => n + e.row.parcels.length, 0) > maxRows) throw new ExportTooLargeError();
+    // Com intervalo de vencimento e/ou openOnly, só as parcelas que os atendem (a lista continua por documento).
+    const keep = (p: { dueDate: string; remainingAmount: number }) =>
+      (!filters.dueFrom || p.dueDate >= filters.dueFrom) &&
+      (!filters.dueTo || p.dueDate <= filters.dueTo) &&
+      (!filters.openOnly || p.remainingAmount > 0);
+    const selected = entries
+      .map(({ row }) => ({ row, parcels: FinancialDocumentReadMapper.toSummaryDTO(row, today).parcels.filter(keep) }))
+      .filter((e) => e.parcels.length > 0);
+    if (selected.reduce((n, e) => n + e.parcels.length, 0) > maxRows) throw new ExportTooLargeError();
 
     const profile: TypeProfile<T> = PROFILES[type];
-    const partyOf = (await profile.parties(entries.map((e) => e.row))) as (
+    const partyOf = (await profile.parties(selected.map((e) => e.row))) as (
       row: PartyKeyRow,
     ) => Partial<ReceivableParty & PayableParty>;
 
-    return entries.flatMap(({ row }) => {
+    return selected.flatMap(({ row, parcels }) => {
       const party = partyOf(row);
-      const summary = FinancialDocumentReadMapper.toSummaryDTO(row, today);
-      return summary.parcels.map((p) => ({
+      return parcels.map((p) => ({
         documentId: row.id,
         partyName: (party.customer ?? party.supplier)?.name ?? "",
         purchaseCode: party.purchaseCode ?? null,

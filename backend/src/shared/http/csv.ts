@@ -30,13 +30,15 @@ export function toCsv(headers: string[], rows: CsvCell[][]): string {
   return BOM + lines.join("\r\n") + "\r\n";
 }
 
-/** Centavos (number inteiro) ou decimal em string ("1234.5") → "1234,50". */
-export function formatMoneyBr(value: number | string): string {
-  if (typeof value === "number") {
-    const sign = value < 0 ? "-" : "";
-    const abs = Math.abs(Math.round(value));
-    return `${sign}${Math.floor(abs / 100)},${String(abs % 100).padStart(2, "0")}`;
-  }
+/** Centavos (number inteiro) → "1234,50". */
+export function formatCentsBr(cents: number): string {
+  const sign = cents < 0 ? "-" : "";
+  const abs = Math.abs(Math.round(cents));
+  return `${sign}${Math.floor(abs / 100)},${String(abs % 100).padStart(2, "0")}`;
+}
+
+/** Decimal em string ("1234.5") → "1234,50". */
+export function formatMoneyBr(value: string): string {
   const m = /^(-?)(\d+)(?:\.(\d*))?$/.exec(value.trim());
   if (!m) throw new RangeError(`Valor monetário inválido: ${value}`);
   const frac = (m[3] ?? "").padEnd(2, "0");
@@ -61,7 +63,8 @@ export function formatDateBr(day: string): string {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
-export const csvMoney = (v: number | string) => new CsvRaw(formatMoneyBr(v));
+export const csvMoney = (v: string) => new CsvRaw(formatMoneyBr(v));
+export const csvCents = (v: number) => new CsvRaw(formatCentsBr(v));
 export const csvQty = (v: number | string) => new CsvRaw(formatQuantityBr(v));
 export const csvDate = (v: string) => new CsvRaw(formatDateBr(v));
 

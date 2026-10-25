@@ -8,6 +8,7 @@ import { app } from "../../../../../app";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { randomCpf } from "../../../../../test/documentFixtures";
+import { maxExportRows } from "../controllers/reportControllers";
 import { parseCsv } from "../../../../../test/csvParse";
 
 app.log.level = "silent";
@@ -249,12 +250,41 @@ describe("Relatórios CSV", () => {
     assert.equal(openOnly.length, 3);
 
     const ranged = (await csv(`/reports/receivables.csv?customerId=${customerId}&openOnly=true&dueFrom=2095-06-01&dueTo=2095-06-30`)).rows;
-    // Mesmo código da lista: documento aparece com todas as suas parcelas.
-    assert.deepEqual(new Set(ranged.slice(1).map((r) => r[0])), new Set([recvOpen]));
+    // Só as parcelas dentro do intervalo (e com saldo).
+    assert.equal(ranged.length, 2);
+    assert.deepEqual([ranged[1][0], ranged[1][3], ranged[1][4]], [recvOpen, "2", "10/06/2095"]);
+    const rangedAll = (await csv(`/reports/receivables.csv?customerId=${customerId}&dueFrom=2095-05-01&dueTo=2095-05-31`)).rows;
+    assert.deepEqual(rangedAll.slice(1).map((r) => `${r[0]}#${r[3]}`).sort(), [`${recvOpen}#1`, `${recvPaid}#1`].sort());
     const none = (await csv(`/reports/receivables.csv?customerId=${customerId}&status=CANCELED`)).rows;
     assert.equal(none.length, 1);
     const bad = await get("/reports/receivables.csv?openOnly=talvez");
     assert.equal(bad.statusCode, 400);
+  });
+
+  test("contas a receber: openOnly exporta só parcelas com saldo, também combinado com o intervalo", async () => {
+    const doc = await prisma.financialDocument.create({
+      data: { type: "RECEIVABLE", originType: "MANUAL", originId: randomUUID(), partyId: customerId, partyType: "CUSTOMER", status: "OPEN" },
+    });
+    try {
+      await prisma.financialParcel.create({
+        data: {
+          financialDocumentId: doc.id, amount: 20, dueDate: asDate("2095-07-05"),
+          payments: { create: [{ amount: 20, method: "PIX", paymentDate: asDate(TODAY), createdById: admin.id }] },
+        },
+      });
+      await prisma.financialParcel.create({ data: { financialDocumentId: doc.id, amount: 30, dueDate: asDate("2095-07-25") } });
+      const only = (await csv(`/reports/receivables.csv?customerId=${customerId}&openOnly=true`)).rows.filter((r) => r[0] === doc.id);
+      assert.equal(only.length, 1);
+      assert.equal(only[0][7], "30,00");
+      const combined = (await csv(`/reports/receivables.csv?customerId=${customerId}&openOnly=true&dueFrom=2095-07-01&dueTo=2095-07-10`)).rows;
+      assert.equal(combined.filter((r) => r[0] === doc.id).length, 0);
+      const combined2 = (await csv(`/reports/receivables.csv?customerId=${customerId}&openOnly=true&dueFrom=2095-07-01&dueTo=2095-07-31`)).rows;
+      assert.equal(combined2.filter((r) => r[0] === doc.id).length, 1);
+      const origem = (await csv(`/reports/receivables.csv?customerId=${customerId}`)).rows.find((r) => r[0] === doc.id)!;
+      assert.equal(origem[2], "Manual");
+    } finally {
+      await prisma.financialDocument.deleteMany({ where: { id: doc.id } });
+    }
   });
 
   test("contas a pagar: pedido, fornecedor e filtros", async () => {
@@ -296,6 +326,21 @@ describe("Relatórios CSV", () => {
       assert.equal(ok.statusCode, 200);
       const payables = await get(`/reports/payables.csv?supplierId=${supplierId}`);
       assert.equal(payables.statusCode, 200);
+    } finally {
+      delete process.env.REPORT_MAX_ROWS;
+    }
+  });
+
+  test("REPORT_MAX_ROWS acima do padrão é limitado e valores inválidos usam o padrão", () => {
+    try {
+      process.env.REPORT_MAX_ROWS = "999999999";
+      assert.equal(maxExportRows(), 50_000);
+      for (const bad of ["0", "-5", "abc", "1.5", ""]) {
+        process.env.REPORT_MAX_ROWS = bad;
+        assert.equal(maxExportRows(), 50_000, bad);
+      }
+      process.env.REPORT_MAX_ROWS = "7";
+      assert.equal(maxExportRows(), 7);
     } finally {
       delete process.env.REPORT_MAX_ROWS;
     }

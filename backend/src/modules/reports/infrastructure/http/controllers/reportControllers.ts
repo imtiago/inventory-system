@@ -19,10 +19,10 @@ import { PrismaReportReadRepository } from "../../prisma/PrismaReportReadReposit
 const DEFAULT_MAX_ROWS = 50_000;
 const MAX_PERIOD_DAYS = 366;
 
-/** Limite de linhas por exportação; `REPORT_MAX_ROWS` permite reduzi-lo (testes). */
+/** Limite de linhas por exportação; `REPORT_MAX_ROWS` permite apenas reduzi-lo (testes). */
 export function maxExportRows(): number {
   const n = Number(process.env.REPORT_MAX_ROWS);
-  return Number.isInteger(n) && n > 0 ? n : DEFAULT_MAX_ROWS;
+  return Number.isInteger(n) && n > 0 ? Math.min(n, DEFAULT_MAX_ROWS) : DEFAULT_MAX_ROWS;
 }
 
 const SALE_STATUS_LABEL: Record<string, string> = {
@@ -37,6 +37,9 @@ const PARCEL_STATUS_LABEL: Record<string, string> = {
   OVERDUE: "Vencida",
   CANCELED: "Cancelada",
 };
+
+const ORIGIN_LABEL: Record<string, string> = { MANUAL: "Manual", INVOICE: "Nota fiscal", PURCHASE: "Compra" };
+const originLabel = (type: string, id: string) => (type === "SALE" ? `Venda ${id}` : (ORIGIN_LABEL[type] ?? type));
 
 const periodShape = { from: dateOnly("Data inicial"), to: dateOnly("Data final") };
 const dayMs = 86_400_000;
@@ -117,7 +120,7 @@ export function makeFinanceReportController(type: FinancialType) {
       parcels.map((p) => [
         p.documentId,
         p.partyName,
-        receivable ? (p.originType === "SALE" ? `Venda ${p.originId}` : p.originType) : (p.purchaseCode ?? ""),
+        receivable ? originLabel(p.originType, p.originId) : (p.purchaseCode ?? ""),
         p.number,
         csvDate(p.dueDate),
         csvMoney(p.amount.toFixed(2)),
