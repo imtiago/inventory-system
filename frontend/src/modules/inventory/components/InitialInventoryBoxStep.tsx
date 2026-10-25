@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { useInventoryBoxes } from '../hooks/useInventoryBox';
@@ -23,6 +24,7 @@ interface Props {
 
 export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, loading, error, onSelectBox, onCreateBox, onAddToBox, onBack }: Props) {
   const [search, setSearch] = useState('');
+  const [scanning, setScanning] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
   const { boxes, isLoading: boxesLoading, error: boxesError } = useInventoryBoxes(debouncedSearch);
 
@@ -78,15 +80,36 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
           Buscar caixa por código
         </label>
 
-        <input
-          id="box-search"
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          disabled={loading}
-          placeholder="Ex.: B000001"
-          className="w-full rounded-lg border p-3"
-        />
+        <div className="flex flex-wrap gap-3">
+          <input
+            id="box-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            disabled={loading}
+            placeholder="Ex.: B000001"
+            className="min-w-0 flex-1 rounded-lg border p-3"
+          />
+
+          <button type="button" onClick={() => setScanning((open) => !open)} disabled={loading} className="min-h-11 rounded-lg border px-4 disabled:opacity-50">
+            Escanear caixa
+          </button>
+        </div>
+
+        {scanning && (
+          <div className="mt-4 rounded-lg border p-4">
+            <BarcodeScanner
+              onDetected={(code) => {
+                setSearch(code.trim());
+                setScanning(false);
+              }}
+            />
+
+            <button type="button" onClick={() => setScanning(false)} className="mt-3 text-red-600">
+              Cancelar leitura
+            </button>
+          </div>
+        )}
 
         {boxesLoading && <div className="mt-4 rounded-lg bg-gray-50 p-4 text-center text-sm text-gray-500">Buscando caixas...</div>}
 

@@ -31,7 +31,31 @@ npm install
 npm run dev
 ```
 
-Variável opcional: `VITE_API_URL` (padrão `http://localhost:3000`).
+Variável opcional: `VITE_API_URL`. Se definida, sempre vence. Sem ela, o `npm run dev` usa `/api`, que o Vite encaminha para o backend em `http://localhost:3000` (mesma origem da página, sem CORS nem conteúdo misto); um build de produção sem a variável continua usando `http://localhost:3000`.
+
+### Abrir o sistema no celular ou tablet (desenvolvimento)
+
+A câmera do navegador só funciona em conexão segura, por isso o servidor de desenvolvimento sobe em **HTTPS** com certificado autoassinado (`@vitejs/plugin-basic-ssl`, só no dev).
+
+1. Suba o backend (`cd backend && npm run dev`) e o frontend (`cd frontend && npm run dev`).
+2. Deixe o celular na **mesma rede Wi-Fi** do computador.
+3. Descubra o IP do computador na rede (`ipconfig` no Windows, `ip addr` no Linux/macOS).
+4. No celular abra `https://<ip-do-pc>:5173`.
+5. O navegador avisa que o certificado não é confiável: aceite (Avançado → Continuar). É necessário uma vez por aparelho.
+6. Permita o uso da câmera quando o navegador perguntar. Se negar sem querer, libere nas configurações do site e use "Tentar de novo" no leitor.
+
+A API é acessada pelo mesmo endereço (`/api`), então não é preciso abrir a porta 3000 para o celular.
+
+**WSL:** se o Vite roda dentro do WSL2, o celular não alcança a porta direto. No Windows (PowerShell como administrador), encaminhe a porta e libere no firewall, usando o IP do WSL (`wsl hostname -I`):
+
+```powershell
+netsh interface portproxy add v4tov4 listenport=5173 listenaddress=0.0.0.0 connectport=5173 connectaddress=<ip-do-wsl>
+New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow
+```
+
+(O IP do WSL muda ao reiniciar; refaça o `portproxy`. Alternativa: `networkingMode=mirrored` no `.wslconfig`.)
+
+**Produção:** o frontend precisa ser servido por **HTTPS** com certificado válido (e a API também, para evitar conteúdo misto); sem isso o leitor mostra a mensagem de conexão segura e só resta digitar o código. Se o frontend e a API ficarem na mesma origem (proxy reverso), configure `VITE_API_URL=/api` ou o caminho correspondente no build.
 
 ## Testes e checagens
 

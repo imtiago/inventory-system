@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Camera, Search, X } from 'lucide-react';
 
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -24,17 +24,27 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
     await onSubmitBarcode(normalizedBarcode);
   }
 
-  async function handleBarcodeRead(code: string) {
+  // Continuous scanning: the camera stays open and each reading adds an item. Readings are processed one
+  // at a time so a second label seen while the first lookup is still running is not lost or interleaved.
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
+  const onSubmitRef = useRef(onSubmitBarcode);
+
+  useEffect(() => {
+    onSubmitRef.current = onSubmitBarcode;
+  }, [onSubmitBarcode]);
+
+  function handleBarcodeRead(code: string) {
     const normalizedBarcode = code.trim();
 
     if (!normalizedBarcode) {
       return;
     }
 
-    setBarcode(normalizedBarcode);
-    setScannerOpen(false);
-
-    await onSubmitBarcode(normalizedBarcode);
+    queueRef.current = queueRef.current
+      .then(() => onSubmitRef.current(normalizedBarcode))
+      .catch(() => {
+        // The page handler reports its own errors; a failed reading must not block the next ones.
+      });
   }
 
   return (
@@ -90,10 +100,10 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
             </button>
           </div>
 
-          <BarcodeScanner onDetected={handleBarcodeRead} />
+          <BarcodeScanner continuous onDetected={handleBarcodeRead} />
 
           <button type="button" onClick={() => setScannerOpen(false)} className="mt-3 text-sm text-red-600 hover:text-red-800">
-            Cancelar leitura
+            Terminar leitura
           </button>
         </div>
       )}
