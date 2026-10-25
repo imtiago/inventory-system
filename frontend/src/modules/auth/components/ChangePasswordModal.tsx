@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 
@@ -20,6 +21,8 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<Values>({ defaultValues: { currentPassword: '', newPassword: '', confirm: '' } });
+
+  useModalBusy(isSubmitting);
 
   const submit = handleSubmit(async ({ currentPassword, newPassword }) => {
     try {

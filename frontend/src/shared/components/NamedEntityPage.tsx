@@ -9,6 +9,7 @@ import { Section } from '@/shared/components/details/Section';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { CrudPagination } from '@/shared/components/crud';
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Can } from '@/shared/auth/Can';
@@ -244,6 +245,7 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
   } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
 
   const once = useSingleSubmit();
+  useModalBusy(isSubmitting);
 
   const submit = handleSubmit(once(async ({ name }) => {
     try {

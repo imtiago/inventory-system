@@ -2,6 +2,7 @@ import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { useForm } from 'react-hook-form';
 
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 
@@ -29,6 +30,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
   } = useForm<Values>({ defaultValues: { password: '', confirm: '' } });
 
   const once = useSingleSubmit();
+  useModalBusy(isSubmitting);
 
   const submit = handleSubmit(once(async ({ password }) => {
     try {

@@ -1,5 +1,6 @@
-import { type ReactNode, useId, useRef } from 'react';
+import { type ReactNode, useId, useRef, useState } from 'react';
 
+import { ModalBusyContext } from './useModalBusy';
 import { FOCUSABLE, useDialogBehavior } from './useDialogBehavior';
 
 interface ModalProps {
@@ -17,6 +18,9 @@ interface ModalProps {
   closeOnEscape?: boolean;
 
   showCloseButton?: boolean;
+
+  /** While true (e.g. a save is in flight) Escape, overlay click and the close button are blocked. */
+  busy?: boolean;
 }
 
 const sizeClasses = {
@@ -27,7 +31,9 @@ const sizeClasses = {
   '2xl': 'max-w-2xl',
 };
 
-export function Modal({ open, onClose, children, title, description, size = 'md', closeOnOverlayClick = true, closeOnEscape = true, showCloseButton = true }: ModalProps) {
+export function Modal({ open, onClose, children, title, description, size = 'md', closeOnOverlayClick = true, closeOnEscape = true, showCloseButton = true, busy = false }: ModalProps) {
+  const [childBusy, setChildBusy] = useState(false);
+  const locked = busy || childBusy;
   const dialogRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +45,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
     open,
     dialogRef,
     onEscape: onClose,
-    escapeEnabled: closeOnEscape,
+    escapeEnabled: closeOnEscape && !locked,
     getInitialFocus: () => bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE),
   });
 
@@ -48,7 +54,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
   }
 
   function handleOverlayClick(event: React.MouseEvent<HTMLDivElement>) {
-    if (!closeOnOverlayClick) {
+    if (!closeOnOverlayClick || locked) {
       return;
     }
 
@@ -85,7 +91,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
               )}
             </div>
 
-            {showCloseButton && (
+            {showCloseButton && !locked && (
               <button type="button" onClick={onClose} className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700" aria-label="Fechar modal">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -95,7 +101,9 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
           </div>
         )}
 
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-6">
+          <ModalBusyContext.Provider value={setChildBusy}>{children}</ModalBusyContext.Provider>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { notify } from '@/shared/utils/notify';
 
 import { CustomerForm } from './CustomerForm';
@@ -13,7 +14,8 @@ interface Props {
 }
 
 function EditForm({ customer, onClose }: { customer: ICustomer; onClose: () => void }) {
-  const { mutateAsync } = useUpdateCustomer(customer.id);
+  const { mutateAsync, isPending } = useUpdateCustomer(customer.id);
+  useModalBusy(isPending);
 
   async function handleSubmit(form: ICreateCustomerDTO) {
     const changes = diffCustomer(customer, form);

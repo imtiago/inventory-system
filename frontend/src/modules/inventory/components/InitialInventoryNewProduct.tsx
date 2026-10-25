@@ -1,3 +1,4 @@
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { ProductForm, type ProductFormData } from '@/modules/products/components/ProductForm';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useCreateProduct } from '@/modules/products/hooks/useCreateProduct';
@@ -9,6 +10,7 @@ interface InitialInventoryNewProductProps {
 
 export function InitialInventoryNewProduct({ onCancel, onSuccess }: InitialInventoryNewProductProps) {
   const createProduct = useCreateProduct();
+  useModalBusy(createProduct.isPending);
 
   async function handleSubmit(data: ProductFormData) {
     try {

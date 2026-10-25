@@ -199,7 +199,7 @@ export function SaleDetailPage() {
         )}
       </div>
 
-      <Modal open={confirmOpen} onClose={closeDialog} title="Cancelar venda" description="O estoque será devolvido e a conta a receber cancelada. Deseja continuar?" size="sm">
+      <Modal open={confirmOpen} onClose={closeDialog} busy={cancel.isPending} title="Cancelar venda" description="O estoque será devolvido e a conta a receber cancelada. Deseja continuar?" size="sm">
         <div className="flex justify-end gap-2">
           <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={closeDialog} disabled={cancel.isPending}>
             Voltar

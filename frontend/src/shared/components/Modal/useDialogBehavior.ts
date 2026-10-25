@@ -61,7 +61,7 @@ export function useDialogBehavior({ open, dialogRef, onEscape, escapeEnabled = t
 
     // Always registered (even while Escape is blocked) so a blocked top dialog still shields the ones below.
     function handleEscape(event: KeyboardEvent) {
-      if (event.key !== 'Escape' || !isTop()) return;
+      if (event.key !== 'Escape' || event.defaultPrevented || !isTop()) return;
       if (latest.current.escapeEnabled) latest.current.onEscape?.();
     }
 

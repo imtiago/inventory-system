@@ -1,4 +1,5 @@
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { notify } from '@/shared/utils/notify';
 
 import { SupplierForm } from './SupplierForm';
@@ -7,7 +8,7 @@ import { useCreateSupplier, useUpdateSupplier } from '../hooks/useSupplierMutati
 import type { ISupplier } from '../types';
 
 export function SupplierCreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { mutateAsync } = useCreateSupplier();
+  const { mutateAsync, isPending } = useCreateSupplier();
 
   async function handleSubmit(form: SupplierFormValues) {
     await mutateAsync(toCreateDTO(form));
@@ -15,14 +16,15 @@ export function SupplierCreateModal({ open, onClose }: { open: boolean; onClose:
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Cadastrar novo fornecedor" description="Informe os dados do fornecedor.">
+    <Modal open={open} onClose={onClose} busy={isPending} title="Cadastrar novo fornecedor" description="Informe os dados do fornecedor.">
       {open && <SupplierForm onSubmit={handleSubmit} onCancel={onClose} />}
     </Modal>
   );
 }
 
 function EditForm({ supplier, onClose }: { supplier: ISupplier; onClose: () => void }) {
-  const { mutateAsync } = useUpdateSupplier(supplier.id);
+  const { mutateAsync, isPending } = useUpdateSupplier(supplier.id);
+  useModalBusy(isPending);
 
   async function handleSubmit(form: SupplierFormValues) {
     const changes = diffSupplier(supplier, form);

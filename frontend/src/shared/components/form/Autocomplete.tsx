@@ -128,6 +128,8 @@ export function Autocomplete<TOption, TValue extends string | number>({
     }
 
     if (event.key === 'Escape') {
+      // Handled locally: an enclosing dialog must not also close.
+      if (open) event.preventDefault();
       setOpen(false);
       setActiveIndex(-1);
     }
