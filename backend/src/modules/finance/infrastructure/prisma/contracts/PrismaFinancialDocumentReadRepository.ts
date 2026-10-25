@@ -10,18 +10,14 @@ import {
   PersonRefDTO,
   ReceivableParty,
 } from "@finance/application/dto/FinancialDocumentReadDTO";
-import {
-  FinancialDocumentReadMapper,
-  FinancialFigures,
-  FinancialDocumentRow,
-} from "@finance/application/mappers/FinancialDocumentReadMapper";
+import { FinancialDocumentReadMapper } from "@finance/application/mappers/FinancialDocumentReadMapper";
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
-import { fromDateOnly, remainingCents, toDateOnly } from "@finance/domain/services/receivableStatus";
+import { parcelStatus } from "@finance/domain/services/receivableStatus";
 import { ExportTooLargeError } from "@shared/domain/errors";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
-import { fromCents, toCents } from "@shared/domain/money";
+import { fromCents } from "@shared/domain/money";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 const personSelect = { select: { id: true, name: true } } as const;
@@ -35,23 +31,128 @@ const STORED_STATUSES: Record<NonNullable<FinancialListFilters["status"]>, Finan
   OVERDUE: [FinancialStatus.OPEN, FinancialStatus.PARTIALLY_PAID],
 };
 
-const isClosed = (row: FinancialDocumentRow, f: FinancialFigures) =>
-  row.status === FinancialStatus.PAID || row.status === FinancialStatus.CANCELED || f.nextDueDate === null;
+/** Valores em centavos vêm como bigint do Postgres. */
+const num = (v: bigint | number) => Number(v);
+
+/** Documento com os valores derivados calculados no banco (centavos). */
+interface FigureRow {
+  id: string;
+  status: string;
+  displayStatus: string;
+  originType: string;
+  originId: string;
+  partyId: string;
+  createdAt: Date;
+  totalCents: bigint;
+  paidCents: bigint;
+  remainingCents: bigint;
+  nextDueDate: string | null;
+  parcelsCount: number;
+}
+
+interface ListRow extends Partial<FigureRow> {
+  total: number;
+  openSum: bigint;
+  overdueSum: bigint;
+  paidSum: bigint;
+}
+
+interface ExportRow {
+  documentId: string;
+  documentStatus: string;
+  originType: string;
+  originId: string;
+  partyId: string;
+  number: bigint;
+  dueDate: string;
+  amountCents: bigint;
+  paidCents: bigint;
+  remainingCents: bigint;
+}
 
 /**
- * "Com saldo": mesma regra do dashboard (restante da parcela = valor − pagamentos não
- * estornados > 0; documento não cancelado). Com intervalo, a parcela com saldo precisa
- * vencer dentro dele.
+ * Ordem da lista e da exportação: documentos com saldo primeiro, pelo próximo vencimento
+ * em aberto; pagos/cancelados/quitados por último; desempate por criação e id.
  */
-function hasOpenBalance(row: FinancialDocumentRow, filters: FinancialListFilters): boolean {
-  if (row.status === FinancialStatus.CANCELED) return false;
-  return row.parcels.some((p) => {
-    const due = toDateOnly(p.dueDate);
-    if (filters.dueFrom && due < filters.dueFrom) return false;
-    if (filters.dueTo && due > filters.dueTo) return false;
-    const paid = p.payments.reduce((sum, pay) => (pay.reversedAt ? sum : sum + toCents(Number(pay.amount))), 0);
-    return remainingCents({ amountCents: toCents(Number(p.amount)), paidCents: paid }) > 0;
-  });
+const DOCUMENT_ORDER = Prisma.sql`
+  (f.status IN ('PAID', 'CANCELED') OR f.next_due IS NULL),
+  CASE WHEN f.status IN ('PAID', 'CANCELED') THEN NULL ELSE f.next_due END,
+  f."createdAt",
+  f.id COLLATE "C"`;
+
+/**
+ * CTEs `parcel` (uma linha por parcela dos documentos pré-filtrados, com pago e restante
+ * em centavos) e `filtered` (documentos que passam em todos os filtros, com os valores
+ * derivados). Regras idênticas às do domínio (receivableStatus) e do dashboard:
+ * restante = max(valor − Σ pagamentos não estornados, 0); "vencido" = vencimento < hoje
+ * (data de negócio). Todos os valores do usuário entram como parâmetros.
+ */
+function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters, today: string): Prisma.Sql {
+  const docWhere: Prisma.Sql[] = [Prisma.sql`fd.type = ${type}::"FinancialType"`];
+  if (filters.partyId) docWhere.push(Prisma.sql`fd."partyId" = ${filters.partyId}`);
+  if (filters.status) {
+    const statuses = STORED_STATUSES[filters.status].map((s) => Prisma.sql`${s}::"FinancialStatus"`);
+    docWhere.push(Prisma.sql`fd.status IN (${Prisma.join(statuses)})`);
+  }
+  if (filters.dueFrom || filters.dueTo) {
+    // Qualquer parcela no intervalo (meia-noite UTC, convenção de datas sem hora).
+    docWhere.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "FinancialParcel" r
+      WHERE r."financialDocumentId" = fd.id
+        ${filters.dueFrom ? Prisma.sql`AND r."dueDate" >= ${filters.dueFrom}::date` : Prisma.empty}
+        ${filters.dueTo ? Prisma.sql`AND r."dueDate" <= ${filters.dueTo}::date` : Prisma.empty})`);
+  }
+
+  // openOnly: não cancelado e alguma parcela com saldo (dentro do intervalo, se houver).
+  const inRange = Prisma.sql`pa.remaining_c > 0
+    ${filters.dueFrom ? Prisma.sql`AND pa.due >= ${filters.dueFrom}::date` : Prisma.empty}
+    ${filters.dueTo ? Prisma.sql`AND pa.due <= ${filters.dueTo}::date` : Prisma.empty}`;
+  const figWhere: Prisma.Sql[] = [Prisma.sql`TRUE`];
+  if (filters.openOnly) figWhere.push(Prisma.sql`f.status <> 'CANCELED' AND f.open_in_range`);
+  if (filters.status) figWhere.push(Prisma.sql`f.display_status = ${filters.status}`);
+
+  return Prisma.sql`
+    doc AS (
+      SELECT fd.id, fd.status, fd."originType", fd."originId", fd."partyId", fd."createdAt"
+      FROM "FinancialDocument" fd
+      WHERE ${Prisma.join(docWhere, " AND ")}
+    ),
+    parcel AS (
+      SELECT fp."financialDocumentId" AS doc_id, fp.id, fp."dueDate" AS due_at, fp."dueDate"::date AS due,
+             (fp.amount * 100)::bigint AS amount_c,
+             COALESCE(pay.paid_c, 0)::bigint AS paid_c,
+             GREATEST((fp.amount * 100)::bigint - COALESCE(pay.paid_c, 0), 0)::bigint AS remaining_c
+      FROM doc
+      JOIN "FinancialParcel" fp ON fp."financialDocumentId" = doc.id
+      LEFT JOIN LATERAL (
+        SELECT (SUM(p.amount) * 100)::bigint AS paid_c
+        FROM "Payment" p
+        WHERE p."parcelId" = fp.id AND p."reversedAt" IS NULL
+      ) pay ON TRUE
+    ),
+    fig AS (
+      SELECT doc.id, doc.status, doc."originType", doc."originId", doc."partyId", doc."createdAt",
+             COUNT(pa.id)::int AS parcels_count,
+             COALESCE(SUM(pa.amount_c), 0)::bigint AS total_c,
+             COALESCE(SUM(pa.paid_c), 0)::bigint AS paid_c,
+             COALESCE(SUM(pa.remaining_c), 0)::bigint AS remaining_c,
+             CASE WHEN doc.status = 'CANCELED' THEN 0
+                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due < ${today}::date), 0) END::bigint AS overdue_c,
+             CASE WHEN doc.status = 'CANCELED' THEN 0
+                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due >= ${today}::date), 0) END::bigint AS not_due_c,
+             CASE WHEN doc.status = 'CANCELED' THEN NULL
+                  ELSE MIN(pa.due) FILTER (WHERE pa.remaining_c > 0) END AS next_due,
+             CASE WHEN doc.status IN ('CANCELED', 'PAID') THEN doc.status::text
+                  WHEN bool_or(pa.remaining_c > 0 AND pa.due < ${today}::date) THEN 'OVERDUE'
+                  ELSE doc.status::text END AS display_status,
+             COALESCE(bool_or(${inRange}), FALSE) AS open_in_range
+      FROM doc
+      LEFT JOIN parcel pa ON pa.doc_id = doc.id
+      GROUP BY doc.id, doc.status, doc."originType", doc."originId", doc."partyId", doc."createdAt"
+    ),
+    filtered AS (
+      SELECT f.* FROM fig f WHERE ${Prisma.join(figWhere, " AND ")}
+    )`;
 }
 
 /** Linha mínima para juntar a contraparte e a origem (não há FK de partyId/originId). */
@@ -137,12 +238,10 @@ const PROFILES: { [T in FinancialType]: TypeProfile<T> } = {
 /**
  * Leitura de contas a receber e a pagar, sempre restrita ao `type` pedido.
  *
- * Lista: os filtros de banco (tipo, contraparte, intervalo de vencimento e status
- * persistido compatível) reduzem o conjunto; status de exibição (OVERDUE depende
- * de "hoje"), ordenação por próximo vencimento em aberto e resumo são calculados
- * em memória com as MESMAS regras de domínio do detalhe (receivableStatus).
- * Adequado a volumes pequenos/moderados por filtro; se crescer, migrar para SQL
- * agregado (CTE por parcela) mantendo a mesma regra.
+ * Lista, resumo e exportação são calculados no banco (filteredDocumentsCte): status de
+ * exibição, restante, próximo vencimento, filtros, ordenação, paginação e resumo, com as
+ * MESMAS regras de domínio do detalhe (receivableStatus). Só a página (ou as linhas da
+ * exportação, no máximo `maxRows + 1`) sai do banco; as contrapartes são buscadas em lote.
  */
 export class PrismaFinancialDocumentReadRepository implements FinancialDocumentReadRepository {
   async list<T extends FinancialType>(
@@ -151,87 +250,62 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
     pagination: PaginationRequest,
     today: string,
   ): Promise<FinancialListResult<T>> {
-    const entries = await this.loadEntries(type, filters, today);
+    const offset = (pagination.page - 1) * pagination.limit;
+    const rows = await getDb().$queryRaw<ListRow[]>(Prisma.sql`
+      WITH ${filteredDocumentsCte(type, filters, today)},
+      totals AS (
+        SELECT COUNT(*)::int AS total,
+               COALESCE(SUM(f.not_due_c), 0)::bigint AS open_sum,
+               COALESCE(SUM(f.overdue_c), 0)::bigint AS overdue_sum,
+               COALESCE(SUM(f.paid_c), 0)::bigint AS paid_sum
+        FROM filtered f
+      ),
+      page AS (
+        SELECT f.*, ROW_NUMBER() OVER (ORDER BY ${DOCUMENT_ORDER}) AS rn
+        FROM filtered f
+        ORDER BY ${DOCUMENT_ORDER}
+        LIMIT ${pagination.limit} OFFSET ${offset}
+      )
+      SELECT t.total, t.open_sum AS "openSum", t.overdue_sum AS "overdueSum", t.paid_sum AS "paidSum",
+             p.id, p.status::text AS status, p.display_status AS "displayStatus",
+             p."originType"::text AS "originType", p."originId", p."partyId", p."createdAt",
+             p.total_c AS "totalCents", p.paid_c AS "paidCents", p.remaining_c AS "remainingCents",
+             to_char(p.next_due, 'YYYY-MM-DD') AS "nextDueDate", p.parcels_count AS "parcelsCount"
+      FROM totals t
+      LEFT JOIN page p ON TRUE
+      ORDER BY p.rn`);
 
-    const totals = { open: 0, overdue: 0, paid: 0 };
-    for (const { figures } of entries) {
-      totals.open += figures.notDueCents;
-      totals.overdue += figures.overdueCents;
-      totals.paid += figures.paidCents;
-    }
+    const totals = rows[0];
+    const items = rows.filter((r): r is ListRow & FigureRow => r.id != null);
 
     const profile: TypeProfile<T> = PROFILES[type];
-    const start = (pagination.page - 1) * pagination.limit;
-    const page = entries.slice(start, start + pagination.limit);
-    const partyOf = await profile.parties(page.map((e) => e.row));
+    const partyOf = await profile.parties(items);
 
     const result = buildPaginatedResult(
-      page.map((e) => ({
-        ...FinancialDocumentReadMapper.toListItemDTO(e.row, today, e.figures),
-        ...partyOf(e.row),
+      items.map((r) => ({
+        id: r.id,
+        status: r.status,
+        displayStatus: r.displayStatus,
+        originType: r.originType,
+        originId: r.originId,
+        totalAmount: fromCents(num(r.totalCents)),
+        paidAmount: fromCents(num(r.paidCents)),
+        remainingAmount: fromCents(num(r.remainingCents)),
+        nextDueDate: r.nextDueDate,
+        parcelsCount: r.parcelsCount,
+        createdAt: r.createdAt,
+        ...partyOf(r),
       })),
-      entries.length,
+      totals.total,
       pagination,
     );
 
-    return { ...result, summary: profile.summary(totals) } as FinancialListResult<T>;
-  }
-
-  /**
-   * Documentos do tipo que passam nos filtros da lista, já ordenados (próximo vencimento
-   * em aberto; pagos/cancelados por último). Base única da lista e da exportação CSV.
-   */
-  private async loadEntries<T extends FinancialType>(type: T, filters: FinancialListFilters, today: string) {
-    const where: Prisma.FinancialDocumentWhereInput = { type };
-    if (filters.partyId) where.partyId = filters.partyId;
-    if (filters.status) where.status = { in: STORED_STATUSES[filters.status] };
-    if (filters.dueFrom || filters.dueTo) {
-      where.parcels = {
-        some: {
-          dueDate: {
-            ...(filters.dueFrom ? { gte: fromDateOnly(filters.dueFrom) } : {}),
-            ...(filters.dueTo ? { lte: fromDateOnly(filters.dueTo) } : {}),
-          },
-        },
-      };
-    }
-
-    const rows = await getDb().financialDocument.findMany({
-      where,
-      select: {
-        id: true,
-        status: true,
-        originType: true,
-        originId: true,
-        partyId: true,
-        createdAt: true,
-        parcels: {
-          select: {
-            id: true,
-            amount: true,
-            dueDate: true,
-            payments: { select: { amount: true, reversedAt: true } },
-          },
-        },
-      },
+    const summary = profile.summary({
+      open: num(totals.openSum),
+      overdue: num(totals.overdueSum),
+      paid: num(totals.paidSum),
     });
-
-    const entries = rows
-      .map((row) => ({ row, figures: FinancialDocumentReadMapper.figures(row, today) }))
-      .filter((e) => !filters.openOnly || hasOpenBalance(e.row, filters))
-      .filter((e) => !filters.status || e.figures.displayStatus === filters.status);
-
-    entries.sort((a, b) => {
-      const closedA = isClosed(a.row, a.figures);
-      const closedB = isClosed(b.row, b.figures);
-      if (closedA !== closedB) return closedA ? 1 : -1;
-      if (!closedA && a.figures.nextDueDate !== b.figures.nextDueDate) {
-        return a.figures.nextDueDate! < b.figures.nextDueDate! ? -1 : 1;
-      }
-      return a.row.createdAt.getTime() - b.row.createdAt.getTime() || a.row.id.localeCompare(b.row.id);
-    });
-
-    return entries;
+    return { ...result, summary } as FinancialListResult<T>;
   }
 
   async listParcelsForExport<T extends FinancialType>(
@@ -240,37 +314,55 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
     today: string,
     maxRows: number,
   ): Promise<FinancialParcelExportRow[]> {
-    const entries = await this.loadEntries(type, filters, today);
     // Com intervalo de vencimento e/ou openOnly, só as parcelas que os atendem (a lista continua por documento).
-    const keep = (p: { dueDate: string; remainingAmount: number }) =>
-      (!filters.dueFrom || p.dueDate >= filters.dueFrom) &&
-      (!filters.dueTo || p.dueDate <= filters.dueTo) &&
-      (!filters.openOnly || p.remainingAmount > 0);
-    const selected = entries
-      .map(({ row }) => ({ row, parcels: FinancialDocumentReadMapper.toSummaryDTO(row, today).parcels.filter(keep) }))
-      .filter((e) => e.parcels.length > 0);
-    if (selected.reduce((n, e) => n + e.parcels.length, 0) > maxRows) throw new ExportTooLargeError();
+    // A numeração considera todas as parcelas do documento (por vencimento, desempate por id).
+    const keep: Prisma.Sql[] = [Prisma.sql`TRUE`];
+    if (filters.dueFrom) keep.push(Prisma.sql`n.due >= ${filters.dueFrom}::date`);
+    if (filters.dueTo) keep.push(Prisma.sql`n.due <= ${filters.dueTo}::date`);
+    if (filters.openOnly) keep.push(Prisma.sql`n.remaining_c > 0`);
+
+    const rows = await getDb().$queryRaw<ExportRow[]>(Prisma.sql`
+      WITH ${filteredDocumentsCte(type, filters, today)},
+      ranked AS (
+        SELECT f.*, ROW_NUMBER() OVER (ORDER BY ${DOCUMENT_ORDER}) AS doc_rank
+        FROM filtered f
+      ),
+      numbered AS (
+        SELECT pa.*, ROW_NUMBER() OVER (PARTITION BY pa.doc_id ORDER BY pa.due_at, pa.id COLLATE "C") AS number
+        FROM parcel pa
+      )
+      SELECT r.id AS "documentId", r.status::text AS "documentStatus", r."originType"::text AS "originType",
+             r."originId", r."partyId", n.number, to_char(n.due, 'YYYY-MM-DD') AS "dueDate",
+             n.amount_c AS "amountCents", n.paid_c AS "paidCents", n.remaining_c AS "remainingCents"
+      FROM ranked r
+      JOIN numbered n ON n.doc_id = r.id
+      WHERE ${Prisma.join(keep, " AND ")}
+      ORDER BY r.doc_rank, n.number
+      LIMIT ${maxRows + 1}`);
+    if (rows.length > maxRows) throw new ExportTooLargeError();
 
     const profile: TypeProfile<T> = PROFILES[type];
-    const partyOf = (await profile.parties(selected.map((e) => e.row))) as (
-      row: PartyKeyRow,
-    ) => Partial<ReceivableParty & PayableParty>;
+    const partyOf = (await profile.parties(
+      rows.map((r) => ({ partyId: r.partyId, originId: r.originId })),
+    )) as (row: PartyKeyRow) => Partial<ReceivableParty & PayableParty>;
 
-    return selected.flatMap(({ row, parcels }) => {
-      const party = partyOf(row);
-      return parcels.map((p) => ({
-        documentId: row.id,
+    return rows.map((r) => {
+      const party = partyOf(r);
+      const amountCents = num(r.amountCents);
+      const paidCents = num(r.paidCents);
+      return {
+        documentId: r.documentId,
         partyName: (party.customer ?? party.supplier)?.name ?? "",
         purchaseCode: party.purchaseCode ?? null,
-        originType: row.originType,
-        originId: row.originId,
-        number: p.number,
-        dueDate: p.dueDate,
-        amount: p.amount,
-        paidAmount: p.paidAmount,
-        remainingAmount: p.remainingAmount,
-        status: p.status,
-      }));
+        originType: r.originType,
+        originId: r.originId,
+        number: num(r.number),
+        dueDate: r.dueDate,
+        amount: fromCents(amountCents),
+        paidAmount: fromCents(paidCents),
+        remainingAmount: fromCents(num(r.remainingCents)),
+        status: parcelStatus({ amountCents, paidCents, dueDate: r.dueDate, documentStatus: r.documentStatus }, today),
+      };
     });
   }
 

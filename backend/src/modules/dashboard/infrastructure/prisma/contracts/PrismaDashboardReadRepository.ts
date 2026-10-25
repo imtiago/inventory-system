@@ -135,7 +135,11 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
     return this.financial("PAYABLE", today);
   }
 
-  /** Restante da parcela = valor − pagamentos não estornados; só documentos não cancelados. */
+  /**
+   * Restante da parcela = valor − pagamentos não estornados. Só documentos em aberto
+   * (OPEN/PARTIALLY_PAID): cancelados não contam e quitados têm restante 0. Os pagamentos
+   * são somados por parcela (Payment_parcelId_idx), sem agregar a tabela Payment inteira.
+   */
   private async financial(type: "RECEIVABLE" | "PAYABLE", today: string): Promise<FinancialSectionDTO> {
     const [row] = await getDb().$queryRaw<FinancialRow[]>`
       SELECT
@@ -148,11 +152,12 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
                fp.amount - COALESCE(pay.paid, 0) AS remaining
         FROM "FinancialParcel" fp
         JOIN "FinancialDocument" fd ON fd.id = fp."financialDocumentId"
-        LEFT JOIN (
-          SELECT "parcelId", SUM("amount") AS paid
-          FROM "Payment" WHERE "reversedAt" IS NULL GROUP BY "parcelId"
-        ) pay ON pay."parcelId" = fp.id
-        WHERE fd.type = ${type}::"FinancialType" AND fd.status <> 'CANCELED'
+        LEFT JOIN LATERAL (
+          SELECT SUM(py."amount") AS paid
+          FROM "Payment" py
+          WHERE py."parcelId" = fp.id AND py."reversedAt" IS NULL
+        ) pay ON TRUE
+        WHERE fd.type = ${type}::"FinancialType" AND fd.status IN ('OPEN', 'PARTIALLY_PAID')
       ) p`;
     return {
       open: money(row.open),
