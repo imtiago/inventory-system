@@ -125,6 +125,25 @@ export function namedEntityScenarios({ Page, path, singular, plural, existsCode,
       expect(bodies).toEqual([]);
     });
 
+    test('clique duplo em Salvar envia uma única criação', async () => {
+      let posts = 0;
+      server.use(
+        http.post(url, async () => {
+          posts += 1;
+          await new Promise((r) => setTimeout(r, 100));
+          return HttpResponse.json({ data: { id: 'new', name: 'Avon', productsCount: 0 } }, { status: 201 });
+        }),
+      );
+      await openPage();
+      await userEvent.click(screen.getByRole('button', { name: new RegExp(`Nov[ao] ${singular}`, 'i') }));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.type(within(dialog).getByLabelText(/Nome/), 'Avon');
+      await userEvent.dblClick(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(posts).toBe(1);
+    });
+
     test(`excluir pede confirmação; 409 ${inUseCode} mostra a mensagem uma vez`, async () => {
       let deletes = 0;
       server.use(

@@ -1,7 +1,9 @@
 import { UserCog } from 'lucide-react';
 
 import type { AppRoute } from '@/routes/types';
-import { UserListPage } from './pages/UserListPage';
+import { lazyPage } from '@/routes/lazyPage';
+
+const UserListPage = lazyPage(() => import('./pages/UserListPage'), 'UserListPage');
 
 export const usersRoutes: AppRoute[] = [
   {

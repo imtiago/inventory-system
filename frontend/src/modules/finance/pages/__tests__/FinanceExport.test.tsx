@@ -151,6 +151,23 @@ describe('Exportar CSV', () => {
     expect(clicked).toEqual([`vendas-${today}.csv`, `itens-vendidos-${today}.csv`]);
   });
 
+  test('vendas: exportação envia status escolhido e período editado; itens não enviam status', async () => {
+    const sales = trackCsv('/reports/sales.csv');
+    const items = trackCsv('/reports/sale-items.csv');
+    renderWithProviders(<SaleListPage />);
+
+    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2026-02-01' } });
+    fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2026-02-28' } });
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'CANCELED');
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    await waitFor(() => expect(sales).toHaveLength(1));
+    expect(Object.fromEntries(sales[0].searchParams)).toEqual({ from: '2026-02-01', to: '2026-02-28', status: 'CANCELED' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar itens' }));
+    await waitFor(() => expect(items).toHaveLength(1));
+    expect(Object.fromEntries(items[0].searchParams)).toEqual({ from: '2026-02-01', to: '2026-02-28' });
+  });
+
   test('vendas: período acima de 366 dias mostra o aviso, desabilita os botões e não envia requisição', async () => {
     const sales = trackCsv('/reports/sales.csv');
     renderWithProviders(<SaleListPage />);

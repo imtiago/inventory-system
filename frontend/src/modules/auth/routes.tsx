@@ -1,6 +1,8 @@
 // src/modules/auth/routes.ts
 import type { AppRoute } from "@/routes/types";
-import { Login } from "./pages/Login"; // named export
+import { lazyPage } from '@/routes/lazyPage';
+
+const Login = lazyPage(() => import('./pages/Login'), 'Login');
 
 export const authRoutes: AppRoute[] = [
   {

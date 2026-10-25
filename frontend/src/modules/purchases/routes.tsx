@@ -1,8 +1,10 @@
 import { ClipboardList } from 'lucide-react';
 import type { AppRoute } from '@/routes/types';
-import { PurchaseListPage } from './pages/PurchaseListPage';
-import { PurchaseCreatePage } from './pages/PurchaseCreatePage';
-import { PurchaseDetailPage } from './pages/PurchaseDetailPage';
+import { lazyPage } from '@/routes/lazyPage';
+
+const PurchaseListPage = lazyPage(() => import('./pages/PurchaseListPage'), 'PurchaseListPage');
+const PurchaseCreatePage = lazyPage(() => import('./pages/PurchaseCreatePage'), 'PurchaseCreatePage');
+const PurchaseDetailPage = lazyPage(() => import('./pages/PurchaseDetailPage'), 'PurchaseDetailPage');
 
 export const purchaseRoutes: AppRoute[] = [
   { path: '/purchases', permission: 'purchases.read', showInMenu: true, icon: ClipboardList, group: 'Compras', label: 'Pedidos de compra', component: PurchaseListPage, guard: 'auth' },

@@ -89,7 +89,7 @@ describe('api 403 interceptor', () => {
 
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith('Você não tem permissão para esta ação.', expect.anything());
-    expect(meCalls).toBeGreaterThanOrEqual(1);
+    expect(meCalls).toBe(1);
     expect(useAuthStore.getState().token).toBe('token-ADMIN');
   });
 });

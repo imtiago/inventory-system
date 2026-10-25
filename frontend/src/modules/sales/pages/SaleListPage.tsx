@@ -25,7 +25,9 @@ export function SaleListPage() {
   const periodTooLong = Boolean(from && to && from <= to && (Date.parse(to) - Date.parse(from)) / DAY_MS + 1 > MAX_PERIOD_DAYS);
   const invalidPeriod = !from || !to || from > to || periodTooLong;
 
-  const { data, isLoading, isFetching, isError } = useSales(page, { from, to, status }, !invalidPeriod);
+  const { data: fetched, isLoading, isFetching, isError } = useSales(page, { from, to, status }, !invalidPeriod);
+  // With an invalid period the query is disabled but keeps the previous rows (placeholder): do not show them.
+  const data = invalidPeriod ? undefined : fetched;
 
   const columns = useSaleColumns();
 
@@ -60,9 +62,9 @@ export function SaleListPage() {
               </label>
               <input id="sales-to" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
-            {periodTooLong && (
+            {invalidPeriod && (
               <p role="alert" className="text-sm text-red-600">
-                O período deve ter no máximo {MAX_PERIOD_DAYS} dias.
+                {periodTooLong ? `O período deve ter no máximo ${MAX_PERIOD_DAYS} dias.` : !from || !to ? 'Informe o período.' : 'Período inválido: a data inicial deve ser anterior ou igual à final.'}
               </p>
             )}
             <div>
@@ -77,9 +79,9 @@ export function SaleListPage() {
               </select>
             </div>
           </div>
-          {isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}
+          {!invalidPeriod && isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}
 
-          {isError ? (
+          {invalidPeriod ? null : isError ? (
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as vendas. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
@@ -87,9 +89,9 @@ export function SaleListPage() {
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-gray-500">Carregando vendas...</p>}
+          {!invalidPeriod && isLoading && !data && <p className="text-sm text-gray-500">Carregando vendas...</p>}
 
-          {!isError && (
+          {!invalidPeriod && !isError && (
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={totalPages}

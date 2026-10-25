@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { Modal } from '../Modal';
+import { ConfirmDialog } from '../../ConfirmDialog';
 
 function Harness() {
   const [open, setOpen] = useState(false);
@@ -116,5 +117,31 @@ describe('Modal accessibility (wave 2)', () => {
     screen.getByText('dentro').focus();
     await userEvent.tab();
     expect(screen.getByRole('dialog', { name: 'Dentro' }).contains(document.activeElement)).toBe(true);
+  });
+});
+
+function WithConfirm() {
+  const [open, setOpen] = useState(true);
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <Modal open={open} onClose={() => setOpen(false)} title="Titulo">
+      <button onClick={() => setConfirming(true)}>Excluir item</button>
+      <ConfirmDialog open={confirming} title="Confirmar" description="Tem certeza?" onConfirm={() => setConfirming(false)} onCancel={() => setConfirming(false)} />
+    </Modal>
+  );
+}
+
+describe('confirmation inside a modal', () => {
+  test('Escape fecha só a confirmação de cima; o segundo Escape fecha o modal', async () => {
+    render(<WithConfirm />);
+    await userEvent.click(screen.getByText('Excluir item'));
+    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: 'Titulo' })).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

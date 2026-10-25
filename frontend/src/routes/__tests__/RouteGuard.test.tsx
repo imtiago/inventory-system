@@ -75,6 +75,32 @@ describe('RouteGuard / AppRoutes', () => {
     await waitFor(() => expect(localStorage.getItem('token')).toBe('token-ADMIN'));
   });
 
+  test('"Tentar novamente" fica desabilitado e mostra carregando durante a tentativa', async () => {
+    resetSession();
+    localStorage.setItem('token', 'token-ADMIN');
+    const { useAuthStore } = await import('@/shared/store/auth');
+    useAuthStore.setState({ token: 'token-ADMIN', user: null });
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let attempts = 0;
+    server.use(
+      http.get(`${API_URL}/users/me`, async () => {
+        attempts++;
+        if (attempts > 1) await gate;
+        return HttpResponse.json({ message: 'boom' }, { status: 503 });
+      }),
+    );
+    renderWithProviders(<AppRoutes />, { route: '/' });
+    const retry = await screen.findByRole('button', { name: 'Tentar novamente' });
+
+    await userEvent.click(retry);
+
+    const busy = await screen.findByRole('button', { name: /Tentando/ });
+    expect(busy).toBeDisabled();
+    release();
+    expect(await screen.findByRole('button', { name: 'Tentar novamente' })).toBeEnabled();
+  });
+
   test('401 em /users/me encerra a sessão e vai ao login', async () => {
     resetSession();
     localStorage.setItem('token', 'token-ADMIN');

@@ -1,13 +1,15 @@
 // modules/products/routes.tsx
-import { ProductListPage } from "../pages/ProductListPage";
-import { ProductEditPage } from "../pages/ProductEditPage";
-import { ProductDetailsPage } from "../pages/ProductDetailsPage";
 
 import { Package } from "lucide-react";
 import type { AppRoute } from "@/routes/types";
-import { ProductCreatePage } from "../pages/ProductCreatePage";
-import { VariantCreatePage } from "../pages/VariantCreatePage";
-import { VariantEditPage } from "../pages/VariantEditPage";
+import { lazyPage } from '@/routes/lazyPage';
+
+const ProductListPage = lazyPage(() => import('../pages/ProductListPage'), 'ProductListPage');
+const ProductEditPage = lazyPage(() => import('../pages/ProductEditPage'), 'ProductEditPage');
+const ProductDetailsPage = lazyPage(() => import('../pages/ProductDetailsPage'), 'ProductDetailsPage');
+const ProductCreatePage = lazyPage(() => import('../pages/ProductCreatePage'), 'ProductCreatePage');
+const VariantCreatePage = lazyPage(() => import('../pages/VariantCreatePage'), 'VariantCreatePage');
+const VariantEditPage = lazyPage(() => import('../pages/VariantEditPage'), 'VariantEditPage');
 
 export const productRoutes: AppRoute[] = [
   {

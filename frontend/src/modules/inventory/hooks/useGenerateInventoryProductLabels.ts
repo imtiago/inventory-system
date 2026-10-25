@@ -16,6 +16,11 @@ async function labelErrorMessage(error: unknown): Promise<string> {
 /**
  * Hands the PDF to the user as a downloaded file. Unlike window.open after an await,
  * a download is not subject to pop-up blocking. Throws if the browser refuses.
+ *
+ * Known limitation (kept on purpose, no behaviour change): a browser that blocks the programmatic
+ * `<a download>` click silently gives no signal to detect it, so we show no "blocked" warning
+ * (it would be a false alarm for every user whose download simply started). Only a thrown error
+ * reaches the caller, which then offers the failure message.
  */
 export function downloadPdf(blob: Blob, fileName: string) {
   const url = window.URL.createObjectURL(blob);

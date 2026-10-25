@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
@@ -36,6 +36,20 @@ const formatAccessKey = (key: string) => key.replace(/([0-9A-Z]{4})(?=[0-9A-Z])/
 export function NfeImportReviewPage() {
   const { id } = useParams<{ id: string }>();
   const { data: note, isLoading, isError } = useNfeImport(id);
+  const navigate = useNavigate();
+
+  // The page (unlike the form, which unmounts once the note is re-read as CONFIRMED) stays mounted while
+  // the user is on this screen: the redirect after confirming only happens if they did not leave meanwhile.
+  const onScreen = useRef(true);
+  useEffect(() => {
+    onScreen.current = true;
+    return () => {
+      onScreen.current = false;
+    };
+  }, []);
+  const goToPurchase = (purchaseId: string) => {
+    if (onScreen.current) navigate(`/purchases/${purchaseId}`);
+  };
 
   return (
     <Page>
@@ -63,15 +77,14 @@ export function NfeImportReviewPage() {
               )}
             </div>
           )}
-          {note?.status === 'DRAFT' && <ReviewForm key={note.id} note={note} />}
+          {note?.status === 'DRAFT' && <ReviewForm key={note.id} note={note} onConfirmed={goToPurchase} />}
         </div>
       </div>
     </Page>
   );
 }
 
-function ReviewForm({ note }: { note: INfeImport }) {
-  const navigate = useNavigate();
+function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (purchaseId: string) => void }) {
   const canReceive = useCan('purchases.receive');
   const confirm = useConfirmNfeImport(note.id);
 
@@ -113,7 +126,7 @@ function ReviewForm({ note }: { note: INfeImport }) {
     // which happens as soon as the note is re-read as CONFIRMED, so the redirect would be lost.
     confirm
       .mutateAsync(buildConfirmBody({ note, items, supplier, installments, receive: canReceive && receive }))
-      .then((result) => navigate(`/purchases/${result.purchaseId}`))
+      .then((result) => onConfirmed(result.purchaseId))
       .catch((error: unknown) => {
         const parsed = parseApiErrorSync(error);
 

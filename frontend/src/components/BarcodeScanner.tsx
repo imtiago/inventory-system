@@ -1,5 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import type { Html5Qrcode } from 'html5-qrcode';
+
+/** html5-qrcode is heavy (~340 kB): it is only downloaded when a scanner is actually opened. */
+const loadScannerLib = () => import('html5-qrcode');
 
 type Camera = {
   id: string;
@@ -36,6 +39,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true }: Props)
         setLoading(true);
         setError(null);
 
+        const { Html5Qrcode } = await loadScannerLib();
         const devices = await Html5Qrcode.getCameras();
 
         if (!devices || devices.length === 0) {
@@ -77,26 +81,33 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true }: Props)
       return;
     }
 
-    const scanner = new Html5Qrcode(scannerId, {
-      verbose: false,
-
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.ITF,
-      ],
-    });
-
-    scannerRef.current = scanner;
+    let disposed = false;
+    let scanner: Html5Qrcode | null = null;
     detectedRef.current = false;
 
     const startScanner = async () => {
       try {
-        await scanner.start(
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await loadScannerLib();
+        if (disposed) return;
+
+        const instance = new Html5Qrcode(scannerId, {
+          verbose: false,
+
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.ITF,
+          ],
+        });
+
+        scanner = instance;
+        scannerRef.current = instance;
+
+        await instance.start(
           selectedCamera,
           {
             fps: 10,
@@ -121,7 +132,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true }: Props)
             onDetectedRef.current(decodedText);
 
             if (stopAfterDetection) {
-              scanner.stop().catch(() => {});
+              instance.stop().catch(() => {});
             }
           },
 
@@ -144,15 +155,20 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true }: Props)
     startScanner();
 
     return () => {
+      disposed = true;
+      const current = scanner;
+
       const cleanup = async () => {
+        if (!current) return;
+
         try {
-          await scanner.stop();
+          await current.stop();
         } catch {
           // Scanner já pode estar parado.
         }
 
         try {
-          await scanner.clear();
+          await current.clear();
         } catch {
           // Elemento já pode ter sido removido.
         }

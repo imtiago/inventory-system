@@ -60,4 +60,28 @@ describe('SaleListPage: período e status na lista', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(urls).toHaveLength(1);
   });
+
+  test('período inválido não mostra as linhas do período anterior nem o estado vazio', async () => {
+    trackList();
+    renderWithProviders(<SaleListPage />);
+    expect(await screen.findByText('Maria Oliveira')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2020-01-01' } });
+
+    expect(screen.getByText('O período deve ter no máximo 366 dias.')).toBeInTheDocument();
+    expect(screen.queryByText('Maria Oliveira')).not.toBeInTheDocument();
+    expect(screen.queryByText(/nenhum/i)).not.toBeInTheDocument();
+  });
+
+  test('data inicial depois da final também esconde as linhas e avisa o período', async () => {
+    trackList();
+    renderWithProviders(<SaleListPage />);
+    expect(await screen.findByText('Maria Oliveira')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2000-01-01' } });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/período/i);
+    expect(screen.queryByText('Maria Oliveira')).not.toBeInTheDocument();
+  });
 });
+

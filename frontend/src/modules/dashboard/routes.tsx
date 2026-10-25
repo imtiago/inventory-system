@@ -1,6 +1,8 @@
 import { LayoutDashboard } from "lucide-react";
 import type { AppRoute } from "@/routes/types";
-import { DashboardPage } from "./pages/DashboardPage";
+import { lazyPage } from '@/routes/lazyPage';
+
+const DashboardPage = lazyPage(() => import('./pages/DashboardPage'), 'DashboardPage');
 
 export const dashboardRoutes: AppRoute[] = [
   {
