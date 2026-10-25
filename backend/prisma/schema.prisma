@@ -140,6 +140,9 @@ model Product {
   variants ProductVariant[]
 
   createdAt DateTime @default(now())
+
+  @@index([brandId])
+  @@index([categoryId])
 }
 
 model ProductVariant {
@@ -161,6 +164,8 @@ model ProductVariant {
   inventoryLots  InventoryLot[]
 
   supplierProductMappings SupplierProductMapping[]
+
+  @@index([productId])
 }
 
 model InventoryLot {
@@ -199,6 +204,8 @@ model InventoryLot {
   @@unique([productVariantId, batchNumber])
 
   @@index([expirationDate])
+
+  @@index([inventoryId, remainingQuantity])
 }
 
 model Inventory {
@@ -260,6 +267,11 @@ model StockMovement {
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+
+  @@index([origin, originId])
+  @@index([productVariantId, createdAt])
+  @@index([inventoryId, createdAt])
+  @@index([createdAt])
 }
 
 model Sale {
@@ -282,6 +294,9 @@ model Sale {
   items SaleItem[]
 
   @@index([status, createdAt])
+
+  @@index([customerId])
+  @@index([createdAt])
 }
 
 model SaleItem {
@@ -356,6 +371,10 @@ model FinancialDocument {
   createdAt DateTime @default(now())
 
   parcels FinancialParcel[]
+
+  @@index([type, originType, originId])
+  @@index([type, partyId])
+  @@index([type, status])
 }
 
 model FinancialParcel {
@@ -505,6 +524,8 @@ model PurchaseItem {
   position Int
 
   inventoryLots InventoryLot[]
+
+  @@index([purchaseId])
 }
 
 model InventoryBox {

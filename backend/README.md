@@ -65,3 +65,7 @@ npm start            # node dist/server.js
 - `GET /health` (público): `200 {"status":"ok"}` ou `503 {"status":"unavailable"}` se o banco estiver fora.
 - Rate limit: 300 req/min por usuário autenticado (ou IP), 20/min em `/reports/*`; excedido → `429 RATE_LIMITED` com `Retry-After`.
 - SIGTERM/SIGINT: para de aceitar conexões, espera as requisições em andamento (até 10 s) e desconecta o banco.
+
+### Índices em banco grande
+
+A migration `20261025120000_query_indexes` cria os índices de consulta com `CREATE INDEX IF NOT EXISTS`, o que bloqueia escritas nas tabelas durante a criação. Em produção com muitos dados, crie antes cada índice manualmente com `CREATE INDEX CONCURRENTLY IF NOT EXISTS "<nome>" ON "<Tabela>"(...)` (os comandos estão em `prisma/migrations/20261025120000_query_indexes/migration.sql`, trocando por `CONCURRENTLY`; fora de transação) e então marque a migration como aplicada: `npx prisma migrate resolve --applied 20261025120000_query_indexes`.
