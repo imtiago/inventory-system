@@ -2,14 +2,87 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadEnv } from "../env";
 
-test("loadEnv retorna JWT_SECRET", () => {
-  assert.deepEqual(loadEnv({ JWT_SECRET: "abc" }), { JWT_SECRET: "abc" });
+const base = {
+  DATABASE_URL: "postgresql://u:p@localhost:5432/db",
+  JWT_SECRET: "abc",
+};
+
+test("loadEnv aplica padrões e retorna os valores", () => {
+  const env = loadEnv(base);
+  assert.equal(env.JWT_SECRET, "abc");
+  assert.equal(env.PORT, 3000);
+  assert.equal(env.HOST, "0.0.0.0");
+  assert.equal(env.CORS_ORIGINS, undefined);
+  assert.equal(env.TRUST_PROXY, undefined);
+  assert.equal(env.isProduction, false);
 });
 
-test("loadEnv sem JWT_SECRET lança 'JWT_SECRET não definido.'", () => {
-  assert.throws(() => loadEnv({}), { message: "JWT_SECRET não definido." });
+test("loadEnv lista as variáveis inválidas", () => {
+  assert.throws(
+    () => loadEnv({ DATABASE_URL: "nao-e-url", PORT: "99999" }),
+    (err: Error) => {
+      assert.match(err.message, /Variáveis de ambiente inválidas/);
+      assert.match(err.message, /DATABASE_URL/);
+      assert.match(err.message, /JWT_SECRET/);
+      assert.match(err.message, /PORT/);
+      return true;
+    },
+  );
 });
 
-test("loadEnv com JWT_SECRET vazio lança", () => {
-  assert.throws(() => loadEnv({ JWT_SECRET: "" }), { message: "JWT_SECRET não definido." });
+test("JWT_SECRET vazio é inválido", () => {
+  assert.throws(() => loadEnv({ ...base, JWT_SECRET: "" }), /JWT_SECRET/);
+});
+
+test("produção: JWT_SECRET curto não sobe", () => {
+  assert.throws(
+    () => loadEnv({ ...base, NODE_ENV: "production", CORS_ORIGINS: "https://a.com" }),
+    /JWT_SECRET/,
+  );
+});
+
+test("produção: sem CORS_ORIGINS não sobe", () => {
+  assert.throws(
+    () => loadEnv({ ...base, NODE_ENV: "production", JWT_SECRET: "x".repeat(32) }),
+    /CORS_ORIGINS/,
+  );
+});
+
+test("produção válida; CORS_ORIGINS vira lista", () => {
+  const env = loadEnv({
+    ...base,
+    NODE_ENV: "production",
+    JWT_SECRET: "x".repeat(32),
+    CORS_ORIGINS: "https://a.com, https://b.com",
+  });
+  assert.deepEqual(env.CORS_ORIGINS, ["https://a.com", "https://b.com"]);
+  assert.equal(env.isProduction, true);
+});
+
+test("fora de produção segredo curto é aceito (CI)", () => {
+  assert.doesNotThrow(() => loadEnv({ ...base, JWT_SECRET: "ci-only-secret" }));
+});
+
+test("TRUST_PROXY: true, número de saltos ou lista de IPs", () => {
+  assert.equal(loadEnv({ ...base, TRUST_PROXY: "true" }).TRUST_PROXY, true);
+  assert.equal(loadEnv({ ...base, TRUST_PROXY: "false" }).TRUST_PROXY, undefined);
+  assert.equal(loadEnv({ ...base, TRUST_PROXY: "2" }).TRUST_PROXY, 2);
+  assert.deepEqual(loadEnv({ ...base, TRUST_PROXY: "10.0.0.1, 10.0.0.2" }).TRUST_PROXY, [
+    "10.0.0.1",
+    "10.0.0.2",
+  ]);
+});
+
+test("RATE_LIMIT_DISABLED só vale fora de produção", () => {
+  assert.equal(loadEnv({ ...base, RATE_LIMIT_DISABLED: "1" }).RATE_LIMIT_DISABLED, true);
+  assert.equal(
+    loadEnv({
+      ...base,
+      NODE_ENV: "production",
+      JWT_SECRET: "x".repeat(32),
+      CORS_ORIGINS: "https://a.com",
+      RATE_LIMIT_DISABLED: "1",
+    }).RATE_LIMIT_DISABLED,
+    false,
+  );
 });

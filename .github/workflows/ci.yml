@@ -48,6 +48,22 @@ jobs:
       - run: npm run test:db:prepare
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
+      - name: Smoke test (GET /health)
+        run: |
+          node dist/server.js > server.log 2>&1 &
+          server_pid=$!
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/health; then ok=1; break; fi
+            sleep 1
+          done
+          kill "$server_pid" 2>/dev/null || true
+          if [ "$ok" -ne 1 ]; then
+            echo "health check não respondeu 200 em 30 s"
+            cat server.log
+            exit 1
+          fi
 
   frontend:
     runs-on: ubuntu-latest

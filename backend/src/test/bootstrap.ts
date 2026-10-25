@@ -8,3 +8,6 @@ try {
   console.error((err as Error).message);
   process.exit(1);
 }
+
+// O rate limit global não deve interferir na suíte (os testes dele injetam limites).
+process.env.RATE_LIMIT_DISABLED ??= "1";

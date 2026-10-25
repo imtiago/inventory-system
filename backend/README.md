@@ -51,3 +51,17 @@ O backup vai para `${BACKUP_DIR:-$HOME/backups/inventory}/inventory-AAAAMMDD-HHM
 PATH=/usr/local/bin:/usr/bin:/bin  # inclua o diretório do node/npm (ex.: ~/.nvm/versions/node/<versão>/bin)
 0 2 * * * mkdir -p $HOME/backups/inventory && cd /caminho/inventory-system/backend && PGCONTAINER=api_db_1 npm run backup-db >> $HOME/backups/inventory/cron.log 2>&1
 ```
+
+## Produção
+
+```bash
+npm ci
+npx prisma generate
+npm run build        # gera dist/server.js (aliases resolvidos; node_modules ficam externos)
+npm start            # node dist/server.js
+```
+
+- Variáveis (veja `.env.example`): `DATABASE_URL`, `JWT_SECRET`, `PORT` (3000), `HOST` (0.0.0.0), `CORS_ORIGINS`, `TRUST_PROXY`. A subida falha listando as variáveis inválidas; com `NODE_ENV=production` o `JWT_SECRET` precisa ter 32+ caracteres e `CORS_ORIGINS` é obrigatório.
+- `GET /health` (público): `200 {"status":"ok"}` ou `503 {"status":"unavailable"}` se o banco estiver fora.
+- Rate limit: 300 req/min por usuário autenticado (ou IP), 20/min em `/reports/*`; excedido → `429 RATE_LIMITED` com `Retry-After`.
+- SIGTERM/SIGINT: para de aceitar conexões, espera as requisições em andamento (até 10 s) e desconecta o banco.

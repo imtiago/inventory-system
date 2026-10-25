@@ -1,0 +1,164 @@
+import "dotenv/config";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { buildApp } from "../../../app";
+
+const quiet = { logger: false } as const;
+
+test("GET /health público: 200 { status: ok } sem token", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {} });
+  const res = await app.inject({ method: "GET", url: "/health" });
+  await app.close();
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.json(), { status: "ok" });
+});
+
+test("GET /health com banco fora: 503 { status: unavailable }", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {
+      throw new Error("connection refused");
+    },
+  });
+  const res = await app.inject({ method: "GET", url: "/health" });
+  await app.close();
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(res.json(), { status: "unavailable" });
+});
+
+test("helmet: cabeçalhos de segurança presentes", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {} });
+  const res = await app.inject({ method: "GET", url: "/health" });
+  await app.close();
+  assert.equal(res.headers["x-content-type-options"], "nosniff");
+  assert.ok(res.headers["content-security-policy"]);
+  assert.ok(res.headers["x-frame-options"]);
+});
+
+test("rate limit: 429 RATE_LIMITED com Retry-After; /health fora do limite", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {},
+    rateLimit: { max: 2, reportsMax: 1 },
+  });
+  const codes: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const r = await app.inject({ method: "GET", url: "/nada" });
+    codes.push(r.statusCode);
+    if (i === 2) {
+      assert.deepEqual(r.json(), {
+        message: "Muitas requisições. Aguarde um instante e tente novamente.",
+        code: "RATE_LIMITED",
+      });
+      assert.ok(Number(r.headers["retry-after"]) > 0);
+    }
+  }
+  // /health nunca é limitado
+  for (let i = 0; i < 5; i++) {
+    const h = await app.inject({ method: "GET", url: "/health" });
+    assert.equal(h.statusCode, 200);
+  }
+  await app.close();
+  // /nada cai na 401 (rota não pública sem token) até estourar o limite
+  assert.deepEqual(codes, [401, 401, 429]);
+});
+
+test("rate limit: /reports/* tem limite próprio", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {},
+    rateLimit: { max: 100, reportsMax: 1 },
+  });
+  const a = await app.inject({ method: "GET", url: "/reports/x" });
+  const b = await app.inject({ method: "GET", url: "/reports/x" });
+  const c = await app.inject({ method: "GET", url: "/products" });
+  await app.close();
+  assert.equal(a.statusCode, 401);
+  assert.equal(b.statusCode, 429);
+  assert.equal(c.statusCode, 401);
+});
+
+test("CORS com lista: recusa origem fora, aceita a listada", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {},
+    corsOrigins: ["https://app.exemplo.com"],
+  });
+  const ok = await app.inject({
+    method: "GET",
+    url: "/health",
+    headers: { origin: "https://app.exemplo.com" },
+  });
+  const bad = await app.inject({
+    method: "GET",
+    url: "/health",
+    headers: { origin: "https://evil.com" },
+  });
+  await app.close();
+  assert.equal(ok.headers["access-control-allow-origin"], "https://app.exemplo.com");
+  assert.equal(bad.headers["access-control-allow-origin"], undefined);
+});
+
+test("JSON malformado → 400 INVALID_JSON", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {} });
+  const res = await app.inject({
+    method: "POST",
+    url: "/auth/login",
+    headers: { "content-type": "application/json" },
+    payload: "{oops",
+  });
+  await app.close();
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.json(), { message: "JSON inválido.", code: "INVALID_JSON" });
+});
+
+test("corpo acima de 1 MiB → 413 PAYLOAD_TOO_LARGE", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {} });
+  const res = await app.inject({
+    method: "POST",
+    url: "/auth/login",
+    headers: { "content-type": "application/json" },
+    payload: JSON.stringify({ email: "a@b.com", password: "x".repeat(1024 * 1024 + 10) }),
+  });
+  await app.close();
+  assert.equal(res.statusCode, 413);
+  assert.deepEqual(res.json(), {
+    message: "Arquivo ou requisição grande demais.",
+    code: "PAYLOAD_TOO_LARGE",
+  });
+});
+
+test("content-type não suportado → 415 UNSUPPORTED_MEDIA_TYPE", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {} });
+  const res = await app.inject({
+    method: "POST",
+    url: "/auth/login",
+    headers: { "content-type": "application/xml" },
+    payload: "<a/>",
+  });
+  await app.close();
+  assert.equal(res.statusCode, 415);
+  assert.deepEqual(res.json(), {
+    message: "Tipo de conteúdo não suportado.",
+    code: "UNSUPPORTED_MEDIA_TYPE",
+  });
+});
+
+test("desligamento gracioso: app.close() espera a requisição em andamento", async () => {
+  const app = buildApp({
+    ...quiet,
+    healthCheck: async () => {
+      await new Promise((r) => setTimeout(r, 300));
+    },
+  });
+  await app.listen({ port: 0, host: "127.0.0.1" });
+  const addr = app.server.address() as { port: number };
+  const pending = fetch(`http://127.0.0.1:${addr.port}/health`, {
+    headers: { connection: "close" },
+  });
+  await new Promise((r) => setTimeout(r, 50));
+  await app.close();
+  const res = await pending;
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { status: "ok" });
+});

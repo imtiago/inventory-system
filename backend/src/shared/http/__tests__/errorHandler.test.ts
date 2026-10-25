@@ -95,7 +95,7 @@ test("Prisma P2025 → 404 NOT_FOUND", async () => {
   assert.deepEqual(r.body, { message: "Registro não encontrado.", code: "NOT_FOUND" });
 });
 
-test("JSON malformado → 400 BAD_REQUEST", async () => {
+test("JSON malformado → 400 INVALID_JSON", async () => {
   const app = build(() => null);
   const res = await app.inject({
     method: "POST",
@@ -105,7 +105,7 @@ test("JSON malformado → 400 BAD_REQUEST", async () => {
   });
   await app.close();
   assert.equal(res.statusCode, 400);
-  assert.deepEqual(res.json(), { message: "Requisição inválida.", code: "BAD_REQUEST" });
+  assert.deepEqual(res.json(), { message: "JSON inválido.", code: "INVALID_JSON" });
 });
 
 test("erro desconhecido → 500 sem a mensagem original", async () => {
@@ -199,7 +199,7 @@ test("Prisma P2028 com transação expirada → 409 CONCURRENT_UPDATE", async ()
   assert.equal(r.body.code, "CONCURRENT_UPDATE");
 });
 
-test("Prisma P2028 que não é expiração (ex.: maxWait) → 500", async () => {
+test("Prisma P2028 que não é expiração (ex.: maxWait) → 503 SERVICE_BUSY", async () => {
   const r = await call(
     () =>
       new Prisma.PrismaClientKnownRequestError("Transaction API error", {
@@ -208,7 +208,19 @@ test("Prisma P2028 que não é expiração (ex.: maxWait) → 500", async () => 
         meta: { error: "Unable to start a transaction in the given time." },
       }),
   );
-  assert.equal(r.status, 500);
+  assert.equal(r.status, 503);
+  assert.deepEqual(r.body, {
+    message: "Sistema ocupado. Tente novamente em instantes.",
+    code: "SERVICE_BUSY",
+  });
+});
+
+test("Prisma P2024 (timeout do pool de conexões) → 503 SERVICE_BUSY", async () => {
+  const r = await call(
+    () => new Prisma.PrismaClientKnownRequestError("pool", { code: "P2024", clientVersion: "x" }),
+  );
+  assert.equal(r.status, 503);
+  assert.equal(r.body.code, "SERVICE_BUSY");
 });
 
 for (const pg of ["40P01", "55P03"]) {
