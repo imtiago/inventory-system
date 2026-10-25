@@ -50,7 +50,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: (expired = false) => {
-    localStorage.removeItem("token");
+    // Only remove our own token: another tab may already have stored a newer one (password change).
+    if (localStorage.getItem("token") === get().token) localStorage.removeItem("token");
     set({ token: null, user: null, sessionExpired: expired });
   },
 }));

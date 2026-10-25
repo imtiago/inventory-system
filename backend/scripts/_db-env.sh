@@ -2,7 +2,7 @@
 # (lida de backend/.env quando não estiver no ambiente). Nunca imprime a senha.
 _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -z "${DATABASE_URL:-}" ] && [ -f "$_dir/../.env" ]; then
-  DATABASE_URL="$(grep -E '^DATABASE_URL=' "$_dir/../.env" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
+  DATABASE_URL="$(grep -E '^DATABASE_URL=' "$_dir/../.env" | head -1 | cut -d= -f2- | tr -d '\r' | sed -E 's/^["'"'"'](.*)["'"'"']$/\1/')"
 fi
 [ -n "${DATABASE_URL:-}" ] || { echo "DATABASE_URL não definida." >&2; exit 1; }
 eval "$(DATABASE_URL="$DATABASE_URL" node -e '

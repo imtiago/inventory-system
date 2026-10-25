@@ -31,3 +31,12 @@ export function resolveTestDatabaseUrl(env: NodeJS.ProcessEnv): string {
   const url = env.TEST_DATABASE_URL || (env.CI === "true" ? env.DATABASE_URL : undefined);
   return assertTestDatabase(url);
 }
+
+/**
+ * Dentro de um processo de teste (`node --test` define NODE_TEST_CONTEXT), força DATABASE_URL para o
+ * banco de testes — inclusive quando um arquivo é executado sozinho, sem o bootstrap. Fora de testes, não faz nada.
+ */
+export function applyTestDatabaseGuard(env: NodeJS.ProcessEnv): void {
+  if (!env.NODE_TEST_CONTEXT) return;
+  env.DATABASE_URL = resolveTestDatabaseUrl(env);
+}

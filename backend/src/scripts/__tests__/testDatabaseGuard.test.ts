@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyTestDatabaseGuard,
   assertTestDatabase,
   databaseName,
   resolveTestDatabaseUrl,
@@ -35,4 +36,23 @@ describe("guarda do banco de testes", () => {
   test("prepare recusa banco que não é _test antes de conectar", async () => {
     await assert.rejects(prepareTestDb(dev), /não termina em "_test"/);
   });
+});
+
+test("execução de um arquivo de teste isolado (sem bootstrap) troca para o banco de testes ou aborta", () => {
+  const env: NodeJS.ProcessEnv = {
+    NODE_TEST_CONTEXT: "child-v8",
+    DATABASE_URL: "postgresql://u:p@localhost:5432/inventory",
+    TEST_DATABASE_URL: "postgresql://u:p@localhost:5432/inventory_test",
+  };
+  applyTestDatabaseGuard(env);
+  assert.equal(env.DATABASE_URL, "postgresql://u:p@localhost:5432/inventory_test");
+
+  assert.throws(
+    () => applyTestDatabaseGuard({ NODE_TEST_CONTEXT: "child-v8", DATABASE_URL: "postgresql://u:p@localhost:5432/inventory" }),
+    /TEST_DATABASE_URL/,
+  );
+
+  const app: NodeJS.ProcessEnv = { DATABASE_URL: "postgresql://u:p@localhost:5432/inventory" };
+  applyTestDatabaseGuard(app);
+  assert.equal(app.DATABASE_URL, "postgresql://u:p@localhost:5432/inventory");
 });
