@@ -1,5 +1,10 @@
+import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+
+import { EntitySearchSelect } from "@/shared/components/form/EntitySearchSelect";
+import { useBrands } from "@/modules/brands/hooks/useBrands";
+import { useCategories } from "@/modules/categories/hooks/useCategories";
 import type { Brand, Category } from "../types";
 
 export interface ProductFormData {
@@ -13,9 +18,10 @@ interface Props {
   title: string;
   description: string;
 
-  brands: Brand[];
+  /** Current brand/category (edit): shown by name even when not in the first page of search results. */
+  initialBrand?: Brand;
 
-  categories: Category[];
+  initialCategory?: Category;
 
   initialValues?: Partial<ProductFormData>;
 
@@ -29,28 +35,30 @@ const FIELDS = ["name", "description", "brandId", "categoryId"] as const;
 export function ProductForm({
   title,
   description,
-  brands,
-  categories,
+  initialBrand,
+  initialCategory,
   initialValues,
   onSubmit,
   onCancel,
 }: Props) {
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<ProductFormData>({
+  const { register, control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
     defaultValues: initialValues,
   });
 
-  const submit = handleSubmit(async (data) => {
+  const once = useSingleSubmit();
+
+  const submit = handleSubmit(once(async (data) => {
     try {
       await onSubmit(data);
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
-  });
+  }));
 
   return (
     <form onSubmit={submit} className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-500">{title}</h1>
+        {title && <h1 className="text-3xl font-bold text-gray-500">{title}</h1>}
 
         <p className="text-gray-500">{description}</p>
       </div>
@@ -89,43 +97,37 @@ export function ProductForm({
           <h2 className="font-semibold text-lg mb-4">Classificação</h2>
 
           <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="product-brandId" className="block mb-1">Marca</label>
+            <Controller
+              control={control}
+              name="brandId"
+              render={({ field, fieldState }) => (
+                <EntitySearchSelect
+                  useOptions={useBrands}
+                  label="Marca"
+                  placeholder="Buscar marca..."
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  current={initialBrand}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
 
-              <select
-                id="product-brandId"
-                {...register("brandId")}
-                className="w-full border rounded-lg p-3"
-              >
-                <option value="">Selecione...</option>
-
-                {brands.map((brand) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-              {errors.brandId && <p className="mt-1 text-sm text-red-600">{errors.brandId.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="product-categoryId" className="block mb-1">Categoria</label>
-
-              <select
-                id="product-categoryId"
-                {...register("categoryId")}
-                className="w-full border rounded-lg p-3"
-              >
-                <option value="">Selecione...</option>
-
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              {errors.categoryId && <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>}
-            </div>
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field, fieldState }) => (
+                <EntitySearchSelect
+                  useOptions={useCategories}
+                  label="Categoria"
+                  placeholder="Buscar categoria..."
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  current={initialCategory}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
           </div>
         </section>
       </div>
@@ -141,9 +143,10 @@ export function ProductForm({
 
         <button
           type="submit"
-          className="bg-black text-white rounded-lg px-6 py-3"
+          disabled={isSubmitting}
+          className="bg-black text-white rounded-lg px-6 py-3 disabled:opacity-50"
         >
-          Salvar Produto
+          {isSubmitting ? "Salvando..." : "Salvar Produto"}
         </button>
       </div>
           {errors.root?.server && (

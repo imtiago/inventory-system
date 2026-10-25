@@ -1,3 +1,4 @@
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useForm } from 'react-hook-form';
@@ -38,7 +39,7 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
     register,
     handleSubmit,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ICreateCustomerDTO>({
     defaultValues: {
       name: initialData?.name ?? '',
@@ -48,7 +49,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
     },
   });
 
-  const submit = handleSubmit(async (data) => {
+  const busy = loading || isSubmitting;
+  const once = useSingleSubmit();
+
+  const submit = handleSubmit(once(async (data) => {
     try {
       await onSubmit(data);
     } catch (error) {
@@ -57,10 +61,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
         setError('root.server', { type: 'server', message: parseApiErrorSync(error).message });
       }
     }
-  });
+  }));
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} noValidate className="space-y-6">
       <section className="space-y-5 rounded-xl bg-white p-6 shadow">
         {/* Nome */}
         <div>
@@ -70,6 +74,8 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
           <input
             id="name"
+            aria-invalid={errors.name ? 'true' : undefined}
+            aria-describedby={errors.name ? 'name-error' : undefined}
             type="text"
             autoComplete="name"
             maxLength={150}
@@ -78,11 +84,11 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
               validate: (value) => value.trim().length > 0 || 'O nome não pode conter apenas espaços.',
             })}
             placeholder="Ex.: Maria da Silva"
-            disabled={loading}
+            disabled={busy}
             className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
           />
 
-          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+          {errors.name && <p id="name-error" className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
         </div>
 
         {/* E-mail */}
@@ -93,6 +99,8 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
           <input
             id="email"
+            aria-invalid={errors.email ? 'true' : undefined}
+            aria-describedby={errors.email ? 'email-error' : undefined}
             type="email"
             autoComplete="email"
             {...register('email', {
@@ -100,11 +108,11 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
               validate: (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Informe um e-mail válido.',
             })}
             placeholder="cliente@exemplo.com"
-            disabled={loading}
+            disabled={busy}
             className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
           />
 
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+          {errors.email && <p id="email-error" className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
         </div>
 
         {/* Telefone com máscara */}
@@ -115,6 +123,8 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
           <input
             id="phone"
+            aria-invalid={errors.phone ? 'true' : undefined}
+            aria-describedby={errors.phone ? 'phone-error' : undefined}
             type="tel"
             autoComplete="tel"
             maxLength={15}
@@ -130,9 +140,14 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
             })}
             defaultValue={maskPhone(initialData?.phone ?? '')}
             placeholder="(68) 99999-9999"
-            disabled={loading}
+            disabled={busy}
             className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
           />
+          {errors.phone && (
+            <p id="phone-error" className="mt-1 text-sm text-red-600">
+              {errors.phone.message}
+            </p>
+          )}
         </div>
 
         {/* Endereço */}
@@ -143,15 +158,22 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
           <textarea
             id="address"
+            aria-invalid={errors.address ? 'true' : undefined}
+            aria-describedby={errors.address ? 'address-error' : undefined}
             rows={3}
             autoComplete="street-address"
             {...register('address', {
               setValueAs: (value: string) => value.trim() || null,
             })}
             placeholder="Rua, número, bairro, cidade..."
-            disabled={loading}
+            disabled={busy}
             className="w-full resize-y rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
           />
+          {errors.address && (
+            <p id="address-error" className="mt-1 text-sm text-red-600">
+              {errors.address.message}
+            </p>
+          )}
         </div>
       </section>
 
@@ -171,12 +193,12 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
       {/* Botões */}
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-        <button type="button" onClick={onCancel} disabled={loading} className="rounded-lg border px-5 py-3 hover:bg-gray-50 disabled:opacity-50">
+        <button type="button" onClick={onCancel} disabled={busy} className="rounded-lg border px-5 py-3 hover:bg-gray-50 disabled:opacity-50">
           Cancelar
         </button>
 
-        <button type="submit" disabled={loading} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
-          {loading ? (mode === 'edit' ? 'Salvando...' : 'Cadastrando...') : mode === 'edit' ? 'Salvar alterações' : 'Cadastrar cliente'}
+        <button type="submit" disabled={busy} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
+          {busy ? (mode === 'edit' ? 'Salvando...' : 'Cadastrando...') : mode === 'edit' ? 'Salvar alterações' : 'Cadastrar cliente'}
         </button>
       </div>
     </form>

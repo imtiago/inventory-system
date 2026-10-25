@@ -30,7 +30,7 @@ export function CustomerListPage() {
 
   const { data, isLoading, isFetching, isError } = useCustomers(page, debouncedSearch);
 
-  const { mutateAsync } = useCreateCustomer();
+  const { mutateAsync, isPending: creatingCustomer } = useCreateCustomer();
 
   const columns = useCustomerColumns(setEditing);
 
@@ -130,7 +130,7 @@ export function CustomerListPage() {
         </div>
       </Section>
 
-      <Modal open={creating} onClose={closeCreate} title="Cadastrar novo cliente" description="Informe os dados do cliente.">
+      <Modal open={creating} onClose={closeCreate} busy={creatingCustomer} title="Cadastrar novo cliente" description="Informe os dados do cliente.">
         {creating && <CustomerForm onCancel={closeCreate} onSubmit={handleSubmitCreateCustomer} />}
       </Modal>
 

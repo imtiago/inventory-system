@@ -10,7 +10,15 @@ export const API_URL: string = import.meta.env.VITE_API_URL;
 
 // Fixtures already include the API envelope: { data } / { data, pagination }.
 export const inventoryHandlers = [
-  http.get(`${API_URL}/inventory`, () => HttpResponse.json(inventoryList)),
+  http.get(`${API_URL}/inventory`, ({ request }) => {
+    const ids = new URL(request.url).searchParams.get('productVariantIds');
+    if (ids !== null) {
+      return HttpResponse.json({
+        data: ids.split(',').map((productVariantId) => ({ productVariantId, quantity: 42, reserved: 2, available: 40 })),
+      });
+    }
+    return HttpResponse.json(inventoryList);
+  }),
   http.get(`${API_URL}/inventory/boxes`, () => HttpResponse.json(inventoryBoxList)),
   http.post(`${API_URL}/inventory/boxes`, () => HttpResponse.json(inventoryBox, { status: 201 })),
   http.post(`${API_URL}/inventory/boxes/:boxId/items`, async ({ request, params }) => {

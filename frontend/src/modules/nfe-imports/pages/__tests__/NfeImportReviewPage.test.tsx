@@ -162,6 +162,35 @@ describe('NfeImportReviewPage', () => {
     });
   });
 
+  test('navega para o pedido mesmo quando a revisão desmonta com a confirmação em andamento', async () => {
+    let confirmed = false;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    server.use(
+      http.get(`${API_URL}/nfe-imports/:id`, () =>
+        HttpResponse.json({ data: confirmed ? { ...draft, status: 'CONFIRMED', purchaseId: 'pc-1' } : draft }),
+      ),
+      http.post(`${API_URL}/nfe-imports/:id/confirm`, async () => {
+        confirmed = true;
+        await gate;
+        return HttpResponse.json({ data: { importId: draft.id, purchaseId: 'pc-1' } }, { status: 201 });
+      }),
+    );
+    const { queryClient } = renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+    await userEvent.type(screen.getByLabelText('Código de barras do item 2'), '7890000000024');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar importação' }));
+
+    // Com a requisição pendente, a nota é relida (ex.: foco da janela) e já vem CONFIRMED: o formulário desmonta.
+    await queryClient.invalidateQueries({ queryKey: ['nfe-imports'] });
+    expect(await screen.findByText('Esta nota já foi confirmada.', { exact: false })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Confirmando/ })).not.toBeInTheDocument();
+
+    release();
+    expect(await screen.findByText('Detalhe do pedido')).toBeInTheDocument();
+  });
+
   test('vincular a variante existente busca produto e escolhe a variante', async () => {
     server.use(
       http.get(`${API_URL}/products`, () =>

@@ -1,5 +1,6 @@
+import userEvent from '@testing-library/user-event';
 import { describe, expect, test } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
 import { AppRoutes } from '../AppRoutes';
@@ -48,6 +49,40 @@ describe('RouteGuard / AppRoutes', () => {
     server.use(http.get(`${API_URL}/receivables`, () => HttpResponse.json({ message: 'Sessão inválida.', code: 'UNAUTHENTICATED' }, { status: 401 })));
     renderWithProviders(<AppRoutes />, { route: '/receivables' });
     expect(await screen.findByText('Sua sessão expirou.')).toBeInTheDocument();
+    expect(localStorage.getItem('token')).toBeNull();
+  });
+
+  test('falha de rede/5xx em /users/me: tela de erro, mantém token, "Tentar novamente" restaura', async () => {
+    resetSession();
+    localStorage.setItem('token', 'token-ADMIN');
+    const { useAuthStore } = await import('@/shared/store/auth');
+    useAuthStore.setState({ token: 'token-ADMIN', user: null });
+    let fail = true;
+    server.use(
+      http.get(`${API_URL}/users/me`, () =>
+        fail
+          ? HttpResponse.json({ message: 'boom' }, { status: 503 })
+          : HttpResponse.json({ data: { id: 'u', name: 'U', email: 'u@x.com', role: 'ADMIN' } }),
+      ),
+    );
+    renderWithProviders(<AppRoutes />, { route: '/' });
+    const retry = await screen.findByRole('button', { name: 'Tentar novamente' });
+    expect(localStorage.getItem('token')).toBe('token-ADMIN');
+    expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
+    fail = false;
+    await userEvent.click(retry);
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    await waitFor(() => expect(localStorage.getItem('token')).toBe('token-ADMIN'));
+  });
+
+  test('401 em /users/me encerra a sessão e vai ao login', async () => {
+    resetSession();
+    localStorage.setItem('token', 'token-ADMIN');
+    const { useAuthStore } = await import('@/shared/store/auth');
+    useAuthStore.setState({ token: 'token-ADMIN', user: null });
+    server.use(http.get(`${API_URL}/users/me`, () => HttpResponse.json({ message: 'x' }, { status: 401 })));
+    renderWithProviders(<AppRoutes />, { route: '/' });
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument();
     expect(localStorage.getItem('token')).toBeNull();
   });
 });

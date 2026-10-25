@@ -1,6 +1,8 @@
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { useForm } from 'react-hook-form';
 
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { useAuthStore } from '@/shared/store/auth';
@@ -36,7 +38,10 @@ function UserForm({ user, onClose }: FormProps) {
     defaultValues: { name: user?.name ?? '', email: '', password: '', role: user?.role ?? '', active: user?.active ?? true },
   });
 
-  const submit = handleSubmit(async (values) => {
+  const once = useSingleSubmit();
+  useModalBusy(isSubmitting);
+
+  const submit = handleSubmit(once(async (values) => {
     const name = values.name.trim();
 
     try {
@@ -59,7 +64,7 @@ function UserForm({ user, onClose }: FormProps) {
         setError('root.server', { type: 'server', message });
       }
     }
-  });
+  }));
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">

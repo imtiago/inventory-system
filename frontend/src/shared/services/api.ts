@@ -1,7 +1,8 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 import { queryClient } from "@/shared/react-query/queryClient";
-import { useAuthStore } from "@/shared/store/auth";
+import { useAuthStore, type SessionUser } from "@/shared/store/auth";
 
 export const api = axios.create({
   // baseURL: "http://192.168.100.3:3000", // sua API
@@ -18,6 +19,27 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const FORBIDDEN_DEDUPE_MS = 3000;
+let lastForbiddenAt = 0;
+
+/** Global 403: tells the user once per burst and revalidates the session user (the role may have changed). */
+function handleForbidden(url: unknown) {
+  const now = Date.now();
+  if (now - lastForbiddenAt > FORBIDDEN_DEDUPE_MS) {
+    lastForbiddenAt = now;
+    toast.error("Você não tem permissão para esta ação.", { id: "forbidden" });
+  }
+
+  if (typeof url === "string" && url.endsWith("/users/me")) return;
+  api
+    .get<{ data: SessionUser }>("/users/me")
+    .then((response) => {
+      queryClient.setQueryData(["auth", "me"], response.data.data);
+      useAuthStore.getState().setUser(response.data.data);
+    })
+    .catch(() => {});
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -33,6 +55,10 @@ api.interceptors.response.use(
       // Session ended: clear it (RouteGuard then sends the user to /login?expired=1 without a reload).
       useAuthStore.getState().logout(true);
       queryClient.clear();
+    }
+
+    if (error.response?.status === 403 && currentToken && sentWithCurrentToken) {
+      handleForbidden(error.config?.url);
     }
 
     return Promise.reject(error);

@@ -55,10 +55,11 @@ describe('ProductEditPage', () => {
 
     expect(await screen.findByDisplayValue('Perfume Floral 100ml')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Fragrância floral amadeirada.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Marca')).toHaveValue(product.brand.id);
-    expect(screen.getByLabelText('Categoria')).toHaveValue(product.category.id);
+    expect(screen.getByLabelText('Marca')).toHaveValue(product.brand.name);
+    expect(screen.getByLabelText('Categoria')).toHaveValue(product.category.name);
 
-    await userEvent.selectOptions(screen.getByLabelText('Marca'), 'brand-2');
+    await userEvent.click(screen.getByLabelText('Marca'));
+    await userEvent.click(await screen.findByRole('button', { name: /Boticário/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
 
     expect(await screen.findByText('detalhe do produto')).toBeInTheDocument();
@@ -105,25 +106,11 @@ describe('ProductEditPage', () => {
     server.use(http.put(`${API_URL}/products/:id`, () => HttpResponse.json({ message: 'Marca não encontrada.', code: 'BRAND_NOT_FOUND' }, { status: 404 })));
     renderEdit();
     await screen.findByDisplayValue('Perfume Floral 100ml');
-    await userEvent.selectOptions(screen.getByLabelText('Marca'), 'brand-2');
+    await userEvent.click(screen.getByLabelText('Marca'));
+    await userEvent.click(await screen.findByRole('button', { name: /Boticário/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Marca não encontrada.'));
     expect(toast.error).toHaveBeenCalledTimes(1);
-  });
-
-  test('falha ao carregar marcas mostra erro em vez de carregar para sempre', async () => {
-    server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
-    renderEdit();
-
-    expect(await screen.findByText('Erro ao carregar dados do produto')).toBeInTheDocument();
-    expect(screen.queryByText('Carregando produto...')).not.toBeInTheDocument();
-  });
-
-  test('falha ao carregar categorias mostra erro', async () => {
-    server.use(http.get(`${API_URL}/categories`, () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
-    renderEdit();
-
-    expect(await screen.findByText('Erro ao carregar dados do produto')).toBeInTheDocument();
   });
 });

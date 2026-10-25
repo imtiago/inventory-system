@@ -10,6 +10,13 @@ export interface ISale {
   itemsCount: number;
 }
 
+/** Business-day period (inclusive, "YYYY-MM-DD") and status: the same fields the CSV export uses. */
+export interface ISaleFilters {
+  from?: string;
+  to?: string;
+  status?: SaleStatus | '';
+}
+
 export interface ISalesResponse {
   data: ISale[];
   pagination: {

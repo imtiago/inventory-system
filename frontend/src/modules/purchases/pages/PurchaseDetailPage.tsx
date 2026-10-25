@@ -27,6 +27,7 @@ export function PurchaseDetailPage() {
   const isNotFound = parsed?.status === 404 || parsed?.code === 'PURCHASE_NOT_FOUND';
 
   const canReceive = purchase !== undefined && (purchase.status === 'PENDING' || purchase.status === 'PARTIALLY_RECEIVED');
+  const hasPayments = purchase?.payable?.parcels.some((parcel) => parcel.paidAmount > 0) ?? false;
   const canCancel = purchase !== undefined && purchase.status === 'PENDING' && purchase.items.every((item) => item.receivedQuantity === 0);
 
   return (
@@ -62,7 +63,14 @@ export function PurchaseDetailPage() {
                     </button>
                   </Can>
                 )}
-                {canCancel && (
+                {canCancel && hasPayments && (
+                  <Can permission="purchases.write">
+                    <p data-testid="cancel-blocked" className="max-w-xs text-sm text-gray-600">
+                      Este pedido tem pagamento registrado. Estorne os pagamentos em contas a pagar para poder cancelá-lo.
+                    </p>
+                  </Can>
+                )}
+                {canCancel && !hasPayments && (
                   <Can permission="purchases.write">
                     <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700" onClick={() => setCanceling(true)}>
                       Cancelar pedido

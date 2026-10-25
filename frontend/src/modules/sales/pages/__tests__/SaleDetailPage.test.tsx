@@ -83,6 +83,23 @@ describe('SaleDetailPage', () => {
     expect(await screen.findAllByText('Venda possui pagamentos registrados.')).toHaveLength(1);
   });
 
+  test('venda com pagamento registrado esconde "Cancelar venda" e explica; sem pagamento ativo o botão volta', async () => {
+    const paid = {
+      data: {
+        ...saleDetail.data,
+        receivable: {
+          ...saleDetail.data.receivable,
+          parcels: saleDetail.data.receivable.parcels.map((p, i) => (i === 0 ? { ...p, paidAmount: 10, remainingAmount: p.amount - 10 } : p)),
+        },
+      },
+    };
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(paid)));
+    renderDetail();
+
+    expect(await screen.findByTestId('cancel-blocked')).toHaveTextContent(/pagamento registrado/i);
+    expect(screen.queryByRole('button', { name: 'Cancelar venda' })).not.toBeInTheDocument();
+  });
+
   test('lista linka para /sales/:id', async () => {
     renderWithProviders(
       <Routes>
@@ -94,7 +111,7 @@ describe('SaleDetailPage', () => {
     const links = await screen.findAllByRole('link', { name: /#0B6F3C2E/ });
     expect(links[0]).toHaveAttribute('href', `/sales/${id}`);
     expect(screen.getByText('Maria Oliveira')).toBeInTheDocument();
-    expect(screen.getByText('Cancelada')).toBeInTheDocument();
+    expect(screen.getByText('Cancelada', { selector: 'td *, td' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Nova Venda/ })).toHaveAttribute('href', '/sales/new');
     expect(document.querySelector('button a, a button')).toBeNull();
   });

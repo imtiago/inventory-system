@@ -1,14 +1,17 @@
 import { api } from '@/shared/services/api';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
-import type { ICreateSaleDTO, ISaleDetail, ISalesResponse } from '../types';
+import type { ICreateSaleDTO, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
 
 const PAGE_SIZE = 10;
 
-export async function getSales(page = 1): Promise<ISalesResponse> {
+export async function getSales(page = 1, filters: ISaleFilters = {}): Promise<ISalesResponse> {
   const response = await api.get('/sales', {
     params: {
       page,
       limit: PAGE_SIZE,
+      from: filters.from || undefined,
+      to: filters.to || undefined,
+      status: filters.status || undefined,
     },
   });
 

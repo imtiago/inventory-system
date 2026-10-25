@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 
 import { useCancelPurchase } from '../hooks/usePurchases';
@@ -11,6 +12,7 @@ function CancelForm({ purchaseId, onClose }: { purchaseId: string; onClose: () =
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const mutation = useCancelPurchase(purchaseId);
+  useModalBusy(mutation.isPending);
 
   function handleSubmit() {
     const trimmed = reason.trim();

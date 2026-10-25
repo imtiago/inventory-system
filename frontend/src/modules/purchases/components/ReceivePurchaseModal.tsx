@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 
 import { useReceivePurchase } from '../hooks/usePurchases';
@@ -24,6 +25,7 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
   );
   const [error, setError] = useState<string | null>(null);
   const mutation = useReceivePurchase(purchase.id);
+  useModalBusy(mutation.isPending);
 
   function setField(id: string, field: keyof Row, value: string) {
     setRows((current) => ({ ...current, [id]: { ...current[id], [field]: value } }));

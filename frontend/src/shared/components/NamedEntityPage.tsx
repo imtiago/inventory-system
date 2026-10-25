@@ -1,3 +1,4 @@
+import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
@@ -8,6 +9,7 @@ import { Section } from '@/shared/components/details/Section';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { CrudPagination } from '@/shared/components/crud';
 import { Modal } from '@/shared/components/Modal/Modal';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Can } from '@/shared/auth/Can';
@@ -242,7 +244,10 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
     formState: { errors, isSubmitting },
   } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
 
-  const submit = handleSubmit(async ({ name }) => {
+  const once = useSingleSubmit();
+  useModalBusy(isSubmitting);
+
+  const submit = handleSubmit(once(async ({ name }) => {
     try {
       await onSubmit(name.trim());
     } catch (error) {
@@ -251,7 +256,7 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
       const { code, message } = parseApiErrorSync(error);
       setError(code === existsCode ? 'name' : 'root.server', { type: 'server', message });
     }
-  });
+  }));
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">

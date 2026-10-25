@@ -139,7 +139,7 @@ export function InitialInventoryPage() {
         />
       )}
 
-      <Modal open={flow.modal !== null} onClose={flow.closeModal} title={currentModal?.title ?? ''} description={currentModal?.subtitle}>
+      <Modal open={flow.modal !== null} onClose={flow.closeModal} closeOnEscape={!flow.modalLocked} closeOnOverlayClick={!flow.modalLocked} showCloseButton={!flow.modalLocked} title={currentModal?.title ?? ''} description={currentModal?.subtitle}>
         {flow.modal === 'new-product' && <InitialInventoryNewProduct onCancel={flow.closeModal} onSuccess={flow.handleNewProductSuccess} />}
 
         {flow.modal === 'product-selection' && (

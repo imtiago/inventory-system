@@ -61,3 +61,60 @@ describe('Modal focus management', () => {
     expect(screen.getByText('Corpo')).toHaveFocus();
   });
 });
+
+describe('Modal accessibility (wave 2)', () => {
+  test('ids are unique across two dialogs and labelled by the title', () => {
+    render(
+      <>
+        <Modal open onClose={() => {}} title="Um" description="d1"><button>a</button></Modal>
+        <Modal open onClose={() => {}} title="Dois" description="d2"><button>b</button></Modal>
+      </>,
+    );
+    const [one, two] = screen.getAllByRole('dialog');
+    expect(one.getAttribute('aria-labelledby')).not.toBe(two.getAttribute('aria-labelledby'));
+    expect(screen.getByRole('dialog', { name: 'Um' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Dois' })).toBeInTheDocument();
+  });
+
+  test('body scroll is locked while open and released after the last dialog closes', () => {
+    document.body.style.overflow = '';
+    const first = render(<Modal open onClose={() => {}} title="A"><button>a</button></Modal>);
+    const second = render(<Modal open onClose={() => {}} title="B"><button>b</button></Modal>);
+    expect(document.body.style.overflow).toBe('hidden');
+    first.unmount();
+    expect(document.body.style.overflow).toBe('hidden');
+    second.unmount();
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  test('stacked dialogs: Escape closes only the topmost', async () => {
+    function Stack() {
+      const [outer, setOuter] = useState(true);
+      const [inner, setInner] = useState(true);
+      return (
+        <>
+          <Modal open={outer} onClose={() => setOuter(false)} title="Fora"><button>fora</button></Modal>
+          <Modal open={inner} onClose={() => setInner(false)} title="Dentro"><button>dentro</button></Modal>
+        </>
+      );
+    }
+    render(<Stack />);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Dentro' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Fora' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  test('stacked dialogs: Tab is trapped in the topmost only', async () => {
+    render(
+      <>
+        <Modal open onClose={() => {}} title="Fora"><button>fora</button></Modal>
+        <Modal open onClose={() => {}} title="Dentro"><button>dentro</button></Modal>
+      </>,
+    );
+    screen.getByText('dentro').focus();
+    await userEvent.tab();
+    expect(screen.getByRole('dialog', { name: 'Dentro' }).contains(document.activeElement)).toBe(true);
+  });
+});

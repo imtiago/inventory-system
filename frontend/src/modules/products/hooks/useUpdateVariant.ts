@@ -1,4 +1,5 @@
 import { updateVariant, type SaveVariantDTO } from "../services/variantService";
+import { queryKeys } from "@/shared/react-query/keys";
 import { useCrudMutation } from "@/shared/react-query/useCrudMutation";
 
 import { productMessages } from "../config/messages";
@@ -9,6 +10,8 @@ export function useUpdateVariant(variantId: string, productId: string) {
     mutationFn: (payload: SaveVariantDTO) => updateVariant(variantId, payload),
 
     invalidateKeys: [
+      queryKeys.inventory,
+      productQueryKeys.variant(variantId),
       productQueryKeys.products,
       productQueryKeys.product(productId),
       productQueryKeys.variants(productId),

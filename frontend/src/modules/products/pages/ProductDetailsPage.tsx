@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 
-import { Pencil, Plus, Package, Layers, History, Trash2 } from "lucide-react";
+import { Pencil, Plus, Layers, Trash2 } from "lucide-react";
 
 import { DataTable } from "@/shared/components/table";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { useProduct } from "../hooks/useProduct";
 import { useProductVariants } from "../hooks/useProductVariants";
 import { useDeleteProduct } from "../hooks/useDeleteProduct";
+import { useInventoryBalances } from "@/modules/inventory/hooks/useInventoryBalances";
 import { useDeleteVariant } from "../hooks/useDeleteVariant";
 
 import { useProductVariantColumns } from "../components/ProductVariantColumns";
@@ -44,7 +45,7 @@ export function ProductDetailsPage() {
 
   const { data: product, isLoading, isError } = useProduct(id!, { enabled: !deleting });
 
-  const { data: variantsResponse } = useProductVariants(id!, page, { enabled: !deleting });
+  const { data: variantsResponse, isError: variantsError, isLoading: variantsLoading, refetch: refetchVariants } = useProductVariants(id!, page, { enabled: !deleting });
 
   const variants = variantsResponse?.data ?? [];
 
@@ -52,8 +53,11 @@ export function ProductDetailsPage() {
 
   const deleteVariant = useDeleteVariant(id!);
 
+  const stock = useInventoryBalances(variants.map((variant) => variant.id));
+
   const columns = useProductVariantColumns({
     onDelete: setVariantToDelete,
+    stock,
   });
 
   if (isLoading || deleteProduct.isSuccess) {
@@ -155,7 +159,7 @@ export function ProductDetailsPage() {
         <div
           className="
             grid
-            grid-cols-3
+            grid-cols-1
             gap-6
             shrink-0
           "
@@ -165,18 +169,6 @@ export function ProductDetailsPage() {
             value={product.variantsCount}
             icon={<Layers size={22} />}
           />
-
-          <SummaryCard
-            title="Estoque atual"
-            value="--"
-            icon={<Package size={22} />}
-          />
-
-          <SummaryCard
-            title="Movimentações"
-            value="--"
-            icon={<History size={22} />}
-          />
         </div>
 
         <Section
@@ -184,7 +176,7 @@ export function ProductDetailsPage() {
     flex-1
     min-h-0
   "
-          title={`Variantes (${pagination?.total ?? 0})`}
+          title={variantsError && !variantsResponse ? "Variantes" : `Variantes (${pagination?.total ?? 0})`}
           description="Unidades comercializadas deste produto"
           actions={
             <Can permission="catalog.write">
@@ -221,11 +213,22 @@ export function ProductDetailsPage() {
         overflow-y-auto
       "
             >
-              <DataTable
-                data={variants}
-                columns={columns}
-                getRowId={(variant) => variant.id}
-              />
+              {variantsError && !variantsResponse ? (
+                <div role="alert" className="flex min-h-32 flex-col items-center justify-center gap-3 p-6 text-center">
+                  <p className="font-medium text-red-600">Não foi possível carregar as variantes.</p>
+                  <button type="button" onClick={() => void refetchVariants()} className="rounded-lg border px-4 py-2 hover:bg-gray-50">
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : variantsLoading ? (
+                <div className="p-6 text-center text-sm text-gray-500">Carregando variantes...</div>
+              ) : (
+                <DataTable
+                  data={variants}
+                  columns={columns}
+                  getRowId={(variant) => variant.id}
+                />
+              )}
             </div>
 
             <div

@@ -36,4 +36,16 @@ describe('VariantForm', () => {
     expect(await screen.findByText('O preço deve ter no máximo 2 casas decimais.')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  test('dois cliques em salvar chamam onSubmit uma única vez', async () => {
+    const onSubmit = vi.fn(() => new Promise<void>((resolve) => setTimeout(resolve, 100)));
+    setup(onSubmit);
+
+    await userEvent.type(screen.getByPlaceholderText('Ex: Kaiak 100ml'), 'Kaiak');
+    await userEvent.dblClick(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /salvando/i })).toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,5 +1,4 @@
-import { useBrands } from '@/modules/brands/hooks/useBrands';
-import { useCategories } from '@/modules/categories/hooks/useCategories';
+import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { ProductForm, type ProductFormData } from '@/modules/products/components/ProductForm';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useCreateProduct } from '@/modules/products/hooks/useCreateProduct';
@@ -10,10 +9,8 @@ interface InitialInventoryNewProductProps {
 }
 
 export function InitialInventoryNewProduct({ onCancel, onSuccess }: InitialInventoryNewProductProps) {
-  const { data: brands = [] } = useBrands();
-  const { data: categories = [] } = useCategories();
-
   const createProduct = useCreateProduct();
+  useModalBusy(createProduct.isPending);
 
   async function handleSubmit(data: ProductFormData) {
     try {
@@ -27,5 +24,5 @@ export function InitialInventoryNewProduct({ onCancel, onSuccess }: InitialInven
     }
   }
 
-  return <ProductForm title="" description="" brands={brands} categories={categories} onSubmit={handleSubmit} onCancel={onCancel} />;
+  return <ProductForm title="" description="" onSubmit={handleSubmit} onCancel={onCancel} />;
 }

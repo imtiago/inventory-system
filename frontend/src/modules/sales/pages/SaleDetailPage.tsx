@@ -38,6 +38,9 @@ export function SaleDetailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  // Active payments (reversed ones are already out of paidAmount) block the cancellation on the backend too.
+  const hasPayments = sale?.receivable?.parcels.some((parcel) => parcel.paidAmount > 0) ?? false;
+
   const parsedLoadError = isError ? parseApiErrorSync(loadError) : null;
   const isNotFound = parsedLoadError?.status === 404 || parsedLoadError?.code === 'SALE_NOT_FOUND';
 
@@ -86,7 +89,14 @@ export function SaleDetailPage() {
                 <span className="mt-2 inline-block rounded-full border px-3 py-1 text-xs font-medium">{saleStatusLabels[sale.status] ?? sale.status}</span>
               </div>
 
-              {sale.status !== 'CANCELED' && (
+              {sale.status !== 'CANCELED' && hasPayments && (
+                <Can permission="sales.cancel">
+                  <p data-testid="cancel-blocked" className="max-w-xs text-sm text-gray-600">
+                    Esta venda tem pagamento registrado. Estorne os pagamentos em contas a receber para poder cancelá-la.
+                  </p>
+                </Can>
+              )}
+              {sale.status !== 'CANCELED' && !hasPayments && (
                 <Can permission="sales.cancel">
                 <button
                   type="button"
@@ -189,7 +199,7 @@ export function SaleDetailPage() {
         )}
       </div>
 
-      <Modal open={confirmOpen} onClose={closeDialog} title="Cancelar venda" description="O estoque será devolvido e a conta a receber cancelada. Deseja continuar?" size="sm">
+      <Modal open={confirmOpen} onClose={closeDialog} busy={cancel.isPending} title="Cancelar venda" description="O estoque será devolvido e a conta a receber cancelada. Deseja continuar?" size="sm">
         <div className="flex justify-end gap-2">
           <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={closeDialog} disabled={cancel.isPending}>
             Voltar

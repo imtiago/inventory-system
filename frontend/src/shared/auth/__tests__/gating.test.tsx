@@ -68,7 +68,7 @@ describe('botões por permissão', () => {
   test('Cenário Inicial oculto para VENDEDOR', async () => {
     loginAs('VENDEDOR');
     renderWithProviders(<InventoryListPage />);
-    await screen.findByText(/Items \(/);
+    await screen.findByText(/Itens \(/);
     expect(screen.queryByText('Cenário Inicial')).not.toBeInTheDocument();
   });
 });

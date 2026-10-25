@@ -83,3 +83,38 @@ describe('CustomerListPage', () => {
     expect(bodies[0].body).toMatchObject({ name: 'Carla Nova' });
   });
 });
+
+describe('CustomerListPage modal while saving', () => {
+  test('Escape, backdrop and X do not close the edit modal while the PATCH is pending', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    server.use(
+      http.patch(`${API_URL}/customers/:id`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        bodies.push({ method: 'PATCH', body });
+        await gate;
+        return HttpResponse.json({ data: { ...customerList.data[0], ...body } });
+      }),
+    );
+    renderWithProviders(<CustomerListPage />);
+    await screen.findByText('Ana McDonald');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar Ana McDonald' }));
+    const dialog = await screen.findByRole('dialog');
+    const name = within(dialog).getByLabelText(/Nome completo/);
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Ana Maria');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(bodies).toHaveLength(1));
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.pointer([{ keys: '[MouseLeft>]', target: dialog }, { keys: '[/MouseLeft]' }]);
+    const close = screen.queryByRole('button', { name: 'Fechar modal' });
+    if (close) await userEvent.click(close);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    release();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(bodies).toHaveLength(1);
+  });
+});

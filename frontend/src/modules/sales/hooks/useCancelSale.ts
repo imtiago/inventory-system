@@ -21,8 +21,12 @@ export function useCancelSale(id: string) {
         queryKey: queryKeys.sales,
         predicate: (query) => query.queryKey[1] !== 'detail',
       });
-      // Cancelling returns stock.
-      await invalidateInventoryQueries(queryClient);
+      // Cancelling returns stock and cancels the receivable.
+      await Promise.all([
+        invalidateInventoryQueries(queryClient),
+        queryClient.invalidateQueries({ queryKey: queryKeys.receivables }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
+      ]);
       notify.success(saleMessages.canceled);
     },
     // The page renders the backend message itself.

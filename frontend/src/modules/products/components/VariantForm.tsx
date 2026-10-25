@@ -1,3 +1,4 @@
+import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
@@ -46,7 +47,7 @@ export function VariantForm({
   onCancel,
   requireSalePrice = false,
 }: Props) {
-  const { register, handleSubmit, setValue, setError, formState: { errors } } = useForm<VariantFormData>({
+  const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting } } = useForm<VariantFormData>({
     defaultValues: initialValues,
   });
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -57,13 +58,15 @@ export function VariantForm({
     setScannerOpen(false);
   }
 
-  const submit = handleSubmit(async (data) => {
+  const once = useSingleSubmit();
+
+  const submit = handleSubmit(once(async (data) => {
     try {
       await onSubmit({ ...data, barcode: data.barcode?.trim() || null });
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
-  });
+  }));
 
   return (
     <form
@@ -93,9 +96,10 @@ export function VariantForm({
         {/* Nome */}
 
         <div>
-          <label className="block mb-1">Nome</label>
+          <label htmlFor="variant-name" className="block mb-1">Nome</label>
 
           <input
+            id="variant-name"
             {...register("name")}
             className="
               w-full
@@ -111,10 +115,11 @@ export function VariantForm({
         {/* Código de barras */}
 
         <div>
-          <label className="block mb-1">Código de barras</label>
+          <label htmlFor="variant-barcode" className="block mb-1">Código de barras</label>
 
           <div className="flex gap-3">
             <input
+              id="variant-barcode"
               {...register("barcode")}
               className="
                 flex-1
@@ -212,9 +217,10 @@ export function VariantForm({
 
         <button
           type="submit"
-          className="bg-black text-white rounded-lg px-6 py-3"
+          disabled={isSubmitting}
+          className="bg-black text-white rounded-lg px-6 py-3 disabled:opacity-50"
         >
-          {submitLabel}
+          {isSubmitting ? "Salvando..." : submitLabel}
         </button>
       </div>
           {errors.root?.server && (

@@ -3,8 +3,8 @@ import { queryKeys } from '@/shared/react-query/keys';
 import { createSupplier, deleteSupplier, updateSupplier } from '../services/supplierService';
 import type { UpdateSupplierInput } from '../types';
 
-// Purchases show the supplier name, so they are refreshed as well.
-const invalidateKeys = [queryKeys.suppliers, queryKeys.purchases];
+// Purchases, payables and NF-e imports show the supplier name, so they are refreshed as well.
+const invalidateKeys = [queryKeys.suppliers, queryKeys.purchases, queryKeys.payables, queryKeys.nfeImports];
 
 export function useCreateSupplier() {
   // SupplierForm displays errors itself.

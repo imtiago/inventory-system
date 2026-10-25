@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { UserRole } from "@/shared/auth/permissions";
+import { queryClient } from "@/shared/react-query/queryClient";
 
 export type SessionUser = {
   id: string;
@@ -35,6 +36,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   sessionExpired: false,
 
   setSession: (token, user) => {
+    // A new login must never see data cached by a previous session.
+    queryClient.clear();
     localStorage.setItem("token", token);
     set({ token, user, sessionExpired: false });
   },

@@ -281,7 +281,20 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(keys).toContain(JSON.stringify([queryKeys.inventoryBoxes()[0]]));
   });
 
-  test('quantidade de etiquetas pode ser apagada e valida no envio', async () => {
+  /** Captures <a download> clicks and object URLs; window.open must never be used for the PDF. */
+  function mockDownloads() {
+    const downloads: { href: string; name: string }[] = [];
+    const revoked: string[] = [];
+    Object.defineProperty(window.URL, 'createObjectURL', { value: vi.fn(() => 'blob:labels'), configurable: true });
+    Object.defineProperty(window.URL, 'revokeObjectURL', { value: vi.fn((url: string) => revoked.push(url)), configurable: true });
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push({ href: this.href, name: this.download });
+    });
+    return { downloads, revoked, open };
+  }
+
+  test('quantidade de etiquetas pode ser apagada e valida no envio; o PDF é baixado como arquivo (sem window.open)', async () => {
     let labelBody: unknown = null;
     server.use(
       http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, async ({ request }) => {
@@ -289,9 +302,7 @@ describe('InitialInventoryPage (assistente)', () => {
         return new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } });
       }),
     );
-    const createObjectURL = vi.fn(() => 'blob:labels');
-    Object.defineProperty(window.URL, 'createObjectURL', { value: createObjectURL, configurable: true });
-    vi.spyOn(window, 'open').mockImplementation(() => null);
+    const { downloads, open } = mockDownloads();
 
     const user = userEvent.setup();
     renderPage();
@@ -312,6 +323,69 @@ describe('InitialInventoryPage (assistente)', () => {
 
     await waitFor(() => expect(labelBody).toEqual({ productCode: variant.code, quantity: 2 }));
     expect(await screen.findByRole('button', { name: /ler código de barras/i })).toBeInTheDocument();
+    expect(downloads).toEqual([{ href: 'blob:labels', name: 'etiquetas-B000001.pdf' }]);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  test('etiquetas: URL do PDF é revogada depois do download', async () => {
+    server.use(
+      http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, () => new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } })),
+    );
+    const { revoked } = mockDownloads();
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+    await addThreeUnitsToBox(user);
+    await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
+    await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+
+    await screen.findByRole('button', { name: /ler código de barras/i });
+    await waitFor(() => expect(revoked).toEqual(['blob:labels']), { timeout: 3000 });
+  });
+
+  test('etiquetas: "Voltar" durante a geração não baixa o PDF', async () => {
+    let resolved = false;
+    server.use(
+      http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, async () => {
+        await delay(150);
+        resolved = true;
+        return new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } });
+      }),
+    );
+    const { downloads, open } = mockDownloads();
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+    await addThreeUnitsToBox(user);
+    await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
+    await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+
+    await waitFor(() => expect(resolved).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(downloads).toEqual([]);
+    expect(open).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /ler código de barras/i })).not.toBeInTheDocument();
+  });
+
+  test('etiquetas: falha ao entregar o arquivo mostra aviso e não conclui o passo', async () => {
+    server.use(
+      http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, () => new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } })),
+    );
+    mockDownloads();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+      throw new Error('bloqueado');
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+    await addThreeUnitsToBox(user);
+    await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
+    await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível entregar o PDF das etiquetas');
+    expect(screen.getByRole('button', { name: 'Gerar etiquetas' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ler código de barras/i })).not.toBeInTheDocument();
   });
 
   test('erro ao carregar lotes mostra a mensagem do servidor', async () => {
@@ -377,7 +451,7 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.queryByRole('heading', { name: 'Selecionar lote' })).not.toBeInTheDocument();
   });
 
-  test('fechar o modal durante a criação do lote: ao resolver, o assistente fica no passo de lote', async () => {
+  test('modal de lote não pode ser fechado durante a criação; ao resolver o lote é selecionado e o assistente avança', async () => {
     let resolved = false;
     server.use(
       http.post(`${API_URL}/inventory/lots`, async () => {
@@ -394,13 +468,16 @@ describe('InitialInventoryPage (assistente)', () => {
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText('Lote'), 'L2026-10-A');
     await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
+    await user.type(within(dialog).getByLabelText('Custo unitário'), '10');
     await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));
-    await user.click(screen.getByRole('button', { name: 'Fechar modal' }));
+
+    expect(screen.queryByRole('button', { name: 'Fechar modal' })).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await waitFor(() => expect(resolved).toBe(true));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(screen.getByRole('heading', { name: 'Selecionar lote' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Caixa' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Caixa' })).toBeInTheDocument();
+    expect(screen.getByText('Lote:').parentElement).toHaveTextContent('L2026-10-A');
   });
 
   test("404 VARIANT_NOT_FOUND leva a 'produto não encontrado': abre 'produto existe?' com o código lido", async () => {
@@ -504,7 +581,7 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.getByRole('heading', { name: 'Caixa' })).toBeInTheDocument();
   });
 
-  test('Voltar durante adicionar à caixa mantém o passo do lote', async () => {
+  test('Voltar fica desabilitado durante adicionar à caixa e o resultado é aplicado ao terminar', async () => {
     let resolved = false;
     server.use(
       http.post(`${API_URL}/inventory/boxes/:boxId/items`, async ({ request, params }) => {
@@ -519,14 +596,13 @@ describe('InitialInventoryPage (assistente)', () => {
     await goToBoxWithLot(user, lotWithRoom.id);
 
     await addThreeUnitsToBox(user);
+    expect(screen.getByRole('button', { name: 'Voltar' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
-    expect(screen.getByRole('heading', { name: 'Selecionar lote' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Caixa' })).toBeInTheDocument();
 
     await waitFor(() => expect(resolved).toBe(true));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(screen.getByRole('heading', { name: 'Selecionar lote' })).toBeInTheDocument();
-    expect(screen.queryByText(/unidade\(s\) colocada\(s\)/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Sim, gerar etiqueta' })).not.toBeInTheDocument();
+    expect(await screen.findByText(/3 unidade\(s\) colocada\(s\) na caixa B000001/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sim, gerar etiqueta' })).toBeInTheDocument();
   });
 
   test('lote sem número de lote (null) aparece como "Sem lote" no passo de lote', async () => {
@@ -563,5 +639,95 @@ describe('InitialInventoryPage (assistente)', () => {
     expect(screen.getByRole('button', { name: /B000001/ })).toBeDisabled();
     expect(screen.getByLabelText('Buscar caixa por código')).toBeDisabled();
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Salvando...' })).not.toBeInTheDocument());
+  });
+
+  test('busca de produtos: resposta antiga que chega depois não sobrescreve a mais recente', async () => {
+    server.use(
+      http.get(`${API_URL}/products`, async ({ request }) => {
+        const term = new URL(request.url).searchParams.get('search');
+        const item = (name: string) => ({ id: name, name, code: name, description: null, variantsCount: 1 });
+        if (term === '') {
+          await delay(700);
+          return HttpResponse.json({ data: [item('Produto antigo')], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } });
+        }
+        return HttpResponse.json({ data: [item('Produto novo')], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /cadastrar sem código de barras/i }));
+    await user.click(screen.getByRole('button', { name: /sim, o produto existe/i }));
+    // The empty search fires after the debounce, then the user types before it answers.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await user.type(screen.getByLabelText('Pesquisar produto'), 'novo');
+
+    expect(await screen.findByRole('button', { name: /Produto novo/ })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(screen.getByRole('button', { name: /Produto novo/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Produto antigo/ })).not.toBeInTheDocument();
+  });
+
+  test('lote: custo unitário começa vazio e é obrigatório (nada é enviado)', async () => {
+    let posted = false;
+    server.use(
+      http.post(`${API_URL}/inventory/lots`, () => {
+        posted = true;
+        return HttpResponse.json(inventoryLot, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await scanBarcode(user);
+    await user.click(await screen.findByRole('button', { name: 'Criar novo lote' }));
+    const dialog = await screen.findByRole('dialog');
+
+    expect(within(dialog).getByLabelText('Custo unitário')).toHaveValue(null);
+    await user.type(within(dialog).getByLabelText('Lote'), 'L1');
+    await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));
+
+    expect(await within(dialog).findByText('Informe o custo unitário.')).toBeInTheDocument();
+    expect(posted).toBe(false);
+  });
+
+  test('lote: erro de validação do backend aparece uma única vez (inline), sem banner duplicado', async () => {
+    server.use(
+      http.post(`${API_URL}/inventory/lots`, () =>
+        HttpResponse.json(
+          { message: 'Dados inválidos.', code: 'VALIDATION_ERROR', errors: [{ field: 'batchNumber', message: 'Lote já existe.' }] },
+          { status: 400 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await scanBarcode(user);
+    await user.click(await screen.findByRole('button', { name: 'Criar novo lote' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Lote'), 'L1');
+    await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
+    await user.type(within(dialog).getByLabelText('Custo unitário'), '10');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));
+
+    expect(await within(dialog).findByText('Lote já existe.')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Dados inválidos.')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('lote: erro sem campo (500) aparece uma única vez como alerta', async () => {
+    server.use(http.post(`${API_URL}/inventory/lots`, () => HttpResponse.json({ message: 'Falha interna.', code: 'INTERNAL_ERROR' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderPage();
+    await scanBarcode(user);
+    await user.click(await screen.findByRole('button', { name: 'Criar novo lote' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Lote'), 'L1');
+    await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
+    await user.type(within(dialog).getByLabelText('Custo unitário'), '10');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));
+
+    expect(await within(dialog).findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent('Falha interna.');
+    expect(within(dialog).getAllByText('Falha interna.')).toHaveLength(1);
   });
 });

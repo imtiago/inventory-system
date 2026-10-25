@@ -2,7 +2,14 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { parseInput } from "@shared/http/parseInput";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
-import { dateOnly } from "@finance/interfaces/http/schemas/financialDocumentQuerySchemas";
+import {
+  periodError,
+  periodShape,
+  salesPeriodQuerySchema as salesQuerySchema,
+  spanError,
+  spanOk,
+  validPeriod,
+} from "@sales/interfaces/http/schemas/salePeriodSchema";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { makeExportFinancialParcelsUseCase } from "@finance/infrastructure/http/factories/FinancialDocumentReadFactory";
 import { parseListQuery } from "@finance/infrastructure/http/controllers/ListFinancialDocumentsController";
@@ -17,7 +24,6 @@ import {
 import { PrismaReportReadRepository } from "../../prisma/PrismaReportReadRepository";
 
 const DEFAULT_MAX_ROWS = 50_000;
-const MAX_PERIOD_DAYS = 366;
 
 /** Limite de linhas por exportação; `REPORT_MAX_ROWS` permite apenas reduzi-lo (testes). */
 export function maxExportRows(): number {
@@ -41,18 +47,6 @@ const PARCEL_STATUS_LABEL: Record<string, string> = {
 const ORIGIN_LABEL: Record<string, string> = { MANUAL: "Manual", INVOICE: "Nota fiscal", PURCHASE: "Compra" };
 const originLabel = (type: string, id: string) => (type === "SALE" ? `Venda ${id}` : (ORIGIN_LABEL[type] ?? type));
 
-const periodShape = { from: dateOnly("Data inicial"), to: dateOnly("Data final") };
-const dayMs = 86_400_000;
-const validPeriod = (q: { from: string; to: string }) => q.from <= q.to;
-const periodError = { message: "A data inicial deve ser anterior ou igual à final.", path: ["to"] };
-const spanOk = (q: { from: string; to: string }) =>
-  (Date.parse(q.to) - Date.parse(q.from)) / dayMs + 1 <= MAX_PERIOD_DAYS;
-const spanError = { message: `O período deve ter no máximo ${MAX_PERIOD_DAYS} dias.`, path: ["to"] };
-
-const salesQuerySchema = z
-  .object({ ...periodShape, status: z.enum(["PENDING", "COMPLETED", "CANCELED"], { message: "Status inválido." }).optional() })
-  .refine(validPeriod, periodError)
-  .refine(spanOk, spanError);
 const saleItemsQuerySchema = z.object(periodShape).refine(validPeriod, periodError).refine(spanOk, spanError);
 
 function send(reply: FastifyReply, name: string, headers: string[], rows: CsvCell[][]) {

@@ -49,7 +49,7 @@ export function ReversePaymentModal({ kind, documentId, payment, onClose }: Prop
   const serverError = errors.root?.server?.message;
 
   return (
-    <Modal open onClose={close} title="Estornar pagamento" description={`Pagamento de ${formatCurrency(payment.amount)}. O saldo da parcela será restaurado.`} size="md">
+    <Modal open onClose={close} busy={mutation.isPending} title="Estornar pagamento" description={`Pagamento de ${formatCurrency(payment.amount)}. O saldo da parcela será restaurado.`} size="md">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div>
           <label htmlFor="reverse-reason" className="mb-2 block text-sm font-medium text-gray-700">

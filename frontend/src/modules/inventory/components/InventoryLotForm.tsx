@@ -38,7 +38,8 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
 
       quantity: initialValues?.quantity ?? 1,
 
-      unitCost: initialValues?.unitCost ?? 0,
+      // No silent default: an empty cost must be typed (required below).
+      unitCost: initialValues?.unitCost,
     },
   });
 
@@ -171,7 +172,11 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
       </div>
 
       {/* ERRO */}
-      {submitError && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{submitError}</div>}
+      {submitError && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          {submitError}
+        </div>
+      )}
 
       {/* AÇÕES */}
       <div className="flex justify-end gap-3">

@@ -14,6 +14,8 @@ export async function applyFinanceUpdate(queryClient: QueryClient, kind: Finance
 
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: financeRoot(kind), predicate: (q) => q.queryKey[1] !== 'detail' }),
+    // Payments and reversals move the dashboard's receivable/payable numbers.
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
     originRoot ? queryClient.invalidateQueries({ queryKey: [...originRoot, 'detail', detail.originId] }) : Promise.resolve(),
   ]);
 }

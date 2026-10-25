@@ -36,6 +36,24 @@ export async function getInventoryByVariant(variantId: string): Promise<Inventor
   }
 }
 
+export interface InventoryBalance {
+  productVariantId: string;
+  quantity: number;
+  reserved: number;
+  available: number;
+}
+
+/** One request for many variants (max 100). Variants without an inventory row are simply absent. */
+export async function getInventoryBalances(productVariantIds: string[]): Promise<InventoryBalance[]> {
+  if (productVariantIds.length === 0) return [];
+
+  const response = await api.get<{ data: InventoryBalance[] }>('/inventory', {
+    params: { productVariantIds: productVariantIds.join(',') },
+  });
+
+  return response.data.data;
+}
+
 export async function createInventory(productVariantId: string): Promise<Inventory> {
   const response = await api.post<{ data: Inventory }>('/inventory', { productVariantId });
 

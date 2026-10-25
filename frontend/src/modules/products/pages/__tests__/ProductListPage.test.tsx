@@ -59,24 +59,31 @@ describe('ProductListPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Próxima' }));
     await waitFor(() => expect(productRequests().at(-1)!.searchParams.get('page')).toBe('2'));
 
-    await userEvent.selectOptions(await screen.findByLabelText('Filtrar por marca'), brandList.data[0].id);
+    await userEvent.click(await screen.findByLabelText('Filtrar por marca'));
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(brandList.data[0].name) }));
     await waitFor(() => {
       const last = productRequests().at(-1)!;
       expect(last.searchParams.get('brandId')).toBe(brandList.data[0].id);
       expect(last.searchParams.get('page')).toBe('1');
     });
 
-    await userEvent.selectOptions(screen.getByLabelText('Filtrar por categoria'), 'cat-1');
+    await userEvent.click(screen.getByLabelText('Filtrar por categoria'));
+    await userEvent.click(await screen.findByRole('button', { name: /Perfumes/ }));
     await waitFor(() => expect(productRequests().at(-1)!.searchParams.get('categoryId')).toBe('cat-1'));
   });
 
-  test('dropdowns pedem limit=100', async () => {
+  test('filtros de marca e categoria pedem limit=20 e buscam no servidor após o debounce', async () => {
     renderWithProviders(<ProductListPage />);
     await screen.findByText('Produtos (25)');
     await waitFor(() => expect(requests.filter((url) => /\/(brands|categories)$/.test(url.pathname)).length).toBe(2));
     for (const url of requests.filter((u) => /\/(brands|categories)$/.test(u.pathname))) {
-      expect(url.searchParams.get('limit')).toBe('100');
+      expect(url.searchParams.get('limit')).toBe('20');
     }
+
+    requests.length = 0;
+    await userEvent.type(screen.getByLabelText('Filtrar por marca'), 'nat');
+    await waitFor(() => expect(requests.some((url) => /\/brands$/.test(url.pathname) && url.searchParams.get('search') === 'nat')).toBe(true));
+    expect(requests.some((url) => url.searchParams.get('search') === 'n')).toBe(false);
   });
 
   test('excluir pede confirmação e 409 PRODUCT_IN_USE mostra a mensagem uma vez', async () => {

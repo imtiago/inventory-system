@@ -13,10 +13,31 @@ async function labelErrorMessage(error: unknown): Promise<string> {
   return parsed.code === 'UNKNOWN_ERROR' ? FALLBACK : parsed.message;
 }
 
+/**
+ * Hands the PDF to the user as a downloaded file. Unlike window.open after an await,
+ * a download is not subject to pop-up blocking. Throws if the browser refuses.
+ */
+export function downloadPdf(blob: Blob, fileName: string) {
+  const url = window.URL.createObjectURL(blob);
+
+  try {
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = fileName;
+    link.rel = 'noopener';
+    link.click();
+  } finally {
+    // Give the browser time to start reading the blob before releasing it.
+    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+  }
+}
+
 export function useGenerateInventoryProductLabels() {
   const [loading, setLoading] = useState(false);
 
-  async function generate(boxCode: string, productCode: string, quantity: number): Promise<MutationResult<true>> {
+  /** Only requests the PDF; delivering it is the caller's job (after checking it is still wanted). */
+  async function generate(boxCode: string, productCode: string, quantity: number): Promise<MutationResult<Blob>> {
     try {
       setLoading(true);
 
@@ -26,13 +47,7 @@ export function useGenerateInventoryProductLabels() {
         { responseType: 'blob' },
       );
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-
-      const url = window.URL.createObjectURL(blob);
-
-      window.open(url, '_blank');
-
-      return { ok: true, data: true };
+      return { ok: true, data: new Blob([response.data], { type: 'application/pdf' }) };
     } catch (err: unknown) {
       return { ok: false, error: await labelErrorMessage(err) };
     } finally {

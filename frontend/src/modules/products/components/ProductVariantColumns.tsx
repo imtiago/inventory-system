@@ -8,14 +8,18 @@ import { formatCurrency } from "@/shared/utils/money";
 import { VariantStock } from "./VariantStock";
 
 import type { Variant } from "../services/variantService";
+import type { InventoryBalance } from "@/modules/inventory/services/inventoryService";
 import { Can } from "@/shared/auth/Can";
 
 interface Props {
   onDelete(variant: Variant): void;
+  /** Stock of the variants on the page, fetched once for all rows. */
+  stock: { balances: Map<string, InventoryBalance>; loading: boolean; error: boolean };
 }
 
 export function useProductVariantColumns({
   onDelete,
+  stock,
 }: Props): DataTableColumn<Variant>[] {
   return [
     {
@@ -50,7 +54,7 @@ export function useProductVariantColumns({
       id: "stock",
       header: "Estoque",
 
-      cell: (variant) => <VariantStock variantId={variant.id} />,
+      cell: (variant) => <VariantStock balance={stock.balances.get(variant.id)} loading={stock.loading} error={stock.error} />,
     },
 
     {
