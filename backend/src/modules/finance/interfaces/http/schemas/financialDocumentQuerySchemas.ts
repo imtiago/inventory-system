@@ -21,6 +21,10 @@ const listQueryBase = paginationSchema.extend({
     .optional(),
   dueFrom: dateOnly("Data inicial").optional(),
   dueTo: dateOnly("Data final").optional(),
+  openOnly: z
+    .enum(["true", "false"], { message: "openOnly deve ser true ou false." })
+    .transform((v) => v === "true")
+    .optional(),
 });
 
 const validDueRange = (q: { dueFrom?: string; dueTo?: string }) => !q.dueFrom || !q.dueTo || q.dueFrom <= q.dueTo;

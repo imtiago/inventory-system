@@ -105,14 +105,14 @@ describe('DashboardPage', () => {
     await screen.findByRole('region', { name: 'Vendas' });
 
     const rec = screen.getByRole('region', { name: 'Contas a receber' });
-    expect(within(rec).getByRole('link', { name: /em aberto/i })).toHaveAttribute('href', '/receivables');
+    expect(within(rec).getByRole('link', { name: /em aberto/i })).toHaveAttribute('href', '/receivables?openOnly=true');
     expect(within(rec).getByRole('link', { name: /vencid/i })).toHaveAttribute('href', '/receivables?status=OVERDUE');
-    expect(within(rec).getByRole('link', { name: /7 dias/i })).toHaveAttribute('href', '/receivables?dueFrom=2026-10-23&dueTo=2026-10-30');
+    expect(within(rec).getByRole('link', { name: /7 dias/i })).toHaveAttribute('href', '/receivables?openOnly=true&dueFrom=2026-10-23&dueTo=2026-10-30');
 
     const pay = screen.getByRole('region', { name: 'Contas a pagar' });
     expect(within(pay).getByRole('link', { name: /vencid/i })).toHaveAttribute('href', '/payables?status=OVERDUE');
-    expect(within(pay).getByRole('link', { name: /7 dias/i })).toHaveAttribute('href', '/payables?dueFrom=2026-10-23&dueTo=2026-10-30');
-    expect(within(pay).getByRole('link', { name: /em aberto/i })).toHaveAttribute('href', '/payables');
+    expect(within(pay).getByRole('link', { name: /7 dias/i })).toHaveAttribute('href', '/payables?openOnly=true&dueFrom=2026-10-23&dueTo=2026-10-30');
+    expect(within(pay).getByRole('link', { name: /em aberto/i })).toHaveAttribute('href', '/payables?openOnly=true');
 
     expect(within(screen.getByRole('region', { name: 'Compras' })).getByRole('link')).toHaveAttribute('href', '/purchases');
     const stock = screen.getByRole('region', { name: 'Estoque' });

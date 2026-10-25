@@ -40,6 +40,7 @@ export interface IFinanceFilters {
   supplierId?: string;
   dueFrom?: string;
   dueTo?: string;
+  openOnly?: boolean;
 }
 
 export const FINANCE_STATUS_LABELS: Record<FinanceStatus, string> = FINANCIAL_STATUS_LABELS as Record<FinanceStatus, string>;

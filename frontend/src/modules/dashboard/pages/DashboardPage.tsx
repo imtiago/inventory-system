@@ -57,14 +57,14 @@ function FinanceCard({ title, base, data, from, to }: { title: string; base: str
   return (
     <Card title={title}>
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat id={`${kind}-open`} label="Em aberto" value={formatCurrency(data.open)} to={base} />
+        <Stat id={`${kind}-open`} label="Em aberto" value={formatCurrency(data.open)} to={`${base}?openOnly=true`} />
         <Stat id={`${kind}-overdue`} label="Vencido" value={formatCurrency(data.overdue)} to={`${base}?status=OVERDUE`} danger={data.overdue > 0} />
         <Stat
           id={`${kind}-due7`}
           label="Vencendo em 7 dias"
           value={formatCurrency(data.dueNext7Days.amount)}
           hint={pluralize(data.dueNext7Days.count, 'parcela', 'parcelas')}
-          to={`${base}?dueFrom=${from}&dueTo=${to}`}
+          to={`${base}?openOnly=true&dueFrom=${from}&dueTo=${to}`}
         />
       </div>
     </Card>

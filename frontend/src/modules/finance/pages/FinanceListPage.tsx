@@ -3,8 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { CrudBadge, CrudPagination } from '@/shared/components/crud';
 import { Section } from '@/shared/components/details/Section';
+import { ExportButton } from '@/shared/components/export/ExportButton';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
+import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
@@ -15,7 +17,7 @@ import { FINANCE_STATUS_LABELS, type IFinanceFilters, type IFinanceListItem, typ
 
 const STATUSES = Object.keys(FINANCE_STATUS_LABELS) as FinanceStatus[];
 
-type FilterKey = 'status' | 'customerId' | 'supplierId' | 'dueFrom' | 'dueTo';
+type FilterKey = 'status' | 'customerId' | 'supplierId' | 'dueFrom' | 'dueTo' | 'openOnly';
 
 function SummaryCard({ id, label, value }: { id: string; label: string; value?: number }) {
   return (
@@ -81,6 +83,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
     [config.partyFilterKey]: searchParams.get(config.partyFilterKey) || undefined,
     dueFrom: searchParams.get('dueFrom') || undefined,
     dueTo: searchParams.get('dueTo') || undefined,
+    openOnly: searchParams.get('openOnly') === 'true' || undefined,
   };
   const page = Math.max(1, Number(searchParams.get('page')) || 1);
 
@@ -124,7 +127,18 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
 
   return (
     <Page>
-      <Section title={`${config.title} (${data?.pagination.total ?? 0})`}>
+      <Section
+        title={`${config.title} (${data?.pagination.total ?? 0})`}
+        actions={
+          <ExportButton
+            permission={config.exportPermission}
+            url={config.exportPath}
+            params={{ ...filters }}
+            fallbackName={`${config.exportFilePrefix}-${todayInBusinessTz()}.csv`}
+            disabled={invalidRange}
+          />
+        }
+      >
         <div className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <SummaryCard id="open" label="A vencer" value={data?.summary.openAmount} />
@@ -163,6 +177,11 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
               <input id={`${kind}-due-to`} type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={inputClass} />
             </div>
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" checked={Boolean(filters.openOnly)} onChange={(e) => setFilter('openOnly', e.target.checked ? 'true' : null)} />
+            Somente com saldo
+          </label>
 
           {invalidRange && (
             <p role="alert" className="text-sm text-red-600">

@@ -76,6 +76,7 @@ export const ErrorCodes = {
   FILE_TOO_LARGE: "FILE_TOO_LARGE",
   IDEMPOTENCY_KEY_REQUIRED: "IDEMPOTENCY_KEY_REQUIRED",
   IDEMPOTENCY_KEY_REUSED: "IDEMPOTENCY_KEY_REUSED",
+  EXPORT_TOO_LARGE: "EXPORT_TOO_LARGE",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

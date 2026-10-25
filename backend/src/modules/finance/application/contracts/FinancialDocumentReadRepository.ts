@@ -4,6 +4,7 @@ import {
   FinancialDocumentDetailDTO,
   FinancialListFilters,
   FinancialListResult,
+  FinancialParcelExportRow,
 } from "../dto/FinancialDocumentReadDTO";
 
 /** Leitura de documentos financeiros de um tipo (a receber ou a pagar); outro tipo nunca aparece. */
@@ -15,5 +16,15 @@ export interface FinancialDocumentReadRepository {
     pagination: PaginationRequest,
     today: string,
   ): Promise<FinancialListResult<T>>;
+  /**
+   * Parcelas (uma linha cada) dos documentos que passam nos MESMOS filtros da lista, sem paginação.
+   * Mais de `maxRows` parcelas → ExportTooLargeError.
+   */
+  listParcelsForExport<T extends FinancialType>(
+    type: T,
+    filters: FinancialListFilters,
+    today: string,
+    maxRows: number,
+  ): Promise<FinancialParcelExportRow[]>;
   getById<T extends FinancialType>(type: T, id: string, today: string): Promise<FinancialDocumentDetailDTO<T> | null>;
 }

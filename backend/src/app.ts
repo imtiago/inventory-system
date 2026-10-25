@@ -16,6 +16,7 @@ import cors from "@fastify/cors";
 import { nfeImportRoutes } from "@nfe-import/infrastructure/http/routes/nfeImportRoutes";
 import { payableRoutes, receivableRoutes } from "@finance/infrastructure/http/routes/financialDocumentRoutes";
 import { dashboardRoutes } from "./modules/dashboard/infrastructure/http/routes/dashboardRoutes";
+import { reportRoutes } from "./modules/reports/infrastructure/http/routes/reportRoutes";
 import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/productVariantsRoutes";
 
 export const app = Fastify({
@@ -26,6 +27,8 @@ registerErrorHandling(app);
 app.register(cors, {
   origin: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  // O front lê o nome do CSV exportado e a marca de resposta repetida (idempotência).
+  exposedHeaders: ["Content-Disposition", "Idempotent-Replayed"],
 });
 
 // Única rota pública: login. Todas as demais passam por `authenticate`.
@@ -54,3 +57,4 @@ app.register(payableRoutes, { prefix: "/payables" });
 app.register(userRoutes);
 app.register(nfeImportRoutes, { prefix: "/nfe-imports" });
 app.register(dashboardRoutes, { prefix: "/dashboard" });
+app.register(reportRoutes, { prefix: "/reports" });

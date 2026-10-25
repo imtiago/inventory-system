@@ -117,6 +117,8 @@ export interface FinancialListFilters {
   partyId?: string;
   dueFrom?: string;
   dueTo?: string;
+  /** Só documentos não cancelados com saldo (e, com intervalo, parcela com saldo nele). */
+  openOnly?: boolean;
 }
 
 export interface FinancialListResult<T extends FinancialType = FinancialType> {
@@ -127,3 +129,20 @@ export interface FinancialListResult<T extends FinancialType = FinancialType> {
 
 export type ReceivableListResult = FinancialListResult<FinancialType.RECEIVABLE>;
 export type PayableListResult = FinancialListResult<FinancialType.PAYABLE>;
+
+/** Uma parcela de um documento, achatada para a exportação CSV (valores com 2 casas). */
+export interface FinancialParcelExportRow {
+  documentId: string;
+  /** Cliente (a receber) ou fornecedor (a pagar). */
+  partyName: string;
+  /** Código do pedido de compra (só a pagar). */
+  purchaseCode: string | null;
+  originType: string;
+  originId: string;
+  number: number;
+  dueDate: string;
+  amount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: string;
+}
