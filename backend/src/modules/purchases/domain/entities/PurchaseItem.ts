@@ -1,6 +1,6 @@
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
-import { divideCentsRoundHalfUp } from "@shared/domain/money";
+import { unitCostFromCents } from "@shared/domain/money";
 import { invalidItemTotal } from "../errors/purchaseErrors";
 
 export interface PurchaseItemProps {
@@ -20,7 +20,7 @@ const isNonNegativeInt = (n: number) => Number.isSafeInteger(n) && n >= 0;
 /**
  * Item do pedido, valores em centavos. total = quantidade × preço − desconto +
  * frete + imposto (≥ 0, senão 422 INVALID_ITEM_TOTAL); unitCost =
- * round-half-up(total / quantidade) — custo que entra no estoque.
+ * round-half-up(total / quantidade) com 4 casas — custo que entra no estoque.
  */
 export class PurchaseItem extends BaseEntity {
   readonly productVariantId: string;
@@ -61,8 +61,9 @@ export class PurchaseItem extends BaseEntity {
     return this.quantity * this.unitPriceCents - this.discountCents + this.freightCents + this.taxCents;
   }
 
-  get unitCostCents(): number {
-    return divideCentsRoundHalfUp(this.totalCents, this.quantity);
+  /** Custo unitário em reais com 4 casas (`Decimal(14,4)`). */
+  get unitCost(): number {
+    return unitCostFromCents(this.totalCents, this.quantity);
   }
 
   get receivedQuantity(): number {

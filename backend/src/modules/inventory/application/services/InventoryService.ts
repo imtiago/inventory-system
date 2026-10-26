@@ -19,8 +19,8 @@ export interface ReceivePurchaseStockRequest {
   purchaseItemId: string;
   productVariantId: string;
   quantity: number;
-  /** Custo unitário do item do pedido, em centavos. */
-  unitCostCents: number;
+  /** Custo unitário do item do pedido, em reais com 4 casas. */
+  unitCost: number;
   batchNumber?: string;
   manufacturingDate?: Date;
   expirationDate?: Date;

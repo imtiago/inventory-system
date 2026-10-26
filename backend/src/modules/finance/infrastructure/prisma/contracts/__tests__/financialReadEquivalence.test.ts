@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../../test/cleanup";
 import { runInTransactionContext } from "@shared/infrastructure/prisma/transactionContext";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FinancialListFilters } from "@finance/application/dto/FinancialDocumentReadDTO";
@@ -308,7 +309,7 @@ describe("Contas a receber/pagar: lista, resumo e exportação equivalentes ao c
 
   after(async () => {
     try {
-      await prisma.financialDocument.deleteMany({ where: { id: { in: docIds } } });
+      await deleteFinancialDocuments({ where: { id: { in: docIds } } });
       await prisma.purchase.deleteMany({ where: { id: { in: purchaseIds } } });
       await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
       await prisma.supplier.deleteMany({ where: { id: { in: supplierIds } } });

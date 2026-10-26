@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import Fastify from "fastify";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../test/cleanup";
 import { registerErrorHandling } from "../errorHandler";
 import { createTestVariant } from "../../../test/inventoryFixtures";
 
@@ -120,6 +121,6 @@ test("segunda origem financeira ativa para a mesma venda → 409 CONSTRAINT_VIOL
     const second = await prisma.financialDocument.create({ data });
     await prisma.financialDocument.delete({ where: { id: second.id } });
   } finally {
-    await prisma.financialDocument.deleteMany({ where: { originId } });
+    await deleteFinancialDocuments({ where: { originId } });
   }
 });

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
 import { ConsumeStockRequest, InventoryService } from "@inventory/application/services/InventoryService";
 import { CustomerService } from "@customer/application/services/CustomerService";
 import { FinancialService } from "@finance/application/services/FinacialService";

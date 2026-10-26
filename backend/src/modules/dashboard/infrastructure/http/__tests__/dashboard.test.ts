@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -132,7 +133,7 @@ describe("Dashboard (GET /dashboard)", () => {
 
   after(async () => {
     await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
-    await prisma.financialDocument.deleteMany({ where: { id: { in: docIds } } });
+    await deleteFinancialDocuments({ where: { id: { in: docIds } } });
     await prisma.purchase.deleteMany({ where: { id: { in: purchaseIds } } });
     for (const v of variants) await v.cleanup();
     await prisma.customer.deleteMany({ where: { id: customerId } });

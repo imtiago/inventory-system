@@ -6,7 +6,7 @@ import { IReceiveInventoryInput } from "@inventory/application/dto/InventoryDTO"
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
 import {
   FakeCatalogService,
   InMemoryInventoryLotRepository,
@@ -89,7 +89,7 @@ test("custo médio ponderado", async () => {
   assert.equal(second.averageCost, 10);
 });
 
-test("mesmo batchNumber soma no lote: custo vira a média ponderada (2 casas) e validade igual é aceita", async () => {
+test("mesmo batchNumber soma no lote: custo vira a média ponderada (4 casas) e validade igual é aceita", async () => {
   const { useCase, lots, movements } = setup();
   const exp = new Date("2030-01-01");
   const first = await useCase.execute(
@@ -102,8 +102,8 @@ test("mesmo batchNumber soma no lote: custo vira a média ponderada (2 casas) e 
   assert.equal(second.lot.id, first.lot.id);
   assert.equal(second.lot.initialQuantity, 14);
   assert.equal(second.lot.remainingQuantity, 14);
-  // (10*5 + 4*50) / 14 = 17.857... -> 17.86
-  assert.equal(second.lot.unitCost, 17.86);
+  // (10*5 + 4*50) / 14 = 17.857... -> 17.8571
+  assert.equal(second.lot.unitCost, 17.8571);
   assert.equal(second.lot.expirationDate?.getTime(), exp.getTime());
   assert.equal(second.inventory.quantity, 14);
   const ms = movements
@@ -246,7 +246,7 @@ test("receivePurchaseStock chama o recebimento com origem/lote PURCHASE, item, u
     purchaseItemId: "pi-1",
     productVariantId: "variant-1",
     quantity: 3,
-    unitCostCents: 333,
+    unitCost: 3.3333,
     batchNumber: "L1",
     expirationDate: exp,
     userId: "u-1",
@@ -255,7 +255,7 @@ test("receivePurchaseStock chama o recebimento com origem/lote PURCHASE, item, u
     {
       productVariantId: "variant-1",
       quantity: 3,
-      unitCost: 3.33,
+      unitCost: 3.3333,
       batchNumber: "L1",
       manufacturingDate: undefined,
       expirationDate: exp,

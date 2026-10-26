@@ -121,12 +121,12 @@ describe("Importações de NF-e (/nfe-imports)", () => {
       match: { id: supplier.id, name: supplier.name },
     });
     assert.equal(d.items.length, 3);
-    // custo / quantidade, arredondado meio para cima: 247,05 / 2; 52,54 / 10,5; 97,50 / 1
+    // custo / quantidade com 4 casas, arredondado meio para cima: 247,05 / 2; 52,54 / 10,5; 97,50 / 1
     assert.deepEqual(
       d.items.map((i: any) => [i.index, i.supplierCode, i.unit, i.quantity, i.unitCost, i.total]),
       [
-        [1, "A-001", "CX", 2, 123.53, 247.05],
-        [2, "B-002", "KG", 10.5, 5, 52.54],
+        [1, "A-001", "CX", 2, 123.525, 247.05],
+        [2, "B-002", "KG", 10.5, 5.0038, 52.54],
         [3, "C-003", "UN", 1, 97.5, 97.5],
       ],
     );

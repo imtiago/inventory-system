@@ -1,4 +1,4 @@
-import { TransactionManager } from "./TransactionManager";
+import type { TransactionManager } from "@shared/application/transaction/TransactionManager";
 
 /** Executa o trabalho sem transação. Para testes unitários de use cases. */
 export class InMemoryTransactionManager implements TransactionManager {

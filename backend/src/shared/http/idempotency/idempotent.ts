@@ -39,7 +39,11 @@ type RouteHandler = (request: FastifyRequest, reply: FastifyReply) => unknown;
 interface CapturedResponse {
   statusCode: number;
   body: unknown;
+  headers: Record<string, string>;
 }
+
+/** Cabeçalhos da resposta original que o replay reproduz (nomes em minúsculas). */
+const REPLAYED_HEADERS = new Set(["location", "content-disposition"]);
 
 function readKey(request: FastifyRequest): string {
   const raw = request.headers[IDEMPOTENCY_KEY_HEADER];
@@ -87,6 +91,13 @@ async function runCapturing(
   let statusCode: number | undefined;
   let sent = false;
   let payload: unknown;
+  const headers: Record<string, string> = {};
+  const capture = (name: string, value: unknown) => {
+    const lower = name.toLowerCase();
+    if (!REPLAYED_HEADERS.has(lower) || typeof value !== "string") return false;
+    headers[lower] = value;
+    return true;
+  };
 
   const proxy: FastifyReply = new Proxy(reply, {
     get(target, prop) {
@@ -109,6 +120,19 @@ async function runCapturing(
           return proxy;
         };
       }
+      if (prop === "header" || prop === "headers") {
+        return (nameOrMap: string | Record<string, unknown>, value?: unknown) => {
+          // Cabeçalhos relevantes só vão ao cliente depois do commit (ver abaixo); os demais seguem direto.
+          if (typeof nameOrMap === "string") {
+            if (!capture(nameOrMap, value)) target.header(nameOrMap, value as string);
+          } else {
+            for (const [name, v] of Object.entries(nameOrMap)) {
+              if (!capture(name, v)) target.header(name, v as string);
+            }
+          }
+          return proxy;
+        };
+      }
       if (prop === "statusCode") return statusCode ?? target.statusCode;
       if (prop === "sent") return sent;
       // O FastifyReply é "thenable" (espera o envio real); o controller devolve o
@@ -125,7 +149,7 @@ async function runCapturing(
 
   const returned = await handler(request, proxy);
   if (!sent && returned !== undefined && returned !== proxy) payload = returned;
-  return { statusCode: statusCode ?? reply.statusCode, body: toJsonBody(payload) };
+  return { statusCode: statusCode ?? reply.statusCode, body: toJsonBody(payload), headers };
 }
 
 /**
@@ -178,11 +202,12 @@ export function idempotent(handler: RouteHandler, options: IdempotentOptions = {
           replayed: true,
           statusCode: existing.statusCode,
           body: existing.responseBody ?? undefined,
+          headers: existing.responseHeaders ?? {},
         };
       }
 
       const response = await runCapturing(handler, request, reply);
-      await store.saveResponse(recordId, response.statusCode, response.body);
+      await store.saveResponse(recordId, response.statusCode, response.body, response.headers);
       return { replayed: false, ...response };
     });
 
@@ -197,6 +222,7 @@ export function idempotent(handler: RouteHandler, options: IdempotentOptions = {
 
     // Commit feito: só agora a resposta vai para o cliente.
     if (outcome.replayed) reply.header(IDEMPOTENT_REPLAYED_HEADER, "true");
+    for (const [name, value] of Object.entries(outcome.headers)) reply.header(name, value);
     reply.status(outcome.statusCode);
     return outcome.body === undefined ? reply.send() : reply.send(outcome.body);
   };

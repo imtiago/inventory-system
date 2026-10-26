@@ -1,3 +1,4 @@
+import { roundCost } from "@shared/domain/money";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
 
@@ -92,7 +93,7 @@ export class Inventory extends BaseEntity {
     const newQuantity = this._quantity + props.quantity;
 
     this._averageCost =
-      newQuantity === 0 ? 0 : (currentValue + receivedValue) / newQuantity;
+      newQuantity === 0 ? 0 : roundCost((currentValue + receivedValue) / newQuantity);
 
     this._quantity = newQuantity;
 

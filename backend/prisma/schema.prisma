@@ -189,7 +189,7 @@ model InventoryLot {
 
   remainingQuantity Int
 
-  unitCost Decimal
+  unitCost Decimal @db.Decimal(14, 4)
 
   batchNumber String?
 
@@ -221,7 +221,7 @@ model Inventory {
 
   minimumStock Int @default(0)
 
-  averageCost Decimal @default(0)
+  averageCost Decimal @default(0) @db.Decimal(14, 4)
 
   createdAt DateTime @default(now())
 
@@ -254,7 +254,7 @@ model StockMovement {
 
   currentQuantity Int?
 
-  averageCost Decimal?
+  averageCost Decimal? @db.Decimal(14, 4)
 
   inventoryLotId String?
 
@@ -273,6 +273,7 @@ model StockMovement {
   @@index([origin, originId])
   @@index([productVariantId, createdAt])
   @@index([inventoryId, createdAt])
+  @@index([inventoryLotId])
   @@index([createdAt])
 }
 
@@ -401,7 +402,7 @@ model FinancialParcel {
 
   createdAt DateTime @default(now())
 
-  document FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Cascade)
+  document FinancialDocument @relation(fields: [financialDocumentId], references: [id], onDelete: Restrict)
 
   payments Payment[]
 
@@ -431,7 +432,7 @@ model Payment {
   reversedBy     User?     @relation("paymentsReversed", fields: [reversedById], references: [id], onDelete: SetNull)
   reversalReason String?
 
-  parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+  parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Restrict)
 
   @@index([parcelId])
 }
@@ -530,8 +531,8 @@ model PurchaseItem {
 
   total Decimal @db.Decimal(12, 2)
 
-  // Custo unitário que entra no estoque: round(total / quantity) em centavos.
-  unitCost Decimal @db.Decimal(12, 2)
+  // Custo unitário que entra no estoque: round(total / quantity) com 4 casas.
+  unitCost Decimal @db.Decimal(14, 4)
 
   // Ordem do item no pedido (ordem do envio na criação).
   position Int
@@ -653,6 +654,9 @@ model IdempotencyRecord {
   statusCode Int?
 
   responseBody Json? @db.Json
+
+  // Cabeçalhos relevantes da resposta (Location, Content-Disposition), reproduzidos no replay.
+  responseHeaders Json? @db.Json
 
   createdAt DateTime @default(now())
 

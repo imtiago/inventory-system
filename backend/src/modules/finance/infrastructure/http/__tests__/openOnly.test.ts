@@ -3,6 +3,7 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { getTestUserId } from "../../../../../test/inventoryFixtures";
@@ -108,7 +109,7 @@ describe("Filtro openOnly (GET /receivables e /payables)", () => {
   after(async () => {
     try {
       try {
-        await prisma.financialDocument.deleteMany({ where: { partyId: { in: [customerId, supplierId] } } });
+        await deleteFinancialDocuments({ where: { partyId: { in: [customerId, supplierId] } } });
       } finally {
         await prisma.customer.deleteMany({ where: { id: customerId } });
         await prisma.supplier.deleteMany({ where: { id: supplierId } });

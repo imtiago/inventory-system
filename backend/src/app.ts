@@ -35,7 +35,7 @@ export type BuildAppOptions = {
   trustProxy?: FastifyServerOptions["trustProxy"];
 };
 
-const RATE_LIMIT_DEFAULTS = { max: 300, reportsMax: 20 };
+export const RATE_LIMIT_DEFAULTS = { max: 300, reportsMax: 20 };
 
 const defaultHealthCheck = async () => {
   await prisma.$queryRaw`SELECT 1`;

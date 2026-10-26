@@ -1,4 +1,3 @@
-import { fromCents } from "@shared/domain/money";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { DispatchInventoryUseCase } from "../useCases/commands/DispatchInventoryUseCase";
@@ -47,7 +46,7 @@ export class InventoryApplicationService implements InventoryService {
     await this.receiveInventoryUseCase.execute({
       productVariantId: request.productVariantId,
       quantity: request.quantity,
-      unitCost: fromCents(request.unitCostCents),
+      unitCost: request.unitCost,
       batchNumber: request.batchNumber,
       manufacturingDate: request.manufacturingDate,
       expirationDate: request.expirationDate,

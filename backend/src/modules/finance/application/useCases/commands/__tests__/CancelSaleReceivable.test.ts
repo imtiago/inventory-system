@@ -7,7 +7,7 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 import { FinancialStatus } from "@finance/domain/enums/FinancialStatus";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
 
 const newDoc = () =>
   new FinancialDocument({

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { buildInstallments } from "@shared/domain/installments";
 import { app } from "../../../../../app";
@@ -96,7 +97,7 @@ describe("Pedidos de compra (/purchases)", () => {
       const documents = { originType: "PURCHASE" as const, originId: { in: purchaseIds } };
       await prisma.payment.deleteMany({ where: { parcel: { document: documents } } });
       await prisma.financialParcel.deleteMany({ where: { document: documents } });
-      await prisma.financialDocument.deleteMany({ where: documents });
+      await deleteFinancialDocuments({ where: documents });
       await prisma.purchaseItem.deleteMany({ where: { purchaseId: { in: purchaseIds } } });
       await prisma.purchase.deleteMany({ where: { id: { in: purchaseIds } } });
       await prisma.supplier.deleteMany({ where: { id: { in: supplierIds } } });
@@ -147,7 +148,7 @@ describe("Pedidos de compra (/purchases)", () => {
     assert.equal(row.origin, "MANUAL");
     assert.equal(row.totalAmount.toString(), "30.75");
     const v1Row = row.items.find((i) => i.productVariantId === v1)!;
-    assert.equal(v1Row.unitCost.toString(), "3.33");
+    assert.equal(v1Row.unitCost.toString(), "3.3333");
     assert.equal(v1Row.total.toString(), "10");
 
     // Review Focus 3: unitCost 333 × 3 = 999 ≠ 1000, mas as parcelas somam exatamente o total do pedido.

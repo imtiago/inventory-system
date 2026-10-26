@@ -3,6 +3,7 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
@@ -131,7 +132,7 @@ describe("Relatórios CSV", () => {
 
   after(async () => {
     try {
-      await prisma.financialDocument.deleteMany({ where: { partyId: { in: [customerId, supplierId] } } });
+      await deleteFinancialDocuments({ where: { partyId: { in: [customerId, supplierId] } } });
       await prisma.sale.deleteMany({ where: { customerId } });
       await prisma.purchase.deleteMany({ where: { id: purchaseId } });
       await variantCleanup();
@@ -289,7 +290,7 @@ describe("Relatórios CSV", () => {
       const origem = (await csv(`/reports/receivables.csv?customerId=${customerId}`)).rows.find((r) => r[0] === doc.id)!;
       assert.equal(origem[2], "Manual");
     } finally {
-      await prisma.financialDocument.deleteMany({ where: { id: doc.id } });
+      await deleteFinancialDocuments({ where: { id: doc.id } });
     }
   });
 
