@@ -9,6 +9,9 @@ export interface DataTableColumn<T> {
 
   align?: 'left' | 'center' | 'right';
 
+  /** Valor numérico (dinheiro, quantidade): à direita, com algarismos tabulares e sem quebra de linha. */
+  numeric?: boolean;
+
   cell: (row: T) => ReactNode;
 
   /**

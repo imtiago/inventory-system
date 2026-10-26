@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 
 import { Page } from '@/shared/components/layout/Page';
 import { DetailTable } from '@/shared/components/details/DetailTable';
+import { StatusBadge } from '@/components/ui/badge';
 import { Modal } from '@/shared/components/Modal/Modal';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -87,7 +88,9 @@ export function SaleDetailPage() {
               <div>
                 <h1 className="text-xl font-semibold">Venda #{sale.id.slice(0, 8).toUpperCase()}</h1>
                 <p className="text-sm text-gray-500">{formatDateTime(sale.createdAt)}</p>
-                <span className="mt-2 inline-block rounded-full border px-3 py-1 text-xs font-medium">{saleStatusLabels[sale.status] ?? sale.status}</span>
+                <StatusBadge status={sale.status} className="mt-2">
+                  {saleStatusLabels[sale.status] ?? sale.status}
+                </StatusBadge>
               </div>
 
               {sale.status !== 'CANCELED' && hasPayments && (
@@ -172,7 +175,7 @@ export function SaleDetailPage() {
                     { id: 'amount', header: 'Valor', align: 'right', cell: (row) => formatCurrency(row.parcel.amount) },
                     { id: 'paid', header: 'Pago', align: 'right', cell: (row) => formatCurrency(row.parcel.paidAmount) },
                     { id: 'remaining', header: 'Restante', align: 'right', cell: (row) => formatCurrency(row.parcel.remainingAmount) },
-                    { id: 'status', header: 'Status', cell: (row) => FINANCIAL_STATUS_LABELS[row.parcel.status] ?? row.parcel.status },
+                    { id: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.parcel.status}>{FINANCIAL_STATUS_LABELS[row.parcel.status] ?? row.parcel.status}</StatusBadge> },
                   ]}
                 />
               </section>

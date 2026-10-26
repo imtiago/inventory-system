@@ -47,8 +47,8 @@ export class ChunkErrorBoundary extends Component<Props, State> {
     return (
       <div role="alert" className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
         <p className="text-lg font-semibold">{outdated ? 'Nova versão disponível' : 'Algo deu errado ao exibir esta página.'}</p>
-        <p className="text-gray-600">{outdated ? 'O sistema foi atualizado. Recarregue a página para continuar.' : 'Recarregue a página para tentar novamente.'}</p>
-        <button type="button" onClick={() => window.location.reload()} className="rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700">
+        <p className="text-muted">{outdated ? 'O sistema foi atualizado. Recarregue a página para continuar.' : 'Recarregue a página para tentar novamente.'}</p>
+        <button type="button" onClick={() => window.location.reload()} className="rounded-lg bg-primary px-5 py-2 text-primary-foreground hover:bg-primary-hover">
           Recarregar
         </button>
       </div>

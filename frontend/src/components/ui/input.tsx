@@ -6,7 +6,7 @@ export const Input: React.FC<InputProps> = (props) => {
   return (
     <input
       {...props}
-      className={`border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 ${props.className || ""}`}
+      className={`rounded border border-input bg-surface px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${props.className || ""}`}
     />
   );
 };

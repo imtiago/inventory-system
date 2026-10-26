@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
-import { CrudBadge } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { Page } from '@/shared/components/layout/Page';
 import { DetailTable } from '@/shared/components/details/DetailTable';
 import { Can } from '@/shared/auth/Can';
@@ -52,7 +52,7 @@ export function PurchaseDetailPage() {
                 <h1 className="text-xl font-semibold">{purchase.code}</h1>
                 <p className="text-sm text-gray-500">Data do pedido: {formatDateOnly(purchase.purchaseDate)}</p>
                 <div className="mt-2">
-                  <CrudBadge>{PURCHASE_STATUS_LABELS[purchase.status] ?? purchase.status}</CrudBadge>
+                  <StatusBadge status={purchase.status}>{PURCHASE_STATUS_LABELS[purchase.status] ?? purchase.status}</StatusBadge>
                 </div>
               </div>
 
@@ -138,7 +138,7 @@ export function PurchaseDetailPage() {
                     { id: 'amount', header: 'Valor', align: 'right', cell: (parcel) => formatCurrency(parcel.amount) },
                     { id: 'paid', header: 'Pago', align: 'right', cell: (parcel) => formatCurrency(parcel.paidAmount) },
                     { id: 'remaining', header: 'Restante', align: 'right', cell: (parcel) => formatCurrency(parcel.remainingAmount) },
-                    { id: 'status', header: 'Status', cell: (parcel) => FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status },
+                    { id: 'status', header: 'Status', cell: (parcel) => <StatusBadge status={parcel.status}>{FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge> },
                   ]}
                 />
               </section>

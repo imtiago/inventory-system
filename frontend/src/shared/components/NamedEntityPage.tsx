@@ -40,7 +40,7 @@ interface Props<T extends NamedEntity> {
 }
 
 const PAGE_SIZE = 10;
-const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100';
+const inputClass = 'w-full rounded-lg border border-input bg-surface p-3 text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
 
 /** Generic list + create/rename modal + delete confirmation for brand-like entities (name + productsCount). */
 export function NamedEntityPage<T extends NamedEntity>({ singular, plural, queryKey, existsCode, list, create, update, remove }: Props<T>) {
@@ -73,7 +73,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
 
   const columns: DataTableColumn<T>[] = [
     { id: 'name', header: 'Nome', mobile: 'title', cell: (item) => item.name },
-    { id: 'productsCount', header: 'Produtos', mobile: 'meta', align: 'center', cell: (item) => item.productsCount ?? 0 },
+    { id: 'productsCount', header: 'Produtos', mobile: 'meta', numeric: true, cell: (item) => item.productsCount ?? 0 },
     {
       id: 'actions',
       header: 'Ações',
@@ -88,14 +88,14 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 setEditing(item);
                 setFormOpen(true);
               }}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:bg-surface-muted hover:text-primary-hover"
               aria-label={`Editar ${item.name}`}
             >
               <Pencil size={18} />
             </button>
           </Can>
           <Can permission="catalog.delete">
-            <button type="button" onClick={() => setDeleting(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800" aria-label={`Excluir ${item.name}`}>
+            <button type="button" onClick={() => setDeleting(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:bg-surface-muted" aria-label={`Excluir ${item.name}`}>
               <Trash2 size={18} />
             </button>
           </Can>
@@ -134,7 +134,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 setEditing(null);
                 setFormOpen(true);
               }}
-              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
             >
               <Plus size={18} />
               Nova {singular}
@@ -143,14 +143,14 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
         }
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total de {plural}</p>
-              <p className="text-xl font-bold text-gray-800">{data?.pagination.total ?? 0}</p>
+              <p className="text-sm text-muted">Total de {plural}</p>
+              <p className="text-xl font-bold text-foreground">{data?.pagination.total ?? 0}</p>
             </div>
 
             <div className="relative w-full sm:max-w-sm">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
               <input
                 type="search"
                 value={search}
@@ -160,7 +160,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 }}
                 placeholder={`Buscar ${plural}...`}
                 aria-label={`Buscar ${plural}`}
-                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                className="w-full rounded-lg border border-input bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-ring focus:ring-2 focus:ring-ring/20"
               />
             </div>
           </div>
@@ -168,11 +168,11 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
           <div className="min-h-0 flex-1 overflow-auto">
             {isError ? (
               <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
-                <p className="font-medium text-red-600">Não foi possível carregar as {plural}.</p>
-                <p className="text-sm text-gray-500">Verifique sua conexão e tente novamente.</p>
+                <p className="font-medium text-danger">Não foi possível carregar as {plural}.</p>
+                <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
                 <LoaderCircle size={20} className="animate-spin" />
                 Carregando {plural}...
               </div>
@@ -182,13 +182,13 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
           </div>
 
           {isFetching && !isLoading && (
-            <div className="flex items-center gap-2 border-t border-gray-100 px-5 py-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 border-t border-border px-5 py-2 text-xs text-muted">
               <LoaderCircle size={14} className="animate-spin" />
               Atualizando resultados...
             </div>
           )}
 
-          <div className="shrink-0 border-t border-gray-100 p-3 sm:p-4">
+          <div className="shrink-0 border-t border-border p-3 sm:p-4">
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={data?.pagination.totalPages ?? 1}
@@ -273,20 +273,20 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
           className={inputClass}
           {...register('name', { validate: (value) => value.trim().length > 0 || 'Informe o nome.' })}
         />
-        {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+        {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
       </div>
 
       {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}
 
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-        <button type="button" onClick={onCancel} className="rounded-lg border px-5 py-3 hover:bg-gray-50">
+        <button type="button" onClick={onCancel} className="rounded-lg border px-5 py-3 hover:bg-surface-muted">
           Cancelar
         </button>
-        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:opacity-50">
+        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50">
           Salvar
         </button>
       </div>

@@ -149,14 +149,14 @@ export function Autocomplete<TOption, TValue extends string | number>({
   return (
     <div ref={containerRef} className="w-full">
       {label && (
-        <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-foreground">
           {label}
-          {required && <span className="ml-1 text-red-500">*</span>}
+          {required && <span className="ml-1 text-danger">*</span>}
         </label>
       )}
 
       <div className="relative">
-        <Search size={18} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={18} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
 
         <input
           id={inputId}
@@ -186,14 +186,14 @@ export function Autocomplete<TOption, TValue extends string | number>({
             setOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-20 text-base outline-none sm:text-sm focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 ${
-            error ? 'border-red-500 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+          className={`w-full rounded-lg border bg-surface py-2.5 pl-10 pr-20 text-base text-foreground outline-none sm:text-sm focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-muted ${
+            error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-input focus:border-ring focus:ring-ring/20'
           }`}
         />
 
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {value != null && !disabled && (
-            <button type="button" aria-label="Limpar seleção" onClick={clearSelection} className="rounded p-1 text-gray-400 hover:bg-gray-100">
+            <button type="button" aria-label="Limpar seleção" onClick={clearSelection} className="rounded p-1 text-subtle hover:bg-surface-muted">
               <X size={15} />
             </button>
           )}
@@ -212,20 +212,20 @@ export function Autocomplete<TOption, TValue extends string | number>({
               setOpen((current) => !current);
               setActiveIndex(-1);
             }}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100"
+            className="rounded p-1 text-subtle hover:bg-surface-muted"
           >
             <ChevronDown size={17} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
           </button>
         </div>
 
         {open && !disabled && (
-          <ul id={listId} role="listbox" className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+          <ul id={listId} role="listbox" className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg">
             {queryTooShort ? (
-              <li className="px-3 py-4 text-sm text-gray-500">Digite pelo menos {minSearchLength} caracteres para pesquisar.</li>
+              <li className="px-3 py-4 text-sm text-muted">Digite pelo menos {minSearchLength} caracteres para pesquisar.</li>
             ) : loading ? (
-              <li className="px-3 py-4 text-sm text-gray-500">Buscando resultados...</li>
+              <li className="px-3 py-4 text-sm text-muted">Buscando resultados...</li>
             ) : filteredOptions.length === 0 ? (
-              <li className="px-3 py-4 text-sm text-gray-500">{emptyMessage}</li>
+              <li className="px-3 py-4 text-sm text-muted">{emptyMessage}</li>
             ) : (
               filteredOptions.map((option, index) => {
                 const optionValue = getOptionValue(option);
@@ -239,15 +239,15 @@ export function Autocomplete<TOption, TValue extends string | number>({
                       onMouseEnter={() => setActiveIndex(index)}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => selectOption(option)}
-                      className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2.5 text-left ${activeIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                      className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2.5 text-left ${activeIndex === index ? 'bg-primary/10' : 'hover:bg-surface-muted'}`}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-gray-900">{getOptionLabel(option)}</span>
+                        <span className="block truncate text-sm font-medium text-foreground">{getOptionLabel(option)}</span>
 
-                        {description && <span className="mt-0.5 block truncate text-xs text-gray-500">{description}</span>}
+                        {description && <span className="mt-0.5 block truncate text-xs text-muted">{description}</span>}
                       </span>
 
-                      {selected && <Check size={16} className="shrink-0 text-blue-600" />}
+                      {selected && <Check size={16} className="shrink-0 text-primary" />}
                     </button>
                   </li>
                 );
@@ -258,7 +258,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
       </div>
 
       {error && (
-        <p role="alert" className="mt-1.5 text-sm text-red-600">
+        <p role="alert" className="mt-1.5 text-sm text-danger">
           {error}
         </p>
       )}

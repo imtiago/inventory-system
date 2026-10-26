@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
-import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { Section } from '@/shared/components/details/Section';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
@@ -71,8 +72,8 @@ export function NfeImportListPage() {
     { id: 'number', header: 'Número/série', mobile: 'title', cell: (item) => `${item.number}/${item.series}` },
     { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
     { id: 'issueDate', header: 'Emissão', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.issueDate) },
-    { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-    { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{NFE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+    { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
+    { id: 'status', header: 'Status', mobile: 'meta', cell: (item) => <StatusBadge status={item.status}>{NFE_STATUS_LABELS[item.status] ?? item.status}</StatusBadge> },
     {
       id: 'actions',
       header: 'Ações',

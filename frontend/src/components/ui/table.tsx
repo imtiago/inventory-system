@@ -11,9 +11,9 @@ export const TableBody = (props: React.ComponentProps<"tbody">) => <tbody {...pr
 export const TableRow = (props: React.ComponentProps<"tr">) => <tr {...props} />;
 
 export const TableHead = ({ className, ...props }: React.ComponentProps<"th">) => (
-  <th className={`border px-4 py-2 text-left font-medium ${className || ""}`} {...props} />
+  <th className={`border px-4 py-2 text-left font-medium text-muted ${className || ""}`} {...props} />
 );
 
 export const TableCell = ({ className, ...props }: React.ComponentProps<"td">) => (
-  <td className={`border px-4 py-2 ${className || ""}`} {...props} />
+  <td className={`border px-4 py-2 text-foreground ${className || ""}`} {...props} />
 );

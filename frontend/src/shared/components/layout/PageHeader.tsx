@@ -30,8 +30,8 @@ export function PageHeader({
             flex
             items-center
             gap-2
-            text-gray-600
-            hover:text-black
+            text-muted
+            hover:text-foreground
             w-fit
           "
         >
@@ -42,9 +42,9 @@ export function PageHeader({
 
       <div className="flex flex-wrap justify-between items-start gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">{title}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
 
-          {description && <p className="text-gray-500 mt-1">{description}</p>}
+          {description && <p className="mt-1 text-muted">{description}</p>}
         </div>
 
         {actions}

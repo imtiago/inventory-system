@@ -21,11 +21,11 @@ export function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Menu" tabIndex={-1} className="fixed inset-0 z-40 flex outline-none">
       <div className="relative h-full w-64 max-w-[85vw] overscroll-contain">
         {children}
-        <button type="button" onClick={onClose} aria-label="Fechar menu" className="absolute right-2 top-3 flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800">
+        <button type="button" onClick={onClose} aria-label="Fechar menu" className="absolute right-2 top-3 flex h-11 w-11 items-center justify-center rounded-lg text-sidebar-muted hover:bg-sidebar-active hover:text-sidebar-foreground">
           <X size={22} />
         </button>
       </div>
-      <div data-testid="drawer-backdrop" onClick={onClose} className="flex-1 bg-black/50" />
+      <div data-testid="drawer-backdrop" onClick={onClose} className="flex-1 bg-overlay" />
     </div>,
     document.body,
   );

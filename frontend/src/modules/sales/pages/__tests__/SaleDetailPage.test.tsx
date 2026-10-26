@@ -65,7 +65,7 @@ describe('SaleDetailPage', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: /Confirmar cancelamento/ }));
 
     await waitFor(() => expect(called).toBe(1));
-    expect(await screen.findByText('Cancelada', { selector: 'span' })).toBeInTheDocument();
+    expect(await screen.findByText('Cancelada', { selector: 'div > span' })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancelar venda' })).not.toBeInTheDocument());
   });
 

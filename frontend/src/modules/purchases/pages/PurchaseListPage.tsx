@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
-import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { Autocomplete } from '@/shared/components/form';
 import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
@@ -34,9 +35,9 @@ const columns: DataTableColumn<IPurchaseListItem>[] = [
   },
   { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
   { id: 'date', header: 'Data', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.purchaseDate) },
-  { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-  { id: 'progress', header: 'Recebimento', mobile: 'meta', align: 'center', cell: (item) => `${item.receivedPercent}%` },
-  { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{PURCHASE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+  { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
+  { id: 'progress', header: 'Recebimento', mobile: 'meta', numeric: true, cell: (item) => `${item.receivedPercent}%` },
+  { id: 'status', header: 'Status', mobile: 'meta', cell: (item) => <StatusBadge status={item.status}>{PURCHASE_STATUS_LABELS[item.status] ?? item.status}</StatusBadge> },
 ];
 
 export function PurchaseListPage() {

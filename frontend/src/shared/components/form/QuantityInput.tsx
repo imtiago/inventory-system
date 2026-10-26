@@ -11,7 +11,7 @@ export interface QuantityInputProps extends Omit<InputHTMLAttributes<HTMLInputEl
   itemName?: string;
 }
 
-const stepClass = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40';
+const stepClass = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-input bg-surface text-foreground hover:bg-surface-muted disabled:opacity-40';
 
 /** Quantidade inteira com teclado numérico e botões − / + de 44 px. O valor é o texto digitado (só dígitos). */
 export function QuantityInput({ value, onChange, min = 1, max, disabled, inputClassName, itemName, ...rest }: QuantityInputProps) {
@@ -40,7 +40,7 @@ export function QuantityInput({ value, onChange, min = 1, max, disabled, inputCl
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
-        className={inputClassName ?? 'h-11 w-16 rounded-lg border border-gray-300 px-2 text-center text-base disabled:opacity-50'}
+        className={inputClassName ?? 'h-11 w-16 rounded-lg border border-input bg-surface px-2 text-center text-base text-foreground disabled:opacity-50'}
       />
       <button type="button" aria-label={itemName ? `Aumentar quantidade de ${itemName}` : 'Aumentar quantidade'} className={stepClass} disabled={!canIncrease} onClick={() => step(1)}>
         <Plus size={18} aria-hidden="true" />

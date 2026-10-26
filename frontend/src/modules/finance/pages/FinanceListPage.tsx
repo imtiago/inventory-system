@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
 import { ExportButton } from '@/shared/components/export/ExportButton';
@@ -52,16 +53,15 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
         item.originType
       ),
   },
-  { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-  { id: 'paid', header: 'Pago', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.paidAmount) },
-  { id: 'remaining', header: 'Saldo', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.remainingAmount) },
+  { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
+  { id: 'paid', header: 'Pago', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.paidAmount) },
+  { id: 'remaining', header: 'Saldo', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.remainingAmount) },
   { id: 'nextDueDate', header: 'Próx. vencimento', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.nextDueDate) },
   {
     id: 'status',
     header: 'Status',
     mobile: 'meta',
-    align: 'center',
-    cell: (item) => <CrudBadge>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</CrudBadge>,
+    cell: (item) => <StatusBadge status={item.displayStatus}>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</StatusBadge>,
   },
   {
     id: 'actions',

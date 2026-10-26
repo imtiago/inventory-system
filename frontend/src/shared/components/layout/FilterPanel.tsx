@@ -24,7 +24,7 @@ export function FilterPanel({ activeCount = 0, children }: FilterPanelProps) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((current) => !current)}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-input bg-surface px-4 text-sm font-medium text-foreground hover:bg-surface-muted"
       >
         <SlidersHorizontal size={18} />
         {activeCount > 0 ? `Filtros (${activeCount})` : "Filtros"}

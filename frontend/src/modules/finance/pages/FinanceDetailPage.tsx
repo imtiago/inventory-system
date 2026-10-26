@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
-import { CrudBadge } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { Page } from '@/shared/components/layout/Page';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { formatCurrency } from '@/shared/utils/money';
@@ -58,7 +58,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                 <h1 className="text-xl font-semibold">{config.singular} #{document.id.slice(0, 8).toUpperCase()}</h1>
                 <p className="text-sm text-gray-500">{formatDateTime(document.createdAt)}</p>
                 <div className="mt-2">
-                  <CrudBadge>{FINANCE_STATUS_LABELS[document.displayStatus] ?? document.displayStatus}</CrudBadge>
+                  <StatusBadge status={document.displayStatus}>{FINANCE_STATUS_LABELS[document.displayStatus] ?? document.displayStatus}</StatusBadge>
                 </div>
               </div>
               {document.originType === config.originType && (
@@ -100,7 +100,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <CrudBadge>{FINANCE_STATUS_LABELS[parcel.status] ?? parcel.status}</CrudBadge>
+                      <StatusBadge status={parcel.status}>{FINANCE_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge>
                       <Can permission={config.pay}>
                         <button
                           type="button"

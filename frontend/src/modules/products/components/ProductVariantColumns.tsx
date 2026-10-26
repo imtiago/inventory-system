@@ -50,6 +50,7 @@ export function useProductVariantColumns({
       id: "salePrice",
       header: "Preço de venda",
       mobile: "meta",
+      numeric: true,
 
       cell: (variant) => formatCurrency(variant.salePrice),
     },

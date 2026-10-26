@@ -6,6 +6,7 @@ import { Section } from '@/shared/components/details/Section';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { CrudPagination } from '@/shared/components/crud';
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/badge';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 
 import { useUsers } from '../hooks/useUsers';
@@ -32,9 +33,7 @@ export function UserListPage() {
       header: 'Status',
       mobile: 'meta',
       cell: (user) => (
-        <span className={`rounded-full px-3 py-1 text-sm ${user.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-          {user.active ? 'Ativo' : 'Inativo'}
-        </span>
+        <StatusBadge status={user.active ? 'ACTIVE' : 'INACTIVE'}>{user.active ? 'Ativo' : 'Inativo'}</StatusBadge>
       ),
     },
     {

@@ -18,7 +18,8 @@ export function Section({
   return (
     <section
       className={`
-        bg-white
+        bg-surface
+        text-foreground
         rounded-xl
         shadow
         flex
@@ -39,15 +40,16 @@ export function Section({
             justify-between
             items-center
             border-b
+            border-border
             shrink-0
           "
         >
           <div>
             {title && (
-              <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             )}
 
-            {description && <p className="text-gray-500">{description}</p>}
+            {description && <p className="text-sm text-muted">{description}</p>}
           </div>
 
           {actions}

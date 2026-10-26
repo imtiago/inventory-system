@@ -14,7 +14,8 @@ export function SummaryCard({ title, value, icon }: Props) {
   return (
     <div
       className="
-        bg-white
+        bg-surface
+        text-foreground
         rounded-xl
         shadow
         p-5
@@ -29,13 +30,13 @@ export function SummaryCard({ title, value, icon }: Props) {
         <p
           className="
             text-sm
-            text-gray-500
+            text-muted
           "
         >
           {title}
         </p>
 
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-2xl font-semibold tabular-nums text-foreground">{value}</p>
       </div>
     </div>
   );

@@ -22,15 +22,18 @@ describe('index.html', () => {
   });
 });
 
-describe('index.css (só tema claro)', () => {
+describe('index.css (temas claro/escuro/sistema)', () => {
   const css = read('src/index.css');
-  test('sem dark mode quebrado', () => {
-    expect(css).not.toMatch(/prefers-color-scheme/);
-    expect(css).not.toMatch(/color-scheme:\s*light dark/);
+  test('escuro por data-theme e pelo sistema quando não há escolha clara', () => {
+    expect(css).toMatch(/:root\[data-theme="dark"\]/);
+    expect(css).toMatch(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)/);
+    expect(css).toMatch(/color-scheme:\s*light;/);
+    expect(css).toMatch(/color-scheme:\s*dark;/);
   });
-  test('define --background e --foreground', () => {
-    expect(css).toMatch(/--background:/);
-    expect(css).toMatch(/--foreground:/);
+  test('tokens em canais RGB (aceitam /alpha no Tailwind)', () => {
+    expect(css).toMatch(/--background:\s*\d+ \d+ \d+;/);
+    expect(css).toMatch(/--text:\s*\d+ \d+ \d+;/);
+    expect(css).toMatch(/--surface:\s*\d+ \d+ \d+;/);
   });
   test('inputs com 16px abaixo de sm (sem zoom no iOS)', () => {
     expect(css).toMatch(/@media \(max-width: 639px\)[\s\S]*input[\s\S]*font-size:\s*16px/);

@@ -17,10 +17,10 @@ export const FormItem: React.FC<{ children: React.ReactNode }> = ({
 }) => <div>{children}</div>;
 export const FormLabel: React.FC<{ children: React.ReactNode }> = ({
   children,
-}) => <label className="block text-gray-700 font-medium">{children}</label>;
+}) => <label className="block text-sm font-medium text-foreground">{children}</label>;
 export const FormControl: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => <div>{children}</div>;
 export const FormMessage: React.FC<{ children: React.ReactNode }> = ({
   children,
-}) => <p className="text-red-500 text-sm">{children}</p>;
+}) => <p className="text-sm text-danger">{children}</p>;

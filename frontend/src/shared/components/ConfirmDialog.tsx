@@ -44,7 +44,7 @@ export function ConfirmDialog({
       aria-labelledby={titleId}
       className="
         fixed inset-0
-        bg-black/40
+        bg-overlay
         flex
         items-center
         justify-center
@@ -58,7 +58,10 @@ export function ConfirmDialog({
           max-w-md
           max-h-[90dvh]
           overflow-y-auto
-          bg-white
+          bg-surface
+          text-foreground
+          border
+          border-border
           rounded-xl
           shadow-xl
           p-6
@@ -67,8 +70,8 @@ export function ConfirmDialog({
         <div className="flex items-start gap-4">
           <div
             className="
-              bg-red-100
-              text-red-600
+              bg-danger-soft
+              text-danger
               p-3
               rounded-full
             "
@@ -79,7 +82,7 @@ export function ConfirmDialog({
           <div className="flex-1">
             <h2 id={titleId} className="text-xl font-semibold">{title}</h2>
 
-            <p className="mt-2 text-gray-600">{description}</p>
+            <p className="mt-2 text-muted">{description}</p>
           </div>
         </div>
 
@@ -94,8 +97,11 @@ export function ConfirmDialog({
               py-2
               rounded-lg
               border
-              hover:bg-gray-100
-              disabled:opacity-50
+              border-input
+              bg-surface
+              text-foreground
+              hover:bg-surface-muted
+              disabled:opacity-60
             "
           >
             {cancelText}
@@ -109,10 +115,10 @@ export function ConfirmDialog({
               px-5
               py-2
               rounded-lg
-              bg-red-600
-              text-white
-              hover:bg-red-700
-              disabled:opacity-50
+              bg-danger-solid
+              text-danger-foreground
+              hover:bg-danger
+              disabled:opacity-60
             "
           >
             {loading ? "Excluindo..." : confirmText}

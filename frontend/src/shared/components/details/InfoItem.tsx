@@ -12,13 +12,13 @@ export function InfoItem({ label, value }: Props) {
       <span
         className="
           text-sm
-          text-gray-500
+          text-muted
         "
       >
         {label}
       </span>
 
-      <p className="font-medium">{value}</p>
+      <p className="font-medium text-foreground">{value}</p>
     </div>
   );
 }

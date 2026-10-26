@@ -3,18 +3,161 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens usados pelo tailwind.config.ts (o sistema de temas vem depois) */
-:root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --border: #e2e8f0;
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  color-scheme: light;
-}
-
+/*
+ * Tokens de tema em canais RGB ("R G B"): o Tailwind usa rgb(var(--x) / <alpha-value>), então bg-primary/10 funciona.
+ * Claro em :root; escuro em [data-theme="dark"] e, sem escolha explícita de claro, quando o sistema está escuro
+ * (assim "seguir o sistema" funciona até sem JavaScript). Valores e contrastes: auditoria de UI, seção "Temas".
+ */
 @layer base {
+  :root {
+    --background: 241 245 249; /* #f1f5f9 */
+    --surface: 255 255 255; /* #ffffff */
+    --surface-muted: 248 250 252; /* #f8fafc */
+    --border: 226 232 240; /* #e2e8f0 */
+    --input: 203 213 225; /* #cbd5e1 */
+
+    --text: 15 23 42; /* #0f172a */
+    --foreground: var(--text);
+    --text-muted: 71 85 105; /* #475569 */
+    --text-subtle: 100 116 139; /* #64748b */
+
+    --primary: 37 99 235; /* #2563eb */
+    --primary-foreground: 255 255 255;
+    --primary-hover: 29 78 216; /* #1d4ed8 */
+
+    --success: 21 128 61; /* #15803d */
+    --success-soft: 220 252 231; /* #dcfce7 */
+    --warning: 180 83 9; /* #b45309 */
+    --warning-soft: 254 243 199; /* #fef3c7 */
+    --danger: 185 28 28; /* #b91c1c */
+    --danger-soft: 254 226 226; /* #fee2e2 */
+    --danger-solid: 220 38 38; /* #dc2626 */
+    --danger-foreground: 255 255 255;
+    --info: 29 78 216; /* #1d4ed8 */
+    --info-soft: 219 234 254; /* #dbeafe */
+
+    --ring: 37 99 235; /* #2563eb */
+
+    --sidebar: 15 23 42; /* #0f172a */
+    --sidebar-foreground: 241 245 249; /* #f1f5f9 */
+    --sidebar-muted: 148 163 184; /* #94a3b8 */
+    --sidebar-active: 30 41 59; /* #1e293b */
+
+    --overlay: 2 6 23;
+    --overlay-alpha: 0.5;
+
+    --chart-1: 37 99 235; /* #2563eb */
+    --chart-2: 13 148 136; /* #0d9488 */
+    --chart-3: 217 119 6; /* #d97706 */
+    --chart-4: 219 39 119; /* #db2777 */
+    --chart-5: 124 58 237; /* #7c3aed */
+    --chart-6: 100 116 139; /* #64748b */
+
+    --radius: 0.5rem; /* controles; cartões usam rounded-xl */
+    --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    --background: 2 6 23; /* #020617 */
+    --surface: 15 23 42; /* #0f172a */
+    --surface-muted: 30 41 59; /* #1e293b */
+    --border: 30 41 59; /* #1e293b */
+    --input: 51 65 85; /* #334155 */
+
+    --text: 241 245 249; /* #f1f5f9 */
+    --text-muted: 148 163 184; /* #94a3b8 */
+    --text-subtle: 124 138 160; /* #7c8aa0 */
+
+    --primary: 96 165 250; /* #60a5fa */
+    --primary-foreground: 15 23 42; /* #0f172a */
+    --primary-hover: 147 197 253; /* #93c5fd */
+
+    --success: 74 222 128; /* #4ade80 */
+    --success-soft: 5 46 22; /* #052e16 */
+    --warning: 252 211 77; /* #fcd34d */
+    --warning-soft: 69 26 3; /* #451a03 */
+    --danger: 248 113 113; /* #f87171 */
+    --danger-soft: 69 10 10; /* #450a0a */
+    --danger-solid: 248 113 113; /* #f87171 */
+    --danger-foreground: 15 23 42; /* #0f172a */
+    --info: 147 197 253; /* #93c5fd */
+    --info-soft: 23 37 84; /* #172554 */
+
+    --ring: 96 165 250; /* #60a5fa */
+
+    --sidebar: 2 6 23; /* #020617 */
+    --sidebar-foreground: 241 245 249;
+    --sidebar-muted: 148 163 184;
+    --sidebar-active: 30 41 59;
+
+    --overlay: 0 0 0;
+    --overlay-alpha: 0.6;
+
+    --chart-1: 96 165 250; /* #60a5fa */
+    --chart-2: 45 212 191; /* #2dd4bf */
+    --chart-3: 251 191 36; /* #fbbf24 */
+    --chart-4: 244 114 182; /* #f472b6 */
+    --chart-5: 167 139 250; /* #a78bfa */
+    --chart-6: 148 163 184; /* #94a3b8 */
+
+    /* No escuro a sombra some no fundo: vira um contorno de 1px na cor da borda. */
+    --shadow: 0 0 0 1px rgb(30 41 59);
+
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --background: 2 6 23;
+      --surface: 15 23 42;
+      --surface-muted: 30 41 59;
+      --border: 30 41 59;
+      --input: 51 65 85;
+
+      --text: 241 245 249;
+      --text-muted: 148 163 184;
+      --text-subtle: 124 138 160;
+
+      --primary: 96 165 250;
+      --primary-foreground: 15 23 42;
+      --primary-hover: 147 197 253;
+
+      --success: 74 222 128;
+      --success-soft: 5 46 22;
+      --warning: 252 211 77;
+      --warning-soft: 69 26 3;
+      --danger: 248 113 113;
+      --danger-soft: 69 10 10;
+      --danger-solid: 248 113 113;
+      --danger-foreground: 15 23 42;
+      --info: 147 197 253;
+      --info-soft: 23 37 84;
+
+      --ring: 96 165 250;
+
+      --sidebar: 2 6 23;
+      --sidebar-foreground: 241 245 249;
+      --sidebar-muted: 148 163 184;
+      --sidebar-active: 30 41 59;
+
+      --overlay: 0 0 0;
+      --overlay-alpha: 0.6;
+
+      --chart-1: 96 165 250;
+      --chart-2: 45 212 191;
+      --chart-3: 251 191 36;
+      --chart-4: 244 114 182;
+      --chart-5: 167 139 250;
+      --chart-6: 148 163 184;
+
+      --shadow: 0 0 0 1px rgb(30 41 59);
+
+      color-scheme: dark;
+    }
+  }
+
   html {
     font-family: system-ui, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
@@ -53,6 +196,13 @@
   /* Valores alinhados em tabelas */
   table {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Placeholder legível nos dois temas (o padrão do Tailwind, gray-400, reprova no contraste). */
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--text-subtle));
+    opacity: 1;
   }
 
   code {
