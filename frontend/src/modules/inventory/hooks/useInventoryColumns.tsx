@@ -38,7 +38,12 @@ export function useInventoryColumns(): DataTableColumn<IInventory>[] {
       header: 'Estoque',
       mobile: 'meta',
 
-      cell: (data) => <CrudBadge>{data.quantity}</CrudBadge>,
+      cell: (data) => (
+        <div className="flex flex-col items-start gap-1">
+          <CrudBadge>{data.quantity}</CrudBadge>
+          {data.expired > 0 && <span className="text-xs font-medium text-red-600">Vencido: {data.expired}</span>}
+        </div>
+      ),
     },
     {
       id: 'availableQuantity',

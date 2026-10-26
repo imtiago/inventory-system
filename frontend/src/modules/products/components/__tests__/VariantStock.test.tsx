@@ -5,7 +5,7 @@ import { VariantStock } from '../VariantStock';
 
 describe('VariantStock', () => {
   test('mostra disponível', () => {
-    render(<VariantStock balance={{ productVariantId: 'v', quantity: 42, reserved: 2, available: 40 }} loading={false} error={false} />);
+    render(<VariantStock balance={{ productVariantId: 'v', quantity: 42, reserved: 2, available: 40, expired: 0 }} loading={false} error={false} />);
     expect(screen.getByText('40')).toBeInTheDocument();
     expect(screen.getByText('Disp.')).toBeInTheDocument();
   });
@@ -25,5 +25,10 @@ describe('VariantStock', () => {
     render(<VariantStock loading={false} error />);
     expect(screen.getByText('Erro ao carregar estoque')).toBeInTheDocument();
     expect(screen.queryByText('Sem estoque')).not.toBeInTheDocument();
+  });
+
+  test('mostra "Vencido: n" quando há saldo vencido', () => {
+    render(<VariantStock balance={{ productVariantId: 'v', quantity: 42, reserved: 2, available: 40, expired: 6 }} loading={false} error={false} />);
+    expect(screen.getByText('Vencido: 6')).toBeInTheDocument();
   });
 });

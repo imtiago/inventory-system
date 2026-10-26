@@ -14,6 +14,7 @@ import {
   BoxAllocationChange,
   planBoxAllocationReduction,
 } from "@inventory/domain/services/boxAllocations";
+import { compareLotsForConsumption } from "@inventory/domain/services/lotOrdering";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 
 function cloneValue(value: unknown): unknown {
@@ -109,11 +110,11 @@ export class InMemoryInventoryLotRepository
     );
   }
 
-  /** Lotes com saldo, mais antigos primeiro (FIFO). */
+  /** Lotes com saldo em ordem de consumo (FEFO → mais antigo). */
   async findAvailableByInventory(inventoryId: string): Promise<InventoryLot[]> {
     return this.all()
       .filter((l) => l.inventoryId === inventoryId && l.remainingQuantity > 0)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      .sort(compareLotsForConsumption);
   }
 }
 

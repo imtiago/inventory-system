@@ -5,6 +5,8 @@ import { useInventoryById } from '../hooks/useInventoryById';
 import { useInventoryLots } from '../hooks/useInventoryLots';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
+import { todayInBusinessTz } from '@/shared/utils/businessDate';
+import type { InventoryLot } from '../types';
 
 export function InventoryDetailsPage() {
   const isTabletUp = useBreakpoint('md');
@@ -40,6 +42,7 @@ export function InventoryDetailsPage() {
   }
 
   const variant = inventory.productVariant;
+  const today = todayInBusinessTz();
 
   return (
     <div className="space-y-6">
@@ -79,6 +82,8 @@ export function InventoryDetailsPage() {
           <StockCard label="Disponível" value={inventory.availableQuantity} />
 
           <StockCard label="Custo médio" value={formatCurrency(inventory.averageCost)} />
+
+          {inventory.expired > 0 && <StockCard label="Vencido" value={`Vencido: ${inventory.expired}`} highlight />}
         </div>
       </section>
 
@@ -113,7 +118,10 @@ export function InventoryDetailsPage() {
             {lots.map((lot) => (
               <li key={lot.id} className="rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="break-words font-medium">{lot.batchNumber ?? 'Sem lote'}</p>
+                  <p className="break-words font-medium">
+                    {lot.batchNumber ?? 'Sem lote'}
+                    {isLotExpired(lot, today) && <ExpiredTag />}
+                  </p>
                   <p className="text-muted-foreground shrink-0 text-sm">Validade: {formatDateOnly(lot.expirationDate)}</p>
                 </div>
 
@@ -155,7 +163,10 @@ export function InventoryDetailsPage() {
               <tbody>
                 {lots.map((lot) => (
                   <tr key={lot.id} className="border-b last:border-b-0">
-                    <td className="px-4 py-3 text-sm font-medium">{lot.batchNumber ?? 'Sem lote'}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {lot.batchNumber ?? 'Sem lote'}
+                      {isLotExpired(lot, today) && <ExpiredTag />}
+                    </td>
                     <td className="px-4 py-3 text-sm">{lot.initialQuantity}</td>
                     <td className="px-4 py-3 text-sm">{lot.remainingQuantity}</td>
                     <td className="px-4 py-3 text-sm">{lot.allocatedQuantity}</td>
@@ -175,12 +186,22 @@ export function InventoryDetailsPage() {
 interface StockCardProps {
   label: string;
   value: number | string;
+  highlight?: boolean;
 }
 
-function StockCard({ label, value }: StockCardProps) {
+/** Expired = has stock and the expiration date (date-only, UTC midnight) is before today in the business timezone. */
+function isLotExpired(lot: Pick<InventoryLot, 'expirationDate' | 'remainingQuantity'>, today: string) {
+  return lot.remainingQuantity > 0 && lot.expirationDate !== null && lot.expirationDate.slice(0, 10) < today;
+}
+
+function ExpiredTag() {
+  return <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">Vencido</span>;
+}
+
+function StockCard({ label, value, highlight }: StockCardProps) {
   return (
-    <div className="bg-card rounded-lg border p-5">
-      <p className="text-muted-foreground text-sm">{label}</p>
+    <div className={highlight ? 'rounded-lg border border-red-300 bg-red-50 p-5 text-red-700' : 'bg-card rounded-lg border p-5'}>
+      <p className={highlight ? 'text-sm' : 'text-muted-foreground text-sm'}>{label}</p>
 
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>

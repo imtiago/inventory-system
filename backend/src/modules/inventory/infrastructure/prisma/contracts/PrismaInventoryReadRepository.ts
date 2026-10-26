@@ -6,7 +6,23 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
+import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+
+/** Quantidade em lotes vencidos por variante (validade anterior a hoje de negócio). */
+async function expiredByVariantId(variantIds: string[]): Promise<Map<string, number>> {
+  if (variantIds.length === 0) return new Map();
+  const rows = await getDb().inventoryLot.groupBy({
+    by: ["productVariantId"],
+    where: {
+      productVariantId: { in: variantIds },
+      remainingQuantity: { gt: 0 },
+      expirationDate: { lt: businessTodayAsUtcDate() },
+    },
+    _sum: { remainingQuantity: true },
+  });
+  return new Map(rows.map((r) => [r.productVariantId, r._sum.remainingQuantity ?? 0]));
+}
 
 export class PrismaInventoryReadRepository implements InventoryReadRepository {
   async list(
@@ -28,7 +44,8 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
       getDb().inventory.count(),
     ]);
 
-    const dt = data.map((d) => InventoryReadMapper.toDTO(d));
+    const expired = await expiredByVariantId(data.map((d) => d.productVariantId));
+    const dt = data.map((d) => InventoryReadMapper.toDTO(d, expired.get(d.productVariantId) ?? 0));
     return buildPaginatedResult(dt, total, pagination);
   }
 
@@ -42,7 +59,8 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
 
     if (!data) return null;
 
-    return InventoryReadMapper.toDTO(data);
+    const expired = await expiredByVariantId([data.productVariantId]);
+    return InventoryReadMapper.toDTO(data, expired.get(data.productVariantId) ?? 0);
   }
 
   async getByVariantId(id: string): Promise<InventoryWithExtendsDTO | null> {
@@ -57,7 +75,8 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
 
     if (!data) return null;
 
-    return InventoryReadMapper.toDTO(data);
+    const expired = await expiredByVariantId([data.productVariantId]);
+    return InventoryReadMapper.toDTO(data, expired.get(data.productVariantId) ?? 0);
   }
 
   async listBalancesByVariantIds(ids: string[]): Promise<InventoryBalanceDTO[]> {
@@ -66,11 +85,13 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
       select: { productVariantId: true, quantity: true, reservedQuantity: true },
     });
 
+    const expired = await expiredByVariantId(rows.map((row) => row.productVariantId));
     return rows.map((row) => ({
       productVariantId: row.productVariantId,
       quantity: row.quantity,
       reserved: row.reservedQuantity,
       available: row.quantity - row.reservedQuantity,
+      expired: expired.get(row.productVariantId) ?? 0,
     }));
   }
 

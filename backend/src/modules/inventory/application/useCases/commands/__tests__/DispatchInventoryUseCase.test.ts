@@ -95,3 +95,31 @@ test("dispatch com lotes inconsistentes lança InternalInvariantError", async ()
   await s.lots.update(lot);
   await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 3 }), InternalInvariantError);
 });
+
+test("dispatch FEFO: vence antes primeiro; sem validade por último; vencidos entram fora de venda", async () => {
+  const s = build();
+  const noExpiry = await s.addLot(2);
+  const a = await s.addLot(2, 5, { expirationDate: new Date("2030-01-10T00:00:00Z") });
+  const b = await s.addLot(2, 5, { expirationDate: new Date("2030-01-05T00:00:00Z") });
+  const expired = await s.addLot(1, 5, { expirationDate: new Date("2020-01-01T00:00:00Z") });
+  const result = await s.dispatch.execute({ ...base, origin: StockMovementOrigin.MANUAL, quantity: 6 });
+  assert.deepEqual(
+    result.map((m) => m.inventoryLotId),
+    [expired.lot.id, b.lot.id, a.lot.id, noExpiry.lot.id],
+  );
+});
+
+test("dispatch de venda ignora vencidos e recusa com EXPIRED_STOCK_ONLY quando o vencido cobre a falta", async () => {
+  const s = build();
+  await s.addLot(5, 5, { expirationDate: new Date("2020-01-01T00:00:00Z") });
+  const valid = await s.addLot(2);
+  const before = await snapshot(s);
+  await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 3 }), {
+    name: "ConflictError",
+    code: "EXPIRED_STOCK_ONLY",
+    details: { productVariantId: "variant-1", available: 2, expired: 5 },
+  });
+  assert.equal(await snapshot(s), before);
+  await s.dispatch.execute({ ...base, quantity: 2 });
+  assert.equal((await s.lots.findById(valid.lot.id))!.remainingQuantity, 0);
+});

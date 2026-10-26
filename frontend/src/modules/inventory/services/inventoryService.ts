@@ -41,6 +41,8 @@ export interface InventoryBalance {
   quantity: number;
   reserved: number;
   available: number;
+  /** Quantity in expired lots. */
+  expired: number;
 }
 
 /** One request for many variants (max 100). Variants without an inventory row are simply absent. */

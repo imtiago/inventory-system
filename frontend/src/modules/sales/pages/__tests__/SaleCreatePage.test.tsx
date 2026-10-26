@@ -164,6 +164,24 @@ describe('SaleCreatePage', () => {
     expect(document.body.textContent?.split('Estoque disponível insuficiente.').length).toBe(2);
   });
 
+  test('EXPIRED_STOCK_ONLY: a mensagem do backend aparece no item da venda (uma única vez)', async () => {
+    const message = 'Estoque insuficiente para Camiseta Azul: 2 disponível(is) dentro da validade; 5 vencida(s) — dê baixa manual dos vencidos.';
+    server.use(
+      http.post(`${API_URL}/sales`, () =>
+        HttpResponse.json({ message, code: 'EXPIRED_STOCK_ONLY', details: { productVariantId: 'v-1', available: 2, expired: 5 } }, { status: 409 }),
+      ),
+    );
+    renderPage();
+    await pickCustomer();
+    await addBarcode('111');
+    await screen.findByLabelText('Quantidade de Camiseta Azul');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar venda' }));
+
+    const inItem = await screen.findByTestId('item-error-v-1');
+    expect(inItem).toHaveTextContent(message);
+    expect(screen.getAllByText(message)).toHaveLength(1);
+  });
+
   test('sucesso navega para /sales/:id da venda criada', async () => {
     renderPage();
     await pickCustomer();

@@ -2,7 +2,7 @@ import { ProductVariantSummaryDTO } from "../dto/CommonDTO";
 import { InventoryDTO, InventoryWithExtendsDTO } from "../dto/InventoryDTO";
 
 export class InventoryReadMapper {
-  static toBaseDTO(data: any): InventoryDTO {
+  static toBaseDTO(data: any, expired = 0): InventoryDTO {
     return {
       id: data.id,
       productVariantId: data.productVariantId,
@@ -11,6 +11,7 @@ export class InventoryReadMapper {
       availableQuantity: data.quantity - data.reservedQuantity,
       minimumStock: data.minimumStock,
       averageCost: Number(data.averageCost),
+      expired,
       createdAt: data.createdAt,
     };
   }
@@ -25,9 +26,9 @@ export class InventoryReadMapper {
     };
   }
 
-  static toDTO(data: any): InventoryWithExtendsDTO {
+  static toDTO(data: any, expired = 0): InventoryWithExtendsDTO {
     return {
-      ...this.toBaseDTO(data),
+      ...this.toBaseDTO(data, expired),
       productVariant: this.toProductVariantSummary(data.productVariant),
     };
   }

@@ -82,3 +82,12 @@ test("adjust com lotes inconsistentes lança InternalInvariantError", async () =
     InternalInvariantError,
   );
 });
+
+test("adjust para baixo consome em FEFO (vencido primeiro), mesmo que criado depois", async () => {
+  const s = build();
+  const valid = await s.addLot(3);
+  const expired = await s.addLot(2, 5, { expirationDate: new Date("2020-01-01T00:00:00Z") });
+  await s.adjust.execute({ productVariantId: "variant-1", countedQuantity: 3 });
+  assert.equal((await s.lots.findById(expired.lot.id))!.remainingQuantity, 0);
+  assert.equal((await s.lots.findById(valid.lot.id))!.remainingQuantity, 3);
+});

@@ -92,7 +92,7 @@ describe("HTTP de estoque", () => {
 
     assert.equal(res.statusCode, 200, res.body);
     assert.deepEqual(res.json(), {
-      data: [{ productVariantId: variantId, quantity: 7, reserved: 2, available: 5 }],
+      data: [{ productVariantId: variantId, quantity: 7, reserved: 2, available: 5, expired: 0 }],
     });
   });
 

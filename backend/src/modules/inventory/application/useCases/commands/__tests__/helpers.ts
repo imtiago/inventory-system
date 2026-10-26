@@ -25,13 +25,14 @@ export function setupStock() {
     movements,
     tx,
   );
-  const addLot = (quantity: number, unitCost = 5) =>
+  const addLot = (quantity: number, unitCost = 5, extra: { expirationDate?: Date } = {}) =>
     receive.execute({
       productVariantId: "variant-1",
       quantity,
       unitCost,
       origin: StockMovementOrigin.PURCHASE,
       sourceType: InventoryLotSource.PURCHASE,
+      ...extra,
     });
   return { inventories, lots, movements, stocks, tx, addLot };
 }

@@ -99,6 +99,17 @@ describe("repositórios Prisma de estoque", () => {
     assert.ok(!available.some((l) => l.id === empty.id));
   });
 
+  test("findAvailableByInventory ordena por validade (sem validade por último), depois criação, depois id", async () => {
+    const inv = await newInventory();
+    const noExpiry = await newLot(inv.id, { createdAt: new Date("2024-01-01") });
+    const a = await newLot(inv.id, { expirationDate: new Date("2030-01-10"), createdAt: new Date("2024-01-02") });
+    const b = await newLot(inv.id, { expirationDate: new Date("2030-01-05"), createdAt: new Date("2024-01-03") });
+    const bOlder = await newLot(inv.id, { expirationDate: new Date("2030-01-05"), createdAt: new Date("2024-01-01") });
+
+    const available = await lotRepo.findAvailableByInventory(inv.id);
+    assert.deepEqual(available.map((l) => l.id), [bOlder.id, b.id, a.id, noExpiry.id]);
+  });
+
   test("StockMovement persiste lote, saldos, custo, notes, originId", async () => {
     const inv = await newInventory();
     const lot = await newLot(inv.id);

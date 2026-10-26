@@ -29,6 +29,8 @@ export function VariantStock({ balance, loading, error }: Props) {
       <p className="font-medium">{balance.available}</p>
 
       <p className="text-gray-500">Disp.</p>
+
+      {balance.expired > 0 && <p className="font-medium text-red-600">Vencido: {balance.expired}</p>}
     </div>
   );
 }

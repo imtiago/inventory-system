@@ -18,6 +18,8 @@ export interface Inventory {
   quantity: number;
   reservedQuantity: number;
   availableQuantity: number;
+  /** Quantity in expired lots. */
+  expired: number;
   minimumStock: number;
   averageCost: number;
   createdAt: string;
