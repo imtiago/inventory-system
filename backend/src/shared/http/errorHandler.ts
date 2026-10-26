@@ -62,6 +62,25 @@ function isForeignKeyViolation(error: unknown): boolean {
   return error.code === "P2010" && meta?.code === "23503";
 }
 
+// CHECK do banco violado (23514): estoque negativo, valor <= 0 etc. Não é validação comum:
+// indica bug ou corrida não coberta por trava, por isso é logado com detalhe.
+// Erro desconhecido do Prisma só traz o código do Postgres dentro da mensagem: casa o campo `code`, não qualquer 23514.
+const CHECK_CODE_IN_MESSAGE = /PostgresError \{ code: "23514"/;
+
+function isCheckViolation(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) &&
+    !(error instanceof Prisma.PrismaClientUnknownRequestError)
+  ) {
+    return false;
+  }
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const meta = error.meta as Record<string, unknown> | undefined;
+    return meta?.code === "23514";
+  }
+  return CHECK_CODE_IN_MESSAGE.test(error.message);
+}
+
 export function errorHandler(
   error: unknown,
   request: FastifyRequest,
@@ -113,6 +132,14 @@ export function errorHandler(
     return reply.status(503).send({
       message: "Sistema ocupado. Tente novamente em instantes.",
       code: "SERVICE_BUSY",
+    });
+  }
+
+  if (isCheckViolation(error)) {
+    request.log.error(error, "CHECK do banco violado");
+    return reply.status(409).send({
+      message: "Operação recusada: deixaria dados inconsistentes.",
+      code: "CONSTRAINT_VIOLATION",
     });
   }
 

@@ -5,7 +5,7 @@ import { ProductReadRepository } from "@catalog/application/contracts/ProductRea
 import { IUpdateProductInput, ProductDetailDTO } from "@catalog/application/dto/ProductDTO";
 import { BrandRepository } from "@catalog/domain/repositories/BrandRepository";
 import { CategoryRepository } from "@catalog/domain/repositories/CategoryRepository";
-import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
+import { ProductRepository, ProductUpdatableField } from "@catalog/domain/repositories/ProductRepository";
 
 /** Edição parcial: só os campos informados mudam. */
 export class UpdateProductUseCase extends TransactionalUseCase<
@@ -23,16 +23,21 @@ export class UpdateProductUseCase extends TransactionalUseCase<
   }
 
   protected async handle(request: IUpdateProductInput): Promise<ProductDetailDTO> {
-    const product = await this.productRepository.findById(request.id);
+    // Trava a linha antes de ler: edições concorrentes se serializam e cada uma grava só o que mudou.
+    const exists = await this.productRepository.lockById(request.id);
+    const product = exists ? await this.productRepository.findById(request.id) : null;
     if (!product) {
       throw new NotFoundError("Produto não encontrado.", "PRODUCT_NOT_FOUND");
     }
+
+    const changed: ProductUpdatableField[] = [];
 
     if (request.brandId !== undefined && request.brandId !== product.brandId) {
       if (!(await this.brandRepository.findById(request.brandId))) {
         throw new NotFoundError("Marca não encontrada.", "BRAND_NOT_FOUND");
       }
       product.changeBrand(request.brandId);
+      changed.push("brandId");
     }
 
     if (request.categoryId !== undefined && request.categoryId !== product.categoryId) {
@@ -40,12 +45,19 @@ export class UpdateProductUseCase extends TransactionalUseCase<
         throw new NotFoundError("Categoria não encontrada.", "CATEGORY_NOT_FOUND");
       }
       product.changeCategory(request.categoryId);
+      changed.push("categoryId");
     }
 
-    if (request.name !== undefined) product.rename(request.name);
-    if (request.description !== undefined) product.changeDescription(request.description);
+    if (request.name !== undefined) {
+      product.rename(request.name);
+      changed.push("name");
+    }
+    if (request.description !== undefined) {
+      product.changeDescription(request.description);
+      changed.push("description");
+    }
 
-    await this.productRepository.update(product);
+    if (changed.length > 0) await this.productRepository.updateFields(product, changed);
 
     const detail = await this.productReadRepository.getById(product.id);
     if (!detail) {

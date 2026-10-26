@@ -213,13 +213,19 @@ describe("Relatórios CSV", () => {
     const mine = rows.filter((r) => r[2] === `'${customerName}`);
     assert.equal(mine.length, 4); // 2 itens × (A, B)
     assert.deepEqual(new Set(mine.map((r) => r[0])), new Set([saleA, saleB]));
-    const first = mine.find((r) => r[0] === saleA && r[3] === `Prod ${tag}`)!;
+    // "Produto" = nome do produto; "Variante" = snapshot do nome da variante gravado na venda.
+    const productName = (
+      await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { product: { select: { name: true } } } })
+    ).product.name;
+    assert.ok(mine.every((r) => r[3] === productName), "coluna Produto traz o nome do produto");
+    assert.notEqual(productName, `Prod ${tag}`);
+    const first = mine.find((r) => r[0] === saleA && r[4] === `Prod ${tag}`)!;
     assert.equal(first[1], "09/03/2095");
     assert.equal(first[5], variantCode);
     assert.equal(first[6], "3");
     assert.equal(first[7], "12,50");
     assert.equal(first[8], "37,50");
-    const second = mine.find((r) => r[0] === saleA && r[3] === `Outro, "x"`)!;
+    const second = mine.find((r) => r[0] === saleA && r[4] === `Outro, "x"`)!;
     assert.equal(second[7], "1234,50");
     assert.equal(second[8], "1234,50");
   });

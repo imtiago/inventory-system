@@ -7,7 +7,7 @@ import { productQueryKeys } from "../config/queryKeys";
 
 export function useUpdateVariant(variantId: string, productId: string) {
   return useCrudMutation({
-    mutationFn: (payload: SaveVariantDTO) => updateVariant(variantId, payload),
+    mutationFn: (payload: Partial<SaveVariantDTO>) => updateVariant(variantId, payload),
 
     invalidateKeys: [
       queryKeys.inventory,

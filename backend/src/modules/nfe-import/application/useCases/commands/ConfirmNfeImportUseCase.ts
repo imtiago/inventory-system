@@ -295,6 +295,14 @@ const brl = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}
  * diferença a última parcela absorve; acima disso → 422 INSTALLMENTS_TOTAL_MISMATCH com os dois valores.
  */
 export function reconcileParcels(parcels: PurchaseParcel[], totalCents: number): PurchaseParcel[] {
+  // Duplicata sem valor (vDup ausente ou 0,00): o banco recusaria a parcela; avisa antes, com 422 claro.
+  const bad = parcels.findIndex((p) => p.amountCents <= 0);
+  if (bad >= 0) {
+    throw new BusinessRuleError(
+      `A parcela ${bad + 1} da nota está com valor zero ou ausente. Informe as parcelas manualmente.`,
+      ErrorCodes.INSTALLMENT_AMOUNT_INVALID,
+    );
+  }
   const sum = parcels.reduce((acc, p) => acc + p.amountCents, 0);
   const diff = totalCents - sum;
   const last = parcels[parcels.length - 1];

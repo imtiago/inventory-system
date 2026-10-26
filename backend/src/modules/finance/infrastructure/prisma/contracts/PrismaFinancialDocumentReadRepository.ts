@@ -107,6 +107,10 @@ function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters
   const inRange = Prisma.sql`pa.remaining_c > 0
     ${filters.dueFrom ? Prisma.sql`AND pa.due >= ${filters.dueFrom}::date` : Prisma.empty}
     ${filters.dueTo ? Prisma.sql`AND pa.due <= ${filters.dueTo}::date` : Prisma.empty}`;
+  // Resumo: com intervalo, só as parcelas dentro dele (mesma regra da exportação); sem, todas.
+  const dueInRange = Prisma.sql`TRUE
+    ${filters.dueFrom ? Prisma.sql`AND pa.due >= ${filters.dueFrom}::date` : Prisma.empty}
+    ${filters.dueTo ? Prisma.sql`AND pa.due <= ${filters.dueTo}::date` : Prisma.empty}`;
   const figWhere: Prisma.Sql[] = [Prisma.sql`TRUE`];
   if (filters.openOnly) figWhere.push(Prisma.sql`f.status <> 'CANCELED' AND f.open_in_range`);
   if (filters.status) figWhere.push(Prisma.sql`f.display_status = ${filters.status}`);
@@ -137,9 +141,10 @@ function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters
              COALESCE(SUM(pa.paid_c), 0)::bigint AS paid_c,
              COALESCE(SUM(pa.remaining_c), 0)::bigint AS remaining_c,
              CASE WHEN doc.status = 'CANCELED' THEN 0
-                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due < ${today}::date), 0) END::bigint AS overdue_c,
+                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due < ${today}::date AND ${dueInRange}), 0) END::bigint AS sum_overdue_c,
              CASE WHEN doc.status = 'CANCELED' THEN 0
-                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due >= ${today}::date), 0) END::bigint AS not_due_c,
+                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due >= ${today}::date AND ${dueInRange}), 0) END::bigint AS sum_not_due_c,
+             COALESCE(SUM(pa.paid_c) FILTER (WHERE ${dueInRange}), 0)::bigint AS sum_paid_c,
              CASE WHEN doc.status = 'CANCELED' THEN NULL
                   ELSE MIN(pa.due) FILTER (WHERE pa.remaining_c > 0) END AS next_due,
              CASE WHEN doc.status IN ('CANCELED', 'PAID') THEN doc.status::text
@@ -255,9 +260,9 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
       WITH ${filteredDocumentsCte(type, filters, today)},
       totals AS (
         SELECT COUNT(*)::int AS total,
-               COALESCE(SUM(f.not_due_c), 0)::bigint AS open_sum,
-               COALESCE(SUM(f.overdue_c), 0)::bigint AS overdue_sum,
-               COALESCE(SUM(f.paid_c), 0)::bigint AS paid_sum
+               COALESCE(SUM(f.sum_not_due_c), 0)::bigint AS open_sum,
+               COALESCE(SUM(f.sum_overdue_c), 0)::bigint AS overdue_sum,
+               COALESCE(SUM(f.sum_paid_c), 0)::bigint AS paid_sum
         FROM filtered f
       ),
       page AS (

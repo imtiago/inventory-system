@@ -67,12 +67,13 @@ export class PrismaReportReadRepository {
   async saleItems(from: string, to: string, limit: number): Promise<SaleItemReportRow[]> {
     const rows = await getDb().$queryRaw<SaleItemReportRow[]>`
       SELECT s."id" AS "saleId", ${SALE_DAY} AS "day", c."name" AS "customerName",
-             si."productName", v."name" AS "variantName", COALESCE(si."sku", v."code") AS "code",
+             p."name" AS "productName", si."productName" AS "variantName", COALESCE(si."sku", v."code") AS "code",
              si."quantity", si."unitPrice"::text AS "unitPrice", (si."quantity" * si."unitPrice")::text AS "total"
       FROM "SaleItem" si
       JOIN "Sale" s ON s."id" = si."saleId"
       JOIN "Customer" c ON c."id" = s."customerId"
       JOIN "ProductVariant" v ON v."id" = si."productVariantId"
+      JOIN "Product" p ON p."id" = v."productId"
       WHERE ${salePeriod(from, to)}
         AND s."status"::text <> 'CANCELED'
       ORDER BY s."createdAt", s."id", si."id"

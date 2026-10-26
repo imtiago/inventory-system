@@ -8,6 +8,7 @@ import {
   LoginAttemptLimiter,
   loginAttemptLimiter,
 } from "../../security/LoginAttemptLimiter";
+import { loginAttemptKey, loginAccountKey } from "../../../application/ports/LoginAttemptLimiter";
 import { createTestUser } from "../../../../../test/authFixtures";
 
 app.log.level = "silent";
@@ -20,6 +21,62 @@ const TOO_MANY = {
 
 const login = (email: string, password: string, remoteAddress = "127.0.0.1") =>
   app.inject({ method: "POST", url: "/auth/login", payload: { email, password }, remoteAddress });
+
+describe("POST /auth/login — limites por conta e por IP", () => {
+  beforeEach(() => loginAttemptLimiter.reset());
+
+  test("31ª falha na mesma conta vinda de IPs diferentes → 429", async () => {
+    const user = await createTestUser();
+    try {
+      for (let i = 0; i < 30; i++) {
+        const res = await login(user.email, "senha-errada-123", `10.1.0.${i + 1}`);
+        assert.equal(res.statusCode, 401, `falha ${i + 1}: ${res.body}`);
+      }
+      const blocked = await login(user.email, "senha-errada-123", "10.9.9.9");
+      assert.equal(blocked.statusCode, 429, blocked.body);
+      assert.deepEqual(blocked.json(), TOO_MANY);
+    } finally {
+      await user.cleanup();
+    }
+  });
+
+  test("51ª falha do mesmo IP com e-mails diferentes → 429", async () => {
+    for (let i = 0; i < 50; i++) {
+      const res = await login(`nobody-${i}@example.com`, "senha-errada-123", "10.2.0.1");
+      assert.equal(res.statusCode, 401, `falha ${i + 1}: ${res.body}`);
+    }
+    const blocked = await login("nobody-x@example.com", "senha-errada-123", "10.2.0.1");
+    assert.equal(blocked.statusCode, 429, blocked.body);
+    assert.deepEqual(blocked.json(), TOO_MANY);
+  });
+
+  test("login bem-sucedido na própria conta não zera o contador por IP", async () => {
+    const own = await createTestUser();
+    try {
+      for (let i = 0; i < 50; i++) {
+        if (i % 5 === 0) assert.equal((await login(own.email, own.password, "10.3.0.1")).statusCode, 200);
+        const res = await login(`nobody-${i}@example.com`, "senha-errada-123", "10.3.0.1");
+        assert.equal(res.statusCode, 401, `falha ${i + 1}: ${res.body}`);
+      }
+      assert.equal((await login("nobody-z@example.com", "senha-errada-123", "10.3.0.1")).statusCode, 429);
+    } finally {
+      await own.cleanup();
+    }
+  });
+
+  test("tentativa recusada pelo limite por IP (429) não gasta as vagas de par nem de conta", async () => {
+    for (let i = 0; i < 50; i++) await login(`nobody-${i}@example.com`, "senha-errada-123", "10.4.0.1");
+    for (let i = 0; i < 15; i++) {
+      assert.equal((await login("vitima@example.com", "senha-errada-123", "10.4.0.1")).statusCode, 429);
+    }
+    for (let i = 0; i < 10; i++) {
+      assert.equal(loginAttemptLimiter.tryConsume(loginAttemptKey("10.4.0.1", "vitima@example.com")), true, `par ${i + 1}`);
+    }
+    for (let i = 0; i < 30; i++) {
+      assert.equal(loginAttemptLimiter.tryConsume(loginAccountKey("vitima@example.com"), 30), true, `conta ${i + 1}`);
+    }
+  });
+});
 
 describe("POST /auth/login", () => {
   beforeEach(() => loginAttemptLimiter.reset());

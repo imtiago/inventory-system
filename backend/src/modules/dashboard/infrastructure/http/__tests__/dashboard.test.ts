@@ -289,7 +289,7 @@ describe("Dashboard (GET /dashboard)", () => {
         },
       });
 
-    const inv0 = await mkInv(v0.variantId, -1_000_000); // zerado/negativo: entra
+    const inv0 = await mkInv(v0.variantId, 0); // zerado: entra (o CHECK do banco impede negativo)
     await mkInv(v1.variantId, 5); // com estoque: não entra
     const inv2 = await mkInv(v2.variantId, 20);
     const inv3 = await mkInv(v3.variantId, 20);
@@ -305,7 +305,7 @@ describe("Dashboard (GET /dashboard)", () => {
     assert.ok(after.inventory.outOfStock.length <= 10);
     const out = after.inventory.outOfStock.find((i: any) => i.productVariantId === v0.variantId);
     assert.ok(out, "variante zerada na lista");
-    assert.equal(out.quantity, -1_000_000);
+    assert.equal(out.quantity, 0);
     assert.match(out.label, / — /);
     assert.ok(!after.inventory.outOfStock.some((i: any) => i.productVariantId === v1.variantId));
 

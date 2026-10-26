@@ -746,6 +746,14 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     const fromNoteFar = await confirm((await uploadNote(newNote({ cnpj: note.cnpj }), dups("132.43"))).id, { supplier: { id: supplier.id }, items, receive: false });
     assert.equal(fromNoteFar.statusCode, 422, fromNoteFar.body);
     assert.equal(fromNoteFar.json().code, "INSTALLMENTS_TOTAL_MISMATCH");
+
+    // Duplicata com valor 0,00 (soma ainda fecha): 422 claro, não 409 genérico do CHECK.
+    const zero = await confirm(
+      (await uploadNote(newNote({ cnpj: note.cnpj }), (xml: string) => xml.replace("<vDup>132.36</vDup>", "<vDup>0.00</vDup>").replace("<vDup>132.37</vDup>", "<vDup>264.73</vDup>"))).id,
+      { supplier: { id: supplier.id }, items, receive: false },
+    );
+    assert.equal(zero.statusCode, 422, zero.body);
+    assert.equal(zero.json().code, "INSTALLMENT_AMOUNT_INVALID");
   });
 
   test("mapeamento do fornecedor: cProd vazio não é gravado; cProd repetido só grava se as variantes e embalagens forem iguais", async () => {

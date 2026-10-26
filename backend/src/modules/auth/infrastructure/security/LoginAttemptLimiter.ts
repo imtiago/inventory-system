@@ -38,13 +38,13 @@ export class LoginAttemptLimiter implements ILoginAttemptLimiter {
     return this.entries.size;
   }
 
-  tryConsume(key: string): boolean {
+  tryConsume(key: string, maxAttempts: number = this.maxAttempts): boolean {
     const now = this.now();
     this.maybePrune(now);
 
     const entry = this.entries.get(key);
     if (entry && now - entry.windowStart <= this.windowMs) {
-      if (entry.attempts >= this.maxAttempts) return false;
+      if (entry.attempts >= maxAttempts) return false;
       entry.attempts += 1;
       return true;
     }
@@ -58,6 +58,11 @@ export class LoginAttemptLimiter implements ILoginAttemptLimiter {
 
   clear(key: string): void {
     this.entries.delete(key);
+  }
+
+  release(key: string): void {
+    const entry = this.entries.get(key);
+    if (entry && entry.attempts > 0) entry.attempts -= 1;
   }
 
   /** Zera todos os contadores (uso em testes). */

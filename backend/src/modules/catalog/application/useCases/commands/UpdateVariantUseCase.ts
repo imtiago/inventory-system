@@ -1,5 +1,5 @@
 import { ConflictError, ForbiddenError, NotFoundError } from "@shared/domain/errors";
-import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
+import { ProductVariantRepository, VariantUpdatableField } from "@catalog/domain/repositories/ProductVariantRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import {
@@ -19,12 +19,18 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
   }
 
   async handle(request: IUpdateVariantInput): Promise<IProductVariantOutput> {
-    const variant = await this.variantRepository.findById(request.id);
+    // Trava a linha antes de ler: edições concorrentes se serializam e cada uma grava só o que mudou.
+    const exists = await this.variantRepository.lockById(request.id);
+    const variant = exists ? await this.variantRepository.findById(request.id) : null;
     if (!variant) {
       throw new NotFoundError("Variante não encontrada.", "VARIANT_NOT_FOUND");
     }
 
-    if (request.name !== undefined) variant.rename(request.name);
+    const changedFields: VariantUpdatableField[] = [];
+    if (request.name !== undefined && request.name !== variant.name) {
+      variant.rename(request.name);
+      changedFields.push("name");
+    }
     if (request.salePrice !== undefined) {
       // O formulário reenvia o preço atual a cada edição: só o preço diferente exige catalog.price.
       const changed = Math.round(request.salePrice * 100) !== Math.round(variant.salePrice * 100);
@@ -33,7 +39,10 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
       if (changed && !neverPriced && !request.canChangePrice) {
         throw new ForbiddenError("Somente o administrador pode alterar o preço de venda.");
       }
-      if (changed) variant.changeSalePrice(request.salePrice);
+      if (changed) {
+        variant.changeSalePrice(request.salePrice);
+        changedFields.push("salePrice");
+      }
     }
     if (request.barcode !== undefined) {
       if (request.barcode !== null && request.barcode !== variant.barcode) {
@@ -42,10 +51,16 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
           throw new ConflictError("Código de barras já cadastrado.", "BARCODE_ALREADY_EXISTS");
         }
       }
-      variant.changeBarcode(request.barcode);
+      if (request.barcode !== variant.barcode) {
+        variant.changeBarcode(request.barcode);
+        changedFields.push("barcode");
+      }
     }
 
-    const data = await this.variantRepository.update(variant);
+    const data =
+      changedFields.length > 0
+        ? await this.variantRepository.updateFields(variant, changedFields)
+        : variant;
 
     return {
       id: data.id,
