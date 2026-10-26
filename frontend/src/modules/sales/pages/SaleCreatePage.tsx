@@ -318,6 +318,7 @@ export function SaleCreatePage() {
                         <td className="px-3 py-3">
                           <QuantityInput
                             aria-label={`Quantidade de ${item.productName}`}
+                            itemName={item.productName}
                             value={item.quantity === null ? '' : String(item.quantity)}
                             disabled={createSaleMutation.isPending}
                             onChange={(value) => cart.updateQuantity(item.productVariantId, value === '' ? null : Number(value))}
@@ -366,6 +367,7 @@ export function SaleCreatePage() {
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <QuantityInput
                         aria-label={`Quantidade de ${item.productName}`}
+                        itemName={item.productName}
                         value={item.quantity === null ? '' : String(item.quantity)}
                         disabled={createSaleMutation.isPending}
                         onChange={(value) => cart.updateQuantity(item.productVariantId, value === '' ? null : Number(value))}

@@ -297,6 +297,7 @@ export function PurchaseCreatePage() {
                           <td className="px-2 py-3">
                             <QuantityInput
                               aria-label={`Quantidade de ${item.productName}`}
+                              itemName={item.productName}
                               value={item.quantity}
                               disabled={createMutation.isPending}
                               onChange={(value) => updateItem(item.productVariantId, 'quantity', value)}
@@ -361,6 +362,7 @@ export function PurchaseCreatePage() {
                       <div className="mt-3">
                         <QuantityInput
                           aria-label={`Quantidade de ${item.productName}`}
+                          itemName={item.productName}
                           value={item.quantity}
                           disabled={createMutation.isPending}
                           onChange={(value) => updateItem(item.productVariantId, 'quantity', value)}

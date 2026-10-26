@@ -38,7 +38,6 @@ export function InitialInventoryScanner({ barcode, loading, scannerOpen, onOpenS
             id="initial-inventory-barcode"
             value={value}
             onChange={(event) => setDraft(event.target.value)}
-            inputMode="numeric"
             autoComplete="off"
             disabled={loading}
             className="min-w-0 flex-1 rounded-lg border p-3 disabled:bg-gray-50"

@@ -112,11 +112,14 @@ function Card<T>({ row, columns, href }: { row: T; columns: DataTableColumn<T>[]
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (href && event.target === event.currentTarget && event.key === 'Enter') navigate(href);
+    if (href && event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      navigate(href);
+    }
   }
 
   return (
-    <li onClick={open} onKeyDown={onKeyDown} tabIndex={href ? 0 : undefined} className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${href ? 'cursor-pointer active:bg-gray-50' : ''}`}>
+    <li onClick={open} onKeyDown={onKeyDown} tabIndex={href ? 0 : undefined} aria-labelledby={href ? titleId : undefined} className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${href ? 'cursor-pointer active:bg-gray-50' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {title && (
@@ -178,7 +181,7 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
               <th
                 key={column.id}
                 style={{ width: column.width }}
-                className={`whitespace-nowrap border-b border-gray-200 px-5 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500 ${alignment[column.align ?? 'left']} `}
+                className={`whitespace-nowrap border-b border-gray-200 px-3 py-4 lg:px-5 text-xs font-semibold uppercase tracking-wide text-gray-500 ${alignment[column.align ?? 'left']} `}
               >
                 {column.header}
               </th>
@@ -190,7 +193,7 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
           {data.map((row, index) => (
             <tr key={getRowId ? getRowId(row) : index} className="bg-white transition-colors hover:bg-gray-50">
               {columns.map((column) => (
-                <td key={column.id} className={`px-5 py-4 align-middle text-gray-700 ${alignment[column.align ?? 'left']} `}>
+                <td key={column.id} className={`px-3 py-4 align-middle lg:px-5 text-gray-700 ${alignment[column.align ?? 'left']} `}>
                   {column.cell(row)}
                 </td>
               ))}

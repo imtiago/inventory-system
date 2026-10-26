@@ -108,6 +108,7 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
                   <QuantityInput
                     id={`rq-${item.id}`}
                     aria-label={`Quantidade a receber de ${name}`}
+                    itemName={name}
                     min={0}
                     max={item.remainingQuantity}
                     value={row.quantity}

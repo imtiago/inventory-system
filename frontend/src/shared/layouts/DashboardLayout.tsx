@@ -36,7 +36,7 @@ export function DashboardLayout() {
         </div>
       ) : (
         <>
-          <header className="flex h-14 shrink-0 items-center gap-2 bg-slate-900 px-2 text-white">
+          <header className="flex min-h-14 shrink-0 items-center gap-2 bg-slate-900 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] text-white">
             <button type="button" onClick={() => setMenuOpen(true)} aria-label="Abrir menu" className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-slate-800">
               <Menu size={24} />
             </button>
@@ -49,7 +49,7 @@ export function DashboardLayout() {
         </>
       )}
 
-      <main className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-3 sm:p-4 lg:p-6">
+      <main className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:p-6">
         {/* The menu stays mounted while a page chunk loads or fails to load. */}
         <ChunkErrorBoundary resetKey={pathname}>
           <Suspense fallback={<p role="status" className="p-4 text-sm text-gray-500">Carregando...</p>}>

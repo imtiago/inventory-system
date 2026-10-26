@@ -21,7 +21,8 @@ const MAX_PERIOD_DAYS = 366;
 export function SaleListPage() {
   const [page, setPage] = useState(1);
   const today = todayInBusinessTz();
-  const [from, setFrom] = useState(`${today.slice(0, 8)}01`);
+  const defaultFrom = `${today.slice(0, 8)}01`;
+  const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(today);
   const [status, setStatus] = useState<SaleStatus | ''>('');
   const periodTooLong = Boolean(from && to && from <= to && (Date.parse(to) - Date.parse(from)) / DAY_MS + 1 > MAX_PERIOD_DAYS);
@@ -53,7 +54,7 @@ export function SaleListPage() {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <FilterPanel activeCount={[from, to, status].filter(Boolean).length}>
+          <FilterPanel activeCount={[from !== defaultFrom, to !== today, status !== ''].filter(Boolean).length}>
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label htmlFor="sales-from" className="mb-1 block text-sm font-medium text-gray-700">
@@ -67,11 +68,6 @@ export function SaleListPage() {
               </label>
               <input id="sales-to" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
             </div>
-            {invalidPeriod && (
-              <p role="alert" className="text-sm text-red-600">
-                {periodTooLong ? `O período deve ter no máximo ${MAX_PERIOD_DAYS} dias.` : !from || !to ? 'Informe o período.' : 'Período inválido: a data inicial deve ser anterior ou igual à final.'}
-              </p>
-            )}
             <div>
               <label htmlFor="sales-status" className="mb-1 block text-sm font-medium text-gray-700">
                 Status
@@ -85,6 +81,11 @@ export function SaleListPage() {
             </div>
           </div>
           </FilterPanel>
+          {invalidPeriod && (
+            <p role="alert" className="text-sm text-red-600">
+              {periodTooLong ? `O período deve ter no máximo ${MAX_PERIOD_DAYS} dias.` : !from || !to ? 'Informe o período.' : 'Período inválido: a data inicial deve ser anterior ou igual à final.'}
+            </p>
+          )}
           {!invalidPeriod && isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}
 
           {invalidPeriod ? null : isError ? (

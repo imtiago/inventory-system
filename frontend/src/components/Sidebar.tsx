@@ -60,9 +60,11 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
         text-white
         flex
         flex-col
+        pb-[env(safe-area-inset-bottom)]
+        pl-[env(safe-area-inset-left)]
       "
     >
-      <div className="shrink-0 p-6 pr-14 text-xl font-bold lg:pr-6">Inventory System</div>
+      <div className="shrink-0 p-6 pr-14 text-xl font-bold lg:pr-6">Estoque</div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-3">
         {ungrouped.map((item) => renderItem(item, onNavigate))}

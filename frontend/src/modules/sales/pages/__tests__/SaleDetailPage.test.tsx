@@ -11,6 +11,7 @@ import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import saleDetail from '@/test/fixtures/sales/saleDetail.json';
+import { setViewport } from '@/test/viewport';
 
 const id = saleDetail.data.id;
 
@@ -173,5 +174,29 @@ describe('SaleDetailPage', () => {
     );
     expect(await screen.findByText('Venda não encontrada.')).toBeInTheDocument();
     expect(gets).toBe(1);
+  });
+});
+
+describe('SaleDetailPage no celular', () => {
+  test('itens e parcelas viram cartões empilhados, sem tabela', async () => {
+    setViewport(375);
+    renderDetail();
+
+    expect(await screen.findByText('Maria Oliveira')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const items = screen.getAllByRole('listitem');
+    expect(items.length).toBe(5);
+    expect(within(items[0]).getByText('Camiseta Básica Azul M')).toBeInTheDocument();
+    expect(within(items[0]).getByText('Qtd.')).toBeInTheDocument();
+    expect(within(items[2]).getByText('Status')).toBeInTheDocument();
+    expect(within(items[2]).getByText('21/11/2026')).toBeInTheDocument();
+  });
+
+  test('a partir de md continua sendo tabela', async () => {
+    setViewport(1024);
+    renderDetail();
+
+    await screen.findByText('Maria Oliveira');
+    expect(screen.getAllByRole('table')).toHaveLength(2);
   });
 });

@@ -69,7 +69,7 @@ describe('Itens da venda', () => {
     expect(within(card).getByText('Camiseta Azul')).toBeInTheDocument();
     expect(within(card).getAllByText(/39,90/).length).toBeGreaterThan(0);
 
-    await userEvent.click(within(card).getByRole('button', { name: 'Aumentar quantidade' }));
+    await userEvent.click(within(card).getByRole('button', { name: /Aumentar quantidade/ }));
     expect(within(card).getByLabelText('Quantidade de Camiseta Azul')).toHaveValue('2');
     expect(within(card).getByText(/79,80/)).toBeInTheDocument();
     expect(screen.getByTestId('sale-total')).toHaveTextContent('79,80');
@@ -114,7 +114,7 @@ describe('Itens do pedido de compra', () => {
     expect(price).toHaveAttribute('inputmode', 'decimal');
     expect(price).toHaveAttribute('type', 'text');
     await userEvent.type(price, '12,50');
-    await userEvent.click(within(card).getByRole('button', { name: 'Aumentar quantidade' }));
+    await userEvent.click(within(card).getByRole('button', { name: /Aumentar quantidade/ }));
 
     expect(screen.getByTestId('item-total-v-1')).toHaveTextContent('R$ 25,00');
     await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));

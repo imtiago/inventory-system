@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 import { Page } from '@/shared/components/layout/Page';
+import { DetailTable } from '@/shared/components/details/DetailTable';
 import { Modal } from '@/shared/components/Modal/Modal';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -131,31 +132,26 @@ export function SaleDetailPage() {
 
             <section>
               <h2 className="mb-2 font-semibold">Itens</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-gray-500">
-                      <th className="py-2">Produto</th>
-                      <th className="py-2 text-right">Qtd.</th>
-                      <th className="py-2 text-right">Preço unit.</th>
-                      <th className="py-2 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sale.items.map((item) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="py-2">
-                          <div className="font-medium">{item.productVariant.name}</div>
-                          <div className="text-xs text-gray-500">{item.productVariant.code}</div>
-                        </td>
-                        <td className="py-2 text-right">{item.quantity}</td>
-                        <td className="py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                        <td className="py-2 text-right">{formatCurrency(item.totalPrice)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DetailTable
+                rows={sale.items}
+                getRowId={(item) => item.id}
+                columns={[
+                  {
+                    id: 'product',
+                    header: 'Produto',
+                    mobile: 'title',
+                    cell: (item) => (
+                      <>
+                        <div className="font-medium">{item.productVariant.name}</div>
+                        <div className="text-xs font-normal text-gray-500">{item.productVariant.code}</div>
+                      </>
+                    ),
+                  },
+                  { id: 'quantity', header: 'Qtd.', align: 'right', cell: (item) => item.quantity },
+                  { id: 'unitPrice', header: 'Preço unit.', align: 'right', cell: (item) => formatCurrency(item.unitPrice) },
+                  { id: 'total', header: 'Total', align: 'right', cell: (item) => formatCurrency(item.totalPrice) },
+                ]}
+              />
               <p className="mt-3 text-right text-lg font-semibold">Total: {formatCurrency(sale.totalAmount)}</p>
             </section>
 
@@ -167,32 +163,18 @@ export function SaleDetailPage() {
                     Ver contas a receber
                   </Link>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-gray-500">
-                        <th className="py-2">#</th>
-                        <th className="py-2">Vencimento</th>
-                        <th className="py-2 text-right">Valor</th>
-                        <th className="py-2 text-right">Pago</th>
-                        <th className="py-2 text-right">Restante</th>
-                        <th className="py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sale.receivable.parcels.map((parcel, index) => (
-                        <tr key={parcel.id} className="border-b">
-                          <td className="py-2">{index + 1}</td>
-                          <td className="py-2">{formatDateOnly(parcel.dueDate)}</td>
-                          <td className="py-2 text-right">{formatCurrency(parcel.amount)}</td>
-                          <td className="py-2 text-right">{formatCurrency(parcel.paidAmount)}</td>
-                          <td className="py-2 text-right">{formatCurrency(parcel.remainingAmount)}</td>
-                          <td className="py-2">{FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DetailTable
+                  rows={sale.receivable.parcels.map((parcel, index) => ({ parcel, number: index + 1 }))}
+                  getRowId={(row) => row.parcel.id}
+                  columns={[
+                    { id: 'number', header: '#', mobile: 'title', cell: (row) => <span className="font-medium">Parcela {row.number}</span> },
+                    { id: 'dueDate', header: 'Vencimento', cell: (row) => formatDateOnly(row.parcel.dueDate) },
+                    { id: 'amount', header: 'Valor', align: 'right', cell: (row) => formatCurrency(row.parcel.amount) },
+                    { id: 'paid', header: 'Pago', align: 'right', cell: (row) => formatCurrency(row.parcel.paidAmount) },
+                    { id: 'remaining', header: 'Restante', align: 'right', cell: (row) => formatCurrency(row.parcel.remainingAmount) },
+                    { id: 'status', header: 'Status', cell: (row) => FINANCIAL_STATUS_LABELS[row.parcel.status] ?? row.parcel.status },
+                  ]}
+                />
               </section>
             )}
           </div>

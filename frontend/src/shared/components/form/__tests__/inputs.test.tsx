@@ -51,6 +51,12 @@ function Harness({ initial = '1', min, max }: { initial?: string; min?: number; 
 }
 
 describe('QuantityInput', () => {
+  it('includes the item name in the stepper names when given', () => {
+    render(<QuantityInput aria-label="Quantidade" itemName="Camiseta Azul" value="1" onChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Diminuir quantidade de Camiseta Azul' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aumentar quantidade de Camiseta Azul' })).toBeInTheDocument();
+  });
+
   it('uses a numeric keypad and 44 px steppers', () => {
     render(<Harness />);
     expect(screen.getByLabelText('Quantidade')).toHaveAttribute('inputmode', 'numeric');

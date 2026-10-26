@@ -13,6 +13,11 @@ function setup(props: Partial<React.ComponentProps<typeof InitialInventoryScanne
 }
 
 describe('InitialInventoryScanner', () => {
+  test('o campo aceita letras (Code128): sem teclado numérico', () => {
+    setup();
+    expect(screen.getByLabelText('Código de barras')).not.toHaveAttribute('inputmode', 'numeric');
+  });
+
   test('o campo é editável: digitar e Enter busca o código (leitor Bluetooth/USB)', async () => {
     const { onBarcodeRead } = setup();
 

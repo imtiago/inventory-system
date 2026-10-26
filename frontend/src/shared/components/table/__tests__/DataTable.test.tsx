@@ -84,6 +84,18 @@ describe('DataTable', () => {
       expect(screen.getByText('Detalhe aberto')).toBeInTheDocument();
     });
 
+    it('gives a clickable card a name and activates it with Enter and Space', async () => {
+      setViewport(375);
+      renderTable(makeColumns(), (r) => `/items/${r.id}`);
+
+      const card = screen.getByRole('listitem', { name: 'Camiseta' });
+      expect(card).toHaveAttribute('tabindex', '0');
+      card.focus();
+      await userEvent.keyboard(' ');
+
+      expect(screen.getByText('Detalhe aberto')).toBeInTheDocument();
+    });
+
     it('does not navigate when nothing links the row', async () => {
       setViewport(375);
       renderTable();
