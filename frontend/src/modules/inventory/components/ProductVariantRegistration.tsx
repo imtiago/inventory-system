@@ -1,4 +1,4 @@
-import { MoneyInput } from '@/shared/components/form';
+import { MoneyInput, FieldError, fieldA11y } from '@/shared/components/form';
 import { moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 import { useForm } from 'react-hook-form';
 
@@ -62,16 +62,16 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
         {/* Produto */}
 
         <div>
-          <label className="mb-1 block text-sm text-muted">Produto</label>
+          <label htmlFor="variant-product" className="mb-1 block text-sm text-muted">Produto</label>
 
-          <input value={productName} readOnly className="w-full rounded-lg border border-input bg-surface-muted text-foreground p-3" />
+          <input id="variant-product" value={productName} readOnly className="w-full rounded-lg border border-input bg-surface-muted text-foreground p-3" />
         </div>
 
         {barcode && (
           <div>
-            <label className="mb-1 block text-sm text-muted">Código de barras</label>
+            <label htmlFor="variant-barcode-readonly" className="mb-1 block text-sm text-muted">Código de barras</label>
 
-            <input value={barcode} readOnly className="w-full rounded-lg border border-input bg-surface-muted text-foreground p-3 font-mono" />
+            <input id="variant-barcode-readonly" value={barcode} readOnly className="w-full rounded-lg border border-input bg-surface-muted text-foreground p-3 font-mono" />
           </div>
         )}
 
@@ -83,16 +83,15 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
           </label>
 
           <input
-            id="variant-name"
+            id="variant-name" {...fieldA11y("variant-name", errors.name?.message)}
             type="text"
-            aria-invalid={errors.name ? 'true' : undefined}
             {...register('name', { validate: (value) => value.trim().length > 0 || 'Informe o nome da variante.' })}
             placeholder="Ex.: Kaiak 100ml"
             disabled={loading}
             className="w-full rounded-lg border border-input bg-surface text-foreground p-3 disabled:opacity-50"
           />
 
-          {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+          <FieldError id="variant-name" message={errors.name?.message} />
 
           <p className="mt-2 text-sm text-muted">Informe a descrição da apresentação do produto.</p>
         </div>
@@ -105,15 +104,14 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
           </label>
 
           <MoneyInput
-            id="variant-sale-price"
+            id="variant-sale-price" {...fieldA11y("variant-sale-price", errors.salePrice?.message)}
             disabled={loading}
-            aria-invalid={errors.salePrice ? 'true' : undefined}
             {...register('salePrice', {
               validate: validateSalePrice,
             })}
           />
 
-          {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
+          <FieldError id="variant-sale-price" message={errors.salePrice?.message} />
         </div>
       </div>
 

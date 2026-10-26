@@ -1,7 +1,7 @@
 import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { Controller, useForm } from 'react-hook-form';
 
-import { MoneyInput, QuantityInput } from '@/shared/components/form';
+import { MoneyInput, QuantityInput, FieldError, fieldA11y } from '@/shared/components/form';
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 
 /** O custo fica no formulário como o texto digitado (pt-BR); vira número só no envio. */
@@ -73,7 +73,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           </label>
 
           <input
-            id="batchNumber"
+            id="batchNumber" {...fieldA11y("batchNumber", errors.batchNumber?.message)}
             type="text"
             {...register('batchNumber', {
               required: 'Informe o lote.',
@@ -82,7 +82,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             placeholder="Ex: 123456"
           />
 
-          {errors.batchNumber && <p className="mt-1 text-sm text-danger">{errors.batchNumber.message}</p>}
+          <FieldError id="batchNumber" message={errors.batchNumber?.message} />
         </div>
 
         {/* DATA DE FABRICAÇÃO */}
@@ -91,9 +91,9 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             Data de fabricação
           </label>
 
-          <input id="manufacturingDate" type="date" {...register('manufacturingDate')} className="w-full rounded-lg border border-input bg-surface text-foreground p-3" />
+          <input id="manufacturingDate" {...fieldA11y("manufacturingDate", errors.manufacturingDate?.message)} type="date" {...register('manufacturingDate')} className="w-full rounded-lg border border-input bg-surface text-foreground p-3" />
 
-          {errors.manufacturingDate && <p className="mt-1 text-sm text-danger">{errors.manufacturingDate.message}</p>}
+          <FieldError id="manufacturingDate" message={errors.manufacturingDate?.message} />
         </div>
 
         {/* VALIDADE */}
@@ -103,7 +103,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           </label>
 
           <input
-            id="expirationDate"
+            id="expirationDate" {...fieldA11y("expirationDate", errors.expirationDate?.message)}
             type="date"
             {...register('expirationDate', {
               required: 'Informe a validade.',
@@ -111,7 +111,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             className="w-full rounded-lg border border-input bg-surface text-foreground p-3"
           />
 
-          {errors.expirationDate && <p className="mt-1 text-sm text-danger">{errors.expirationDate.message}</p>}
+          <FieldError id="expirationDate" message={errors.expirationDate?.message} />
         </div>
 
         {/* CUSTO UNITÁRIO */}
@@ -121,13 +121,13 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           </label>
 
           <MoneyInput
-            id="unitCost"
+            id="unitCost" {...fieldA11y("unitCost", errors.unitCost?.message)}
             {...register('unitCost', {
               validate: (value) => (value.trim() === '' ? 'Informe o custo unitário.' : (moneyTextError(value) ?? true)),
             })}
           />
 
-          {errors.unitCost && <p className="mt-1 text-sm text-danger">{errors.unitCost.message}</p>}
+          <FieldError id="unitCost" message={errors.unitCost?.message} />
 
           <p className="mt-1 text-sm text-muted">Informe quanto cada unidade deste lote custou.</p>
         </div>
@@ -149,11 +149,11 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
               },
             }}
             render={({ field }) => (
-              <QuantityInput id="quantity" value={Number.isFinite(field.value) ? String(field.value) : ''} onChange={(value) => field.onChange(value === '' ? Number.NaN : Number(value))} onBlur={field.onBlur} />
+              <QuantityInput id="quantity" {...fieldA11y("quantity", errors.quantity?.message)} value={Number.isFinite(field.value) ? String(field.value) : ''} onChange={(value) => field.onChange(value === '' ? Number.NaN : Number(value))} onBlur={field.onBlur} />
             )}
           />
 
-          {errors.quantity && <p className="mt-1 text-sm text-danger">{errors.quantity.message}</p>}
+          <FieldError id="quantity" message={errors.quantity?.message} />
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
-import { FormAutocomplete, QuantityInput } from '@/shared/components/form';
+import { FormAutocomplete, QuantityInput, FieldError, fieldA11y } from '@/shared/components/form';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 
 import type { ICustomer } from '@/modules/customers/types';
@@ -442,8 +442,8 @@ export function SaleCreatePage() {
                     <label htmlFor="sale-first-due" className="mb-1 block text-sm font-medium">
                       Primeiro vencimento
                     </label>
-                    <input id="sale-first-due" type="date" {...register('firstDueDate')} className="w-full rounded-md border px-3 py-2" />
-                    {errors.firstDueDate && <p className="mt-1 text-sm text-danger">{errors.firstDueDate.message}</p>}
+                    <input id="sale-first-due" {...fieldA11y("sale-first-due", errors.firstDueDate?.message)} type="date" {...register('firstDueDate')} className="w-full rounded-md border px-3 py-2" />
+                    <FieldError id="sale-first-due" message={errors.firstDueDate?.message} />
                   </div>
                 </div>
               )}

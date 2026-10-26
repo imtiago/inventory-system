@@ -9,6 +9,7 @@ import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { useResetUserPassword } from '../hooks/useUserMutations';
 import type { UserDTO } from '../types';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
 type Values = { password: string; confirm: string };
 
 const FIELDS = ['password'] as const;
@@ -53,7 +54,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
           id="reset-password"
           type="password"
           autoComplete="new-password"
-          aria-describedby={errors.password ? 'reset-password-error' : undefined}
+          {...fieldA11y("reset-password", errors.password?.message)}
           className={inputClass}
           {...register('password', {
             required: 'Informe a nova senha.',
@@ -61,11 +62,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
             maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
           })}
         />
-        {errors.password && (
-          <p id="reset-password-error" className="mt-1 text-sm text-danger">
-            {errors.password.message}
-          </p>
-        )}
+        <FieldError id="reset-password" message={errors.password?.message} />
       </div>
 
       <div>
@@ -73,7 +70,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
           Confirmar nova senha
         </label>
         <input
-          id="reset-confirm"
+          id="reset-confirm" {...fieldA11y("reset-confirm", errors.confirm?.message)}
           type="password"
           autoComplete="new-password"
           className={inputClass}
@@ -82,7 +79,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
             validate: (value) => value === getValues('password') || 'As senhas não coincidem.',
           })}
         />
-        {errors.confirm && <p className="mt-1 text-sm text-danger">{errors.confirm.message}</p>}
+        <FieldError id="reset-confirm" message={errors.confirm?.message} />
       </div>
 
       {errors.root?.server && (

@@ -6,7 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
-import { FormAutocomplete, MoneyInput, QuantityInput } from '@/shared/components/form';
+import { FormAutocomplete, MoneyInput, QuantityInput, FieldError, fieldA11y } from '@/shared/components/form';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
@@ -224,8 +224,8 @@ export function PurchaseCreatePage() {
                 <label htmlFor="purchase-date" className="mb-1 block text-sm font-medium">
                   Data do pedido
                 </label>
-                <input id="purchase-date" type="date" max={today} {...register('purchaseDate', { required: 'Informe a data do pedido.' })} className={inputClass} />
-                {errors.purchaseDate && <p className="mt-1 text-sm text-danger">{errors.purchaseDate.message}</p>}
+                <input id="purchase-date" {...fieldA11y("purchase-date", errors.purchaseDate?.message)} type="date" max={today} {...register('purchaseDate', { required: 'Informe a data do pedido.' })} className={inputClass} />
+                <FieldError id="purchase-date" message={errors.purchaseDate?.message} />
               </div>
             </div>
 
@@ -446,8 +446,8 @@ export function PurchaseCreatePage() {
                     <label htmlFor="purchase-first-due" className="mb-1 block text-sm font-medium">
                       Primeiro vencimento
                     </label>
-                    <input id="purchase-first-due" type="date" min={purchaseDate || undefined} {...register('firstDueDate')} className={inputClass} />
-                    {errors.firstDueDate && <p className="mt-1 text-sm text-danger">{errors.firstDueDate.message}</p>}
+                    <input id="purchase-first-due" {...fieldA11y("purchase-first-due", errors.firstDueDate?.message)} type="date" min={purchaseDate || undefined} {...register('firstDueDate')} className={inputClass} />
+                    <FieldError id="purchase-first-due" message={errors.firstDueDate?.message} />
                   </div>
                 </div>
               )}
@@ -470,8 +470,8 @@ export function PurchaseCreatePage() {
               <label htmlFor="purchase-notes" className="mb-1 block text-sm font-medium">
                 Observações
               </label>
-              <textarea id="purchase-notes" rows={2} maxLength={500} {...register('notes')} className={inputClass} />
-              {errors.notes && <p className="mt-1 text-sm text-danger">{errors.notes.message}</p>}
+              <textarea id="purchase-notes" {...fieldA11y("purchase-notes", errors.notes?.message)} rows={2} maxLength={500} {...register('notes')} className={inputClass} />
+              <FieldError id="purchase-notes" message={errors.notes?.message} />
             </div>
 
             <div className="mt-6 flex flex-col-reverse justify-end gap-3 border-t pt-5 sm:flex-row">

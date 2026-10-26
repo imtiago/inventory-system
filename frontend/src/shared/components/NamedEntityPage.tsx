@@ -21,6 +21,7 @@ import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import type { ListParams, Paginated } from '@/shared/types/pagination';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
 export interface NamedEntity {
   id: string;
   name: string;
@@ -269,14 +270,14 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
           Nome *
         </label>
         <input
-          id="named-entity-name"
+          id="named-entity-name" {...fieldA11y("named-entity-name", errors.name?.message)}
           type="text"
           maxLength={80}
           autoComplete="off"
           className={inputClass}
           {...register('name', { validate: (value) => value.trim().length > 0 || 'Informe o nome.' })}
         />
-        {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+        <FieldError id="named-entity-name" message={errors.name?.message} />
       </div>
 
       {errors.root?.server && (

@@ -7,6 +7,7 @@ import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 
 import { useChangeOwnPassword } from '../hooks/useChangeOwnPassword';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
 type Values = { currentPassword: string; newPassword: string; confirm: string };
 
 const FIELDS = ['currentPassword', 'newPassword'] as const;
@@ -51,15 +52,11 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
           id="cp-current"
           type="password"
           autoComplete="current-password"
-          aria-describedby={errors.currentPassword ? 'cp-current-error' : undefined}
+          {...fieldA11y("cp-current", errors.currentPassword?.message)}
           className={inputClass}
           {...register('currentPassword', { required: 'Informe a senha atual.' })}
         />
-        {errors.currentPassword && (
-          <p id="cp-current-error" className="mt-1 text-sm text-danger">
-            {errors.currentPassword.message}
-          </p>
-        )}
+        <FieldError id="cp-current" message={errors.currentPassword?.message} />
       </div>
 
       <div>
@@ -67,7 +64,7 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
           Nova senha
         </label>
         <input
-          id="cp-new"
+          id="cp-new" {...fieldA11y("cp-new", errors.newPassword?.message)}
           type="password"
           autoComplete="new-password"
           className={inputClass}
@@ -77,7 +74,7 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
             maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
           })}
         />
-        {errors.newPassword && <p className="mt-1 text-sm text-danger">{errors.newPassword.message}</p>}
+        <FieldError id="cp-new" message={errors.newPassword?.message} />
       </div>
 
       <div>
@@ -85,7 +82,7 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
           Confirmar nova senha
         </label>
         <input
-          id="cp-confirm"
+          id="cp-confirm" {...fieldA11y("cp-confirm", errors.confirm?.message)}
           type="password"
           autoComplete="new-password"
           className={inputClass}
@@ -94,7 +91,7 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
             validate: (value) => value === getValues('newPassword') || 'As senhas não coincidem.',
           })}
         />
-        {errors.confirm && <p className="mt-1 text-sm text-danger">{errors.confirm.message}</p>}
+        <FieldError id="cp-confirm" message={errors.confirm?.message} />
       </div>
 
       {errors.root?.server && (

@@ -3,7 +3,8 @@ export type { AutocompleteProps } from './Autocomplete';
 
 export { FormAutocomplete } from './FormAutocomplete';
 
-export { FieldError, fieldA11y, fieldErrorId } from './FieldError';
+export { FieldError } from './FieldError';
+export { fieldA11y, fieldErrorId } from './fieldA11y';
 
 export { MoneyInput } from './MoneyInput';
 export type { MoneyInputProps } from './MoneyInput';

@@ -71,13 +71,15 @@ export function useProductVariantColumns({
 
       cell: (variant) => (
         <div className="flex justify-center gap-1">
-          <Link
-            to={`/variants/${variant.id}/edit`}
-            aria-label={`Editar ${variant.name}`}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover"
-          >
-            <Pencil size={18} />
-          </Link>
+          <Can permission="catalog.write">
+            <Link
+              to={`/variants/${variant.id}/edit`}
+              aria-label={`Editar ${variant.name}`}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover"
+            >
+              <Pencil size={18} />
+            </Link>
+          </Can>
 
           <Can permission="catalog.delete">
             <button
