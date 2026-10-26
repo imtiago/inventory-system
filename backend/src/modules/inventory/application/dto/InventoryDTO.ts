@@ -45,7 +45,10 @@ export interface IDispatchInventoryInput {
 export interface IReceiveInventoryInput {
   productVariantId: string;
   quantity: number;
+  /** Custo unitário efetivo (já com a parte extra). */
   unitCost: number;
+  /** Parte do `unitCost` vinda de frete/despesas, por unidade (4 casas). Padrão 0. */
+  acquisitionExtraCost?: number;
   batchNumber?: string;
   manufacturingDate?: Date;
   expirationDate?: Date;

@@ -106,6 +106,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     if (lot) {
       lot.receive(request.quantity, {
         unitCost: request.unitCost,
+        acquisitionExtraCost: request.acquisitionExtraCost,
         expirationDate: request.expirationDate,
         manufacturingDate: request.manufacturingDate,
       });
@@ -119,6 +120,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
         purchaseItemId: request.purchaseItemId,
         initialQuantity: request.quantity,
         unitCost: request.unitCost,
+        acquisitionExtraCost: request.acquisitionExtraCost,
         batchNumber: request.batchNumber,
         manufacturingDate: request.manufacturingDate,
         expirationDate: request.expirationDate,

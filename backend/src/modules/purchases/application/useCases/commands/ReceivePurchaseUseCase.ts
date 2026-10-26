@@ -1,3 +1,4 @@
+import { unitCostFromCents } from "@shared/domain/money";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { InventoryService } from "@inventory/application/services/InventoryService";
@@ -44,6 +45,8 @@ export class ReceivePurchaseUseCase extends TransactionalUseCase<IReceivePurchas
         productVariantId: item.productVariantId,
         quantity: line.quantity,
         unitCost: item.unitCost,
+        // Parte do custo vinda de frete + imposto do item, por unidade (informativo; o unitCost já a inclui).
+        acquisitionExtraCost: unitCostFromCents(item.freightCents + item.taxCents, item.quantity),
         batchNumber: line.batchNumber,
         manufacturingDate: toDate(line.manufacturingDate),
         expirationDate: toDate(line.expirationDate),

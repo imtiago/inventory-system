@@ -40,6 +40,7 @@ export const createPurchaseBodySchema = z
     supplierId: z.string({ error: "Informe o fornecedor." }).uuid("Fornecedor inválido."),
     purchaseDate: dateOnlySchema.optional(),
     notes: notesSchema,
+    extraCosts: moneySchema("As despesas do pedido").optional(),
     items: z
       .array(itemSchema, { error: "Informe os itens do pedido." })
       .min(1, "O pedido deve ter pelo menos um item.")
@@ -71,6 +72,7 @@ export const createPurchaseBodySchema = z
           toCents(item.tax ?? 0),
       );
     });
+    totalCents += toCents(data.extraCosts ?? 0);
     if (totalCents > MAX_AMOUNT_CENTS) {
       ctx.addIssue({ code: "custom", message: "O total do pedido excede o máximo permitido.", path: ["items"] });
     }
@@ -96,6 +98,7 @@ export const createPurchaseBodySchema = z
     supplierId: data.supplierId,
     purchaseDate: data.purchaseDate,
     notes: data.notes ?? null,
+    extraCostsCents: toCents(data.extraCosts ?? 0),
     items: data.items.map((item) => ({
       productVariantId: item.productVariantId,
       quantity: item.quantity,

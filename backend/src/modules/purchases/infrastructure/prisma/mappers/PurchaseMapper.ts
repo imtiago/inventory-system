@@ -18,6 +18,7 @@ export class PurchaseMapper {
       origin: row.origin as PurchaseOrigin,
       purchaseDate: toDateOnly(row.purchaseDate),
       notes: row.notes,
+      extraCostsCents: cents(row.extraCosts),
       cancelReason: row.cancelReason,
       canceledAt: row.canceledAt,
       canceledById: row.canceledById,
@@ -50,6 +51,7 @@ export class PurchaseMapper {
       origin: purchase.origin,
       purchaseDate: fromDateOnly(purchase.purchaseDate),
       totalAmount: fromCents(purchase.totalAmountCents),
+      extraCosts: fromCents(purchase.extraCostsCents),
       notes: purchase.notes,
       createdAt: purchase.createdAt,
       items: {

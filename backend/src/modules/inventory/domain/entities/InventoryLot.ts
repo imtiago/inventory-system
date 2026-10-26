@@ -20,6 +20,9 @@ interface InventoryLotProps {
 
   unitCost: number;
 
+  /** Parte do unitCost vinda de frete/despesas/impostos, por unidade (4 casas). */
+  acquisitionExtraCost?: number;
+
   batchNumber?: string | null;
 
   manufacturingDate?: Date | null;
@@ -77,6 +80,10 @@ export class InventoryLot extends BaseEntity {
     return this.props.unitCost;
   }
 
+  get acquisitionExtraCost() {
+    return this.props.acquisitionExtraCost ?? 0;
+  }
+
   get batchNumber() {
     return this.props.batchNumber;
   }
@@ -95,7 +102,7 @@ export class InventoryLot extends BaseEntity {
    */
   public receive(
     quantity: number,
-    entry: { unitCost?: number; expirationDate?: Date | null; manufacturingDate?: Date | null } = {},
+    entry: { unitCost?: number; acquisitionExtraCost?: number; expirationDate?: Date | null; manufacturingDate?: Date | null } = {},
   ): void {
     if (quantity <= 0) {
       throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
@@ -106,6 +113,9 @@ export class InventoryLot extends BaseEntity {
       const weighted =
         (this.props.remainingQuantity * this.props.unitCost + quantity * entry.unitCost) / total;
       this.props.unitCost = roundCost(weighted);
+      const extraWeighted =
+        (this.props.remainingQuantity * this.acquisitionExtraCost + quantity * (entry.acquisitionExtraCost ?? 0)) / total;
+      this.props.acquisitionExtraCost = roundCost(extraWeighted);
     }
     if (!this.props.expirationDate && entry.expirationDate) {
       this.props.expirationDate = entry.expirationDate;
@@ -165,6 +175,10 @@ export class InventoryLot extends BaseEntity {
 
     if (this.props.remainingQuantity > this.props.initialQuantity) {
       throw new BusinessRuleError("A quantidade restante excede a quantidade inicial.", ErrorCodes.INVALID_QUANTITY);
+    }
+
+    if ((this.props.acquisitionExtraCost ?? 0) < 0) {
+      throw new BusinessRuleError("Custo extra de aquisição inválido.", ErrorCodes.INVALID_UNIT_COST);
     }
 
     if (this.props.unitCost < 0) {

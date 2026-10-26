@@ -22,6 +22,8 @@ export interface PurchaseProps {
   /** Data do pedido "YYYY-MM-DD". */
   purchaseDate: string;
   notes: string | null;
+  /** Frete/despesas do pedido (centavos), já rateados nos itens; informativo. */
+  extraCostsCents?: number;
   items: PurchaseItem[];
   cancelReason?: string | null;
   canceledAt?: Date | null;
@@ -39,6 +41,7 @@ export interface NewPurchaseProps {
   supplierId: string;
   purchaseDate: string;
   notes: string | null;
+  extraCostsCents?: number;
   items: PurchaseItem[];
   origin?: PurchaseOrigin;
 }
@@ -53,6 +56,7 @@ export class Purchase extends BaseEntity {
   readonly origin: PurchaseOrigin;
   readonly purchaseDate: string;
   readonly notes: string | null;
+  readonly extraCostsCents: number;
   private readonly _items: PurchaseItem[];
   private _status: PurchaseStatus;
   private _cancelReason: string | null;
@@ -73,6 +77,7 @@ export class Purchase extends BaseEntity {
     this.origin = props.origin;
     this.purchaseDate = props.purchaseDate;
     this.notes = props.notes;
+    this.extraCostsCents = props.extraCostsCents ?? 0;
     this._items = props.items;
     this._status = props.status;
     this._cancelReason = props.cancelReason ?? null;

@@ -21,6 +21,8 @@ export interface ReceivePurchaseStockRequest {
   quantity: number;
   /** Custo unitário do item do pedido, em reais com 4 casas. */
   unitCost: number;
+  /** Parte do `unitCost` que veio de frete/impostos, por unidade (4 casas). */
+  acquisitionExtraCost?: number;
   batchNumber?: string;
   manufacturingDate?: Date;
   expirationDate?: Date;

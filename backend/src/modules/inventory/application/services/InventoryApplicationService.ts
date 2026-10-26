@@ -47,6 +47,7 @@ export class InventoryApplicationService implements InventoryService {
       productVariantId: request.productVariantId,
       quantity: request.quantity,
       unitCost: request.unitCost,
+      acquisitionExtraCost: request.acquisitionExtraCost,
       batchNumber: request.batchNumber,
       manufacturingDate: request.manufacturingDate,
       expirationDate: request.expirationDate,

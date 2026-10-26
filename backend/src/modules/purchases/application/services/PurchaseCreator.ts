@@ -1,4 +1,5 @@
 import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
+import { prorateCents } from "@shared/domain/prorate";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { CatalogService } from "@catalog/application/services/CatalogService";
@@ -11,6 +12,10 @@ import { PurchaseRepository } from "@purchases/domain/repositories/PurchaseRepos
 import { SupplierRepository } from "@purchases/domain/repositories/SupplierRepository";
 
 const PURCHASE_CODE_PREFIX = "PC";
+
+/** Peso do rateio: valor do item sem frete/imposto (qtd × preço − desconto), piso 0. */
+const itemWeight = (item: PurchaseCreatorItem) =>
+  Math.max(0, item.quantity * item.unitPriceCents - item.discountCents);
 
 export interface PurchaseCreatorItem {
   productVariantId: string;
@@ -26,6 +31,8 @@ export interface PurchaseCreatorInput {
   /** "YYYY-MM-DD". */
   purchaseDate: string;
   notes: string | null;
+  /** Frete/despesas do pedido (centavos): rateados nos itens pelo valor (qtd × preço − desconto) como frete. */
+  extraCostsCents?: number;
   origin?: PurchaseOrigin;
   items: PurchaseCreatorItem[];
 }
@@ -62,11 +69,15 @@ export class PurchaseCreator {
     const variants = new Map(
       (await this.catalogService.getProductVariants(input.items.map((i) => i.productVariantId))).map((v) => [v.id, v]),
     );
+    const extraCostsCents = input.extraCostsCents ?? 0;
+    const shares = extraCostsCents > 0 ? prorateCents(extraCostsCents, input.items.map(itemWeight)) : [];
     const items: PurchaseItem[] = [];
-    for (const item of input.items) {
+    for (const [index, item] of input.items.entries()) {
       const variant = variants.get(item.productVariantId);
       if (!variant) throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
-      items.push(new PurchaseItem({ ...item, productVariantId: variant.id }));
+      items.push(
+        new PurchaseItem({ ...item, productVariantId: variant.id, freightCents: item.freightCents + (shares[index] ?? 0) }),
+      );
     }
 
     const code = await this.numberGenerator.generate(NumberRangeName.PURCHASE, PURCHASE_CODE_PREFIX);
@@ -75,6 +86,7 @@ export class PurchaseCreator {
       supplierId: supplier.id,
       purchaseDate: input.purchaseDate,
       notes: input.notes,
+      extraCostsCents,
       origin: input.origin,
       items,
     });

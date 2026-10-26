@@ -23,6 +23,8 @@ export interface PurchaseDTO {
   purchaseDate: string;
   notes: string | null;
   totalAmount: number;
+  /** Frete/despesas do pedido, já rateados nos itens (informativo). */
+  extraCosts: number;
   createdAt: Date;
   items: PurchaseItemDTO[];
   payable: FinancialDocumentSummaryDTO | null;
@@ -46,6 +48,8 @@ export interface ICreatePurchaseInput {
   /** "YYYY-MM-DD"; ausente = hoje (data de negócio). */
   purchaseDate?: string;
   notes: string | null;
+  /** Frete/despesas do pedido (centavos), rateados nos itens por valor. */
+  extraCostsCents?: number;
   items: {
     productVariantId: string;
     quantity: number;

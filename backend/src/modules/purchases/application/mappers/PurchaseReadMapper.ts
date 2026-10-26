@@ -27,6 +27,7 @@ export interface PurchaseListRow extends PurchaseBaseRow {
 }
 
 export interface PurchaseDetailRow extends PurchaseBaseRow {
+  extraCosts: Money;
   notes: string | null;
   items: {
     id: string;
@@ -78,6 +79,7 @@ export class PurchaseReadMapper {
       purchaseDate: toDateOnly(row.purchaseDate),
       notes: row.notes,
       totalAmount: money(row.totalAmount),
+      extraCosts: money(row.extraCosts),
       createdAt: row.createdAt,
       items: row.items.map((item) => ({
         id: item.id,

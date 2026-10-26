@@ -35,6 +35,7 @@ export interface InventoryLotRow {
   initialQuantity: number;
   remainingQuantity: number;
   unitCost: DecimalLike;
+  acquisitionExtraCost: DecimalLike;
   sourceType: string;
   manufacturingDate: Date | null;
   expirationDate: Date | null;

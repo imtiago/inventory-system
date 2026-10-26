@@ -24,6 +24,7 @@ export class InventoryLotReadMapper {
         0,
       ),
       unitCost: Number(data.unitCost),
+      acquisitionExtraCost: Number(data.acquisitionExtraCost),
       sourceType: data.sourceType as InventoryLotSource,
       manufacturingDate: data.manufacturingDate ?? null,
       expirationDate: data.expirationDate ?? null,

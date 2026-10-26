@@ -193,6 +193,9 @@ model InventoryLot {
 
   unitCost Decimal @db.Decimal(14, 4)
 
+  // Parte do unitCost que veio de frete/despesas/impostos (por unidade). CHECK >= 0 só na migration.
+  acquisitionExtraCost Decimal @default(0) @db.Decimal(14, 4)
+
   batchNumber String?
 
   manufacturingDate DateTime?
@@ -486,6 +489,9 @@ model Purchase {
   purchaseDate DateTime @db.Date
 
   totalAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  // Frete/despesas do pedido, já rateados nos itens (informativo). CHECK >= 0 só na migration.
+  extraCosts Decimal @default(0) @db.Decimal(12, 2)
 
   notes String?
 
