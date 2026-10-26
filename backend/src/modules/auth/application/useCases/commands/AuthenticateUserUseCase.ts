@@ -30,13 +30,20 @@ export class AuthenticateUserUseCase {
     const ipKey = loginIpKey(ip);
 
     // Três camadas: IP+e-mail, conta (qualquer IP) e IP (qualquer e-mail). Checa e conta
-    // antes de qualquer await (atômico no event loop); para na primeira camada bloqueada.
-    if (
-      !this.attemptLimiter.tryConsume(key, LOGIN_MAX_PER_PAIR) ||
-      !this.attemptLimiter.tryConsume(accountKey, LOGIN_MAX_PER_ACCOUNT) ||
-      !this.attemptLimiter.tryConsume(ipKey, LOGIN_MAX_PER_IP)
-    ) {
-      throw new TooManyRequestsError();
+    // antes de qualquer await (atômico no event loop). Se uma camada recusa, devolve as vagas
+    // das camadas já consumidas: tentativa recusada (429) não gasta o orçamento das outras.
+    const layers: [string, number][] = [
+      [key, LOGIN_MAX_PER_PAIR],
+      [accountKey, LOGIN_MAX_PER_ACCOUNT],
+      [ipKey, LOGIN_MAX_PER_IP],
+    ];
+    const consumed: string[] = [];
+    for (const [layerKey, max] of layers) {
+      if (!this.attemptLimiter.tryConsume(layerKey, max)) {
+        for (const done of consumed) this.attemptLimiter.release(done);
+        throw new TooManyRequestsError();
+      }
+      consumed.push(layerKey);
     }
 
     const user = await this.userRepo.findByEmail(normalizedEmail);

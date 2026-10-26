@@ -8,6 +8,7 @@ import {
   LoginAttemptLimiter,
   loginAttemptLimiter,
 } from "../../security/LoginAttemptLimiter";
+import { loginAttemptKey, loginAccountKey } from "../../../application/ports/LoginAttemptLimiter";
 import { createTestUser } from "../../../../../test/authFixtures";
 
 app.log.level = "silent";
@@ -60,6 +61,19 @@ describe("POST /auth/login — limites por conta e por IP", () => {
       assert.equal((await login("nobody-z@example.com", "senha-errada-123", "10.3.0.1")).statusCode, 429);
     } finally {
       await own.cleanup();
+    }
+  });
+
+  test("tentativa recusada pelo limite por IP (429) não gasta as vagas de par nem de conta", async () => {
+    for (let i = 0; i < 50; i++) await login(`nobody-${i}@example.com`, "senha-errada-123", "10.4.0.1");
+    for (let i = 0; i < 15; i++) {
+      assert.equal((await login("vitima@example.com", "senha-errada-123", "10.4.0.1")).statusCode, 429);
+    }
+    for (let i = 0; i < 10; i++) {
+      assert.equal(loginAttemptLimiter.tryConsume(loginAttemptKey("10.4.0.1", "vitima@example.com")), true, `par ${i + 1}`);
+    }
+    for (let i = 0; i < 30; i++) {
+      assert.equal(loginAttemptLimiter.tryConsume(loginAccountKey("vitima@example.com"), 30), true, `conta ${i + 1}`);
     }
   });
 });

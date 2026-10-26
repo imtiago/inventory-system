@@ -49,6 +49,26 @@ test("CHECK violado em query comum (erro desconhecido com PostgresError 23514) �
   assert.deepEqual(r.body, CONSTRAINT);
 });
 
+test("23514 solto na mensagem (UUID/valor em detail) não vira CONSTRAINT_VIOLATION", async () => {
+  const r = await call(
+    () =>
+      new Prisma.PrismaClientUnknownRequestError(
+        'PostgresError { code: "XX000", detail: "Key (id)=(a1-23514-b2) falhou" }',
+        { clientVersion: "6" },
+      ),
+  );
+  assert.equal(r.status, 500);
+  const known = await call(
+    () =>
+      new Prisma.PrismaClientKnownRequestError("Raw query failed 23514", {
+        code: "P2010",
+        clientVersion: "6",
+        meta: { code: "40001" },
+      }),
+  );
+  assert.notEqual(known.body.code, "CONSTRAINT_VIOLATION");
+});
+
 test("gravação real que viola o CHECK de estoque → 409 CONSTRAINT_VIOLATION", async () => {
   const { variantId, cleanup } = await createTestVariant();
   try {

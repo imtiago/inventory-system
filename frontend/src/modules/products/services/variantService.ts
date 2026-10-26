@@ -29,7 +29,7 @@ export async function createVariant(
 
 export async function updateVariant(
   id: string,
-  payload: SaveVariantDTO,
+  payload: Partial<SaveVariantDTO>,
 ): Promise<Variant> {
   const { data } = await api.put(`/variants/${id}`, payload);
 

@@ -64,7 +64,8 @@ function isForeignKeyViolation(error: unknown): boolean {
 
 // CHECK do banco violado (23514): estoque negativo, valor <= 0 etc. Não é validação comum:
 // indica bug ou corrida não coberta por trava, por isso é logado com detalhe.
-const CHECK_CODE_IN_MESSAGE = /23514/;
+// Erro desconhecido do Prisma só traz o código do Postgres dentro da mensagem: casa o campo `code`, não qualquer 23514.
+const CHECK_CODE_IN_MESSAGE = /PostgresError \{ code: "23514"/;
 
 function isCheckViolation(error: unknown): boolean {
   if (
@@ -73,8 +74,11 @@ function isCheckViolation(error: unknown): boolean {
   ) {
     return false;
   }
-  const meta = (error as { meta?: Record<string, unknown> }).meta;
-  return meta?.code === "23514" || CHECK_CODE_IN_MESSAGE.test(error.message);
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const meta = error.meta as Record<string, unknown> | undefined;
+    return meta?.code === "23514";
+  }
+  return CHECK_CODE_IN_MESSAGE.test(error.message);
 }
 
 export function errorHandler(

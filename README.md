@@ -112,7 +112,7 @@ Mesmo com tudo na mesma origem, `CORS_ORIGINS` deve conter a origem do site (esq
 
 ## Banco legado (criado antes de out/2026)
 
-Duas migrations antigas falham num banco que já tinha dados. Elas não foram reescritas (mudaria o checksum de bancos que já as aplicaram). Em um banco legado, faça backup (`cd backend && PGCONTAINER=<container> npm run backup-db`) e siga o procedimento manual abaixo **antes** do `prisma migrate deploy`. Em banco novo ou já migrado, nada a fazer.
+Algumas migrations antigas falham num banco que já tinha dados. Elas não foram reescritas (mudaria o checksum de bancos que já as aplicaram). Em um banco legado, faça backup (`cd backend && PGCONTAINER=<container> npm run backup-db`) e siga o procedimento manual abaixo **antes** do `prisma migrate deploy`. Em banco novo ou já migrado, nada a fazer.
 
 **1. `20261021022145_nome_da_alteracao` (`Customer.code NOT NULL` sem backfill).** Confira se há clientes e se a coluna já existe:
 
@@ -121,7 +121,7 @@ SELECT count(*) AS clientes FROM "Customer";
 SELECT column_name FROM information_schema.columns WHERE table_name = 'Customer' AND column_name = 'code';
 ```
 
-Se há clientes e a coluna não existe, aplique à mão o equivalente da migration, com backfill pela faixa `CUSTOMER` (código `C` + 6 dígitos), e marque-a como aplicada:
+Se há clientes e a coluna não existe, aplique à mão o equivalente da migration, com backfill pela faixa `CUSTOMER` (código `C` + 6 dígitos), e marque-a como aplicada (aqui `--applied` é correto porque o SQL abaixo faz tudo que a migration faria; `--applied` também aceita uma migration que falhou):
 
 ```sql
 BEGIN;
@@ -148,7 +148,26 @@ SELECT lower(trim(email)) AS email, count(*), array_agg(id) AS ids
 FROM "users" GROUP BY 1 HAVING count(*) > 1;
 ```
 
-Se aparecer alguma linha, decida com o responsável qual conta manter e altere o e-mail das outras à mão (por exemplo, acrescentando um sufixo identificável) antes do `migrate deploy`. Sem duplicatas, a migration roda normalmente. Se ela já foi interrompida no meio, confira se a coluna `active` existe antes de repetir; aplique o `UPDATE` à mão e use `prisma migrate resolve --applied 20261023180000_user_active_email_normalized`.
+Se aparecer alguma linha, decida com o responsável qual conta manter e altere o e-mail das outras à mão (por exemplo, acrescentando um sufixo identificável). Depois rode `npx prisma migrate deploy`. Sem duplicatas, a migration roda normalmente.
+
+Se o `migrate deploy` já falhou nessa migration, nada dela foi aplicado (o script roda numa única transação: a coluna `active` não existe) e o Prisma bloqueia os próximos deploys com P3009. Corrija os e-mails, marque a migration como **revertida** (não como aplicada) e rode de novo:
+
+```bash
+cd backend
+npx prisma migrate resolve --rolled-back 20261023180000_user_active_email_normalized
+npx prisma migrate deploy
+```
+
+Não use `--applied` aqui: ele registraria a migration como feita sem a coluna `active`, e toda consulta de usuário (inclusive o login) falharia com 500. (Só se você aplicasse à mão **os dois** comandos da migration, `ALTER TABLE "users" ADD COLUMN "active" BOOLEAN NOT NULL DEFAULT true;` e o `UPDATE`, é que `--applied` seria correto.)
+
+**2b. `20261022170000_inventory_lot_unique_batch` (índice único `(productVariantId, batchNumber)` em `InventoryLot`).** Falha se houver o mesmo número de lote repetido na mesma variante. Confira; deve devolver 0 linhas:
+
+```sql
+SELECT "productVariantId", "batchNumber", count(*) FROM "InventoryLot"
+WHERE "batchNumber" IS NOT NULL GROUP BY 1, 2 HAVING count(*) > 1;
+```
+
+Se aparecerem linhas, renomeie o lote repetido à mão (com o responsável) antes do `migrate deploy`. Se o deploy já falhou nela, após corrigir use `npx prisma migrate resolve --rolled-back 20261022170000_inventory_lot_unique_batch` e depois `npx prisma migrate deploy`.
 
 **3. `20261026180000_integrity_checks` (CHECKs de estoque/valores e índice único de origem financeira).** Falha se já houver dado inconsistente. Confira antes; as consultas devem devolver 0:
 
@@ -165,7 +184,7 @@ SELECT type, "originType", "originId", count(*) FROM "FinancialDocument"
   GROUP BY 1, 2, 3 HAVING count(*) > 1;
 ```
 
-Corrija o dado com decisão do responsável (por exemplo, cancelar o documento duplicado) antes de aplicar a migration.
+Corrija o dado com decisão do responsável (por exemplo, cancelar o documento duplicado) antes de aplicar a migration. Se o deploy já falhou nela, nada foi aplicado (transação única): depois de corrigir, `npx prisma migrate resolve --rolled-back 20261026180000_integrity_checks` e `npx prisma migrate deploy`.
 
 ## Testes e checagens
 

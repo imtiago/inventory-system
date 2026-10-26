@@ -8,6 +8,7 @@ import { VariantCreatePage } from '../VariantCreatePage';
 import { VariantEditPage } from '../VariantEditPage';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
+import { loginAs } from '@/test/auth';
 import { API_URL } from '@/test/handlers/inventory';
 
 const variant = {
@@ -74,7 +75,7 @@ describe('Variant pages', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
 
     await waitFor(() => expect(captured.body).toBeDefined());
-    expect(captured.body).toMatchObject({ name: 'Kaiak 100ml', barcode: null, salePrice: 30 });
+    expect(captured.body).toEqual({ salePrice: 30 });
   });
 
   test('editar exige o preço de venda', async () => {
@@ -125,6 +126,43 @@ describe('Variant pages', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
 
     await waitFor(() => expect(puts).toHaveLength(2));
-    expect(puts[1]).toMatchObject({ name: 'Novo nome', salePrice: 12 });
+    expect(puts[1]).toEqual({ name: 'Novo nome' });
+  });
+
+  test('editar só o código de barras envia apenas o barcode (sem name nem salePrice)', async () => {
+    const captured = captureBody('put', '/variants/v-1');
+    renderEdit();
+
+    await userEvent.type(await screen.findByPlaceholderText('EAN'), '7891234567895');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
+
+    await waitFor(() => expect(captured.body).toBeDefined());
+    expect(captured.body).toEqual({ barcode: '7891234567895' });
+  });
+
+  test('VENDEDOR editando só o nome de variante com preço envia só o nome', async () => {
+    loginAs('VENDEDOR');
+    const captured = captureBody('put', '/variants/v-1');
+    renderEdit();
+
+    const name = await screen.findByPlaceholderText('Ex: Kaiak 100ml');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Kaiak 200ml');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
+
+    await waitFor(() => expect(captured.body).toBeDefined());
+    expect(captured.body).toEqual({ name: 'Kaiak 200ml' });
+    expect(await screen.findByText('destino')).toBeInTheDocument();
+  });
+
+  test('sem alterações não envia nada e volta ao produto', async () => {
+    const captured = captureBody('put', '/variants/v-1');
+    renderEdit();
+
+    await screen.findByLabelText('Preço de venda (R$)');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar Alterações' }));
+
+    expect(await screen.findByText('destino')).toBeInTheDocument();
+    expect(captured.body).toBeUndefined();
   });
 });
