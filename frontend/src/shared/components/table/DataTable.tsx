@@ -1,6 +1,6 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 
@@ -31,6 +31,34 @@ function EmptyState({ message = 'Nenhum registro encontrado', hint = 'Tente nova
   );
 }
 
+/** Há texto visível nos filhos (strings e elementos aninhados, sem renderizar componentes). */
+function hasVisibleText(node: ReactNode): boolean {
+  if (typeof node === 'string' || typeof node === 'number') return String(node).trim() !== '';
+  if (Array.isArray(node)) return node.some(hasVisibleText);
+  if (isValidElement(node)) return hasVisibleText((node.props as { children?: ReactNode }).children);
+  return false;
+}
+
+/**
+ * No menu "⋯" cada ação só com ícone ganha, ao lado dele, o texto do seu aria-label/title (linhas legíveis).
+ * Feito sobre a árvore de elementos do React (cloneElement), nunca sobre o DOM: o rótulo acompanha a ação a cada render.
+ */
+function labelIconActions(node: ReactNode): ReactNode {
+  return Children.map(node, (child) => {
+    if (!isValidElement(child)) return child;
+    const props = child.props as { children?: ReactNode; 'aria-label'?: string; title?: string };
+
+    if (child.type === 'a' || child.type === 'button' || child.type === Link) {
+      const text = props['aria-label'] ?? props.title;
+      if (!text || hasVisibleText(props.children)) return child;
+      return cloneElement(child as React.ReactElement<{ children?: ReactNode }>, undefined, props.children, <span key="menu-label" className="text-sm font-medium text-foreground">{text}</span>);
+    }
+
+    if (props.children === undefined || typeof props.children === 'function') return child;
+    return cloneElement(child as React.ReactElement<{ children?: ReactNode }>, undefined, labelIconActions(props.children));
+  });
+}
+
 /** Menu "⋯" do cartão: o conteúdo é a própria célula de ações (mesmas permissões e handlers). */
 function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: string }) {
   const [open, setOpen] = useState(false);
@@ -38,24 +66,11 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
-  // A célula pode não renderizar nada (sem permissão): então não há menu a mostrar.
+  // A célula pode não renderizar nada (sem permissão): então não há menu a mostrar. Só o atributo `hidden` da
+  // raiz é ajustado aqui (o React não o controla); o conteúdo do menu continua inteiramente do React.
   useLayoutEffect(() => {
     if (root.current) root.current.hidden = panel.current?.querySelector('a, button') == null;
   }, [content]);
-
-  // Cada ação só com ícone ganha o texto do seu aria-label/title: o menu é uma lista de linhas legíveis.
-  useLayoutEffect(() => {
-    panel.current?.querySelectorAll<HTMLElement>('a, button').forEach((el) => {
-      if (el.querySelector('[data-menu-label]') || el.textContent?.trim()) return;
-      const text = el.getAttribute('aria-label') ?? el.getAttribute('title');
-      if (!text) return;
-      const label = document.createElement('span');
-      label.dataset.menuLabel = '';
-      label.className = 'text-sm font-medium text-foreground';
-      label.textContent = text;
-      el.appendChild(label);
-    });
-  });
 
   useEffect(() => {
     if (!open) return;
@@ -93,7 +108,7 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
         hidden={!open}
         className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-1 rounded-lg border border-border bg-surface p-1 text-foreground shadow-lg [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-start [&_a]:gap-3 [&_a]:rounded-lg [&_a]:px-3 [&_a]:text-left [&_a]:hover:bg-surface-muted [&_button]:flex [&_button]:min-h-[44px] [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:gap-3 [&_button]:rounded-lg [&_button]:px-3 [&_button]:text-left [&_button]:hover:bg-surface-muted [&_div]:contents`}
       >
-        {content}
+        {labelIconActions(content)}
       </div>
     </div>
   );

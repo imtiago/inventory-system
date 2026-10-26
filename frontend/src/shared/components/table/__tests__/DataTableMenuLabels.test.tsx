@@ -59,6 +59,33 @@ describe('DataTable: menu "⋯" do cartão', () => {
     expect(panel).toMatch(/\[&_button\]:w-full/);
   });
 
+  it('o rótulo acompanha a ação quando o cartão é renderizado de novo com outro dado', async () => {
+    setViewport(375);
+    const { rerender } = renderTable();
+    await userEvent.click(screen.getByRole('button', { name: /Mais ações/ }));
+    expect(screen.getByText('Editar Camiseta')).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <DataTable data={[{ id: '1', name: 'Blusa' }]} columns={columns} getRowId={(r) => r.id} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Editar Blusa')).toBeInTheDocument();
+    expect(screen.queryByText('Editar Camiseta')).not.toBeInTheDocument();
+    expect(screen.getByText('Excluir Blusa')).toBeInTheDocument();
+  });
+
+  it('sem nenhuma ação renderizada (sem permissão) o menu some', () => {
+    setViewport(375);
+    render(
+      <MemoryRouter>
+        <DataTable data={[{ id: '1', name: 'Camiseta' }]} columns={[columns[0], { id: 'actions', header: 'Ações', mobile: 'actions', cell: () => null }]} getRowId={(r) => r.id} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /Mais ações/ })).not.toBeInTheDocument();
+  });
+
   it('não duplica o texto quando a ação já tem rótulo visível', async () => {
     setViewport(375);
     render(
