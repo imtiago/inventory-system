@@ -2,7 +2,7 @@ import { ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { InventoryService } from "@inventory/application/services/InventoryService";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { ICancelSaleInput } from "@sales/application/dto/SaleDTO";
 import { Sale } from "@sales/domain/entities/Sale";

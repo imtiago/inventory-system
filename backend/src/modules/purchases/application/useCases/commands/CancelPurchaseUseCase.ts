@@ -1,6 +1,6 @@
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { Purchase } from "@purchases/domain/entities/Purchase";
 import { purchaseNotFound } from "@purchases/domain/errors/purchaseErrors";
 import { PurchaseRepository } from "@purchases/domain/repositories/PurchaseRepository";

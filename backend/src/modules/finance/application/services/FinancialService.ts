@@ -1,6 +1,6 @@
 export interface SaleReceivableParcelInput {
-  /** Valor da parcela (2 casas decimais; calculado em centavos pelo chamador). */
-  amount: number;
+  /** Valor da parcela em centavos inteiros. */
+  amountCents: number;
   dueDate: Date;
 }
 

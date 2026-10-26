@@ -102,6 +102,8 @@ enum StockMovementOrigin {
   RETURN
 }
 
+// PENDING não é criado por nenhum fluxo (o domínio nasce COMPLETED); o default do banco só vale para
+// inserção fora da aplicação. Mantido porque filtro, CSV e front ainda o conhecem.
 enum SaleStatus {
   PENDING
   COMPLETED

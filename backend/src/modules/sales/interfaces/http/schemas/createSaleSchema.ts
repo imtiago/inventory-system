@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_QUANTITY } from "@shared/domain/limits";
+import { MAX_QUANTITY, MAX_SALE_ITEMS } from "@shared/domain/limits";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -39,7 +39,8 @@ export const createSaleSchema = z
     customerId: z.string({ error: "Informe o cliente." }).uuid("Cliente inválido."),
     items: z
       .array(saleItemSchema, { error: "Informe os itens da venda." })
-      .min(1, "A venda deve ter pelo menos um item."),
+      .min(1, "A venda deve ter pelo menos um item.")
+      .max(MAX_SALE_ITEMS, `A venda pode ter no máximo ${MAX_SALE_ITEMS} itens.`),
     paymentTerms: paymentTermsSchema,
   })
   .superRefine((data, ctx) => {

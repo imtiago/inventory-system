@@ -10,5 +10,8 @@ export const MAX_AMOUNT = MAX_AMOUNT_CENTS / 100;
 /** Quantidade máxima (em unidades) por item/operação de estoque, compra ou venda. */
 export const MAX_QUANTITY = 1_000_000;
 
+/** Itens por venda: cada item baixa estoque com trava dentro de uma única transação. */
+export const MAX_SALE_ITEMS = 200;
+
 /** Valor unitário máximo (preço/custo unitário, desconto/frete/imposto de um item). */
 export const MAX_UNIT_VALUE = 1_000_000;

@@ -7,14 +7,14 @@ import {
   ValidationError,
 } from "@shared/domain/errors";
 import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
-import { fromCents, toCents } from "@shared/domain/money";
+import { toCents } from "@shared/domain/money";
 import { MAX_AMOUNT_CENTS } from "@shared/domain/limits";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { CustomerService } from "@customer/application/services/CustomerService";
 import { CatalogService } from "@catalog/application/services/CatalogService";
 import { InventoryService } from "@inventory/application/services/InventoryService";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
@@ -71,9 +71,13 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       throw new NotFoundError("Cliente não encontrado.", ErrorCodes.CUSTOMER_NOT_FOUND);
     }
 
+    // Uma só consulta para todas as variantes (sem N+1 dentro da transação).
+    const variants = new Map(
+      (await this.catalogService.getProductVariants(request.items.map((i) => i.productVariantId))).map((v) => [v.id, v]),
+    );
     const saleItems: SaleItem[] = [];
     for (const item of request.items) {
-      const variant = await this.catalogService.getProductVariant(item.productVariantId);
+      const variant = variants.get(item.productVariantId);
       if (!variant) {
         throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
       }
@@ -140,7 +144,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
     await this.financialService.createSaleReceivable({
       saleId: sale.id,
       customerId: sale.customerId,
-      parcels: plan.map((p) => ({ amount: fromCents(p.amountCents), dueDate: p.dueDate })),
+      parcels: plan.map((p) => ({ amountCents: p.amountCents, dueDate: p.dueDate })),
     });
 
     return created;

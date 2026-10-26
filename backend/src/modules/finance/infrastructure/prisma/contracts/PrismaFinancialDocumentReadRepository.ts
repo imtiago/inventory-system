@@ -208,21 +208,20 @@ const PROFILES: { [T in FinancialType]: TypeProfile<T> } = {
   },
   [FinancialType.PAYABLE]: {
     async parties(rows) {
-      const [suppliers, purchases] = await Promise.all([
-        namesById(
-          rows.map((r) => r.partyId),
-          (ids) => getDb().supplier.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }),
-        ),
-        (async () => {
-          const ids = uniqueIds(rows.map((r) => r.originId));
-          if (ids.length === 0) return new Map<string, string>();
-          const found = await getDb().purchase.findMany({
-            where: { id: { in: ids } },
-            select: { id: true, code: true },
-          });
-          return new Map(found.map((p) => [p.id, p.code]));
-        })(),
-      ]);
+      // Em sequência (mesma conexão), não em paralelo.
+      const suppliers = await namesById(
+        rows.map((r) => r.partyId),
+        (ids) => getDb().supplier.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }),
+      );
+      const purchaseIds = uniqueIds(rows.map((r) => r.originId));
+      const purchases = new Map<string, string>();
+      if (purchaseIds.length > 0) {
+        const found = await getDb().purchase.findMany({
+          where: { id: { in: purchaseIds } },
+          select: { id: true, code: true },
+        });
+        for (const p of found) purchases.set(p.id, p.code);
+      }
       return (row) => ({
         supplier: FinancialDocumentReadMapper.party(
           row.partyId,

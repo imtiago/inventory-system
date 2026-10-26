@@ -9,7 +9,7 @@ import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTr
 import { makeCatalogService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
 import { makeCustomerService } from "@customer/infrastructure/http/factories/CustomerService";
 import { makeInventoryService } from "@inventory/infrastructure/http/factories/InventoryServiceFactory";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
 import { todayInBusinessTz } from "@shared/domain/businessDate";

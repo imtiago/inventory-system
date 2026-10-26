@@ -22,7 +22,7 @@ import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSa
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { Sale } from "@sales/domain/entities/Sale";
 import { CustomerService } from "@customer/application/services/CustomerService";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { FakeCatalogService, makeVariant } from "../../__tests__/fakes";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 

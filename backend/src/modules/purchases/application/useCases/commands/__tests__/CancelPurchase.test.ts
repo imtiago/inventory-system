@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { Purchase } from "@purchases/domain/entities/Purchase";
 import { PurchaseItem } from "@purchases/domain/entities/PurchaseItem";
 import { PurchaseRepository } from "@purchases/domain/repositories/PurchaseRepository";

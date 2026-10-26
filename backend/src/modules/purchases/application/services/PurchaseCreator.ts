@@ -2,7 +2,7 @@ import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/err
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { CatalogService } from "@catalog/application/services/CatalogService";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { Purchase } from "@purchases/domain/entities/Purchase";
 import { PurchaseItem } from "@purchases/domain/entities/PurchaseItem";
 import { PurchaseOrigin } from "@purchases/domain/enums/PurchaseOrigin";
