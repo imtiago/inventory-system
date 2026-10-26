@@ -38,4 +38,6 @@ export const queryKeys = {
   inventoryLots: (variantId: string) => ['inventory-lots', variantId] as const,
 
   inventoryBoxes: (search?: string) => ['inventory-boxes', search ?? ''] as const,
+
+  inventoryBoxByCode: (code: string) => ['inventory-boxes', 'code', code] as const,
 };

@@ -4,6 +4,7 @@ import inventoryLot from '../fixtures/inventory/inventoryLot.json';
 import inventoryBox from '../fixtures/inventory/inventoryBox.json';
 import inventoryList from '../fixtures/inventory/inventoryList.json';
 import inventoryLotList from '../fixtures/inventory/inventoryLotList.json';
+import inventoryBoxByCode from '../fixtures/inventory/inventoryBoxByCode.json';
 import inventoryBoxList from '../fixtures/inventory/inventoryBoxList.json';
 
 export const API_URL: string = import.meta.env.VITE_API_URL;
@@ -20,6 +21,7 @@ export const inventoryHandlers = [
     return HttpResponse.json(inventoryList);
   }),
   http.get(`${API_URL}/inventory/boxes`, () => HttpResponse.json(inventoryBoxList)),
+  http.get(`${API_URL}/inventory/boxes/code/:code`, () => HttpResponse.json(inventoryBoxByCode)),
   http.post(`${API_URL}/inventory/boxes`, () => HttpResponse.json(inventoryBox, { status: 201 })),
   http.post(`${API_URL}/inventory/boxes/:boxId/items`, async ({ request, params }) => {
     const body = (await request.json()) as { inventoryLotId: string; quantity: number };

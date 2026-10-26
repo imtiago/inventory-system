@@ -20,6 +20,9 @@ export const dispatchInventorySchema = z.object({
 
   originReferenceId: manualOriginReferenceIdSchema,
 
+  /** Baixa um lote específico (inclusive vencido); sem ele, FEFO. */
+  inventoryLotId: z.string().uuid("ID do lote inválido.").optional(),
+
   notes: manualNotesSchema,
 });
 

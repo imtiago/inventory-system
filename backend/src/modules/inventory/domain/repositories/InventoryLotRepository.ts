@@ -10,6 +10,7 @@ export interface IInventoryLotRepository extends ICrudRepository<InventoryLot> {
   // update(
   //   inventory: InventoryLot,
   // ): Promise<InventoryLot>;
+  /** Lotes com saldo em ordem de consumo: validade, criação, id (FEFO). */
   findAvailableByInventory(
     inventoryId: string
   ): Promise<InventoryLot[]>;

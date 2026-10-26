@@ -1,6 +1,5 @@
 import { IReserveInventoryInput } from "@inventory/application/dto/InventoryDTO";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
-import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRepository";
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
@@ -38,7 +37,7 @@ export class ReserveInventoryUseCase extends TransactionalUseCase<
       inventoryId: inventory.id,
       productVariantId: request.productVariantId,
       type: StockMovementType.RESERVE,
-      origin: request.origin ?? StockMovementOrigin.SALE,
+      origin: request.origin,
       quantity: request.quantity,
       previousQuantity: inventory.quantity,
       currentQuantity: inventory.quantity,

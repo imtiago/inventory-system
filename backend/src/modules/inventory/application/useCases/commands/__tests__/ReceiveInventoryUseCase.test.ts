@@ -89,25 +89,21 @@ test("custo médio ponderado", async () => {
   assert.equal(second.averageCost, 10);
 });
 
-test("mesmo batchNumber soma no lote existente mantendo unitCost e validade originais", async () => {
+test("mesmo batchNumber soma no lote: custo vira a média ponderada (2 casas) e validade igual é aceita", async () => {
   const { useCase, lots, movements } = setup();
   const exp = new Date("2030-01-01");
   const first = await useCase.execute(
     input({ batchNumber: "L1", unitCost: 5, expirationDate: exp }),
   );
   const second = await useCase.execute(
-    input({
-      batchNumber: "L1",
-      quantity: 4,
-      unitCost: 50,
-      expirationDate: new Date("2031-01-01"),
-    }),
+    input({ batchNumber: "L1", quantity: 4, unitCost: 50, expirationDate: new Date("2030-01-01") }),
   );
   assert.equal(lots.all().length, 1);
   assert.equal(second.lot.id, first.lot.id);
   assert.equal(second.lot.initialQuantity, 14);
   assert.equal(second.lot.remainingQuantity, 14);
-  assert.equal(second.lot.unitCost, 5);
+  // (10*5 + 4*50) / 14 = 17.857... -> 17.86
+  assert.equal(second.lot.unitCost, 17.86);
   assert.equal(second.lot.expirationDate?.getTime(), exp.getTime());
   assert.equal(second.inventory.quantity, 14);
   const ms = movements
@@ -116,6 +112,39 @@ test("mesmo batchNumber soma no lote existente mantendo unitCost e validade orig
   assert.equal(ms.length, 2);
   assert.equal(ms[1].previousQuantity, 10);
   assert.equal(ms[1].currentQuantity, 14);
+});
+
+test("mesmo batchNumber com validade diferente → 409 LOT_DATES_MISMATCH sem alterar nada", async () => {
+  const { useCase, lots, movements, inventories } = setup();
+  await useCase.execute(input({ batchNumber: "L1", unitCost: 5, expirationDate: new Date("2030-01-10") }));
+  await assert.rejects(
+    useCase.execute(input({ batchNumber: "L1", quantity: 4, expirationDate: new Date("2031-01-01") })),
+    {
+      name: "ConflictError",
+      code: "LOT_DATES_MISMATCH",
+      message: "O lote L1 já existe com validade 10/01/2030. Use outro número de lote ou a mesma validade.",
+    },
+  );
+  assert.equal(lots.all()[0].remainingQuantity, 10);
+  assert.equal(movements.all().length, 1);
+  assert.equal(inventories.all()[0].quantity, 10);
+});
+
+test("mesmo batchNumber: data não informada não conta como divergência; fabricação diferente recusa", async () => {
+  const { useCase, lots } = setup();
+  await useCase.execute(
+    input({
+      batchNumber: "L1",
+      expirationDate: new Date("2030-01-10"),
+      manufacturingDate: new Date("2029-01-10"),
+    }),
+  );
+  await useCase.execute(input({ batchNumber: "L1", quantity: 2 }));
+  assert.equal(lots.all()[0].remainingQuantity, 12);
+  await assert.rejects(
+    useCase.execute(input({ batchNumber: "L1", manufacturingDate: new Date("2029-02-10") })),
+    { code: "LOT_DATES_MISMATCH" },
+  );
 });
 
 test("sem batchNumber cria lotes separados", async () => {

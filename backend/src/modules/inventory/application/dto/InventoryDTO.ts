@@ -12,6 +12,8 @@ export interface InventoryDTO {
   availableQuantity: number;
   minimumStock: number;
   averageCost: number;
+  /** Quantidade em lotes vencidos (validade anterior a hoje no fuso de negócio). */
+  expired: number;
   createdAt: Date;
 }
 export interface InventoryWithExtendsDTO extends InventoryDTO {
@@ -34,6 +36,8 @@ export interface IDispatchInventoryInput {
   quantity: number;
   origin: StockMovementOrigin;
   originReferenceId?: string;
+  /** Baixa um lote específico (saída manual; aceita lote vencido). */
+  inventoryLotId?: string;
   notes?: string;
   userId?: string;
 }
@@ -75,8 +79,8 @@ export interface IRegisterScannedProductInput {
 export interface IReleaseInventoryInput {
   inventoryId: string;
   quantity: number;
-  origin?: StockMovementOrigin;
-  originId?: string;
+  origin: StockMovementOrigin;
+  originId: string;
   notes?: string;
   userId?: string;
 }
@@ -84,8 +88,8 @@ export interface IReleaseInventoryInput {
 export interface IReserveInventoryInput {
   productVariantId: string;
   quantity: number;
-  origin?: StockMovementOrigin;
-  originId?: string;
+  origin: StockMovementOrigin;
+  originId: string;
   notes?: string;
   userId?: string;
 }

@@ -88,9 +88,29 @@ export class InventoryLot extends BaseEntity {
     return this.props.expirationDate;
   }
 
-  public receive(quantity: number): void {
+  /**
+   * Soma uma entrada ao lote. Com `unitCost`, o custo do lote vira a média
+   * ponderada pelo saldo (2 casas). Datas só são preenchidas se o lote não as tem.
+   */
+  public receive(
+    quantity: number,
+    entry: { unitCost?: number; expirationDate?: Date | null; manufacturingDate?: Date | null } = {},
+  ): void {
     if (quantity <= 0) {
       throw new BusinessRuleError("A quantidade deve ser maior que zero.", ErrorCodes.INVALID_QUANTITY);
+    }
+
+    if (entry.unitCost !== undefined) {
+      const total = this.props.remainingQuantity + quantity;
+      const weighted =
+        (this.props.remainingQuantity * this.props.unitCost + quantity * entry.unitCost) / total;
+      this.props.unitCost = Math.round(weighted * 100) / 100;
+    }
+    if (!this.props.expirationDate && entry.expirationDate) {
+      this.props.expirationDate = entry.expirationDate;
+    }
+    if (!this.props.manufacturingDate && entry.manufacturingDate) {
+      this.props.manufacturingDate = entry.manufacturingDate;
     }
 
     this.props.initialQuantity += quantity;

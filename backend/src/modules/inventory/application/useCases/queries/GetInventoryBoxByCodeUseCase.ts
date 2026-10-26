@@ -1,14 +1,11 @@
 import { InventoryBoxReadRepository } from "../../contracts/InventoryBoxReadRepository";
-import { InventoryBoxDTO } from "../../dto/InventoryBoxDTO";
-import { InventoryBoxReadMapper } from "../../mappers/InventoryBoxReadMapper";
+import { InventoryBoxWithExtendsDTO } from "../../dto/InventoryBoxDTO";
 
 export class GetInventoryBoxByCodeUseCase {
   constructor(private repository: InventoryBoxReadRepository) {}
 
-  async execute(code: string): Promise<InventoryBoxDTO | null> {
-    const data = await this.repository.getByCode(code);
-    if (!data) return null;
-
-    return InventoryBoxReadMapper.toDTO(data);
+  /** Caixa com o que há nela: cada item traz `quantity` (neste lote, nesta caixa). */
+  async execute(code: string): Promise<InventoryBoxWithExtendsDTO | null> {
+    return this.repository.getByCode(code);
   }
 }

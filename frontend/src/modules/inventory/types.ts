@@ -18,6 +18,8 @@ export interface Inventory {
   quantity: number;
   reservedQuantity: number;
   availableQuantity: number;
+  /** Quantity in expired lots. */
+  expired: number;
   minimumStock: number;
   averageCost: number;
   createdAt: string;
@@ -44,6 +46,18 @@ export interface InventoryBox {
   code: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Item de uma caixa: quanto de um lote há NESTA caixa (o lote traz o total). */
+export interface InventoryBoxStockItem {
+  id?: string;
+  boxId: string;
+  quantity: number;
+  inventoryLot: InventoryLot;
+}
+
+export interface InventoryBoxWithStocks extends InventoryBox {
+  stocks: InventoryBoxStockItem[];
 }
 
 // Legacy aliases kept for existing callers.

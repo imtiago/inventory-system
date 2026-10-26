@@ -22,11 +22,11 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
     }
 
     if (params?.type) {
-      where.type = params.type as any;
+      where.type = params.type as Prisma.StockMovementWhereInput["type"];
     }
 
     if (params?.origin) {
-      where.origin = params.origin as any;
+      where.origin = params.origin as Prisma.StockMovementWhereInput["origin"];
     }
     const [data, total] = await Promise.all([
       getDb().stockMovement.findMany({
@@ -42,7 +42,7 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
         },
       }),
 
-      getDb().stockMovement.count(),
+      getDb().stockMovement.count({ where }),
     ]);
 
     const dt = data.map((d) => StockMovementReadMapper.toDTO(d));

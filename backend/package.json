@@ -15,6 +15,7 @@
     "create-admin": "tsx src/scripts/createAdmin.ts",
     "purge-idempotency": "tsx src/scripts/purgeIdempotency.ts",
     "fix-box-stock": "tsx src/scripts/fixBoxStock.ts",
+    "merge-count-lots": "tsx src/scripts/mergeCountLots.ts",
     "projesctStructure": "tree -I 'node_modules'"
   },
   "prisma": {

@@ -19,6 +19,7 @@ export function makeDispatchInventoryController() {
       quantity: data.quantity,
       origin: StockMovementOrigin[data.origin],
       originReferenceId: data.originReferenceId,
+      inventoryLotId: data.inventoryLotId,
       notes: data.notes,
       userId: request.user?.sub,
     });

@@ -16,6 +16,7 @@ function row(over: Record<string, unknown>) {
     quantity: 10,
     reservedQuantity: 0,
     availableQuantity: 10,
+    expired: 0,
     minimumStock: 0,
     averageCost: 1,
     createdAt: '2026-10-01T00:00:00.000Z',
@@ -97,5 +98,11 @@ describe('InventoryListPage', () => {
     await screen.findByText('Itens (2)');
     expect(screen.queryByRole('link', { name: /Cenário Inicial/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Novo/ })).toBeInTheDocument();
+  });
+
+  test('coluna de estoque mostra "Vencido: n" quando há vencido', async () => {
+    server.use(http.get(`${API_URL}/inventory`, () => listOf(row({ expired: 3 }))));
+    renderWithProviders(<InventoryListPage />);
+    expect(await screen.findByText('Vencido: 3')).toBeInTheDocument();
   });
 });

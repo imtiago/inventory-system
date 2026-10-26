@@ -58,6 +58,9 @@ export function SaleCreatePage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
 
+  // Stock refusal of one item (409 EXPIRED_STOCK_ONLY / 422 INSUFFICIENT_STOCK with details.productVariantId).
+  const [itemError, setItemError] = useState<{ productVariantId: string; message: string } | null>(null);
+
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -148,6 +151,8 @@ export function SaleCreatePage() {
       return;
     }
 
+    setItemError(null);
+
     createSaleMutation.mutate(
       {
         customerId,
@@ -162,10 +167,19 @@ export function SaleCreatePage() {
           navigate(`/sales/${sale.id}`);
         },
         onError: (error) => {
-          const { fieldErrors, message, code, status } = parseApiErrorSync(error);
+          const { fieldErrors, message, code, status, details } = parseApiErrorSync(error);
 
           // The axios interceptor already redirects to /login on 401.
           if (status === 401) return;
+
+          // Stock refusals name the sale item: shown on that item instead of the generic alert.
+          if ((code === 'EXPIRED_STOCK_ONLY' || code === 'INSUFFICIENT_STOCK') && typeof details?.productVariantId === 'string') {
+            const productVariantId = details.productVariantId;
+            if (cart.items.some((item) => item.productVariantId === productVariantId)) {
+              setItemError({ productVariantId, message });
+              return;
+            }
+          }
 
           // customerId / firstDueDate render inline; other paths (e.g. items.0.quantity) have no input.
           const mapped: Record<string, string> = {};
@@ -313,6 +327,7 @@ export function SaleCreatePage() {
                         <td className="px-3 py-3">
                           <p className="font-medium">{item.productName}</p>
                           <p className="text-xs text-gray-500">{item.productCode}</p>
+                          <ItemError itemError={itemError} productVariantId={item.productVariantId} />
                         </td>
 
                         <td className="px-3 py-3">
@@ -353,6 +368,7 @@ export function SaleCreatePage() {
                       <div className="min-w-0">
                         <p className="break-words font-medium">{item.productName}</p>
                         <p className="text-xs text-gray-500">{item.productCode}</p>
+                        <ItemError itemError={itemError} productVariantId={item.productVariantId} />
                       </div>
                       <button
                         type="button"
@@ -470,5 +486,15 @@ export function SaleCreatePage() {
         </div>
       </div>
     </Page>
+  );
+}
+
+function ItemError({ itemError, productVariantId }: { itemError: { productVariantId: string; message: string } | null; productVariantId: string }) {
+  if (itemError?.productVariantId !== productVariantId) return null;
+
+  return (
+    <p role="alert" data-testid={`item-error-${productVariantId}`} className="mt-1 text-sm text-red-600">
+      {itemError.message}
+    </p>
   );
 }

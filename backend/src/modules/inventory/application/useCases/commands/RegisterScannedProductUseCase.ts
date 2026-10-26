@@ -6,6 +6,7 @@ import { CatalogService } from "@catalog/application/services/CatalogService";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { IRegisterScannedProductInput } from "@inventory/application/dto/InventoryDTO";
+import { countBatchNumber } from "@inventory/domain/services/countLot";
 import { ReceiveInventoryUseCase } from "./ReceiveInventoryUseCase";
 import { AddProductToBoxUseCase } from "./AddProductToBoxUseCase";
 import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
@@ -56,17 +57,21 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
       throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
-    const unitCost =
-      request.unitCost ??
-      (await this.inventoryRepository.findByProductVariantId(variant.id))
-        ?.averageCost ??
-      0;
+    // Trava a variante antes de ler o custo médio padrão (a trava é reentrante
+    // na transação do receive), para o custo não ficar defasado por concorrência.
+    const inventory = await this.inventoryRepository.lockByProductVariantId(variant.id);
+    const unitCost = request.unitCost ?? inventory.averageCost ?? 0;
+
+    // Sem lote informado: lote "aberto" da contagem, um por variante, caixa e validade
+    // (leitura com outra validade nunca cai no lote de outra, nem preenche a data de um lote sem validade).
+    const batchNumber =
+      request.batchNumber ?? countBatchNumber(box.code, variant.code, request.expirationDate);
 
     const { lot } = await this.receiveInventory.execute({
       productVariantId: variant.id,
       quantity,
       unitCost,
-      batchNumber: request.batchNumber,
+      batchNumber,
       expirationDate: request.expirationDate,
       origin: StockMovementOrigin.INVENTORY,
       sourceType: InventoryLotSource.MANUAL,

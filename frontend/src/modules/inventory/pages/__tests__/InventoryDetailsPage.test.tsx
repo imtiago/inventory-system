@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import { renderWithProviders } from '@/test/render';
+import inventory from '@/test/fixtures/inventory/inventory.json';
 import inventoryLotList from '@/test/fixtures/inventory/inventoryLotList.json';
 import { setViewport } from '@/test/viewport';
 import { InventoryDetailsPage } from '../InventoryDetailsPage';
@@ -91,5 +92,26 @@ describe('InventoryDetailsPage', () => {
     const cell = await screen.findByText('Sem lote');
     expect(cell.closest('tr')).toBeTruthy();
     expect(screen.queryByText(/null/)).not.toBeInTheDocument();
+  });
+
+  test('mostra "Vencido: n" em destaque e marca o lote vencido (com saldo) na tabela', async () => {
+    const expiredLot = { ...inventoryLotList.data[0], batchNumber: 'L-VELHO', expirationDate: '2020-01-01T00:00:00.000Z' };
+    const validLot = inventoryLotList.data[1];
+    server.use(
+      http.get(`${API_URL}/inventory/:id`, () => HttpResponse.json({ data: { ...inventory.data, expired: 5 } })),
+      http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ ...inventoryLotList, data: [expiredLot, validLot] })),
+    );
+    renderPage();
+    expect(await screen.findByText('Vencido: 5')).toBeInTheDocument();
+    const expiredRow = (await screen.findByText('L-VELHO')).closest('tr')!;
+    expect(within(expiredRow).getByText('Vencido')).toBeInTheDocument();
+    const validRow = screen.getByText('L2026-09-B').closest('tr')!;
+    expect(within(validRow).queryByText('Vencido')).not.toBeInTheDocument();
+  });
+
+  test('sem vencidos não mostra "Vencido"', async () => {
+    renderPage();
+    await screen.findByText('L2026-10-A');
+    expect(screen.queryByText(/Vencido/)).not.toBeInTheDocument();
   });
 });

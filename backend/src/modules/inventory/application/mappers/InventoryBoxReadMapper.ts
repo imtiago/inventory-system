@@ -18,10 +18,12 @@ export class InventoryBoxReadMapper {
   /** `stocks[].inventoryLot` deve vir com `productVariant` e `boxStocks`. */
   static toDTOWithExtends(data: any): InventoryBoxWithExtendsDTO {
     const stocks = data.stocks.map((stock: any) => {
-      const { boxId, inventoryLot } =
+      const { id, boxId, quantity, inventoryLot } =
         InventoryBoxStockReadMapper.toDTOWithExtends(stock);
       return {
+        id,
         boxId,
+        quantity,
         inventoryLot,
         productVariant: InventoryReadMapper.toProductVariantSummary(
           stock.inventoryLot.productVariant,

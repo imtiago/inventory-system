@@ -5,6 +5,7 @@
     "quantity": 42,
     "reservedQuantity": 2,
     "availableQuantity": 40,
+    "expired": 0,
     "minimumStock": 5,
     "averageCost": 18.75,
     "createdAt": "2026-10-01T13:45:00.000Z",

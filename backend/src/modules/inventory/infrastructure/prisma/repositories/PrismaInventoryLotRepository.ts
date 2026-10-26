@@ -77,9 +77,12 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
         },
       },
 
-      orderBy: {
-        createdAt: "asc",
-      },
+      // FEFO → mais antigo: validade (sem validade por último), criação, id.
+      orderBy: [
+        { expirationDate: { sort: "asc", nulls: "last" } },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
     });
 
     return data.map((d) => InventoryLotMapper.toDomain(d));

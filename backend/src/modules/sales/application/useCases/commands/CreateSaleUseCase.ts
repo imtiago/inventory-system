@@ -1,5 +1,7 @@
 import {
   BusinessRuleError,
+  ConflictError,
+  DomainError,
   ErrorCodes,
   NotFoundError,
   ValidationError,
@@ -18,6 +20,25 @@ import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
 import { buildInstallments } from "@shared/domain/installments";
 import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
+
+/**
+ * Falta de estoque na venda: identifica o item na mensagem (mesma classe e código
+ * do erro original; `details` leva a variante, o disponível e o vencido).
+ */
+function describeStockShortage(error: unknown, variantName: string): unknown {
+  if (!(error instanceof DomainError) || !error.details) return error;
+  const { available, expired } = error.details as { available?: number; expired?: number };
+  if (typeof available !== "number") return error;
+  const expiredPart = expired ? `; ${expired} vencida(s) — dê baixa manual dos vencidos.` : ".";
+  const message = `Estoque insuficiente para ${variantName}: ${available} disponível(is) dentro da validade${expiredPart}`;
+  if (error.code === ErrorCodes.EXPIRED_STOCK_ONLY) {
+    return new ConflictError(message, error.code, error.details);
+  }
+  if (error.code === ErrorCodes.INSUFFICIENT_STOCK) {
+    return new BusinessRuleError(message, error.code, error.details);
+  }
+  return error;
+}
 
 /**
  * Cria a venda numa transação: valida cliente → resolve variantes (preço > 0,
@@ -100,12 +121,17 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       a.productVariantId < b.productVariantId ? -1 : a.productVariantId > b.productVariantId ? 1 : 0,
     );
     for (const item of itemsInLockOrder) {
-      await this.inventoryService.consumeStock({
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-        originId: sale.id,
-        userId: request.sellerId,
-      });
+      try {
+        await this.inventoryService.consumeStock({
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+          originId: sale.id,
+          userId: request.sellerId,
+        });
+      } catch (error) {
+        const name = saleItems.find((i) => i.variantId === item.productVariantId)?.variantName;
+        throw name ? describeStockShortage(error, name) : error;
+      }
     }
 
     const created = await this.saleRepository.create(sale);

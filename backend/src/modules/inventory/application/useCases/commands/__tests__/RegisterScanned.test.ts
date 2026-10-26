@@ -53,3 +53,60 @@ test("registerScanned caixa inexistente falha sem receber", async () => {
   await assert.rejects(s.uc.execute({ barcode: "000", boxCode: "BX1" }), { name: "NotFoundError", code: "VARIANT_NOT_FOUND" });
   await assert.rejects(s.uc.execute({ barcode: "789", boxCode: "BX1", quantity: 0 }), { name: "BusinessRuleError", code: "INVALID_QUANTITY" });
 });
+
+test("3 leituras sem lote na mesma caixa somam num único lote aberto CONT-<caixa>-<variante>", async () => {
+  const s = await build();
+  for (let i = 0; i < 3; i++) await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  assert.equal(s.lots.all().length, 1);
+  const lot = s.lots.all()[0];
+  assert.equal(lot.batchNumber, "CONT-BX1-V1");
+  assert.equal(lot.sourceType, "MANUAL");
+  assert.equal(lot.initialQuantity, 3);
+  assert.equal(lot.remainingQuantity, 3);
+  assert.equal((await s.stocks.findStock(lot.id, s.box.id))!.quantity, 3);
+  assert.equal(s.movements.all().length, 3);
+});
+
+test("leituras sem lote em caixas diferentes geram um lote aberto por caixa", async () => {
+  const s = await build();
+  await s.boxes.create(new InventoryBox({ code: "BX2" }));
+  await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  await s.uc.execute({ barcode: "789", boxCode: "BX2" });
+  await s.uc.execute({ barcode: "789", boxCode: "BX2" });
+  assert.deepEqual(
+    s.lots.all().map((l) => [l.batchNumber, l.remainingQuantity]).sort(),
+    [["CONT-BX1-V1", 1], ["CONT-BX2-V1", 2]],
+  );
+});
+
+test("com lote informado continua usando o lote do usuário", async () => {
+  const s = await build();
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", batchNumber: "L9" });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  assert.deepEqual(s.lots.all().map((l) => l.batchNumber).sort(), ["CONT-BX1-V1", "L9"]);
+});
+
+test("leituras com validades diferentes na mesma caixa geram um lote por validade, sem 409", async () => {
+  const s = await build();
+  const d1 = new Date("2026-11-10T00:00:00.000Z");
+  const d2 = new Date("2026-11-20T00:00:00.000Z");
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: d1 });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: d2 });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: d1 });
+  assert.deepEqual(
+    s.lots.all().map((l) => [l.batchNumber, l.remainingQuantity]).sort(),
+    [["CONT-BX1-V1-20261110", 2], ["CONT-BX1-V1-20261120", 1]],
+  );
+});
+
+test("leitura sem validade e depois com validade: dois lotes; o sem validade continua sem data", async () => {
+  const s = await build();
+  await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: new Date("2026-11-10T00:00:00.000Z") });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  const undated = s.lots.all().find((l) => l.batchNumber === "CONT-BX1-V1")!;
+  assert.equal(s.lots.all().length, 2);
+  assert.ok(!undated.expirationDate);
+  assert.equal(undated.remainingQuantity, 2);
+  assert.ok(s.lots.all().some((l) => l.batchNumber === "CONT-BX1-V1-20261110" && l.remainingQuantity === 1));
+});
