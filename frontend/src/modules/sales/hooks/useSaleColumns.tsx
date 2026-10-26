@@ -38,7 +38,7 @@ export function useSaleColumns(): DataTableColumn<ISale>[] {
             #{sale.id.slice(0, 8).toUpperCase()}
           </Link>
 
-          <div className="text-sm text-gray-500">{formatDate(sale.createdAt)}</div>
+          <div className="text-sm text-muted">{formatDate(sale.createdAt)}</div>
         </div>
       ),
     },

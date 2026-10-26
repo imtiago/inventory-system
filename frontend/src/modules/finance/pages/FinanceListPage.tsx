@@ -23,8 +23,8 @@ type FilterKey = 'status' | 'customerId' | 'supplierId' | 'dueFrom' | 'dueTo' | 
 
 function SummaryCard({ id, label, value }: { id: string; label: string; value?: number }) {
   return (
-    <div data-testid={`summary-${id}`} className="rounded-xl border bg-white p-4 shadow-sm">
-      <p className="text-sm text-gray-500">{label}</p>
+    <div data-testid={`summary-${id}`} className="rounded-xl border bg-surface p-4 shadow-sm">
+      <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold">{formatCurrency(value ?? 0)}</p>
     </div>
   );
@@ -128,7 +128,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, page]);
-  const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
+  const inputClass = 'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
   return (
     <Page>
@@ -154,7 +154,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
           <FilterPanel activeCount={[filters.status, filters[config.partyFilterKey], filters.dueFrom, filters.dueTo, filters.openOnly].filter(Boolean).length}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label htmlFor={`${kind}-status`} className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor={`${kind}-status`} className="mb-2 block text-sm font-medium text-foreground">
                 Status
               </label>
               <select id={`${kind}-status`} value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value)} className={inputClass}>
@@ -170,45 +170,45 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <PartyFilter kind={kind} value={filters[config.partyFilterKey]} onChange={(value) => setFilter(config.partyFilterKey, value)} />
 
             <div>
-              <label htmlFor={`${kind}-due-from`} className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor={`${kind}-due-from`} className="mb-2 block text-sm font-medium text-foreground">
                 Vencimento de
               </label>
               <input id={`${kind}-due-from`} type="date" value={filters.dueFrom ?? ''} max={filters.dueTo} onChange={(e) => setFilter('dueFrom', e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label htmlFor={`${kind}-due-to`} className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor={`${kind}-due-to`} className="mb-2 block text-sm font-medium text-foreground">
                 Vencimento até
               </label>
               <input id={`${kind}-due-to`} type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={inputClass} />
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={Boolean(filters.openOnly)} onChange={(e) => setFilter('openOnly', e.target.checked ? 'true' : null)} />
             Somente com saldo
           </label>
           </FilterPanel>
 
           {invalidRange && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               A data inicial deve ser anterior ou igual à final.
             </p>
           )}
 
-          <p className="text-xs text-gray-500">Inclui títulos com alguma parcela no período.</p>
+          <p className="text-xs text-muted">Inclui títulos com alguma parcela no período.</p>
 
-          {isFetching && <p className="text-sm text-gray-500">Atualizando {config.plural}...</p>}
+          {isFetching && <p className="text-sm text-muted">Atualizando {config.plural}...</p>}
 
           {isError ? (
-            <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
+            <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage={`Nenhuma ${config.singular.toLowerCase()} encontrada`} emptyHint="Ajuste os filtros para ver outros resultados." getRowId={(item) => item.id} getRowHref={(item) => `${config.basePath}/${item.id}`} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-gray-500">Carregando {config.plural}...</p>}
+          {isLoading && !data && <p className="text-sm text-muted">Carregando {config.plural}...</p>}
 
           {!isError && (
             <CrudPagination

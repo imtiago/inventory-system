@@ -50,16 +50,16 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
   }
 
   return (
-    <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
       <div className="mb-5">
         <h2 className="text-lg font-semibold">Lançamento de produtos</h2>
 
-        <p className="mt-1 text-sm text-gray-500">Digite ou escaneie o código de barras da variante.</p>
+        <p className="mt-1 text-sm text-muted">Digite ou escaneie o código de barras da variante.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
 
           <input
             autoFocus={finePointer}
@@ -69,14 +69,14 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
             aria-label="Código de barras do produto"
             autoComplete="off"
             disabled={loading}
-            className="w-full rounded-lg border py-3 pl-10 pr-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200 disabled:bg-gray-50"
+            className="w-full rounded-lg border border-input bg-surface py-3 pl-10 pr-3 text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading || !barcode.trim()}
-          className="rounded-lg bg-black px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted"
         >
           {loading ? 'Consultando...' : 'Adicionar'}
         </button>
@@ -85,7 +85,7 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
           type="button"
           disabled={loading}
           onClick={() => setScannerOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          className="flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-surface-muted disabled:opacity-50"
         >
           <Camera size={18} />
           Escanear
@@ -97,14 +97,14 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
           <div className="mb-3 flex items-center justify-between">
             <p className="font-medium">Leitura do código de barras</p>
 
-            <button type="button" aria-label="Fechar câmera" onClick={() => setScannerOpen(false)} className="rounded-md p-2 hover:bg-gray-100">
+            <button type="button" aria-label="Fechar câmera" onClick={() => setScannerOpen(false)} className="rounded-md p-2 hover:bg-surface-muted">
               <X size={18} />
             </button>
           </div>
 
           <BarcodeScanner continuous onDetected={handleBarcodeRead} />
 
-          <button type="button" onClick={() => setScannerOpen(false)} className="mt-3 text-sm text-red-600 hover:text-red-800">
+          <button type="button" onClick={() => setScannerOpen(false)} className="mt-3 text-sm text-danger hover:text-danger/80">
             Terminar leitura
           </button>
         </div>

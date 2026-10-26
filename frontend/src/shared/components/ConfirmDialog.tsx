@@ -1,4 +1,5 @@
 import { useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 
 import { useDialogBehavior } from "./Modal/useDialogBehavior";
@@ -35,7 +36,7 @@ export function ConfirmDialog({
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       ref={dialogRef}
@@ -126,5 +127,7 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+    ,
+    document.body,
   );
 }

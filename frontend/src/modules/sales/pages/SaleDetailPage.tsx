@@ -69,15 +69,15 @@ export function SaleDetailPage() {
   return (
     <Page>
       <div className="flex-1 overflow-y-auto p-4">
-        <Link to="/sales" className="mb-4 inline-flex items-center gap-2 text-sm text-gray-600 hover:underline">
+        <Link to="/sales" className="mb-4 inline-flex items-center gap-2 text-sm text-muted hover:underline">
           <ArrowLeft size={16} />
           Voltar para vendas
         </Link>
 
-        {isLoading && <p className="text-sm text-gray-500">Carregando venda...</p>}
+        {isLoading && <p className="text-sm text-muted">Carregando venda...</p>}
 
         {isError && (
-          <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">
+          <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">
             {isNotFound ? 'Venda não encontrada.' : 'Não foi possível carregar a venda.'}
           </div>
         )}
@@ -87,7 +87,7 @@ export function SaleDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h1 className="text-xl font-semibold">Venda #{sale.id.slice(0, 8).toUpperCase()}</h1>
-                <p className="text-sm text-gray-500">{formatDateTime(sale.createdAt)}</p>
+                <p className="text-sm text-muted">{formatDateTime(sale.createdAt)}</p>
                 <StatusBadge status={sale.status} className="mt-2">
                   {saleStatusLabels[sale.status] ?? sale.status}
                 </StatusBadge>
@@ -95,7 +95,7 @@ export function SaleDetailPage() {
 
               {sale.status !== 'CANCELED' && hasPayments && (
                 <Can permission="sales.cancel">
-                  <p data-testid="cancel-blocked" className="max-w-xs text-sm text-gray-600">
+                  <p data-testid="cancel-blocked" className="max-w-xs text-sm text-muted">
                     Esta venda tem pagamento registrado. Estorne os pagamentos em contas a receber para poder cancelá-la.
                   </p>
                 </Can>
@@ -104,7 +104,7 @@ export function SaleDetailPage() {
                 <Can permission="sales.cancel">
                 <button
                   type="button"
-                  className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+                  className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50"
                   onClick={() => {
                     setCancelError(null);
                     setConfirmOpen(true);
@@ -117,18 +117,18 @@ export function SaleDetailPage() {
             </div>
 
             {cancelError && (
-              <div role="alert" className="rounded-lg border border-red-200 p-4 text-sm text-red-600">
+              <div role="alert" className="rounded-lg border border-danger/30 p-4 text-sm text-danger">
                 {cancelError}
               </div>
             )}
 
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
-                <dt className="text-sm text-gray-500">Cliente</dt>
+                <dt className="text-sm text-muted">Cliente</dt>
                 <dd className="font-medium">{sale.customer.name}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Vendedor</dt>
+                <dt className="text-sm text-muted">Vendedor</dt>
                 <dd className="font-medium">{sale.seller?.name ?? '—'}</dd>
               </div>
             </dl>
@@ -146,7 +146,7 @@ export function SaleDetailPage() {
                     cell: (item) => (
                       <>
                         <div className="font-medium">{item.productVariant.name}</div>
-                        <div className="text-xs font-normal text-gray-500">{item.productVariant.code}</div>
+                        <div className="text-xs font-normal text-muted">{item.productVariant.code}</div>
                       </>
                     ),
                   },
@@ -162,7 +162,7 @@ export function SaleDetailPage() {
               <section>
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="font-semibold">Parcelas</h2>
-                  <Link to={`/receivables/${sale.receivable.id}`} className="text-sm font-medium hover:underline">
+                  <Link to={`/receivables/${sale.receivable.id}`} className="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
                     Ver contas a receber
                   </Link>
                 </div>
@@ -186,10 +186,10 @@ export function SaleDetailPage() {
 
       <Modal open={confirmOpen} onClose={closeDialog} busy={cancel.isPending} title="Cancelar venda" description="O estoque será devolvido e a conta a receber cancelada. Deseja continuar?" size="sm">
         <div className="flex justify-end gap-2">
-          <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={closeDialog} disabled={cancel.isPending}>
+          <button type="button" className="rounded-lg border px-4 py-2 hover:bg-surface-muted disabled:opacity-50" onClick={closeDialog} disabled={cancel.isPending}>
             Voltar
           </button>
-          <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50" onClick={handleConfirm} disabled={cancel.isPending}>
+          <button type="button" className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50" onClick={handleConfirm} disabled={cancel.isPending}>
             {cancel.isPending ? 'Cancelando...' : 'Confirmar cancelamento'}
           </button>
         </div>

@@ -30,7 +30,7 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
             {data.code}
           </Link>
 
-          {/* <div className="text-sm text-gray-500">{data.productVariant.code}</div> */}
+          {/* <div className="text-sm text-muted">{data.productVariant.code}</div> */}
         </div>
       ),
     },
@@ -81,12 +81,12 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
       cell: (data) => (
         <div className="flex justify-center gap-1">
           <Can permission="customers.write">
-            <button type="button" onClick={() => onEdit(data)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800" aria-label={`Editar ${data.name}`}>
+            <button type="button" onClick={() => onEdit(data)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover" aria-label={`Editar ${data.name}`}>
               <Pencil size={18} />
             </button>
           </Can>
 
-          {/* <button className="text-red-600 hover:text-red-800" onClick={() => deleteProduct.mutate(product.id)}>
+          {/* <button className="text-danger hover:text-danger/80" onClick={() => deleteProduct.mutate(product.id)}>
             <Trash2 size={18} />
           </button> */}
         </div>

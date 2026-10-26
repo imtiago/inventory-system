@@ -61,7 +61,7 @@ export function SupplierListPage() {
       cell: (item) => (
         <Can permission="purchases.write">
           <div className="flex justify-center gap-1">
-            <button type="button" onClick={() => setEditing(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800" aria-label={`Editar ${item.name}`}>
+            <button type="button" onClick={() => setEditing(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover" aria-label={`Editar ${item.name}`}>
               <Pencil size={18} />
             </button>
             <button
@@ -70,7 +70,7 @@ export function SupplierListPage() {
                 setDeleteError(null);
                 setDeleting(item);
               }}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:text-danger/80"
               aria-label={`Excluir ${item.name}`}
             >
               <Trash2 size={18} />
@@ -88,7 +88,7 @@ export function SupplierListPage() {
         description="Gerencie os fornecedores cadastrados."
         actions={
           <Can permission="purchases.write">
-            <Button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800">
+            <Button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover">
               <Plus size={18} />
               Novo fornecedor
             </Button>
@@ -96,14 +96,14 @@ export function SupplierListPage() {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total de fornecedores</p>
-              <p className="text-xl font-bold text-gray-800">{data?.pagination.total ?? 0}</p>
+              <p className="text-sm text-muted">Total de fornecedores</p>
+              <p className="text-xl font-bold text-foreground">{data?.pagination.total ?? 0}</p>
             </div>
 
             <div className="relative w-full sm:max-w-sm">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
               <input
                 type="search"
                 value={search}
@@ -113,13 +113,13 @@ export function SupplierListPage() {
                 }}
                 placeholder="Buscar por nome, documento ou e-mail..."
                 aria-label="Buscar fornecedores"
-                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-ring focus:ring-2 focus:ring-ring/20"
               />
             </div>
           </div>
 
           {deleteError && (
-            <div role="alert" className="m-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div role="alert" className="m-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               {deleteError}
             </div>
           )}
@@ -127,11 +127,11 @@ export function SupplierListPage() {
           <div className="min-h-0 flex-1 overflow-auto">
             {isError ? (
               <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
-                <p className="font-medium text-red-600">Não foi possível carregar os fornecedores.</p>
-                <p className="text-sm text-gray-500">Verifique sua conexão e tente novamente.</p>
+                <p className="font-medium text-danger">Não foi possível carregar os fornecedores.</p>
+                <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
                 <LoaderCircle size={20} className="animate-spin" />
                 Carregando fornecedores...
               </div>
@@ -140,9 +140,9 @@ export function SupplierListPage() {
             )}
           </div>
 
-          {isFetching && !isLoading && <div className="border-t border-gray-100 px-5 py-2 text-xs text-gray-500">Atualizando resultados...</div>}
+          {isFetching && !isLoading && <div className="border-t border-border px-5 py-2 text-xs text-muted">Atualizando resultados...</div>}
 
-          <div className="shrink-0 border-t border-gray-100 p-3 sm:p-4">
+          <div className="shrink-0 border-t border-border p-3 sm:p-4">
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={data?.pagination.totalPages ?? 1}

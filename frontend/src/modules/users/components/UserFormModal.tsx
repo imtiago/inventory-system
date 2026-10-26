@@ -14,7 +14,7 @@ import { ROLES, ROLE_LABELS, type UserDTO } from '../types';
 type Values = { name: string; email: string; password: string; role: UserRole | ''; active: boolean };
 
 const FIELDS = ['name', 'email', 'password', 'role'] as const;
-const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100';
+const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
 
 interface FormProps {
   user: UserDTO | null;
@@ -83,13 +83,13 @@ function UserForm({ user, onClose }: FormProps) {
             validate: (value) => value.trim().length > 0 || 'O nome não pode conter apenas espaços.',
           })}
         />
-        {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+        {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
       </div>
 
       {isEdit ? (
         <div>
           <span className="mb-1 block font-medium">E-mail</span>
-          <p className="rounded-lg bg-gray-50 p-3 text-gray-700">{user.email}</p>
+          <p className="rounded-lg bg-surface-muted p-3 text-foreground">{user.email}</p>
         </div>
       ) : (
         <>
@@ -107,7 +107,7 @@ function UserForm({ user, onClose }: FormProps) {
                 pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Informe um e-mail válido.' },
               })}
             />
-            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+            {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
           </div>
 
           <div>
@@ -125,7 +125,7 @@ function UserForm({ user, onClose }: FormProps) {
                 maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
               })}
             />
-            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+            {errors.password && <p className="mt-1 text-sm text-danger">{errors.password.message}</p>}
           </div>
         </>
       )}
@@ -142,7 +142,7 @@ function UserForm({ user, onClose }: FormProps) {
             </option>
           ))}
         </select>
-        {errors.role && <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>}
+        {errors.role && <p className="mt-1 text-sm text-danger">{errors.role.message}</p>}
       </div>
 
       {isEdit && (
@@ -151,21 +151,21 @@ function UserForm({ user, onClose }: FormProps) {
             <input type="checkbox" disabled={isSelf} {...register('active')} />
             Usuário ativo
           </label>
-          {isSelf && <p className="mt-1 text-sm text-gray-500">Você não pode alterar o próprio acesso (papel e status).</p>}
+          {isSelf && <p className="mt-1 text-sm text-muted">Você não pode alterar o próprio acesso (papel e status).</p>}
         </div>
       )}
 
       {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}
 
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-        <button type="button" onClick={onClose} className="rounded-lg border px-5 py-3 hover:bg-gray-50">
+        <button type="button" onClick={onClose} className="rounded-lg border px-5 py-3 hover:bg-surface-muted">
           Cancelar
         </button>
-        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:opacity-50">
+        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50">
           {isEdit ? 'Salvar alterações' : 'Criar usuário'}
         </button>
       </div>

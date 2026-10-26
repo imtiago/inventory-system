@@ -12,7 +12,7 @@ import type { UserDTO } from '../types';
 type Values = { password: string; confirm: string };
 
 const FIELDS = ['password'] as const;
-const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100';
+const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
 
 interface Props {
   user: UserDTO | null;
@@ -62,7 +62,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
           })}
         />
         {errors.password && (
-          <p id="reset-password-error" className="mt-1 text-sm text-red-600">
+          <p id="reset-password-error" className="mt-1 text-sm text-danger">
             {errors.password.message}
           </p>
         )}
@@ -82,20 +82,20 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
             validate: (value) => value === getValues('password') || 'As senhas não coincidem.',
           })}
         />
-        {errors.confirm && <p className="mt-1 text-sm text-red-600">{errors.confirm.message}</p>}
+        {errors.confirm && <p className="mt-1 text-sm text-danger">{errors.confirm.message}</p>}
       </div>
 
       {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}
 
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-        <button type="button" onClick={onClose} className="rounded-lg border px-5 py-3 hover:bg-gray-50">
+        <button type="button" onClick={onClose} className="rounded-lg border px-5 py-3 hover:bg-surface-muted">
           Cancelar
         </button>
-        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:opacity-50">
+        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50">
           Redefinir senha
         </button>
       </div>

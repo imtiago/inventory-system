@@ -65,7 +65,7 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
   return (
     <form onSubmit={submit} noValidate className="space-y-6">
-      <section className="space-y-5 rounded-xl bg-white p-6 shadow">
+      <section className="space-y-5 rounded-xl bg-surface p-6 shadow">
         {/* Nome */}
         <div>
           <label htmlFor="name" className="mb-1 block font-medium">
@@ -85,10 +85,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
             })}
             placeholder="Ex.: Maria da Silva"
             disabled={busy}
-            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
+            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted"
           />
 
-          {errors.name && <p id="name-error" className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+          {errors.name && <p id="name-error" className="mt-1 text-sm text-danger">{errors.name.message}</p>}
         </div>
 
         {/* E-mail */}
@@ -109,10 +109,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
             })}
             placeholder="cliente@exemplo.com"
             disabled={busy}
-            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
+            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted"
           />
 
-          {errors.email && <p id="email-error" className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+          {errors.email && <p id="email-error" className="mt-1 text-sm text-danger">{errors.email.message}</p>}
         </div>
 
         {/* Telefone com máscara */}
@@ -141,10 +141,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
             defaultValue={maskPhone(initialData?.phone ?? '')}
             placeholder="(68) 99999-9999"
             disabled={busy}
-            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
+            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted"
           />
           {errors.phone && (
-            <p id="phone-error" className="mt-1 text-sm text-red-600">
+            <p id="phone-error" className="mt-1 text-sm text-danger">
               {errors.phone.message}
             </p>
           )}
@@ -167,10 +167,10 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
             })}
             placeholder="Rua, número, bairro, cidade..."
             disabled={busy}
-            className="w-full resize-y rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100"
+            className="w-full resize-y rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted"
           />
           {errors.address && (
-            <p id="address-error" className="mt-1 text-sm text-red-600">
+            <p id="address-error" className="mt-1 text-sm text-danger">
               {errors.address.message}
             </p>
           )}
@@ -179,25 +179,25 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
 
 
       {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}
 
       {/* Mensagem de erro */}
       {error && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {error}
         </div>
       )}
 
       {/* Botões */}
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-        <button type="button" onClick={onCancel} disabled={busy} className="rounded-lg border px-5 py-3 hover:bg-gray-50 disabled:opacity-50">
+        <button type="button" onClick={onCancel} disabled={busy} className="rounded-lg border px-5 py-3 hover:bg-surface-muted disabled:opacity-50">
           Cancelar
         </button>
 
-        <button type="submit" disabled={busy} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" disabled={busy} className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
           {busy ? (mode === 'edit' ? 'Salvando...' : 'Cadastrando...') : mode === 'edit' ? 'Salvar alterações' : 'Cadastrar cliente'}
         </button>
       </div>

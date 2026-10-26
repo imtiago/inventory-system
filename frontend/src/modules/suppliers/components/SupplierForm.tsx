@@ -15,7 +15,7 @@ interface Props {
 }
 
 const FIELDS = ['name', 'document', 'email', 'phone'] as const;
-const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100';
+const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
 
 export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel }: Props) {
   const {
@@ -50,7 +50,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
 
   return (
     <form onSubmit={submit} className="space-y-6" noValidate>
-      <section className="space-y-5 rounded-xl bg-white p-6 shadow">
+      <section className="space-y-5 rounded-xl bg-surface p-6 shadow">
         <div>
           <label htmlFor="supplier-name" className="mb-1 block font-medium">
             Nome *
@@ -68,7 +68,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             })}
             className={inputClass}
           />
-          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+          {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
         </div>
 
         <div>
@@ -90,7 +90,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             placeholder="00.000.000/0000-00"
             className={inputClass}
           />
-          {errors.document && <p className="mt-1 text-sm text-red-600">{errors.document.message}</p>}
+          {errors.document && <p className="mt-1 text-sm text-danger">{errors.document.message}</p>}
         </div>
 
         <div>
@@ -106,7 +106,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             })}
             className={inputClass}
           />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+          {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
         </div>
 
         <div>
@@ -131,21 +131,21 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             placeholder="(11) 99999-9999"
             className={inputClass}
           />
-          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>}
+          {errors.phone && <p className="mt-1 text-sm text-danger">{errors.phone.message}</p>}
         </div>
       </section>
 
       {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}
 
       <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-        <button type="button" onClick={onCancel} disabled={isSubmitting} className="rounded-lg border px-5 py-3 hover:bg-gray-50 disabled:opacity-50">
+        <button type="button" onClick={onCancel} disabled={isSubmitting} className="rounded-lg border px-5 py-3 hover:bg-surface-muted disabled:opacity-50">
           Cancelar
         </button>
-        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-gray-900 px-5 py-3 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" disabled={isSubmitting} className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
           {isSubmitting ? 'Salvando...' : mode === 'edit' ? 'Salvar alterações' : 'Cadastrar fornecedor'}
         </button>
       </div>
