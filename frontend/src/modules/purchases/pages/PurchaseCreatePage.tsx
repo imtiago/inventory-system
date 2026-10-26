@@ -35,8 +35,8 @@ type PaymentMode = 'cash' | 'installments';
 const MAX_INSTALLMENTS = 12;
 const DEFAULT_FIRST_DUE_DAYS = 30;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2';
-const cellInputClass = 'w-28 rounded-md border border-input bg-surface text-foreground py-1.5 pl-9 pr-2 text-sm';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2';
+const cellInputClass = 'w-28 rounded-lg border border-input bg-surface text-foreground py-1.5 pl-9 pr-2 text-sm';
 const cardMoneyClass = 'h-11 w-full rounded-lg border border-input bg-surface text-foreground py-2 pl-10 pr-3 text-base';
 
 const MONEY_FIELDS = [
@@ -198,7 +198,7 @@ export function PurchaseCreatePage() {
     <Page width="narrow">
       <PageHeader title="Novo pedido de compra" description="Selecione o fornecedor e lance os itens." backPath="/purchases" backLabel="pedidos de compra" />
 
-          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">Fornecedor e data</h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -244,7 +244,7 @@ export function PurchaseCreatePage() {
             </div>
           )}
 
-          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Itens do pedido</h2>
               <Button type="button" variant="outline" onClick={() => setItems([])} disabled={items.length === 0 || createMutation.isPending}>
@@ -316,7 +316,7 @@ export function PurchaseCreatePage() {
                               disabled={createMutation.isPending}
                               onClick={() => setItems((current) => current.filter((i) => i.productVariantId !== item.productVariantId))}
                               aria-label={`Remover ${item.productName}`}
-                              className="rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
+                              className="rounded-lg p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
                             >
                               <Trash2 size={17} />
                             </button>

@@ -63,8 +63,8 @@ export function Login() {
         w-full
         max-w-md
         bg-surface
-        rounded-2xl
-        shadow-2xl
+        rounded-xl
+        shadow-lg
         p-8
       "
       >
@@ -83,7 +83,7 @@ export function Login() {
             bg-primary
             text-primary-foreground
             p-4
-            rounded-2xl
+            rounded-xl
             mb-4
           "
           >

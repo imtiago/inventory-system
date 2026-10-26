@@ -37,7 +37,7 @@ import { NFE_STATUS_LABELS, type INfeImport } from '../types';
 import type { IPurchaseDetail } from '@/modules/purchases/types';
 import { LoadingState } from '@/shared/components/LoadingState';
 
-const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
 /** "3526 1011 ..." in groups of 4 (the key may be alphanumeric: CNPJ with letters). */
 const formatAccessKey = (key: string) => key.replace(/([0-9A-Z]{4})(?=[0-9A-Z])/g, '$1 ');
@@ -224,7 +224,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
 
   return (
     <>
-      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Nota fiscal</h2>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
@@ -264,7 +264,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         </div>
       )}
 
-      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Fornecedor</h2>
         <p className="text-sm text-muted">{maskDocument(note.supplier.document)}</p>
         {note.supplier.match ? (
@@ -296,7 +296,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         )}
       </section>
 
-      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Itens ({note.items.length})</h2>
         <ul className="space-y-3">
           {note.items.map((item, position) => (
@@ -305,7 +305,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         </ul>
       </section>
 
-      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Parcelas</h2>
           <Button
@@ -342,7 +342,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
                 aria-label={`Remover parcela ${position + 1}`}
                 disabled={disabled || installments.length === 1}
                 onClick={() => setInstallments((current) => current.filter((_, i) => i !== position))}
-                className="flex h-10 w-10 items-center justify-center rounded-md text-danger hover:bg-danger-soft disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-danger hover:bg-danger-soft disabled:opacity-50"
               >
                 <Trash2 size={17} />
               </button>

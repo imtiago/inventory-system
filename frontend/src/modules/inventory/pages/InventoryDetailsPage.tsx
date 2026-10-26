@@ -180,7 +180,7 @@ function isLotExpired(lot: Pick<InventoryLot, 'expirationDate' | 'remainingQuant
 }
 
 function ExpiredTag() {
-  return <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">Vencido</span>;
+  return <span className="ml-2 rounded-lg bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">Vencido</span>;
 }
 
 function StockCard({ label, value, highlight }: StockCardProps) {

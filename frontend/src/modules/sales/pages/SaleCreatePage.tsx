@@ -217,7 +217,7 @@ export function SaleCreatePage() {
       <PageHeader title="Nova venda" description="Selecione o cliente e lance os produtos." backPath="/sales" backLabel="vendas" />
 
           {/* Seleção do cliente */}
-          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
             <div className="mb-5 flex items-start gap-3">
               <div className="rounded-lg bg-surface-muted p-2">
                 <UserRound size={21} />
@@ -277,7 +277,7 @@ export function SaleCreatePage() {
           )}
 
           {/* Carrinho */}
-          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">Itens da venda</h2>
@@ -340,7 +340,7 @@ export function SaleCreatePage() {
                             disabled={createSaleMutation.isPending}
                             onClick={() => cart.removeItem(item.productVariantId)}
                             aria-label={`Remover ${item.productName}`}
-                            className="rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
+                            className="rounded-lg p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
                           >
                             <Trash2 size={17} />
                           </button>
@@ -428,7 +428,7 @@ export function SaleCreatePage() {
                       id="sale-installments"
                       value={installments}
                       onChange={(event) => setInstallments(Number(event.target.value))}
-                      className="w-full rounded-md border px-3 py-2"
+                      className="w-full rounded-lg border px-3 py-2"
                     >
                       {Array.from({ length: MAX_INSTALLMENTS - 1 }, (_, i) => i + 2).map((n) => (
                         <option key={n} value={n}>
@@ -442,7 +442,7 @@ export function SaleCreatePage() {
                     <label htmlFor="sale-first-due" className="mb-1 block text-sm font-medium">
                       Primeiro vencimento
                     </label>
-                    <input id="sale-first-due" {...fieldA11y("sale-first-due", errors.firstDueDate?.message)} type="date" {...register('firstDueDate')} className="w-full rounded-md border px-3 py-2" />
+                    <input id="sale-first-due" {...fieldA11y("sale-first-due", errors.firstDueDate?.message)} type="date" {...register('firstDueDate')} className="w-full rounded-lg border px-3 py-2" />
                     <FieldError id="sale-first-due" message={errors.firstDueDate?.message} />
                   </div>
                 </div>

@@ -17,7 +17,7 @@ interface Row {
 
 const REFRESH_CODES = ['PURCHASE_CANCELED', 'PURCHASE_ALREADY_RECEIVED', 'RECEIPT_EXCEEDS_REMAINING', 'CONCURRENT_UPDATE'];
 const BATCH_HINT = 'Use outro número de lote (ex.: acrescente o código do pedido).';
-const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-2 py-1.5 text-sm';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-2 py-1.5 text-sm';
 
 function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose: () => void }) {
   const pendingItems = purchase.items.filter((item) => item.remainingQuantity > 0);

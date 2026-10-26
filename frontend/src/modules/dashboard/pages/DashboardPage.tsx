@@ -25,7 +25,7 @@ function pluralize(count: number, one: string, many: string) {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="rounded-xl border bg-surface p-4 shadow-sm">
+    <section aria-label={title} className="rounded-xl border bg-surface p-4 shadow">
       <h2 className="mb-3 text-base font-semibold">{title}</h2>
       {children}
     </section>

@@ -91,7 +91,7 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
       <div
         ref={panel}
         hidden={!open}
-        className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-1 rounded-lg border border-border bg-surface p-1 text-foreground shadow-lg [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-start [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:text-left [&_a]:hover:bg-surface-muted [&_button]:flex [&_button]:min-h-[44px] [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:gap-3 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-left [&_button]:hover:bg-surface-muted [&_div]:contents`}
+        className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-1 rounded-lg border border-border bg-surface p-1 text-foreground shadow-lg [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-start [&_a]:gap-3 [&_a]:rounded-lg [&_a]:px-3 [&_a]:text-left [&_a]:hover:bg-surface-muted [&_button]:flex [&_button]:min-h-[44px] [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:gap-3 [&_button]:rounded-lg [&_button]:px-3 [&_button]:text-left [&_button]:hover:bg-surface-muted [&_div]:contents`}
       >
         {content}
       </div>
@@ -124,7 +124,7 @@ function Card<T>({ row, columns, href }: { row: T; columns: DataTableColumn<T>[]
   }
 
   return (
-    <li onClick={open} onKeyDown={onKeyDown} tabIndex={href ? 0 : undefined} aria-labelledby={href ? titleId : undefined} className={`rounded-xl border border-border bg-surface p-4 text-foreground shadow-sm ${href ? 'cursor-pointer active:bg-surface-muted' : ''}`}>
+    <li onClick={open} onKeyDown={onKeyDown} tabIndex={href ? 0 : undefined} aria-labelledby={href ? titleId : undefined} className={`rounded-xl border border-border bg-surface p-4 text-foreground shadow ${href ? 'cursor-pointer active:bg-surface-muted' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {title && (

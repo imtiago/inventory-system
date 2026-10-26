@@ -26,7 +26,7 @@ type FilterKey = 'status' | 'customerId' | 'supplierId' | 'dueFrom' | 'dueTo' | 
 
 function SummaryCard({ id, label, value }: { id: string; label: string; value?: number }) {
   return (
-    <div data-testid={`summary-${id}`} className="rounded-xl border bg-surface p-4 shadow-sm">
+    <div data-testid={`summary-${id}`} className="rounded-xl border bg-surface p-4 shadow">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold">{formatCurrency(value ?? 0)}</p>
     </div>

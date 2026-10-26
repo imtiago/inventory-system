@@ -194,7 +194,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
 
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {value != null && !disabled && (
-            <button type="button" aria-label="Limpar seleção" onClick={clearSelection} className="rounded p-1 text-subtle hover:bg-surface-muted">
+            <button type="button" aria-label="Limpar seleção" onClick={clearSelection} className="rounded-lg p-1 text-subtle hover:bg-surface-muted">
               <X size={15} />
             </button>
           )}
@@ -213,7 +213,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
               setOpen((current) => !current);
               setActiveIndex(-1);
             }}
-            className="rounded p-1 text-subtle hover:bg-surface-muted"
+            className="rounded-lg p-1 text-subtle hover:bg-surface-muted"
           >
             <ChevronDown size={17} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
           </button>

@@ -67,7 +67,7 @@ export function ConfirmDialog({
           border
           border-border
           rounded-xl
-          shadow-xl
+          shadow-lg
           p-6
         "
       >

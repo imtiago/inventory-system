@@ -7,7 +7,7 @@ import { hasTooManyDecimals } from '@/modules/purchases/utils/purchaseTotals';
 import { isValidSalePrice, parseUnitsPerPackage, unitsOf, type ItemDraft, type ItemMode } from '../utils/review';
 import type { INfeItem } from '../types';
 
-const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
 const MODE_LABELS: Record<ItemMode, string> = {
   link: 'Vincular a variante existente',
@@ -129,7 +129,7 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
             <p className="text-sm">
               <span className="text-muted">Vincular a </span>
               <span className="font-medium">{draft.variant.label}</span>
-              {isSuggested && <span className="ml-2 rounded bg-info-soft px-2 py-0.5 text-xs text-info">{item.suggestion?.source === 'MAPPING' ? 'sugerido por mapeamento' : 'sugerido por código de barras'}</span>}
+              {isSuggested && <span className="ml-2 rounded-lg bg-info-soft px-2 py-0.5 text-xs text-info">{item.suggestion?.source === 'MAPPING' ? 'sugerido por mapeamento' : 'sugerido por código de barras'}</span>}
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">

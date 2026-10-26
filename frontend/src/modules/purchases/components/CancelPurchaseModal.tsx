@@ -50,7 +50,7 @@ function CancelForm({ purchaseId, onClose }: { purchaseId: string; onClose: () =
           value={reason}
           disabled={mutation.isPending}
           onChange={(event) => setReason(event.target.value)}
-          className="w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2 text-sm"
         />
       </div>
 
