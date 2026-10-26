@@ -11,6 +11,7 @@ import { loginAs } from '@/test/auth';
 import { API_URL } from '@/test/handlers/inventory';
 import nfeImport from '@/test/fixtures/nfe/nfeImport.json';
 import brandList from '@/test/fixtures/catalog/brandList.json';
+import purchaseDetail from '@/test/fixtures/purchases/purchaseDetail.json';
 
 const draft = nfeImport.data;
 let posted: unknown;
@@ -387,5 +388,69 @@ describe('NfeImportReviewPage', () => {
     await new Promise((r) => setTimeout(r, 100));
     expect(screen.queryByText('Detalhe do pedido')).not.toBeInTheDocument();
     expect(screen.getByText('Outra tela')).toBeInTheDocument();
+  });
+
+  describe('desfazer importação (onda 7)', () => {
+    const confirmedNote = { ...draft, status: 'CONFIRMED', purchaseId: purchaseDetail.data.id };
+
+    function serveConfirmed(revert: (request: Request) => Response | Promise<Response>) {
+      let reverted = false;
+      const calls: { idempotencyKey: string | null }[] = [];
+      server.use(
+        http.get(`${API_URL}/nfe-imports/:id`, () => HttpResponse.json({ data: reverted ? { ...confirmedNote, status: 'REVERTED' } : confirmedNote })),
+        http.post(`${API_URL}/nfe-imports/:id/revert`, async ({ request }) => {
+          calls.push({ idempotencyKey: request.headers.get('Idempotency-Key') });
+          const response = await revert(request);
+          if (response.status === 200) reverted = true;
+          return response;
+        }),
+      );
+      return calls;
+    }
+
+    test('ADMIN: confirmação destrutiva com o resumo; desfeita, a nota aparece como Desfeita', async () => {
+      const calls = serveConfirmed(() => HttpResponse.json({ data: { ...confirmedNote, status: 'REVERTED' } }));
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Desfazer importação' }));
+      const dialog = await screen.findByRole('dialog');
+      // Resumo: itens e unidades que saem do estoque, valor do contas a pagar e o pedido.
+      await waitFor(() => expect(dialog).toHaveTextContent('PC000012'));
+      expect(dialog).toHaveTextContent('2 itens');
+      expect(dialog).toHaveTextContent('1 unidade');
+      expect(dialog).toHaveTextContent(/R\$\s30,75/);
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Desfazer importação' }));
+
+      await waitFor(() => expect(calls).toHaveLength(1));
+      expect(calls[0].idempotencyKey).toBeTruthy();
+      expect(await screen.findByText(/Esta importação foi desfeita/)).toBeInTheDocument();
+      expect(screen.getByText('Desfeita')).toHaveAttribute('data-status', 'REVERTED');
+      expect(screen.queryByRole('button', { name: 'Desfazer importação' })).not.toBeInTheDocument();
+    });
+
+    test('409 NFE_REVERT_BLOCKED: mostra o motivo e a nota continua confirmada', async () => {
+      serveConfirmed(() =>
+        HttpResponse.json({ message: 'Itens desta nota já foram vendidos/baixados', code: 'NFE_REVERT_BLOCKED' }, { status: 409 }),
+      );
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Desfazer importação' }));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Desfazer importação' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Itens desta nota já foram vendidos/baixados');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('Esta nota já foi confirmada.', { exact: false })).toBeInTheDocument();
+    });
+
+    test('sem purchases.revert o botão não aparece', async () => {
+      loginAs('ESTOQUISTA');
+      serveConfirmed(() => HttpResponse.json({ data: confirmedNote }));
+      renderPage();
+
+      expect(await screen.findByText('Esta nota já foi confirmada.', { exact: false })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Desfazer importação' })).not.toBeInTheDocument();
+    });
   });
 });

@@ -26,6 +26,8 @@ enum PurchaseStatus {
 enum NfeImportStatus {
   DRAFT
   CONFIRMED
+  // Desfeita (POST /nfe-imports/:id/revert); reenviar a mesma chave volta a linha para DRAFT.
+  REVERTED
 }
 
 enum PurchaseOrigin {

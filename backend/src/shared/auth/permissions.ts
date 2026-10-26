@@ -20,6 +20,7 @@ export const PERMISSIONS = [
   "purchases.read",
   "purchases.write",
   "purchases.receive",
+  "purchases.revert",
   "payables.read",
   "payables.pay",
   "payables.reverse",

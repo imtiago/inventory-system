@@ -33,6 +33,7 @@ const MATRIX: Record<Permission, Role[]> = {
   "purchases.read": ["ADMIN", "ESTOQUISTA"],
   "purchases.write": ["ADMIN"],
   "purchases.receive": ["ADMIN", "ESTOQUISTA"],
+  "purchases.revert": ["ADMIN"],
   "payables.read": ["ADMIN"],
   "payables.pay": ["ADMIN"],
   "payables.reverse": ["ADMIN"],
@@ -84,6 +85,7 @@ const ROUTES: Record<Permission, RouteProbe> = {
   "purchases.read": { method: "GET", url: "/suppliers?limit=1", allowed: 200 },
   "purchases.write": { method: "POST", url: "/suppliers", payload: {}, allowed: 400 },
   "purchases.receive": { method: "POST", url: `/purchases/${missing}/receipts`, payload: {}, allowed: 400 },
+  "purchases.revert": { method: "POST", url: `/nfe-imports/${missing}/revert`, allowed: 404 },
   "payables.read": { method: "GET", url: "/payables?limit=1", allowed: 200 },
   "payables.pay": {
     method: "POST",

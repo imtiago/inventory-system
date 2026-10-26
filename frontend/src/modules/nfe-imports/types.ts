@@ -1,10 +1,12 @@
 import type { Paginated } from '@/shared/types/pagination';
 
-export type NfeImportStatus = 'DRAFT' | 'CONFIRMED';
+/** REVERTED: the import was undone (stock reversed, payable and order canceled); re-uploading the XML reopens it as DRAFT. */
+export type NfeImportStatus = 'DRAFT' | 'CONFIRMED' | 'REVERTED';
 
 export const NFE_STATUS_LABELS: Record<NfeImportStatus, string> = {
   DRAFT: 'Rascunho',
   CONFIRMED: 'Confirmada',
+  REVERTED: 'Desfeita',
 };
 
 /** GET /nfe-imports row (NfeImportSummaryDTO). Money in reais, dates "YYYY-MM-DD". */

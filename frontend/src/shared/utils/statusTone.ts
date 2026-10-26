@@ -23,6 +23,7 @@ export const statusTone: Record<string, Tone> = {
   // NF-e
   DRAFT: 'warning',
   CONFIRMED: 'success',
+  REVERTED: 'danger',
 
   // Estoque
   AVAILABLE: 'success',

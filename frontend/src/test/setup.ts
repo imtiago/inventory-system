@@ -29,7 +29,7 @@ const COVERED_POSTS = [
   /\/(receivables|payables)\/payments\/[^/]+\/reverse$/,
   /\/purchases$/,
   /\/purchases\/[^/]+\/(receipts|cancel)$/,
-  /\/nfe-imports\/[^/]+\/confirm$/,
+  /\/nfe-imports\/[^/]+\/(confirm|revert)$/,
   /\/inventory\/(receive|dispatch|adjust|reserve|release|initial-count|lots)$/,
   /\/inventory\/boxes\/[^/]+\/items$/,
   /\/inventory\/boxes\/[^/]+\/items\/remove$/,

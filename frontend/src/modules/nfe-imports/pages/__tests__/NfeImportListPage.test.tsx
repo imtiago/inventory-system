@@ -45,6 +45,9 @@ describe('NfeImportListPage', () => {
     renderPage();
 
     expect(await screen.findByRole('link', { name: 'Ver pedido' })).toHaveAttribute('href', '/purchases/pc-9');
+    // A nota confirmada abre o detalhe (onde o ADMIN pode desfazer a importação).
+    expect(screen.getByRole('link', { name: 'Ver nota' })).toHaveAttribute('href', `/nfe-imports/${nfeImportList.data[0].id}`);
+    expect(screen.getByRole('option', { name: 'Desfeita' })).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Status'), 'CONFIRMED');
     await waitFor(() => expect(urls.some((u) => u.includes('status=CONFIRMED'))).toBe(true));
   });

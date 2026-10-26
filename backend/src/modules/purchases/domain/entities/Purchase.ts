@@ -130,6 +130,20 @@ export class Purchase extends BaseEntity {
   }
 
   /**
+   * Estorno da importação de NF-e: o estoque recebido já saiu e o contas a pagar foi cancelado
+   * (quem chama garante). Transição explícita, separada de `cancel` (que continua recusando pedido
+   * com recebimento): zera o recebido de cada item e cancela com o motivo. Já cancelado → 409.
+   */
+  revertReceipts({ reason, userId, now = new Date() }: { reason: string; userId: string; now?: Date }): void {
+    if (this._status === PurchaseStatus.CANCELED) throw purchaseAlreadyCanceled();
+    for (const item of this._items) item.revertReceipt();
+    this._status = PurchaseStatus.CANCELED;
+    this._cancelReason = reason;
+    this._canceledAt = now;
+    this._canceledById = userId;
+  }
+
+  /**
    * Registra um recebimento: CANCELED → 409 PURCHASE_CANCELED; RECEIVED → 409
    * PURCHASE_ALREADY_RECEIVED; item de outro pedido → 404 PURCHASE_ITEM_NOT_FOUND;
    * quantidade > restante → 422 RECEIPT_EXCEEDS_REMAINING. Valida todas as linhas

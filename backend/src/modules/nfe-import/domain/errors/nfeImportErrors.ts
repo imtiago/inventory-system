@@ -68,3 +68,9 @@ export const nfeTotalTooLarge = () =>
 /** Lotes (rastro) somando mais unidades que o próprio item: nota inconsistente. */
 export const nfeLotsExceedQuantity = (index: number) =>
   new BusinessRuleError(`Os lotes do item ${index} excedem a quantidade do item.`, ErrorCodes.INVALID_NFE);
+
+/** Motivos do 409 NFE_REVERT_BLOCKED (spec §4 da onda 7), exibidos como estão pelo front. */
+export const NFE_REVERT_STOCK_USED = "Itens desta nota já foram vendidos/baixados";
+export const NFE_REVERT_HAS_PAYMENTS = "Há pagamento registrado nesta conta";
+
+export const nfeRevertBlocked = (reason: string) => new ConflictError(reason, ErrorCodes.NFE_REVERT_BLOCKED);

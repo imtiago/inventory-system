@@ -2,12 +2,13 @@ import { FastifyInstance } from "fastify";
 import multipart from "@fastify/multipart";
 import { authorize } from "@shared/middleware/authorize";
 import { idempotent } from "@shared/http/idempotency/idempotent";
-import { CONFIRM_NFE_TRANSACTION_OPTIONS } from "../factories/NfeImportFactories";
+import { CONFIRM_NFE_TRANSACTION_OPTIONS, REVERT_NFE_TRANSACTION_OPTIONS } from "../factories/NfeImportFactories";
 import {
   makeConfirmNfeImportController,
   makeDiscardNfeImportController,
   makeGetNfeImportController,
   makeListNfeImportsController,
+  makeRevertNfeImportController,
   makeUploadNfeImportController,
 } from "../controllers/nfeImportControllers";
 
@@ -27,5 +28,11 @@ export async function nfeImportRoutes(app: FastifyInstance) {
     "/:id/confirm",
     { preHandler: [authorize("purchases.write")] },
     idempotent(makeConfirmNfeImportController(), CONFIRM_NFE_TRANSACTION_OPTIONS),
+  );
+  // Só ADMIN: estorna estoque, contas a pagar e pedido de uma nota recebida (nada usado).
+  app.post(
+    "/:id/revert",
+    { preHandler: [authorize("purchases.revert")] },
+    idempotent(makeRevertNfeImportController(), REVERT_NFE_TRANSACTION_OPTIONS),
   );
 }

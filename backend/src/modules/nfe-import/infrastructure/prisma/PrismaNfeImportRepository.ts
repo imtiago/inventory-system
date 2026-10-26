@@ -89,6 +89,10 @@ export class PrismaNfeImportRepository implements NfeImportRepository {
     });
   }
 
+  async markReverted(id: string): Promise<void> {
+    await getDb().nfeImport.update({ where: { id }, data: { status: "REVERTED" } });
+  }
+
   async delete(id: string): Promise<void> {
     await getDb().nfeImport.delete({ where: { id } });
   }

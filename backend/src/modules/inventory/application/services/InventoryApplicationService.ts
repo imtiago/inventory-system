@@ -4,11 +4,13 @@ import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin
 import { DispatchInventoryUseCase } from "../useCases/commands/DispatchInventoryUseCase";
 import { ReceiveInventoryUseCase } from "../useCases/commands/ReceiveInventoryUseCase";
 import { ReturnSaleStockUseCase } from "../useCases/commands/ReturnSaleStockUseCase";
+import { RevertPurchaseStockUseCase } from "../useCases/commands/RevertPurchaseStockUseCase";
 import {
   ConsumeStockRequest,
   InventoryService,
   ReceivePurchaseStockRequest,
   ReturnSaleStockRequest,
+  RevertPurchaseStockRequest,
 } from "./InventoryService";
 
 export class InventoryApplicationService implements InventoryService {
@@ -16,7 +18,12 @@ export class InventoryApplicationService implements InventoryService {
     private readonly dispatchInventoryUseCase: Pick<DispatchInventoryUseCase, "execute">,
     private readonly returnSaleStockUseCase: Pick<ReturnSaleStockUseCase, "execute">,
     private readonly receiveInventoryUseCase: Pick<ReceiveInventoryUseCase, "execute">,
+    private readonly revertPurchaseStockUseCase: Pick<RevertPurchaseStockUseCase, "execute">,
   ) {}
+
+  async revertPurchaseStock(request: RevertPurchaseStockRequest): Promise<"REVERTED" | "STOCK_USED"> {
+    return (await this.revertPurchaseStockUseCase.execute(request)).status;
+  }
 
   async consumeStock(request: ConsumeStockRequest): Promise<void> {
     await this.dispatchInventoryUseCase.execute({

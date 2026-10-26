@@ -14,6 +14,7 @@ import {
   makeDiscardNfeImportUseCase,
   makeGetNfeImportUseCase,
   makeListNfeImportsUseCase,
+  makeRevertNfeImportUseCase,
   makeUploadNfeImportUseCase,
 } from "../factories/NfeImportFactories";
 
@@ -75,5 +76,16 @@ export function makeConfirmNfeImportController() {
     if (body.receive && !hasPermission(request.user!.role, "purchases.receive")) throw new ForbiddenError();
     const result = await useCase.execute({ id, userId: request.user!.sub, ...body });
     return reply.status(201).send(HttpResponse.created(result));
+  };
+}
+
+/** Desfaz a importação (spec §4 da onda 7) e devolve o detalhe já REVERTED. */
+export function makeRevertNfeImportController() {
+  const useCase = makeRevertNfeImportUseCase();
+  const getNfeImport = makeGetNfeImportUseCase();
+  return async function RevertNfeImportController(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = parseInput(nfeImportIdParamsSchema, request.params);
+    await useCase.execute({ id, userId: request.user!.sub });
+    return reply.send(HttpResponse.ok(await getNfeImport.execute(id)));
   };
 }
