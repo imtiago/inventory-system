@@ -173,7 +173,7 @@ describe("Desfazer importação de NF-e (POST /nfe-imports/:id/revert)", () => {
     // Estoque: só o que já existia; custo médio volta ao do estoque restante (sem estoque → 0).
     const [ia, ib, ic] = [await inventoryOf(a), await inventoryOf(b), await inventoryOf(c)];
     assert.deepEqual([ia.quantity, ib.quantity, ic.quantity], [10, 0, 0]);
-    // A média é gravada com 4 casas: desfazer a entrada pode deixar até 1 centésimo de milésimo de resíduo.
+    // A média é gravada com 4 casas: desfazer a entrada deixa resíduo de até 0,00005 × Q/(Q−q) por unidade (Q = saldo com a entrada, q = entrada). Nestes números (favoráveis) fica abaixo de 0,0002; com entrada grande sobre saldo pequeno o resíduo é maior (limitação conhecida, sem acúmulo no tempo).
     assert.ok(Math.abs(ia.averageCost.toNumber() - 5) <= 0.0002, ia.averageCost.toString());
     assert.deepEqual([ib.averageCost.toNumber(), ic.averageCost.toNumber()], [0, 0]);
 

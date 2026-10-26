@@ -59,6 +59,9 @@ export function initialItemDraft(item: INfeItem): ItemDraft {
 }
 
 export function initialInstallments(note: INfeImport): InstallmentDraft[] {
+  // Total zero (bonificação): no installments are created.
+  if (itemsTotalCents(note.items) === 0) return [];
+
   if (note.installments.length > 0) return note.installments.map((i) => ({ number: i.number, dueDate: i.dueDate, amount: formatMoneyInput(fromCents(toCents(i.amount))) }));
 
   return [{ number: null, dueDate: note.issueDate, amount: formatMoneyInput(fromCents(itemsTotalCents(note.items))) }];
@@ -136,6 +139,7 @@ export function installmentsSumCents(installments: InstallmentDraft[]): number {
 export const INSTALLMENTS_TOLERANCE_CENTS = 5;
 
 export function installmentsProblem(installments: InstallmentDraft[], issueDate: string, totalCents: number): string | null {
+  if (totalCents === 0) return null;
   if (installments.length === 0) return 'Informe ao menos uma parcela.';
 
   for (const [position, row] of installments.entries()) {
@@ -191,7 +195,7 @@ export function buildConfirmBody(args: {
       ? { id: note.supplier.match.id }
       : { create: { name: supplier.name.trim(), ...(email ? { email } : {}), ...(phone ? { phone } : {}) } },
     items: note.items.map((item, position) => itemBody(item, items[position])),
-    installments: installments.map((row) => ({ dueDate: row.dueDate, amount: moneyToSend(row.amount) })),
+    ...(itemsTotalCents(note.items) === 0 ? {} : { installments: installments.map((row) => ({ dueDate: row.dueDate, amount: moneyToSend(row.amount) })) }),
     receive,
   };
 }

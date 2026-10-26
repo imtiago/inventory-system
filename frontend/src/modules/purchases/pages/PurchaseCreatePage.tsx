@@ -297,14 +297,15 @@ export function PurchaseCreatePage() {
                           {MONEY_FIELDS.map((field) => (
                             <td key={field.key} className="px-2 py-3">
                               <MoneyInput
+                                id={`cell-${field.key}-${item.productVariantId}`}
                                 aria-label={`${field.label} ${item.productName}`}
                                 value={item[field.key]}
                                 disabled={createMutation.isPending}
                                 onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                                aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
+                                {...fieldA11y(`cell-${field.key}-${item.productVariantId}`, moneyFieldError(item[field.key]))}
                                 className={cellInputClass}
                               />
-                              {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-danger">{moneyFieldError(item[field.key])}</p>}
+                              <FieldError id={`cell-${field.key}-${item.productVariantId}`} message={moneyFieldError(item[field.key]) ?? undefined} className="mt-1 text-xs text-danger" />
                             </td>
                           ))}
                           <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-danger' : ''}`}>
@@ -372,10 +373,10 @@ export function PurchaseCreatePage() {
                               value={item[field.key]}
                               disabled={createMutation.isPending}
                               onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                              aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
+                              {...fieldA11y(`${field.key}-${item.productVariantId}`, moneyFieldError(item[field.key]))}
                               className={cardMoneyClass}
                             />
-                            {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-danger">{moneyFieldError(item[field.key])}</p>}
+                            <FieldError id={`${field.key}-${item.productVariantId}`} message={moneyFieldError(item[field.key]) ?? undefined} className="mt-1 text-xs text-danger" />
                           </div>
                         ))}
                       </div>

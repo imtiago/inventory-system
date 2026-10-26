@@ -132,6 +132,7 @@ describe('PurchaseCreatePage', () => {
     await fill('Preço unitário de Camiseta Azul', '10,555');
 
     expect(screen.getByText('Use no máximo 2 casas decimais')).toBeInTheDocument();
+    expect(screen.getByLabelText('Preço unitário de Camiseta Azul')).toHaveAccessibleDescription('Use no máximo 2 casas decimais');
     expect(screen.getByRole('alert')).toHaveTextContent('2 casas decimais');
     expect(screen.getByRole('button', { name: 'Registrar pedido' })).toBeDisabled();
     expect(posted).toBeUndefined();

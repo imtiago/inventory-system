@@ -4,7 +4,7 @@ import { useBrands } from '@/modules/brands/hooks/useBrands';
 import { useCategories } from '@/modules/categories/hooks/useCategories';
 import { formatCurrency } from '@/shared/utils/money';
 import { MONEY_DECIMALS_MESSAGE, moneyTextError } from '@/shared/utils/money';
-import { MoneyInput, QuantityInput } from '@/shared/components/form';
+import { FieldError, MoneyInput, QuantityInput, fieldA11y } from '@/shared/components/form';
 import { isValidSalePrice, parseUnitsPerPackage, unitsOf, type ItemDraft, type ItemMode } from '../utils/review';
 import type { INfeItem } from '../types';
 
@@ -115,9 +115,10 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
             itemName={`item ${n}`}
             value={draft.unitsPerPackage}
             disabled={disabled}
-            aria-invalid={upp === null ? 'true' : undefined}
+            {...fieldA11y(`upp-${n}`, upp === null)}
             onChange={(value) => onChange({ unitsPerPackage: value })}
           />
+          <FieldError id={`upp-${n}`} message={upp === null ? 'Informe um inteiro, 1 ou mais.' : undefined} className="mt-1 text-xs text-danger" />
         </Field>
       </div>
 
@@ -186,10 +187,10 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
               id={`price-${n}`}
               value={draft.salePrice}
               disabled={disabled}
-              aria-invalid={draft.salePrice !== '' && !isValidSalePrice(draft.salePrice) ? 'true' : undefined}
+              {...fieldA11y(`price-${n}`, draft.salePrice !== '' && !isValidSalePrice(draft.salePrice))}
               onChange={(event) => onChange({ salePrice: event.target.value })}
             />
-            {moneyTextError(draft.salePrice) === MONEY_DECIMALS_MESSAGE && <p className="mt-1 text-xs text-danger">Use no máximo 2 casas decimais.</p>}
+            <FieldError id={`price-${n}`} message={moneyTextError(draft.salePrice) === MONEY_DECIMALS_MESSAGE ? 'Use no máximo 2 casas decimais.' : undefined} className="mt-1 text-xs text-danger" />
           </Field>
         </div>
       )}

@@ -321,65 +321,74 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         </ul>
       </section>
 
-      <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Parcelas</h2>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled}
-            onClick={() => setInstallments((current) => [...current, { number: null, dueDate: current[current.length - 1]?.dueDate ?? note.issueDate, amount: '' }])}
-          >
-            <Plus size={16} />
-            Adicionar parcela
-          </Button>
-        </div>
-
-        <ul className="space-y-2">
-          {installments.map((row, position) => (
-            <li key={position} className="flex flex-wrap items-end gap-3">
-              <div className="flex h-10 items-center text-sm text-muted">
-                Nº <span data-testid={`installment-number-${position}`}>{row.number ?? '—'}</span>
-              </div>
-              <div>
-                <label htmlFor={`due-${position}`} className="mb-1 block text-xs font-medium text-muted">
-                  Vencimento da parcela {position + 1}
-                </label>
-                <input id={`due-${position}`} type="date" min={note.issueDate} value={row.dueDate} disabled={disabled} onChange={(event) => patchInstallment(position, { dueDate: event.target.value })} className={`${inputClass} h-10`} />
-              </div>
-              <div>
-                <label htmlFor={`amount-${position}`} className="mb-1 block text-xs font-medium text-muted">
-                  Valor da parcela {position + 1}
-                </label>
-                <MoneyInput id={`amount-${position}`} value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} wrapperClassName="w-40" />
-              </div>
-              <button
-                type="button"
-                aria-label={`Remover parcela ${position + 1}`}
-                disabled={disabled || installments.length === 1}
-                onClick={() => setInstallments((current) => current.filter((_, i) => i !== position))}
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-danger hover:bg-danger-soft disabled:opacity-50"
-              >
-                <Trash2 size={17} />
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <p data-testid="installments-sum" className="mt-3 text-sm">
-          Soma das parcelas: <strong>{formatCents(sumCents)}</strong> · Total do pedido: <strong>{formatCents(totalCents)}</strong>
-        </p>
-        {sumMismatch && (
-          <p data-testid="installments-mismatch" className="mt-1 text-sm text-danger">
-            A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}) em mais de {formatCents(INSTALLMENTS_TOLERANCE_CENTS)}.
+      {totalCents === 0 ? (
+        <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
+          <h2 className="mb-2 text-lg font-semibold">Parcelas</h2>
+          <p data-testid="no-installments" className="text-sm text-muted">
+            Nota sem valor a pagar — nenhuma parcela será criada.
           </p>
-        )}
-        {sumAdjusted && (
-          <p data-testid="installments-adjusted" className="mt-1 text-sm text-warning">
-            A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}) em {formatCents(Math.abs(sumDifferenceCents))}: a última parcela será ajustada para fechar o total.
+        </section>
+      ) : (
+        <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Parcelas</h2>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={disabled}
+              onClick={() => setInstallments((current) => [...current, { number: null, dueDate: current[current.length - 1]?.dueDate ?? note.issueDate, amount: '' }])}
+            >
+              <Plus size={16} />
+              Adicionar parcela
+            </Button>
+          </div>
+
+          <ul className="space-y-2">
+            {installments.map((row, position) => (
+              <li key={position} className="flex flex-wrap items-end gap-3">
+                <div className="flex h-10 items-center text-sm text-muted">
+                  Nº <span data-testid={`installment-number-${position}`}>{row.number ?? '—'}</span>
+                </div>
+                <div>
+                  <label htmlFor={`due-${position}`} className="mb-1 block text-xs font-medium text-muted">
+                    Vencimento da parcela {position + 1}
+                  </label>
+                  <input id={`due-${position}`} type="date" min={note.issueDate} value={row.dueDate} disabled={disabled} onChange={(event) => patchInstallment(position, { dueDate: event.target.value })} className={`${inputClass} h-10`} />
+                </div>
+                <div>
+                  <label htmlFor={`amount-${position}`} className="mb-1 block text-xs font-medium text-muted">
+                    Valor da parcela {position + 1}
+                  </label>
+                  <MoneyInput id={`amount-${position}`} value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} wrapperClassName="w-40" />
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Remover parcela ${position + 1}`}
+                  disabled={disabled || installments.length === 1}
+                  onClick={() => setInstallments((current) => current.filter((_, i) => i !== position))}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-danger hover:bg-danger-soft disabled:opacity-50"
+                >
+                  <Trash2 size={17} />
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <p data-testid="installments-sum" className="mt-3 text-sm">
+            Soma das parcelas: <strong>{formatCents(sumCents)}</strong> · Total do pedido: <strong>{formatCents(totalCents)}</strong>
           </p>
-        )}
-      </section>
+          {sumMismatch && (
+            <p data-testid="installments-mismatch" className="mt-1 text-sm text-danger">
+              A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}) em mais de {formatCents(INSTALLMENTS_TOLERANCE_CENTS)}.
+            </p>
+          )}
+          {sumAdjusted && (
+            <p data-testid="installments-adjusted" className="mt-1 text-sm text-warning">
+              A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}) em {formatCents(Math.abs(sumDifferenceCents))}: a última parcela será ajustada para fechar o total.
+            </p>
+          )}
+        </section>
+      )}
 
       {topError && (
         <div role="alert" data-testid="confirm-error" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">

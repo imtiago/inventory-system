@@ -68,6 +68,23 @@ describe('NfeImportReviewPage', () => {
     expect(screen.getByTestId('blocking-reason')).toHaveTextContent('Item 2');
   });
 
+  test('campos inválidos do item apontam para a mensagem de erro (aria-describedby)', async () => {
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+
+    await userEvent.selectOptions(screen.getByLabelText('Ação do item 2'), 'createProduct');
+    await userEvent.type(screen.getByLabelText('Preço de venda do item 2'), '7,555');
+    const price = screen.getByLabelText('Preço de venda do item 2');
+    expect(price).toHaveAttribute('aria-invalid', 'true');
+    expect(price).toHaveAccessibleDescription('Use no máximo 2 casas decimais.');
+
+    const upp = screen.getByLabelText('Unidades por embalagem do item 2');
+    await userEvent.clear(upp);
+    expect(upp).toHaveAttribute('aria-invalid', 'true');
+    expect(upp.getAttribute('aria-describedby')).toBe('upp-2-error');
+    expect(upp).toHaveAccessibleDescription(/inteiro/);
+  });
+
   test('fornecedor encontrado é somente leitura; sem cadastro permite editar o nome', async () => {
     renderPage();
     expect(await screen.findByText('Distribuidora Exemplo')).toBeInTheDocument();
@@ -172,6 +189,28 @@ describe('NfeImportReviewPage', () => {
       ],
       receive: true,
     });
+  });
+
+  test('nota de bonificação (total zero): sem seção de parcelas, confirma sem enviar installments', async () => {
+    const zero = {
+      ...draft,
+      items: draft.items.map((i) => ({ ...i, unitCost: 0, total: 0 })),
+      totals: { total: 0, orderTotal: 0, difference: 0, installmentsTotal: 0, installmentsDifference: 0 },
+      installments: [],
+    };
+    server.use(http.get(`${API_URL}/nfe-imports/:id`, () => HttpResponse.json({ data: zero })));
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+
+    expect(screen.getByTestId('no-installments')).toHaveTextContent('Nota sem valor a pagar — nenhuma parcela será criada');
+    expect(screen.queryByText('Adicionar parcela')).not.toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Confirmar importação' });
+    expect(button).toBeEnabled();
+
+    await userEvent.click(button);
+    expect(await screen.findByText('Detalhe do pedido')).toBeInTheDocument();
+    expect(posted).not.toHaveProperty('installments');
   });
 
   test('navega para o pedido mesmo quando a revisão desmonta com a confirmação em andamento', async () => {
