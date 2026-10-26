@@ -3,9 +3,10 @@ import {
   InventoryBoxStockWithExtendsDTO,
 } from "../dto/InventoryBoxStockDTO";
 import { InventoryLotReadMapper } from "./InventoryLotReadMapper";
+import type { InventoryBoxStockRow, InventoryBoxStockWithLotRow } from "./readRows";
 
 export class InventoryBoxStockReadMapper {
-  static toDTO(data: any): InventoryBoxStockDTO {
+  static toDTO(data: InventoryBoxStockRow): InventoryBoxStockDTO {
     return {
       boxId: data.boxId,
       inventoryLotId: data.inventoryLotId,
@@ -15,7 +16,7 @@ export class InventoryBoxStockReadMapper {
       id: data.id,
     };
   }
-  static toDTOWithExtends(data: any): InventoryBoxStockWithExtendsDTO {
+  static toDTOWithExtends(data: InventoryBoxStockWithLotRow): InventoryBoxStockWithExtendsDTO {
     return {
       ...this.toDTO(data),
       inventoryLot: InventoryLotReadMapper.toDTO(data.inventoryLot),

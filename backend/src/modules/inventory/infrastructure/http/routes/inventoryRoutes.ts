@@ -2,8 +2,6 @@
 import { FastifyInstance } from "fastify";
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { idempotent } from "@shared/http/idempotency/idempotent";
-// import { makeAddInventoryController } from "../controllers/ReceiveInventoryController";
-// import { makeGetInventoryController } from "../controllers/GetInventoryController";
 import { makeGetInventoryByVariantIdController } from "../controllers/GetInventoryByVariantIdController";
 import { makeListInventoryController } from "../controllers/ListInventoryController";
 import { makeReceiveInventoryController } from "../controllers/ReceiveInventoryController";
@@ -20,8 +18,6 @@ import { makeGetInventoryByProductVariantBarcodeController } from "../controller
 import { inventoryLotRoutes } from "./inventoryLotRoutes";
 import { makeListInventoryLotsByVariantIdController } from "../controllers/GetListInventoryLotsByVariantIdController";
 import { makeCreateInventoryController } from "../controllers/CreateInventoryController";
-// import { makeCreateStockMovementController } from "../controllers/CreateStockMovementController";
-// import { makeListStockMovementsController } from "../controllers/ListStockMovementsController";
 
 export async function inventoryRoutes(app: FastifyInstance) {
   app.get(
@@ -92,26 +88,4 @@ export async function inventoryRoutes(app: FastifyInstance) {
   app.register(stockMovementRoutes, { prefix: "/movements" });
   app.register(inventoryBoxRoutes, { prefix: "/boxes" });
   app.register(inventoryLotRoutes, { prefix: "/lots" });
-
-  // app.post(
-  //   "/movements",
-  //   { preHandler: [authorize("inventory.write")] },
-  //   makeCreateStockMovementController(),
-  // );
-  // app.get(
-  //   "/movements",
-  //   { preHandler: [authorize("inventory.read")] },
-  //   makeListStockMovementsController(),
-  // );
-
-  // app.post(
-  //   "/remove",
-  //   { preHandler: [authorize("inventory.write")] },
-  //   makeRemoveInventoryController(),
-  // );
-  // app.get(
-  //   "/:variantId",
-  //   { preHandler: [authorize("inventory.read")] },
-  //   makeGetInventoryController(),
-  // );
 }

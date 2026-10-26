@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { contentDisposition } from "@shared/http/contentDisposition";
 import { parseInput } from "@shared/http/parseInput";
 import {
   generateInventoryBoxLabelParamsSchema,
@@ -22,10 +23,7 @@ export function makeGenerateInventoryProductLabelsController() {
     });
     return reply
       .header("Content-Type", "application/pdf")
-      .header(
-        "Content-Disposition",
-        `inline; filename="${code}-${productCode}.pdf"`,
-      )
+      .header("Content-Disposition", contentDisposition("inline", `${code}-${productCode}.pdf`))
       .send(pdf);
   };
 }

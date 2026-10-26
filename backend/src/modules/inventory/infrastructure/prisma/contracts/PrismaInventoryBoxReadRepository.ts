@@ -13,6 +13,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
+import { containsLiteral } from "@shared/infrastructure/database/literalSearch";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { lotBoxStocksInclude } from "./PrismaInventoryLotReadRepository";
 
@@ -53,7 +54,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
     const [data, total] = await Promise.all([
       getDb().inventoryBox.findMany({
         ...paginationOptions,
-        orderBy: { createdAt: "asc" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         where,
         include: {
           stocks: { where: lotWhere, include: stockLotInclude },
@@ -73,7 +74,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
   ): Promise<PaginatedResult<InventoryBoxDTO>> {
     const paginationOptions = buildPagination(pagination);
     const where: Prisma.InventoryBoxWhereInput = filters.search
-      ? { code: { contains: filters.search, mode: "insensitive" } }
+      ? { code: containsLiteral(filters.search) }
       : {};
 
     const [data, total] = await Promise.all([

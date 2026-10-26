@@ -1,17 +1,20 @@
 // application/mappers/StockMovementReadMapper.ts
 
 import { StockMovementWithExtendsDTO } from "../dto/StockMovementDTO";
+import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
+import { StockMovementType } from "@inventory/domain/enums/StockMovementType";
 import { InventoryReadMapper } from "./InventoryReadMapper";
+import type { StockMovementRow } from "./readRows";
 
 export class StockMovementReadMapper {
-  static toDTO(data: any): StockMovementWithExtendsDTO {
+  static toDTO(data: StockMovementRow): StockMovementWithExtendsDTO {
     return {
       id: data.id,
       inventoryId: data.inventoryId,
       productVariantId: data.productVariantId,
       quantity: data.quantity,
-      type: data.type,
-      origin: data.origin,
+      type: data.type as StockMovementType,
+      origin: data.origin as StockMovementOrigin,
       originId: data.originId,
       userId: data.userId,
       notes: data.notes,

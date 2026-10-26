@@ -62,33 +62,23 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       return null;
     }
 
-    let movementLotId: string | null = null;
+    const notes = this.withReserved(request.notes, previousReserved);
+    const newMovement = (lotId: string, quantity: number, previous: number, current: number) =>
+      new StockMovement({
+        inventoryId: inventory.id,
+        inventoryLotId: lotId,
+        productVariantId: inventory.productVariantId,
+        type: StockMovementType.ADJUSTMENT,
+        origin: StockMovementOrigin.INVENTORY,
+        quantity,
+        previousQuantity: previous,
+        currentQuantity: current,
+        averageCost: inventory.averageCost,
+        userId: request.userId,
+        notes,
+      });
 
-    if (difference < 0) {
-      const lots = await this.inventoryLotRepository.findAvailableByInventory(
-        inventory.id,
-      );
-      const touched: InventoryLot[] = [];
-      let remaining = -difference;
-      for (const lot of lots) {
-        if (remaining <= 0) break;
-        const quantity = Math.min(remaining, lot.remainingQuantity);
-        lot.consume(quantity);
-        touched.push(lot);
-        remaining -= quantity;
-      }
-      if (remaining > 0) {
-        throw new InternalInvariantError("Os lotes do estoque estão inconsistentes.", InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT);
-      }
-      await this.inventoryRepository.update(inventory);
-      for (const lot of touched) {
-        await this.inventoryLotRepository.update(lot);
-      }
-      // Saldo dos lotes caiu: alocações em caixas não podem passar dele.
-      await this.inventoryBoxStockRepository.reconcileBoxAllocations(
-        touched.map((lot) => lot.id),
-      );
-    } else {
+    if (difference > 0) {
       const lot = new InventoryLot({
         inventoryId: inventory.id,
         productVariantId: inventory.productVariantId,
@@ -98,24 +88,58 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       });
       await this.inventoryRepository.update(inventory);
       await this.inventoryLotRepository.create(lot);
-      movementLotId = lot.id;
+      const movement = newMovement(lot.id, difference, previousQuantity, inventory.quantity);
+      await this.stockMovementRepository.create(movement);
+      return movement;
     }
 
-    const movement = new StockMovement({
+    const lots = await this.inventoryLotRepository.findAvailableByInventory(inventory.id);
+    const touched: { lot: InventoryLot; quantity: number }[] = [];
+    let remaining = -difference;
+    for (const lot of lots) {
+      if (remaining <= 0) break;
+      const quantity = Math.min(remaining, lot.remainingQuantity);
+      lot.consume(quantity);
+      touched.push({ lot, quantity });
+      remaining -= quantity;
+    }
+    if (remaining > 0) {
+      throw new InternalInvariantError("Os lotes do estoque estão inconsistentes.", InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT);
+    }
+    await this.inventoryRepository.update(inventory);
+    for (const { lot } of touched) {
+      await this.inventoryLotRepository.update(lot);
+    }
+    // Saldo dos lotes caiu: alocações em caixas não podem passar dele.
+    await this.inventoryBoxStockRepository.reconcileBoxAllocations(touched.map(({ lot }) => lot.id));
+
+    // Uma movimentação por lote tocado, com saldos encadeados (igual à saída de venda).
+    const movements: StockMovement[] = [];
+    let balance = previousQuantity;
+    for (const { lot, quantity } of touched) {
+      const movement = newMovement(lot.id, quantity, balance, balance - quantity);
+      balance -= quantity;
+      await this.stockMovementRepository.create(movement);
+      movements.push(movement);
+    }
+    if (movements.length === 1) return movements[0];
+
+    // A resposta HTTP é uma só: resumo do ajuste (não gravado), com o id da primeira movimentação.
+    return new StockMovement({
+      id: movements[0].id,
       inventoryId: inventory.id,
-      inventoryLotId: movementLotId,
+      inventoryLotId: null,
       productVariantId: inventory.productVariantId,
       type: StockMovementType.ADJUSTMENT,
       origin: StockMovementOrigin.INVENTORY,
-      quantity: Math.abs(difference),
+      quantity: -difference,
       previousQuantity,
       currentQuantity: inventory.quantity,
       averageCost: inventory.averageCost,
       userId: request.userId,
-      notes: this.withReserved(request.notes, previousReserved),
+      notes,
+      createdAt: movements[0].createdAt,
     });
-    await this.stockMovementRepository.create(movement);
-    return movement;
   }
 
   /** O ajuste não altera o reservado; ele fica registrado nas notas da movimentação. */

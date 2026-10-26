@@ -32,6 +32,11 @@ export interface IdempotentOptions {
   timeout?: number;
   maxWait?: number;
   lockTimeoutMs?: number;
+  /**
+   * Sem o cabeçalho a rota roda como antes (sem registro); com ele, é idempotente.
+   * Transição para clientes que ainda não enviam a chave; as demais rotas exigem o cabeçalho.
+   */
+  keyOptional?: boolean;
 }
 
 type RouteHandler = (request: FastifyRequest, reply: FastifyReply) => unknown;
@@ -166,6 +171,9 @@ export function idempotent(handler: RouteHandler, options: IdempotentOptions = {
   const transactions = new PrismaTransactionManager(options);
 
   return async function idempotentHandler(request: FastifyRequest, reply: FastifyReply) {
+    if (options.keyOptional && (request.headers[IDEMPOTENCY_KEY_HEADER] === undefined || request.headers[IDEMPOTENCY_KEY_HEADER] === "")) {
+      return handler(request, reply);
+    }
     const key = readKey(request);
     const userId = request.user?.sub;
     if (!userId) throw new UnauthorizedError("Token ausente.");

@@ -37,10 +37,34 @@ test("adjust para baixo consome FIFO e registra ADJUSTMENT q=|diff|", async () =
   assert.equal(m.quantity, 4);
   assert.equal(m.previousQuantity, 8);
   assert.equal(m.currentQuantity, 4);
-  assert.equal(m.inventoryLotId, null);
+  assert.equal(m.inventoryLotId, null); // o resumo devolvido toca mais de um lote
   assert.equal(m.averageCost, 5);
   assert.equal(m.userId, "u1");
   assert.equal(m.notes, "contagem");
+
+  // O kardex tem uma movimentação por lote tocado, com saldos encadeados e o lote de cada uma.
+  const rows = s.movements.all().filter((x) => x.type === StockMovementType.ADJUSTMENT);
+  assert.equal(rows.length, 2);
+  const byLot = new Map(rows.map((x) => [x.inventoryLotId, x]));
+  const rowA = byLot.get(a.lot.id)!;
+  const rowB = byLot.get(b.lot.id)!;
+  assert.deepEqual([rowA.quantity, rowA.previousQuantity, rowA.currentQuantity], [3, 8, 5]);
+  assert.deepEqual([rowB.quantity, rowB.previousQuantity, rowB.currentQuantity], [1, 5, 4]);
+  for (const row of rows) {
+    assert.equal(row.userId, "u1");
+    assert.equal(row.notes, "contagem");
+    assert.equal(row.origin, StockMovementOrigin.INVENTORY);
+  }
+  assert.equal(m.id, rows[0].id);
+});
+
+test("adjust para baixo dentro de um só lote: a movimentação carrega o lote", async () => {
+  const s = build();
+  const a = await s.addLot(10);
+  const m = await s.adjust.execute({ productVariantId: "variant-1", countedQuantity: 7 });
+  assert.equal(m!.inventoryLotId, a.lot.id);
+  assert.equal(m!.quantity, 3);
+  assert.equal(s.movements.all().filter((x) => x.type === StockMovementType.ADJUSTMENT).length, 1);
 });
 
 test("adjust para cima cria lote MANUAL com custo médio atual", async () => {
