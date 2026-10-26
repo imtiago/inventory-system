@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -43,7 +44,7 @@ export class PrismaSupplierReadRepository implements SupplierReadRepository {
   ): Promise<PaginatedResult<SupplierDTO>> {
     const where = buildWhere(filters?.search);
 
-    const [rows, total] = await Promise.all([
+    const [rows, total] = await readTogether([
       getDb().supplier.findMany({
         where,
         ...buildPagination(pagination),

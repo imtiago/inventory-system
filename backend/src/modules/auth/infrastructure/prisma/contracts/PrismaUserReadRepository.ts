@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
 import { IListUsersInput, UserDTO } from "@auth/application/dto/UserDTO";
@@ -28,7 +29,7 @@ export class PrismaUserReadRepository implements UserReadRepository {
         }
       : {};
 
-    const [users, total] = await Promise.all([
+    const [users, total] = await readTogether([
       getDb().user.findMany({
         where,
         select: USER_DTO_SELECT,

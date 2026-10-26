@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { InventoryReadRepository } from "@inventory/application/contracts/InventoryReadRepository";
 import { InventoryWithExtendsDTO } from "@inventory/application/dto/InventoryDTO";
@@ -31,7 +32,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
   ): Promise<PaginatedResult<InventoryWithExtendsDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [data, total] = await Promise.all([
+    const [data, total] = await readTogether([
       getDb().inventory.findMany({
         ...paginationOptions,
         orderBy: {

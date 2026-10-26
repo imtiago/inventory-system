@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import {
   CustomerListFilters,
@@ -47,7 +48,7 @@ export class PrismaCustomerReadRepository implements CustomerReadRepository {
   ): Promise<PaginatedResult<CustomerDTO>> {
     const where = buildWhere(filters?.search);
 
-    const [customers, total] = await Promise.all([
+    const [customers, total] = await readTogether([
       getDb().customer.findMany({
         where,
         ...buildPagination(pagination),

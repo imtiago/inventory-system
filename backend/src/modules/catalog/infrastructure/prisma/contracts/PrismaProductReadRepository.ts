@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { ProductListFilters } from "@catalog/application/contracts/ProductListFilters";
 import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
@@ -41,7 +42,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
   ): Promise<PaginatedResult<ProductListItemDTO>> {
     const where = buildWhere(filters);
 
-    const [products, total] = await Promise.all([
+    const [products, total] = await readTogether([
       getDb().product.findMany({
         ...buildPagination(pagination),
         where,

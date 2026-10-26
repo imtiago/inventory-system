@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import {
   IGetByVariantId,
   InventoryLotReadRepository,
@@ -23,7 +24,7 @@ export class PrismaInventoryLotReadRepository implements InventoryLotReadReposit
     const paginationOptions = buildPagination(pagination);
     const where = { productVariantId: params.productVariantId };
 
-    const [data, total] = await Promise.all([
+    const [data, total] = await readTogether([
       getDb().inventoryLot.findMany({
         ...paginationOptions,
         where,

@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
@@ -64,7 +65,7 @@ export async function listWithProductsCount(
   const where = term ? Prisma.sql`WHERE strpos(lower(t.name), lower(${term})) > 0` : Prisma.empty;
   const { skip, take } = buildPagination(pagination);
 
-  const [rows, totals] = await Promise.all([
+  const [rows, totals] = await readTogether([
     getDb().$queryRaw<NamedRow[]>`
       SELECT t.id, t.name,
              (SELECT count(*) FROM "Product" p WHERE p.${fk} = t.id)::int AS "productsCount"

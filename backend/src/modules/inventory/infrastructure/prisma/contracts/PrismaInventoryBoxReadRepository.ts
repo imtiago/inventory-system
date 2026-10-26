@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import {
   InventoryBoxByLotParams,
   InventoryBoxListFilters,
@@ -51,7 +52,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
     const lotWhere = { inventoryLot: { batchNumber, productVariantId } };
     const where = { stocks: { some: lotWhere } };
 
-    const [data, total] = await Promise.all([
+    const [data, total] = await readTogether([
       getDb().inventoryBox.findMany({
         ...paginationOptions,
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -77,7 +78,7 @@ export class PrismaInventoryBoxReadRepository implements InventoryBoxReadReposit
       ? { code: containsLiteral(filters.search) }
       : {};
 
-    const [data, total] = await Promise.all([
+    const [data, total] = await readTogether([
       getDb().inventoryBox.findMany({
         ...paginationOptions,
         where,
