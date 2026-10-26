@@ -35,6 +35,7 @@ import {
 } from '../utils/review';
 import { NFE_STATUS_LABELS, type INfeImport } from '../types';
 import type { IPurchaseDetail } from '@/modules/purchases/types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
@@ -63,7 +64,7 @@ export function NfeImportReviewPage() {
     <Page width="narrow">
       <PageHeader title="Revisão da NF-e" description="Confira o fornecedor, os itens e as parcelas antes de confirmar." backPath="/nfe-imports" backLabel="importações" />
 
-          {isLoading && <p className="text-sm text-muted">Carregando nota...</p>}
+          {isLoading && <LoadingState label="Carregando nota..." />}
           {isError && <div role="alert" className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar a importação.</div>}
           {note && note.status !== 'DRAFT' && <ConfirmedNote note={note} />}
           {note?.status === 'DRAFT' && <ReviewForm key={note.id} note={note} onConfirmed={goToPurchase} />}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { LoaderCircle, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
 import { CrudPagination } from "@/shared/components/crud";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
@@ -21,6 +21,7 @@ import { useProducts } from "../hooks/useProducts";
 import { useDeleteProduct } from "../hooks/useDeleteProduct";
 import { useProductColumns } from "../hooks/useProductColumns";
 import type { Product } from "../types";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 const PAGE_SIZE = 10;
 
@@ -132,10 +133,7 @@ export function ProductListPage() {
             {isError ? (
               <div className="p-6 text-center font-medium text-danger">Não foi possível carregar os produtos.</div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
-                <LoaderCircle size={20} className="animate-spin" />
-                Carregando produtos...
-              </div>
+              <LoadingState label="Carregando produtos..." />
             ) : (
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum produto encontrado" emptyHint="Ajuste a busca ou os filtros, ou cadastre um novo produto." getRowId={(product) => product.id} getRowHref={(product) => `/products/${product.id}`} />
             )}

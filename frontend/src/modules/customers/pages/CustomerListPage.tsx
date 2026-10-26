@@ -19,6 +19,7 @@ import { Can } from '@/shared/auth/Can';
 
 import type { ICreateCustomerDTO, ICustomer } from '../types';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue.ts';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 
 export function CustomerListPage() {
@@ -103,10 +104,7 @@ export function CustomerListPage() {
                 <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
-                <LoaderCircle size={20} className="animate-spin" />
-                Carregando clientes...
-              </div>
+              <LoadingState label="Carregando clientes..." />
             ) : (
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum cliente encontrado" emptyHint="Tente novamente ou cadastre um novo cliente." getRowId={(item) => item.id} getRowHref={(item) => `/customers/${item.id}`} />
             )}

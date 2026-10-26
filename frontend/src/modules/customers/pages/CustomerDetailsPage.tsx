@@ -12,6 +12,7 @@ import { Can } from '@/shared/auth/Can';
 import { CustomerEditModal } from '../components/CustomerEditModal';
 import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import { formatPhone } from '@/shared/utils/formatPhone';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 export function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +25,7 @@ export function CustomerDetailsPage() {
     return (
       <Page width="narrow">
         <PageHeader title="Cliente" backPath="/customers" backLabel="clientes" />
-        <div className="text-sm text-muted">Carregando dados do cliente...</div>
+        <LoadingState label="Carregando dados do cliente..." />
       </Page>
     );
   }

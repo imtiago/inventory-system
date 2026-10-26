@@ -18,6 +18,7 @@ import { PartyFilter } from '../components/PartyFilter';
 import { FINANCE_KINDS, partyOf, summaryValue, type FinanceKind } from '../config';
 import { useFinanceList } from '../hooks/useFinanceList';
 import { FINANCE_STATUS_LABELS, type IFinanceFilters, type IFinanceListItem, type FinanceStatus } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const STATUSES = Object.keys(FINANCE_STATUS_LABELS) as FinanceStatus[];
 
@@ -213,7 +214,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             </div>
           )}
 
-          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando {config.plural}...</p>}
+          {isLoading && !data && <LoadingState label={`Carregando ${config.plural}...`} />}
 
           {!isError && (
             <CrudPagination

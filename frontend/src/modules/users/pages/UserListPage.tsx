@@ -14,6 +14,7 @@ import { useUsers } from '../hooks/useUsers';
 import { UserFormModal } from '../components/UserFormModal';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
 import { ROLE_LABELS, type UserDTO } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 export function UserListPage() {
   const [page, setPage] = useState(1);
@@ -123,10 +124,7 @@ export function UserListPage() {
                 <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
-                <LoaderCircle size={20} className="animate-spin" />
-                Carregando usuários...
-              </div>
+              <LoadingState label="Carregando usuários..." />
             ) : (
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum usuário encontrado" emptyHint="Tente novamente ou cadastre um novo usuário." getRowId={(item) => item.id} />
             )}

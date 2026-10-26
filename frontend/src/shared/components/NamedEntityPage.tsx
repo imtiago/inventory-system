@@ -22,6 +22,7 @@ import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import type { ListParams, Paginated } from '@/shared/types/pagination';
 
 import { FieldError, fieldA11y } from '@/shared/components/form';
+import { LoadingState } from '@/shared/components/LoadingState';
 export interface NamedEntity {
   id: string;
   name: string;
@@ -176,10 +177,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
-                <LoaderCircle size={20} className="animate-spin" />
-                Carregando {plural}...
-              </div>
+              <LoadingState label={`Carregando ${plural}...`} />
             ) : (
               <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} emptyMessage={`Nenhuma ${singular} encontrada`} emptyHint="Tente outra busca ou cadastre uma nova." />
             )}

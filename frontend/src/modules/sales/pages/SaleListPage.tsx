@@ -16,6 +16,7 @@ import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import type { SaleStatus } from '../types';
 import { useSales } from '../hooks/useSales';
 import { useSaleColumns } from '../hooks/useSaleColumns';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const DAY_MS = 86_400_000;
 const MAX_PERIOD_DAYS = 366;
@@ -102,7 +103,7 @@ export function SaleListPage() {
             </div>
           )}
 
-          {!invalidPeriod && isLoading && !data && <p className="p-4 text-sm text-muted">Carregando vendas...</p>}
+          {!invalidPeriod && isLoading && !data && <LoadingState label="Carregando vendas..." />}
 
           {!invalidPeriod && !isError && (
             <CrudPagination

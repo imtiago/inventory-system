@@ -18,6 +18,7 @@ import { useSale } from '../hooks/useSale';
 import { useCancelSale } from '../hooks/useCancelSale';
 import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
 import { Can } from '@/shared/auth/Can';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const saleStatusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
@@ -106,7 +107,7 @@ export function SaleDetailPage() {
         actions={cancelAction}
       />
 
-      {isLoading && <p className="text-sm text-muted">Carregando venda...</p>}
+      {isLoading && <LoadingState label="Carregando venda..." />}
 
       {isError && (
         <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">

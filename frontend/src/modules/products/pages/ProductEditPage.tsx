@@ -10,6 +10,7 @@ import { ProductForm, type ProductFormData } from "../components/ProductForm";
 import { useProduct } from "../hooks/useProduct";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
 import type { UpdateProductInput } from "../types";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 export function ProductEditPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -18,7 +19,7 @@ export function ProductEditPage() {
   const { data: product, isLoading, isError } = useProduct(id);
   const updateProduct = useUpdateProduct({ silentError: true });
 
-  if (isLoading) return <p>Carregando produto...</p>;
+  if (isLoading) return <LoadingState label="Carregando produto..." />;
   if (isError || !product) return <p>Produto não encontrado</p>;
 
   const initialValues: ProductFormData = {
