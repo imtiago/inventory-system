@@ -15,9 +15,9 @@ const apiProxy = {
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  // Self-signed HTTPS only for the dev server: browsers expose the camera only in a secure context, so a phone opening
-  // https://<pc-ip>:5173 can scan. Never part of the production build or of the test run.
-  plugins: [react(), tsconfigPaths(), ...(command === "serve" && !process.env.VITEST ? [basicSsl()] : [])],
+  // Self-signed HTTPS only with `npm run dev:https` (DEV_HTTPS=1): browsers expose the camera only in a secure context, so
+  // a phone opening https://<pc-ip>:5173 can scan. Plain `npm run dev` stays on http://localhost:5173 for the desktop.
+  plugins: [react(), tsconfigPaths(), ...(command === "serve" && process.env.DEV_HTTPS === "1" ? [basicSsl()] : [])],
   server: { proxy: apiProxy },
   // `vite preview` serves the production build, whose API base is `/api` (same origin): proxy it like the dev server does.
   preview: { proxy: apiProxy },

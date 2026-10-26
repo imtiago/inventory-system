@@ -35,6 +35,14 @@ test("helmet: cabeçalhos de segurança presentes", async () => {
   assert.ok(res.headers["x-frame-options"]);
 });
 
+test("helmet fora de produção: sem HSTS nem upgrade-insecure-requests (não prende localhost em HTTPS)", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {} });
+  const res = await app.inject({ method: "GET", url: "/health" });
+  await app.close();
+  assert.equal(res.headers["strict-transport-security"], undefined);
+  assert.doesNotMatch(String(res.headers["content-security-policy"]), /upgrade-insecure-requests/);
+});
+
 test("rate limit: 429 RATE_LIMITED com Retry-After; /health fora do limite", async () => {
   const app = buildApp({
     ...quiet,

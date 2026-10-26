@@ -69,7 +69,9 @@ export function buildApp(options: BuildAppOptions = {}) {
   });
 
   registerErrorHandling(app);
-  app.register(helmet);
+  // HSTS e upgrade-insecure-requests só em produção: em desenvolvimento o navegador guardaria a regra para "localhost"
+  // e passaria a forçar HTTPS em qualquer porta local.
+  app.register(helmet, env.isProduction ? {} : { hsts: false, contentSecurityPolicy: { useDefaults: true, directives: { upgradeInsecureRequests: null } } });
   app.register(cors, {
     origin: options.corsOrigins ?? env.CORS_ORIGINS ?? true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
