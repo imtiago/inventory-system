@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createNameSchema } from "@shared/interfaces/http/schemas/nameSchema";
 import { UserRole } from "@auth/domain/enums/UserRole";
 
 export const PASSWORD_MIN_LENGTH = 8;
@@ -12,11 +13,7 @@ export const passwordSchema = z
 
 export const NAME_MAX_LENGTH = 120;
 
-export const nameSchema = z
-  .string({ error: "O nome é obrigatório." })
-  .trim()
-  .min(1, "O nome é obrigatório.")
-  .max(NAME_MAX_LENGTH, `O nome deve ter no máximo ${NAME_MAX_LENGTH} caracteres.`);
+export const nameSchema = createNameSchema({ max: NAME_MAX_LENGTH });
 
 export const userRoleSchema = z.enum(UserRole, { error: "Papel inválido." });
 

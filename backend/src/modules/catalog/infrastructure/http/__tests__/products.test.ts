@@ -213,6 +213,23 @@ describe("Produtos (/products)", () => {
     assert.equal(tooMany.json().code, "VALIDATION_ERROR");
   });
 
+  test("GET /products?search= é literal: %, _ e \\ não viram curingas", async () => {
+    const brand = await data.brand();
+    const category = await data.category();
+    const u = randomUUID();
+    const literal = await data.product({ brandId: brand.id, categoryId: category.id, name: `tx-test-${u}-50%_a\\b` });
+    const other = await data.product({ brandId: brand.id, categoryId: category.id, name: `tx-test-${u}-50Xzab` });
+    const ids = async (search: string) => {
+      const res = await call("GET", `/products?search=${encodeURIComponent(search)}&limit=100`);
+      assert.equal(res.statusCode, 200, res.body);
+      return res.json().data.map((p: { id: string }) => p.id).sort();
+    };
+    assert.deepEqual(await ids(`${u}-50%_a\\b`), [literal.product.id]);
+    assert.deepEqual(await ids(`${u}-50%`), [literal.product.id]);
+    assert.deepEqual(await ids(`${u}-50_`), []);
+    assert.deepEqual(await ids(`${u}-50`), [literal.product.id, other.product.id].sort());
+  });
+
   test("GET /products?brandId=&categoryId= filtra; chaves = fixture productList", async () => {
     const brand = await data.brand();
     const otherBrand = await data.brand();

@@ -20,9 +20,6 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
         where: {
           productId,
         },
-        include: {
-          product: true,
-        },
         orderBy: [{ name: "asc" }, { id: "asc" }],
       }),
       getDb().productVariant.count({
@@ -40,9 +37,6 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   async getById(id: string): Promise<ProductVariantDTO | null> {
     const variant = await getDb().productVariant.findUnique({
       where: { id },
-      include: {
-        product: true,
-      },
     });
 
     if (!variant) return null;
@@ -52,9 +46,6 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   async getByBarcode(barcode: string) {
     const variant = await getDb().productVariant.findUnique({
       where: { barcode },
-      include: {
-        product: true,
-      },
     });
 
     if (!variant) return null;

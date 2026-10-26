@@ -23,7 +23,7 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     request: ICreateCustomerInput,
   ): Promise<CustomerDTO> {
     if (request.document && (await this.customerRepo.findByDocument(request.document))) {

@@ -18,6 +18,8 @@ export interface ProductVariantRepository extends ICrudRepository<ProductVariant
    * ou de compra, ou registro de estoque com quantidade/reserva ≠ 0.
    */
   findInUse(variantIds: string[]): Promise<string[]>;
+  /** A variante tem código de fornecedor mapeado (NF-e)? Excluir apagaria o mapeamento. */
+  hasSupplierMapping(variantId: string): Promise<boolean>;
   /** Apaga as variantes e seus registros de estoque (zerados). */
   deleteWithInventory(variantIds: string[]): Promise<void>;
 }

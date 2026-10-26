@@ -1,17 +1,9 @@
 import { z } from "zod";
-import { normalizeWhitespace } from "@shared/domain/text/normalizeWhitespace";
+import { createNameSchema } from "@shared/interfaces/http/schemas/nameSchema";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
 /** Nome de marca/categoria: trim + espaços internos colapsados, 1–80 caracteres. */
-const nameSchema = z
-  .string({ error: "O nome é obrigatório." })
-  .transform(normalizeWhitespace)
-  .pipe(
-    z
-      .string()
-      .min(1, "O nome é obrigatório.")
-      .max(80, "O nome deve ter no máximo 80 caracteres."),
-  );
+const nameSchema = createNameSchema({ max: 80 });
 
 /** Corpo de POST e PUT (o PUT só tem o nome, então ele é obrigatório). */
 export const brandCategoryBodySchema = z.object({ name: nameSchema });

@@ -3,6 +3,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
+import { containsLiteral } from "@shared/infrastructure/database/literalSearch";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { fromDateOnly } from "@finance/domain/services/receivableStatus";
 import {
@@ -26,8 +27,7 @@ function buildWhere(filters: PurchaseListFilters = {}): Prisma.PurchaseWhereInpu
   }
   const term = filters.search?.trim();
   if (term) {
-    // `contains` não escapa curingas do LIKE: busca literal.
-    where.code = { contains: term.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" };
+    where.code = containsLiteral(term);
   }
   return where;
 }

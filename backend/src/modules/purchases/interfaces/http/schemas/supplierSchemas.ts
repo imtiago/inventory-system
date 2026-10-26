@@ -1,20 +1,12 @@
 import { z } from "zod";
 import { isValidCnpj, isValidCpf, normalizeDocument } from "@shared/domain/document";
-import { normalizeWhitespace } from "@shared/domain/text/normalizeWhitespace";
+import { createNameSchema } from "@shared/interfaces/http/schemas/nameSchema";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
 /** Vazio (ou só espaços) vira null; o resto segue para a validação do campo. */
 const blankToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
 
-const nameSchema = z
-  .string({ error: "O nome é obrigatório." })
-  .transform(normalizeWhitespace)
-  .pipe(
-    z
-      .string()
-      .min(2, "O nome deve ter no mínimo 2 caracteres.")
-      .max(120, "O nome deve ter no máximo 120 caracteres."),
-  );
+const nameSchema = createNameSchema({ min: 2, max: 120 });
 
 /** Aceita com ou sem máscara; guarda normalizado (CPF 11 dígitos ou CNPJ 14 posições, numérico ou alfanumérico em maiúsculas; DVs válidos). */
 const documentSchema = z

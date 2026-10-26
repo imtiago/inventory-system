@@ -80,6 +80,32 @@ describe("DELETE /variants/:id", () => {
     assert.equal(await prisma.productVariant.count({ where: { id: variant.id } }), 1);
   });
 
+  test("variante com código de fornecedor mapeado → 409 VARIANT_HAS_SUPPLIER_MAPPING; sem o mapeamento exclui", async () => {
+    const { product } = await data.product({ brandId, categoryId });
+    const mapped = await data.variant(product.id);
+    await data.zeroInventory(mapped.id);
+    const supplier = await prisma.supplier.create({
+      data: { name: `tx-test-forn-${randomUUID()}`, document: `tx-${randomUUID()}` },
+    });
+    try {
+      await prisma.supplierProductMapping.create({
+        data: { supplierId: supplier.id, supplierCode: "COD-1", productVariantId: mapped.id },
+      });
+      const res = await del(mapped.id);
+      assert.equal(res.statusCode, 409, res.body);
+      assert.equal(res.json().code, "VARIANT_HAS_SUPPLIER_MAPPING");
+      assert.match(res.json().message, /fornecedor/);
+      assert.equal(await prisma.productVariant.count({ where: { id: mapped.id } }), 1);
+      assert.equal(await prisma.supplierProductMapping.count({ where: { productVariantId: mapped.id } }), 1);
+
+      await prisma.supplierProductMapping.deleteMany({ where: { productVariantId: mapped.id } });
+      assert.equal((await del(mapped.id)).statusCode, 204);
+    } finally {
+      await prisma.supplierProductMapping.deleteMany({ where: { supplierId: supplier.id } });
+      await prisma.supplier.delete({ where: { id: supplier.id } });
+    }
+  });
+
   test("inexistente → 404 VARIANT_NOT_FOUND", async () => {
     const res = await del(randomUUID());
     assert.equal(res.statusCode, 404);

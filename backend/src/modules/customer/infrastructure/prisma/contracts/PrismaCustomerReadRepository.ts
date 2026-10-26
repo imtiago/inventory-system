@@ -10,6 +10,7 @@ import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
 import { normalizeDocument } from "@shared/domain/document";
+import { containsLiteral } from "@shared/infrastructure/database/literalSearch";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 /** Busca por telefone só a partir de 4 dígitos, para não casar com qualquer coisa. */
@@ -21,12 +22,7 @@ function buildWhere(search?: string): Prisma.CustomerWhereInput {
   const term = search?.trim();
   if (!term) return {};
 
-  // O `contains` do Prisma não escapa os curingas do LIKE: escapamos \, % e _
-  // para a busca ser literal (o escape padrão do LIKE no Postgres é a barra invertida).
-  const literal = term.replace(/[\\%_]/g, "\\$&");
-  const contains = (field: "name" | "code" | "email") => ({
-    [field]: { contains: literal, mode: "insensitive" as const },
-  });
+  const contains = (field: "name" | "code" | "email") => ({ [field]: containsLiteral(term) });
   const digits = term.replace(/\D/g, "");
   // Termo só com dígitos (e máscara) casa pelos dígitos; com letras e dígitos (CNPJ
   // alfanumérico) casa pelo valor normalizado em maiúsculas.

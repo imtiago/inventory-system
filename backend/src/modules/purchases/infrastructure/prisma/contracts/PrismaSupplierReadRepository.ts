@@ -3,6 +3,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
+import { containsLiteral } from "@shared/infrastructure/database/literalSearch";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { normalizeDocument } from "@shared/domain/document";
 import {
@@ -19,12 +20,7 @@ function buildWhere(search?: string): Prisma.SupplierWhereInput {
   const term = search?.trim();
   if (!term) return {};
 
-  // O `contains` do Prisma não escapa os curingas do LIKE: escapamos \, % e _
-  // para a busca ser literal (o escape padrão do LIKE no Postgres é a barra invertida).
-  const literal = term.replace(/[\\%_]/g, "\\$&");
-  const contains = (field: "name" | "email") => ({
-    [field]: { contains: literal, mode: "insensitive" as const },
-  });
+  const contains = (field: "name" | "email") => ({ [field]: containsLiteral(term) });
   // Documento: termo só com dígitos (e máscara) casa pelos dígitos, como antes; termo
   // com letras e dígitos (CNPJ alfanumérico) casa pelo valor normalizado em maiúsculas.
   const normalized = normalizeDocument(term);

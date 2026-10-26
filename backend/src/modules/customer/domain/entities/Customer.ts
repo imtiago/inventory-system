@@ -53,20 +53,4 @@ export class Customer extends BaseEntity {
   get document(): string | null {
     return this._document;
   }
-
-  rename(name: string): void {
-    this._name = name;
-  }
-
-  changeEmail(email: string | null): void {
-    this._email = email;
-  }
-
-  changePhone(phone: string | null): void {
-    this._phone = phone;
-  }
-
-  changeAddress(address: string | null): void {
-    this._address = address;
-  }
 }
