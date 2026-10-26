@@ -169,6 +169,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
           aria-controls={listId}
           aria-activedescendant={open && activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined}
           aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           aria-required={required}
           autoComplete="off"
           disabled={disabled}
@@ -258,7 +259,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
       </div>
 
       {error && (
-        <p role="alert" className="mt-1.5 text-sm text-danger">
+        <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-sm text-danger">
           {error}
         </p>
       )}

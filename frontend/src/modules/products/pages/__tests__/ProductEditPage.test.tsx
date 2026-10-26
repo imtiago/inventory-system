@@ -89,16 +89,16 @@ describe('ProductEditPage', () => {
   test('erro de validação do backend aparece no campo e não navega', async () => {
     server.use(
       http.put(`${API_URL}/products/:id`, () =>
-        HttpResponse.json({ message: 'Dados inválidos.', code: 'VALIDATION_ERROR', errors: [{ field: 'name', message: 'Nome deve ter ao menos 3 caracteres.' }] }, { status: 400 }),
+        HttpResponse.json({ message: 'Dados inválidos.', code: 'VALIDATION_ERROR', errors: [{ field: 'name', message: 'Já existe um produto com este nome.' }] }, { status: 400 }),
       ),
     );
     renderEdit();
     const name = await screen.findByDisplayValue('Perfume Floral 100ml');
     await userEvent.clear(name);
-    await userEvent.type(name, 'ab');
+    await userEvent.type(name, 'Perfume Novo');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
 
-    expect(await screen.findByText('Nome deve ter ao menos 3 caracteres.')).toBeInTheDocument();
+    expect(await screen.findByText('Já existe um produto com este nome.')).toBeInTheDocument();
     expect(screen.queryByText('detalhe do produto')).not.toBeInTheDocument();
   });
 
