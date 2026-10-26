@@ -20,7 +20,7 @@ import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import type { ISupplier } from '@/modules/suppliers/types';
 
 import { useCreatePurchase } from '../hooks/usePurchases';
-import { hasTooManyDecimals, itemTotalCents, moneyToSend, parseNumber, parseQuantity, type IPurchaseDraftItem } from '../utils/purchaseTotals';
+import { itemTotalCents, moneyFieldCents, moneyFieldError, moneyFieldToSend, parseQuantity, type IPurchaseDraftItem } from '../utils/purchaseTotals';
 
 type PurchaseFormValues = {
   supplierId: string;
@@ -52,11 +52,11 @@ function blockingReason(items: IPurchaseDraftItem[], totalCents: number): string
   for (const item of items) {
     if (parseQuantity(item.quantity) === null) return `${item.productName}: informe uma quantidade inteira maior que zero.`;
 
-    if ([item.unitPrice, item.discount, item.freight, item.tax].some(hasTooManyDecimals)) return `${item.productName}: use no máximo 2 casas decimais.`;
+    const fieldError = [item.unitPrice, item.discount, item.freight, item.tax].map(moneyFieldError).find((message) => message !== null);
 
-    const money = [item.unitPrice, item.discount, item.freight, item.tax].map(parseNumber);
+    if (fieldError) return `${item.productName}: ${fieldError.charAt(0).toLowerCase()}${fieldError.slice(1)}.`;
 
-    if (money.some((value) => !Number.isFinite(value) || value < 0)) return `${item.productName}: informe valores válidos (zero ou mais).`;
+    if ([item.unitPrice, item.discount, item.freight, item.tax].some((text) => moneyFieldCents(text) === null)) return `${item.productName}: informe valores válidos (zero ou mais).`;
 
     const total = itemTotalCents(item);
 
@@ -158,10 +158,10 @@ export function PurchaseCreatePage() {
         items: items.map((item) => ({
           productVariantId: item.productVariantId,
           quantity: parseQuantity(item.quantity) as number,
-          unitPrice: moneyToSend(item.unitPrice),
-          discount: moneyToSend(item.discount),
-          freight: moneyToSend(item.freight),
-          tax: moneyToSend(item.tax),
+          unitPrice: moneyFieldToSend(item.unitPrice),
+          discount: moneyFieldToSend(item.discount),
+          freight: moneyFieldToSend(item.freight),
+          tax: moneyFieldToSend(item.tax),
         })),
         paymentTerms: isInstallments ? { installments, firstDueDate: values.firstDueDate } : { installments: 1 },
       },
@@ -309,10 +309,10 @@ export function PurchaseCreatePage() {
                                 value={item[field.key]}
                                 disabled={createMutation.isPending}
                                 onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                                aria-invalid={hasTooManyDecimals(item[field.key]) ? 'true' : undefined}
+                                aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
                                 className={cellInputClass}
                               />
-                              {hasTooManyDecimals(item[field.key]) && <p className="mt-1 text-xs text-red-600">Use no máximo 2 casas decimais.</p>}
+                              {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-red-600">{moneyFieldError(item[field.key])}</p>}
                             </td>
                           ))}
                           <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-red-600' : ''}`}>
@@ -379,10 +379,10 @@ export function PurchaseCreatePage() {
                               value={item[field.key]}
                               disabled={createMutation.isPending}
                               onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                              aria-invalid={hasTooManyDecimals(item[field.key]) ? 'true' : undefined}
+                              aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
                               className={cardMoneyClass}
                             />
-                            {hasTooManyDecimals(item[field.key]) && <p className="mt-1 text-xs text-red-600">Use no máximo 2 casas decimais.</p>}
+                            {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-red-600">{moneyFieldError(item[field.key])}</p>}
                           </div>
                         ))}
                       </div>

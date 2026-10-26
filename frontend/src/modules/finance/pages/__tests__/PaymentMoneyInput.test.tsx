@@ -48,6 +48,47 @@ describe('Registrar pagamento usa o MoneyInput compartilhado', () => {
     await waitFor(() => expect(body.amount).toBe(12.5));
   });
 
+  test('"1.000" envia 1000 (mil reais) e o saldo vem preenchido em pt-BR', async () => {
+    let body: { amount?: number } = {};
+    const big = structuredClone(receivableDetail);
+    big.data.parcels[1].amount = 2500.5;
+    big.data.parcels[1].remainingAmount = 2500.5;
+    server.use(
+      http.get(`${API_URL}/receivables/${id}`, () => HttpResponse.json(big)),
+      http.post(`${API_URL}/receivables/${id}/parcels/${parcel2.id}/payments`, async ({ request }) => {
+        body = (await request.json()) as { amount: number };
+        return HttpResponse.json(big);
+      }),
+    );
+    const dialog = await openDialog();
+    const amount = within(dialog).getByLabelText('Valor');
+    expect(amount).toHaveValue('2.500,50');
+
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '1.000');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
+
+    await waitFor(() => expect(body.amount).toBe(1000));
+  });
+
+  test('"1.23,4" é inválido e não envia', async () => {
+    let posted = false;
+    server.use(
+      http.post(`${API_URL}/receivables/${id}/parcels/${parcel2.id}/payments`, () => {
+        posted = true;
+        return HttpResponse.json(receivableDetail);
+      }),
+    );
+    const dialog = await openDialog();
+    const amount = within(dialog).getByLabelText('Valor');
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '1.23,4');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
+
+    expect(await within(dialog).findByText('Valor inválido')).toBeInTheDocument();
+    expect(posted).toBe(false);
+  });
+
   test('em toque o modal foca o próprio diálogo, não o primeiro campo', async () => {
     setViewport(375, { pointer: 'coarse' });
     const dialog = await openDialog();

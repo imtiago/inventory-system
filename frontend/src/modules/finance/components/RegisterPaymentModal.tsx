@@ -6,7 +6,7 @@ import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { MoneyInput } from '@/shared/components/form';
-import { formatCurrency, parseMoneyText, parseMoneyToCents, toCents } from '@/shared/utils/money';
+import { formatCurrency, formatMoneyInput, moneyTextError, parseMoneyToCents, toCents } from '@/shared/utils/money';
 
 import { useRegisterPayment } from '../hooks/useRegisterPayment';
 import { PAYMENT_METHOD_LABELS, type IFinanceParcel, type PaymentMethod } from '../types';
@@ -42,7 +42,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
     clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: { amount: parcel.remainingAmount.toFixed(2), method: 'CASH', paymentDate: today, reference: '' },
+    defaultValues: { amount: formatMoneyInput(parcel.remainingAmount), method: 'CASH', paymentDate: today, reference: '' },
   });
 
   function close() {
@@ -84,9 +84,9 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
             id="payment-amount"
             {...register('amount', {
               validate: (value) => {
-                if (!Number.isFinite(parseMoneyText(value))) return 'Informe um valor válido.';
-                const cents = parseMoneyToCents(value);
-                if (cents === null) return 'Use no máximo 2 casas decimais.';
+                const problem = moneyTextError(value);
+                if (problem) return problem;
+                const cents = parseMoneyToCents(value) ?? 0;
                 if (cents <= 0) return 'O valor deve ser maior que zero.';
                 if (cents > remainingCents) return 'O valor não pode ser maior que o saldo da parcela.';
                 return true;

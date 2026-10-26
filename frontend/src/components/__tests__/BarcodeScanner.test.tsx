@@ -192,6 +192,21 @@ describe('BarcodeScanner', () => {
     expect(onDetected).toHaveBeenCalledTimes(3);
   });
 
+  test('leitura contínua controla a janela de 1,5 s por código (A, B, A não repete A)', async () => {
+    const onDetected = await renderScanner({ continuous: true });
+    await vi.waitFor(() => expect(h.onSuccess).not.toBeNull());
+
+    vi.useFakeTimers();
+    h.onSuccess!('111');
+    vi.advanceTimersByTime(300);
+    h.onSuccess!('222');
+    vi.advanceTimersByTime(300);
+    h.onSuccess!('111');
+
+    expect(onDetected).toHaveBeenCalledTimes(2);
+    expect(onDetected).toHaveBeenLastCalledWith('222');
+  });
+
   test('leitura contínua mantém a câmera aberta e mostra o último código', async () => {
     await renderScanner({ continuous: true });
     await vi.waitFor(() => expect(h.onSuccess).not.toBeNull());

@@ -50,7 +50,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
 
   const onDetectedRef = useRef(onDetected);
   const detectedRef = useRef(false);
-  const lastReadRef = useRef<{ code: string; at: number } | null>(null);
+  const lastReadRef = useRef<Map<string, number>>(new Map());
   const torchRef = useRef<TorchControl | null>(null);
 
   const [cameras, setCameras] = useState<Camera[]>([]);
@@ -110,7 +110,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
     let disposed = false;
     let scanner: Html5Qrcode | null = null;
     detectedRef.current = false;
-    lastReadRef.current = null;
+    lastReadRef.current.clear();
     torchRef.current = null;
 
     const keepOpen = continuous || !stopAfterDetection;
@@ -119,10 +119,11 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
       const now = Date.now();
 
       if (continuous) {
-        const last = lastReadRef.current;
-        // Refreshing the timestamp on repeats keeps a code held in front of the camera from being added again.
-        lastReadRef.current = { code: decodedText, at: now };
-        if (last && last.code === decodedText && now - last.at < REPEAT_WINDOW_MS) return;
+        const lastSeen = lastReadRef.current.get(decodedText);
+        // The window is tracked per code (A, B, A within 1.5 s does not add A twice). Refreshing the timestamp on repeats
+        // keeps a code held in front of the camera from being added again.
+        lastReadRef.current.set(decodedText, now);
+        if (lastSeen !== undefined && now - lastSeen < REPEAT_WINDOW_MS) return;
       } else {
         if (detectedRef.current) return;
         detectedRef.current = true;

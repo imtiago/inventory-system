@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { parseMoneyToCents, parseMoneyText } from '@/shared/utils/money';
+import { parseMoneyToCents } from '@/shared/utils/money';
 
 import { MoneyInput } from '../MoneyInput';
 import { QuantityInput } from '../QuantityInput';
@@ -19,7 +19,6 @@ describe('parseMoneyToCents', () => {
 
   it.each(['', 'abc', '1,234', '1,2,3'])('%s -> null', (text) => expect(parseMoneyToCents(text)).toBeNull());
 
-  it('keeps extra decimals for validation', () => expect(parseMoneyText('1,234')).toBeCloseTo(1.234));
 });
 
 describe('MoneyInput', () => {

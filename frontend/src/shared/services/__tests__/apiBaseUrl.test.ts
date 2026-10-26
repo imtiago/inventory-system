@@ -12,11 +12,13 @@ describe('resolveApiBaseUrl', () => {
     expect(resolveApiBaseUrl({ DEV: true })).toBe('/api');
   });
 
-  test('fora do dev sem VITE_API_URL mantém o padrão anterior', () => {
-    expect(resolveApiBaseUrl({ DEV: false })).toBe('http://localhost:3000');
+  test('fora do dev sem VITE_API_URL usa /api na mesma origem (nginx faz o proxy)', () => {
+    expect(resolveApiBaseUrl({ DEV: false })).toBe('/api');
+    expect(resolveApiBaseUrl({})).toBe('/api');
   });
 
   test('VITE_API_URL vazia conta como não definida', () => {
     expect(resolveApiBaseUrl({ VITE_API_URL: '', DEV: true })).toBe('/api');
+    expect(resolveApiBaseUrl({ VITE_API_URL: '', DEV: false })).toBe('/api');
   });
 });

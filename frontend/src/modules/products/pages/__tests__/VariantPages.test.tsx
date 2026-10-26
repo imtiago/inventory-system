@@ -118,7 +118,7 @@ describe('Variant pages', () => {
     first.unmount();
 
     renderWithProviders(tree, { route: '/variants/v-1/edit', queryClient });
-    expect(await screen.findByLabelText('Preço de venda (R$)')).toHaveValue('12');
+    expect(await screen.findByLabelText('Preço de venda (R$)')).toHaveValue('12,00');
     const name = screen.getByPlaceholderText('Ex: Kaiak 100ml');
     await userEvent.clear(name);
     await userEvent.type(name, 'Novo nome');

@@ -128,12 +128,34 @@ describe('PurchaseCreatePage', () => {
     renderPage();
     await pickSupplier();
     await addVariant();
-    await fill('Preço unitário de Camiseta Azul', '10.555');
+    await fill('Preço unitário de Camiseta Azul', '10,555');
 
-    expect(screen.getByText('Use no máximo 2 casas decimais.')).toBeInTheDocument();
+    expect(screen.getByText('Use no máximo 2 casas decimais')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('2 casas decimais');
     expect(screen.getByRole('button', { name: 'Registrar pedido' })).toBeDisabled();
     expect(posted).toBeUndefined();
+  });
+
+  test('"1.000" no preço unitário é mil reais e chega como 1000 na API', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Preço unitário de Camiseta Azul', '1.000');
+
+    expect(screen.getByTestId('item-total-v-1')).toHaveTextContent('R$ 1.000,00');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));
+
+    await waitFor(() => expect(posted).toMatchObject({ items: [{ unitPrice: 1000, discount: 0, freight: 0, tax: 0 }] }));
+  });
+
+  test('"1.23,4" no preço mostra "Valor inválido" e bloqueia', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Preço unitário de Camiseta Azul', '1.23,4');
+
+    expect(screen.getByText('Valor inválido')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar pedido' })).toBeDisabled();
   });
 
   test('preço com 1 casa envia 10.5 e o total mostrado confere', async () => {

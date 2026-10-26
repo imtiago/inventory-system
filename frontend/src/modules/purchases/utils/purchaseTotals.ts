@@ -1,4 +1,4 @@
-import { fromCents, toCents } from '@/shared/utils/money';
+import { fromCents, moneyTextError, parseMoneyToCents, toCents } from '@/shared/utils/money';
 
 /** Draft item: numeric fields kept as typed strings (reais for money). */
 export interface IPurchaseDraftItem {
@@ -35,14 +35,29 @@ export function parseQuantity(text: string): number | null {
   return text.trim() !== '' && Number.isInteger(value) && value >= 1 ? value : null;
 }
 
+/** pt-BR money field of the purchase form: blank means 0. Error message to show under the field, or null when valid. */
+export function moneyFieldError(text: string): string | null {
+  return moneyTextError(text, { allowEmpty: true });
+}
+
+/** Cents of a purchase money field (blank = 0); null when invalid. */
+export function moneyFieldCents(text: string): number | null {
+  return text.trim() === '' ? 0 : parseMoneyToCents(text);
+}
+
+/** Money field as sent to the API (reais derived from cents); 0 when blank or invalid. */
+export function moneyFieldToSend(text: string): number {
+  return fromCents(moneyFieldCents(text) ?? 0);
+}
+
 /** Same rule as the backend: quantity x unitPrice - discount + freight + tax, in cents. null when a field is invalid. */
 export function itemTotalCents(item: IPurchaseDraftItem): number | null {
   const quantity = parseQuantity(item.quantity);
-  const money = [item.unitPrice, item.discount, item.freight, item.tax].map(parseNumber);
+  const money = [item.unitPrice, item.discount, item.freight, item.tax].map(moneyFieldCents);
 
-  if (quantity === null || [item.unitPrice, item.discount, item.freight, item.tax].some(hasTooManyDecimals) || money.some((value) => !Number.isFinite(value) || value < 0)) return null;
+  if (quantity === null || money.some((value) => value === null || value < 0)) return null;
 
-  const [unitPrice, discount, freight, tax] = money.map(toCents);
+  const [unitPrice, discount, freight, tax] = money as number[];
 
   return quantity * unitPrice - discount + freight + tax;
 }

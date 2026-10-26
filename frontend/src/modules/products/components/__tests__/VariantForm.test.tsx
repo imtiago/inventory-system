@@ -28,12 +28,12 @@ describe('VariantForm', () => {
 
     await userEvent.type(input, '-1');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(await screen.findByText('O preço não pode ser negativo.')).toBeInTheDocument();
+    expect(await screen.findByText('O valor não pode ser negativo')).toBeInTheDocument();
 
     await userEvent.clear(input);
-    await userEvent.type(input, '1.999');
+    await userEvent.type(input, '1,999');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(await screen.findByText('O preço deve ter no máximo 2 casas decimais.')).toBeInTheDocument();
+    expect(await screen.findByText('Use no máximo 2 casas decimais')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

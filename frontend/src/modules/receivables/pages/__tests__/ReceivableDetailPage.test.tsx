@@ -86,7 +86,7 @@ describe('ReceivableDetailPage', () => {
 
     await userEvent.click(within(screen.getByTestId(`parcel-${parcel2.number}`)).getByRole('button', { name: 'Registrar pagamento' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByLabelText('Valor')).toHaveValue('53.23');
+    expect(within(dialog).getByLabelText('Valor')).toHaveValue('53,23');
     expect(within(dialog).getByLabelText('Data do pagamento')).toHaveValue(todayInBusinessTz());
 
     await userEvent.selectOptions(within(dialog).getByLabelText('Forma de pagamento'), 'PIX');

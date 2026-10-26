@@ -2,7 +2,12 @@ import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { Controller, useForm } from 'react-hook-form';
 
 import { MoneyInput, QuantityInput } from '@/shared/components/form';
-import { parseMoneyText } from '@/shared/utils/money';
+import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
+
+/** O custo fica no formulário como o texto digitado (pt-BR); vira número só no envio. */
+interface FormValues extends Omit<InventoryLotFormData, 'unitCost'> {
+  unitCost: string;
+}
 
 export interface InventoryLotFormData {
   batchNumber: string;
@@ -32,7 +37,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<InventoryLotFormData>({
+  } = useForm<FormValues>({
     defaultValues: {
       batchNumber: initialValues?.batchNumber ?? '',
 
@@ -43,12 +48,12 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
       quantity: initialValues?.quantity ?? 1,
 
       // No silent default: an empty cost must be typed (required below).
-      unitCost: initialValues?.unitCost,
+      unitCost: initialValues?.unitCost === undefined ? '' : formatMoneyInput(initialValues.unitCost),
     },
   });
 
   const submit = handleSubmit(async (data) => {
-    const result = await onSubmit(data);
+    const result = await onSubmit({ ...data, unitCost: (parseMoneyToCents(data.unitCost) ?? 0) / 100 });
 
     if (result?.fieldErrors) {
       const { unmatched } = applyFieldErrors(setError, result.fieldErrors, LOT_FIELDS);
@@ -118,14 +123,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           <MoneyInput
             id="unitCost"
             {...register('unitCost', {
-              required: 'Informe o custo unitário.',
-              setValueAs: (value: string) => (typeof value === 'string' ? parseMoneyText(value) : value),
-              validate: (value) => {
-                if (!Number.isFinite(value)) return 'Informe um custo válido.';
-                if (value < 0) return 'O custo não pode ser negativo.';
-                if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return 'O custo deve ter no máximo 2 casas decimais.';
-                return true;
-              },
+              validate: (value) => (value.trim() === '' ? 'Informe o custo unitário.' : (moneyTextError(value) ?? true)),
             })}
           />
 

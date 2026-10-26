@@ -4,21 +4,23 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import path from "path";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 
+// The page may be HTTPS, so the API is reached through the same origin (no mixed content, no CORS on the phone).
+const apiProxy = {
+  "/api": {
+    target: "http://localhost:3000",
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/api/, ""),
+  },
+};
+
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
   // Self-signed HTTPS only for the dev server: browsers expose the camera only in a secure context, so a phone opening
   // https://<pc-ip>:5173 can scan. Never part of the production build or of the test run.
   plugins: [react(), tsconfigPaths(), ...(command === "serve" && !process.env.VITEST ? [basicSsl()] : [])],
-  server: {
-    proxy: {
-      // The page is HTTPS, so the API must be reached through the same origin (no mixed content, no CORS on the phone).
-      "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-        rewrite: (p: string) => p.replace(/^\/api/, ""),
-      },
-    },
-  },
+  server: { proxy: apiProxy },
+  // `vite preview` serves the production build, whose API base is `/api` (same origin): proxy it like the dev server does.
+  preview: { proxy: apiProxy },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
