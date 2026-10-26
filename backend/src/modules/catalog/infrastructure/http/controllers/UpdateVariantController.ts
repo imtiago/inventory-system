@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasPermission } from "@shared/auth/permissions";
 import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
@@ -18,7 +19,11 @@ export function makeUpdateVariantController() {
     const { id } = parseInput(idParamsSchema, request.params);
     const data = parseInput(updateVariantSchema, request.body);
 
-    await useCase.execute({ id, ...data });
+    await useCase.execute({
+      id,
+      ...data,
+      canChangePrice: hasPermission(request.user!.role, "catalog.price"),
+    });
     const variantRead = await useCaseGet.execute(id);
 
     return reply.status(200).send(HttpResponse.ok(variantRead));

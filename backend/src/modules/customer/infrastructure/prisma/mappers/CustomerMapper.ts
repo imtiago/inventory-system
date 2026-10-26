@@ -10,6 +10,7 @@ export class CustomerMapper {
       email: prisma.email,
       phone: prisma.phone,
       address: prisma.address,
+      document: prisma.document,
       createdAt: prisma.createdAt,
     });
   }
@@ -24,6 +25,7 @@ export class CustomerMapper {
       email: customer.email,
       phone: customer.phone,
       address: customer.address,
+      document: customer.document,
       createdAt: customer.createdAt,
     };
   }

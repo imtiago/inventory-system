@@ -5,6 +5,8 @@ export interface ICustomer {
   email: string | null;
   phone: string | null;
   address: string | null;
+  /** CPF/CNPJ, only digits/letters as stored (unmasked). */
+  document: string | null;
   createdAt: string;
 }
 export interface CustomerListResponse {
@@ -23,6 +25,8 @@ export interface ICreateCustomerDTO {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  /** CPF/CNPJ (unmasked); null/absent = not informed. */
+  document?: string | null;
 }
 
 /** PATCH body: only changed fields; null clears an optional field. */

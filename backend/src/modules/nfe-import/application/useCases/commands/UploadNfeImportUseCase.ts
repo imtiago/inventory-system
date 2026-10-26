@@ -63,7 +63,10 @@ export class UploadNfeImportUseCase {
     return this.transactionManager.execute(async () => {
       const existing = await this.repo.lockByAccessKey(document.accessKey);
       if (existing && existing.status !== "DRAFT") {
-        if (existing.purchaseStatus !== null && existing.purchaseStatus !== "CANCELED") {
+        // Importação desfeita (REVERTED) ou pedido cancelado/excluído: a chave volta a ser importável.
+        const reimportable =
+          existing.status === "REVERTED" || existing.purchaseStatus === null || existing.purchaseStatus === "CANCELED";
+        if (!reimportable) {
           throw nfeAlreadyImported({ purchaseId: existing.purchaseId, importId: existing.id });
         }
         await this.repo.resetToDraft(existing.id, document);

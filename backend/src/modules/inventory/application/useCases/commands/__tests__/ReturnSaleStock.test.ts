@@ -187,7 +187,7 @@ test("InventoryApplicationService.returnSaleStock delega com saleId, userId e it
   const calls: unknown[] = [];
   const noop = { execute: async () => [] };
   const fake = { execute: async (i: unknown) => (calls.push(i), []) };
-  const service = new InventoryApplicationService(noop as never, fake as never, noop as never);
+  const service = new InventoryApplicationService(noop as never, fake as never, noop as never, noop as never);
   const items = [{ productVariantId: "v-1", quantity: 2 }];
   await service.returnSaleStock({ saleId: "sale-1", userId: "u-1", items });
   assert.deepEqual(calls, [{ saleId: "sale-1", userId: "u-1", items }]);

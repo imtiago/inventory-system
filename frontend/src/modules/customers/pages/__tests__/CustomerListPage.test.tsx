@@ -39,6 +39,12 @@ beforeEach(() => {
 });
 
 describe('CustomerListPage', () => {
+  test('lista o CPF/CNPJ formatado', async () => {
+    renderWithProviders(<CustomerListPage />);
+
+    expect((await screen.findAllByText('529.982.247-25')).length).toBeGreaterThan(0);
+  });
+
   test('mostra nomes como gravados, envia limit=10 e busca', async () => {
     renderWithProviders(<CustomerListPage />);
     expect(await screen.findByText('Ana McDonald')).toBeInTheDocument();

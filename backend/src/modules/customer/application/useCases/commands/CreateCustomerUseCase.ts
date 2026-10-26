@@ -7,6 +7,7 @@ import {
   CustomerDTO,
 } from "@customer/application/dto/CustomerDTO";
 import { CustomerReadMapper } from "@customer/application/mappers/CustomerReadMapper";
+import { customerDocumentExists } from "@customer/domain/errors";
 import { Customer } from "@customer/domain/entities/Customer";
 import { CustomerRepository } from "@customer/domain/repositories/CustomerRepository";
 
@@ -25,6 +26,10 @@ export class CreateCustomerUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateCustomerInput,
   ): Promise<CustomerDTO> {
+    if (request.document && (await this.customerRepo.findByDocument(request.document))) {
+      throw customerDocumentExists();
+    }
+
     const customerCode = await this.numberGenerator.generate(
       NumberRangeName.CUSTOMER,
       "C",

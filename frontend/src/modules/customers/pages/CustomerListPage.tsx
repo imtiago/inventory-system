@@ -87,7 +87,7 @@ export function CustomerListPage() {
                 type="search"
                 value={search}
                 onChange={(event) => handleSearch(event.target.value)}
-                placeholder="Buscar clientes..."
+                placeholder="Buscar por nome, CPF/CNPJ, e-mail..."
                 aria-label="Buscar clientes"
                 className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-ring focus:ring-2 focus:ring-ring/20"
               />

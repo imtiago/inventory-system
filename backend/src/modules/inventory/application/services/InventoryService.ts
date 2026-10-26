@@ -28,6 +28,15 @@ export interface ReceivePurchaseStockRequest {
   userId: string;
 }
 
+export interface RevertPurchaseStockRequest {
+  purchaseId: string;
+  /** Variantes dos itens do pedido. */
+  productVariantIds: readonly string[];
+  /** Nota das movimentações de saída. */
+  notes: string;
+  userId: string;
+}
+
 export interface InventoryService {
   consumeStock(request: ConsumeStockRequest): Promise<void>;
   /** Devolve aos lotes de origem tudo o que a venda consumiu. Exige transação do chamador para atomicidade. */
@@ -39,4 +48,10 @@ export interface InventoryService {
    * Lote com o mesmo número de outra origem/item → 409 BATCH_ALREADY_EXISTS.
    */
   receivePurchaseStock(request: ReceivePurchaseStockRequest): Promise<void>;
+  /**
+   * Estorna toda a entrada de estoque do pedido (saída OUT origem PURCHASE por lote, lotes
+   * zerados, alocações removidas, custo médio recalculado) se nada dela foi usado; senão devolve
+   * "STOCK_USED" sem gravar. Trava inventários → lotes → alocações; exige transação do chamador.
+   */
+  revertPurchaseStock(request: RevertPurchaseStockRequest): Promise<"REVERTED" | "STOCK_USED">;
 }

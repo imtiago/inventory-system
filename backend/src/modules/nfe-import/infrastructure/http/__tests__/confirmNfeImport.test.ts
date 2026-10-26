@@ -275,7 +275,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     const mismatch = await confirm(draft.id, body([{ dueDate: "2026-11-01", amount: 200 }, { dueDate: "2026-12-01", amount: 197 }]));
     assert.equal(mismatch.statusCode, 422, mismatch.body);
     assert.deepEqual(mismatch.json(), {
-      message: "A soma das parcelas difere do total do pedido.",
+      message: "A soma das parcelas (R$ 397,00) difere do total do pedido (R$ 397,09) em mais de R$ 0,05.",
       code: "INSTALLMENTS_TOTAL_MISMATCH",
     });
     const beforeIssue = await confirm(draft.id, body([{ dueDate: "2026-10-22", amount: 397.09 }]));
@@ -702,5 +702,81 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
         ["MAPPING", v3.id, 1],
       ],
     );
+  });
+  test("diferença de até 5 centavos entre as parcelas e o pedido ajusta a última parcela; 6 centavos → 422 com os dois valores", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    const variants = [await existingVariant(), await existingVariant(), await existingVariant()];
+    const items = [
+      { index: 1, link: { productVariantId: variants[0], unitsPerPackage: 12 } },
+      { index: 2, link: { productVariantId: variants[1], unitsPerPackage: 2 } },
+      { index: 3, link: { productVariantId: variants[2] } },
+    ];
+    const run = async (installments: { dueDate: string; amount: number }[]) =>
+      confirm((await uploadNote(newNote({ cnpj: note.cnpj }))).id, { supplier: { id: supplier.id }, items, installments, receive: false });
+
+    // +5 centavos (397,14 × 397,09) e -5 centavos (397,04): a última parcela absorve a diferença.
+    const over = await run([{ dueDate: "2026-11-01", amount: 200 }, { dueDate: "2026-12-01", amount: 197.14 }]);
+    assert.equal(over.statusCode, 201, over.body);
+    assert.deepEqual(await parcelsOf(over.json().data.purchaseId), [["2026-11-01", 200], ["2026-12-01", 197.09]]);
+    const under = await run([{ dueDate: "2026-11-01", amount: 200 }, { dueDate: "2026-12-01", amount: 197.04 }]);
+    assert.equal(under.statusCode, 201, under.body);
+    assert.deepEqual(await parcelsOf(under.json().data.purchaseId), [["2026-11-01", 200], ["2026-12-01", 197.09]]);
+
+    // 6 centavos: recusa e o rascunho continua DRAFT.
+    const draft = await uploadNote(newNote({ cnpj: note.cnpj }));
+    const tooFar = await confirm(draft.id, {
+      supplier: { id: supplier.id },
+      items,
+      installments: [{ dueDate: "2026-11-01", amount: 200 }, { dueDate: "2026-12-01", amount: 197.15 }],
+      receive: false,
+    });
+    assert.equal(tooFar.statusCode, 422, tooFar.body);
+    assert.deepEqual(tooFar.json(), {
+      message: "A soma das parcelas (R$ 397,15) difere do total do pedido (R$ 397,09) em mais de R$ 0,05.",
+      code: "INSTALLMENTS_TOTAL_MISMATCH",
+    });
+    assert.equal((await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } })).status, "DRAFT");
+
+    // Duplicatas da própria nota (sem parcelas no corpo): 397,14 → ajustada; 397,15 → 422.
+    const dups = (last: string) => (xml: string) => xml.replace("<vDup>132.37</vDup>", `<vDup>${last}</vDup>`);
+    const fromNote = await confirm((await uploadNote(newNote({ cnpj: note.cnpj }), dups("132.42"))).id, { supplier: { id: supplier.id }, items, receive: false });
+    assert.equal(fromNote.statusCode, 201, fromNote.body);
+    assert.deepEqual(await parcelsOf(fromNote.json().data.purchaseId), [["2026-11-22", 132.36], ["2026-12-22", 132.36], ["2027-01-21", 132.37]]);
+    const fromNoteFar = await confirm((await uploadNote(newNote({ cnpj: note.cnpj }), dups("132.43"))).id, { supplier: { id: supplier.id }, items, receive: false });
+    assert.equal(fromNoteFar.statusCode, 422, fromNoteFar.body);
+    assert.equal(fromNoteFar.json().code, "INSTALLMENTS_TOTAL_MISMATCH");
+  });
+
+  test("mapeamento do fornecedor: cProd vazio não é gravado; cProd repetido só grava se as variantes e embalagens forem iguais", async () => {
+    const supplierOf = async (document: string) => (await createSupplier(document)).id;
+    const mappingsOf = async (supplierId: string) =>
+      (await prisma.supplierProductMapping.findMany({ where: { supplierId }, orderBy: { supplierCode: "asc" } })).map((m) => [
+        m.supplierCode,
+        m.productVariantId,
+        m.unitsPerPackage,
+      ]);
+    const [v1, v2, v3] = [await existingVariant(), await existingVariant(), await existingVariant()];
+    const link = (id: string, unitsPerPackage?: number) => ({ productVariantId: id, ...(unitsPerPackage ? { unitsPerPackage } : {}) });
+
+    // Item 3 sem cProd; itens 1 e 2 com o mesmo cProd e variantes diferentes → só o vazio e o conflito ficam de fora.
+    const conflictNote = newNote();
+    const conflictSupplier = await supplierOf(conflictNote.cnpj);
+    const conflict = await confirm(
+      (await uploadNote(conflictNote, (xml) => xml.replace("<cProd>B-002</cProd>", "<cProd>A-001</cProd>").replace("<cProd>C-003</cProd>", "<cProd></cProd>"))).id,
+      { supplier: { id: conflictSupplier }, items: [{ index: 1, link: link(v1, 12) }, { index: 2, link: link(v2, 2) }, { index: 3, link: link(v3) }], receive: false },
+    );
+    assert.equal(conflict.statusCode, 201, conflict.body);
+    assert.deepEqual(await mappingsOf(conflictSupplier), []);
+
+    // Mesmo cProd, mesma variante e embalagem (unidades somadas num item só): grava.
+    const sameNote = newNote();
+    const sameSupplier = await supplierOf(sameNote.cnpj);
+    const same = await confirm(
+      (await uploadNote(sameNote, (xml) => xml.replace("<cProd>B-002</cProd>", "<cProd>A-001</cProd>"))).id,
+      { supplier: { id: sameSupplier }, items: [{ index: 1, link: link(v1, 2) }, { index: 2, link: link(v1, 2) }, { index: 3, link: link(v3) }], receive: false },
+    );
+    assert.equal(same.statusCode, 201, same.body);
+    assert.deepEqual(await mappingsOf(sameSupplier), [["A-001", v1, 2], ["C-003", v3, 1]]);
   });
 });

@@ -129,6 +129,9 @@ export function installmentsSumCents(installments: InstallmentDraft[]): number {
   return installments.reduce((sum, row) => sum + toCents(parseNumber(row.amount) || 0), 0);
 }
 
+/** Same limit as the backend: up to R$ 0,05 of difference, the last installment absorbs it. */
+export const INSTALLMENTS_TOLERANCE_CENTS = 5;
+
 export function installmentsProblem(installments: InstallmentDraft[], issueDate: string, totalCents: number): string | null {
   if (installments.length === 0) return 'Informe ao menos uma parcela.';
 
@@ -141,7 +144,9 @@ export function installmentsProblem(installments: InstallmentDraft[], issueDate:
     if (row.amount.trim() === '' || !Number.isFinite(value) || value <= 0 || hasTooManyDecimals(row.amount)) return `${label}: informe um valor maior que zero com até 2 casas decimais.`;
   }
 
-  return installmentsSumCents(installments) === totalCents ? null : 'A soma das parcelas difere do total do pedido.';
+  return Math.abs(installmentsSumCents(installments) - totalCents) <= INSTALLMENTS_TOLERANCE_CENTS
+    ? null
+    : 'A soma das parcelas difere do total do pedido em mais de R$ 0,05.';
 }
 
 function itemBody(item: INfeItem, draft: ItemDraft): IConfirmNfeItem {

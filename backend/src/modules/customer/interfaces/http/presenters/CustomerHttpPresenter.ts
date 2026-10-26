@@ -1,6 +1,6 @@
 import { CustomerDTO } from "@customer/application/dto/CustomerDTO";
 
-/** Contrato HTTP do cliente: { id, code, name, email, phone, address, createdAt }. */
+/** Contrato HTTP do cliente: { id, code, name, email, phone, address, document, createdAt }. */
 export class CustomerHttpPresenter {
   static toHTTP(customer: CustomerDTO): CustomerDTO {
     return {
@@ -10,6 +10,7 @@ export class CustomerHttpPresenter {
       email: customer.email,
       phone: customer.phone,
       address: customer.address,
+      document: customer.document,
       createdAt: customer.createdAt,
     };
   }

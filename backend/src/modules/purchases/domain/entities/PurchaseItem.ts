@@ -83,4 +83,9 @@ export class PurchaseItem extends BaseEntity {
     }
     this._receivedQuantity += quantity;
   }
+
+  /** Estorno de todo o recebido (importação de NF-e desfeita). Só o agregado chama. */
+  revertReceipt(): void {
+    this._receivedQuantity = 0;
+  }
 }

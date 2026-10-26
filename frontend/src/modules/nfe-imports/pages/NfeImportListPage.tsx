@@ -90,11 +90,18 @@ export function NfeImportListPage() {
               Descartar
             </button>
           </div>
-        ) : item.purchaseId ? (
-          <Link to={`/purchases/${item.purchaseId}`} className="font-medium hover:underline">
-            Ver pedido
-          </Link>
-        ) : null,
+        ) : (
+          <div className="flex items-center justify-center gap-3">
+            <Link to={`/nfe-imports/${item.id}`} className="font-medium hover:underline">
+              Ver nota
+            </Link>
+            {item.purchaseId && (
+              <Link to={`/purchases/${item.purchaseId}`} className="font-medium hover:underline">
+                Ver pedido
+              </Link>
+            )}
+          </div>
+        ),
     },
   ];
 

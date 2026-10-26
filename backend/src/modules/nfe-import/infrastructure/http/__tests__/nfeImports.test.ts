@@ -429,4 +429,37 @@ describe("Importações de NF-e (/nfe-imports)", () => {
     assert.ok(confirmedList.json().data.some((i: any) => i.id === older.id));
     assert.ok(!list.json().data.some((i: any) => i.status !== "DRAFT"));
   });
+
+  test("rascunho devolve a conferência dos totais (vNF × pedido × duplicatas) e recusa nota que não é compra autorizada para a empresa", async () => {
+    const note = newNote();
+    const res = await uploadNote(note, (xml) =>
+      xml.replace("<vNF>397.09</vNF>", "<vNF>397.12</vNF>").replace("<vDup>132.37</vDup>", "<vDup>132.40</vDup>"),
+    );
+    assert.equal(res.statusCode, 201, res.body);
+    assert.deepEqual(res.json().data.totals, {
+      total: 397.12,
+      orderTotal: 397.09,
+      difference: 0.03,
+      installmentsTotal: 397.12,
+      installmentsDifference: 0.03,
+    });
+    const exact = await uploadNote(newNote());
+    assert.deepEqual(exact.json().data.totals, {
+      total: 397.09,
+      orderTotal: 397.09,
+      difference: 0,
+      installmentsTotal: 397.09,
+      installmentsDifference: 0,
+    });
+
+    const returned = await uploadNote(newNote(), (xml) => xml.replace("<finNFe>1</finNFe>", "<finNFe>4</finNFe>"));
+    assert.equal(returned.statusCode, 422, returned.body);
+    assert.deepEqual(returned.json(), {
+      message: "Somente NF-e normal de compra é aceita (esta é de devolução/complementar/ajuste).",
+      code: "NFE_NOT_ACCEPTED",
+    });
+    const cancelled = await uploadNote(newNote(), (xml) => xml.replace("<cStat>100</cStat>", "<cStat>101</cStat>"));
+    assert.equal(cancelled.statusCode, 422, cancelled.body);
+    assert.equal(cancelled.json().code, "NFE_NOT_ACCEPTED");
+  });
 });

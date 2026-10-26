@@ -19,6 +19,7 @@ describe('statusTone', () => {
     // NF-e
     ['DRAFT', 'warning'],
     ['CONFIRMED', 'success'],
+    ['REVERTED', 'danger'],
     // estoque
     ['AVAILABLE', 'success'],
     ['RESERVED', 'info'],

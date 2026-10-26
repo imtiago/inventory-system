@@ -116,6 +116,12 @@ export class InMemoryInventoryLotRepository
       .filter((l) => l.inventoryId === inventoryId && l.remainingQuantity > 0)
       .sort(compareLotsForConsumption);
   }
+
+  async lockByPurchase(purchaseId: string): Promise<InventoryLot[]> {
+    return this.all()
+      .filter((l) => l.sourceType === "PURCHASE" && l.sourceId === purchaseId)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  }
 }
 
 export class InMemoryStockMovementRepository

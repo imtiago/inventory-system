@@ -35,3 +35,10 @@ export async function confirmNfeImport(id: string, data: IConfirmNfeDTO, idempot
 
   return response.data.data;
 }
+
+/** Undoes a received import (ADMIN). 409 NFE_REVERT_BLOCKED carries the reason in `message`. */
+export async function revertNfeImport(id: string, idempotencyKey: string): Promise<INfeImport> {
+  const response = await api.post<{ data: INfeImport }>(`/nfe-imports/${id}/revert`, undefined, idempotencyConfig(idempotencyKey));
+
+  return response.data.data;
+}

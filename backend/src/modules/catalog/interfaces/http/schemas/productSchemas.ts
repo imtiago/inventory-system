@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { salePriceSchema } from "./createVariantSchema";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
 const nameSchema = z
@@ -32,6 +33,8 @@ export const createProductSchema = z.object({
   description: descriptionSchema,
   brandId: brandIdSchema,
   categoryId: categoryIdSchema,
+  /** Preço inicial da variante Padrão (cadastro inicial: não exige catalog.price). */
+  salePrice: salePriceSchema.optional(),
 });
 
 export const updateProductSchema = z

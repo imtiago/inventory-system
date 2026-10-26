@@ -38,6 +38,19 @@ export interface NfeImportDTO {
   series: string;
   issueDate: string;
   totalAmount: number;
+  /**
+   * Conferência antes de confirmar: `total` = vNF; `orderTotal` = soma dos custos dos itens (o total do
+   * pedido gerado); `difference` = total − orderTotal; `installmentsTotal` = soma das duplicatas (0 sem
+   * duplicatas); `installmentsDifference` = installmentsTotal − orderTotal (0 sem duplicatas). Até R$ 0,05
+   * a última parcela absorve; acima disso a confirmação recusa (INSTALLMENTS_TOTAL_MISMATCH).
+   */
+  totals: {
+    total: number;
+    orderTotal: number;
+    difference: number;
+    installmentsTotal: number;
+    installmentsDifference: number;
+  };
   purchaseId: string | null;
   createdAt: Date;
   supplier: { document: string; name: string; match: { id: string; name: string } | null };

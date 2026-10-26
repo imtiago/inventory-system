@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Mail, MapPin, Phone, Pencil } from 'lucide-react';
+import { IdCard, Mail, MapPin, Phone, Pencil } from 'lucide-react';
 
 import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useCustomer } from '../hooks/useCustomer';
 import { Can } from '@/shared/auth/Can';
 import { CustomerEditModal } from '../components/CustomerEditModal';
+import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import { formatPhone } from '@/shared/utils/formatPhone';
 
 export function CustomerDetailsPage() {
@@ -63,6 +64,16 @@ export function CustomerDetailsPage() {
               <p className="text-sm text-muted">E-mail</p>
 
               <p className="mt-1 break-words font-medium text-foreground">{customer.email || 'Não informado'}</p>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 items-start gap-3">
+            <IdCard size={19} className="mt-0.5 shrink-0 text-subtle" />
+
+            <div className="min-w-0">
+              <p className="text-sm text-muted">CPF/CNPJ</p>
+
+              <p className="mt-1 font-medium text-foreground">{customer.document ? maskDocument(customer.document) : 'Não informado'}</p>
             </div>
           </div>
 

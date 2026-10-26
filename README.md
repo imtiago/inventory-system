@@ -103,6 +103,7 @@ No backend (`backend/.env`):
 NODE_ENV=production
 TRUST_PROXY=1                                  # um proxy na frente: rate limit e login enxergam o IP real
 CORS_ORIGINS="https://estoque.exemplo.com"     # continua obrigatório em produção: a origem do site
+COMPANY_CNPJ="11444777000161"                  # obrigatório em produção: CNPJ da empresa; só NF-e destinadas a ele são importadas
 ```
 
 Mesmo com tudo na mesma origem, `CORS_ORIGINS` deve conter a origem do site (esquema + domínio, sem barra final). Se preferir a API em outro domínio, defina `VITE_API_URL=https://api.exemplo.com` no build e inclua a origem do frontend em `CORS_ORIGINS`.

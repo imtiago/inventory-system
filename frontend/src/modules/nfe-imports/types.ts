@@ -1,10 +1,12 @@
 import type { Paginated } from '@/shared/types/pagination';
 
-export type NfeImportStatus = 'DRAFT' | 'CONFIRMED';
+/** REVERTED: the import was undone (stock reversed, payable and order canceled); re-uploading the XML reopens it as DRAFT. */
+export type NfeImportStatus = 'DRAFT' | 'CONFIRMED' | 'REVERTED';
 
 export const NFE_STATUS_LABELS: Record<NfeImportStatus, string> = {
   DRAFT: 'Rascunho',
   CONFIRMED: 'Confirmada',
+  REVERTED: 'Desfeita',
 };
 
 /** GET /nfe-imports row (NfeImportSummaryDTO). Money in reais, dates "YYYY-MM-DD". */
@@ -57,6 +59,18 @@ export interface INfeImport {
   series: string;
   issueDate: string;
   totalAmount: number;
+  /**
+   * Totals check, reais: total = vNF; orderTotal = sum of the items' costs (the order total);
+   * difference = total - orderTotal; installmentsTotal = sum of the note's duplicatas (0 when none);
+   * installmentsDifference = installmentsTotal - orderTotal (0 when none).
+   */
+  totals: {
+    total: number;
+    orderTotal: number;
+    difference: number;
+    installmentsTotal: number;
+    installmentsDifference: number;
+  };
   purchaseId: string | null;
   createdAt: string;
   supplier: { document: string; name: string; match: { id: string; name: string } | null };

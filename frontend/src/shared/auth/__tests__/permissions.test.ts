@@ -19,6 +19,11 @@ describe('can', () => {
     expect(can('VENDEDOR', 'purchases.read')).toBe(false);
     expect(can('VENDEDOR', 'payables.pay')).toBe(false);
   });
+  test('desfazer importação de NF-e só ADMIN (onda 7)', () => {
+    expect(can('ADMIN', 'purchases.revert')).toBe(true);
+    expect(can('VENDEDOR', 'purchases.revert')).toBe(false);
+    expect(can('ESTOQUISTA', 'purchases.revert')).toBe(false);
+  });
   test('papel desconhecido ou ausente é negado', () => {
     expect(can(undefined, 'self')).toBe(false);
     expect(can('toString', 'self')).toBe(false);

@@ -239,7 +239,7 @@ test("receivePurchaseStock chama o recebimento com origem/lote PURCHASE, item, u
   const calls: unknown[] = [];
   const noop = { execute: async () => [] };
   const fake = { execute: async (i: unknown) => (calls.push(i), {}) };
-  const service = new InventoryApplicationService(noop as never, noop as never, fake as never);
+  const service = new InventoryApplicationService(noop as never, noop as never, fake as never, noop as never);
   const exp = new Date("2027-01-15T00:00:00.000Z");
   await service.receivePurchaseStock({
     purchaseId: "p-1",

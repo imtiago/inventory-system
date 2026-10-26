@@ -7,6 +7,7 @@ export class Customer extends BaseEntity {
   private _email: string | null;
   private _phone: string | null;
   private _address: string | null;
+  private _document: string | null;
 
   constructor(props: {
     id?: string;
@@ -15,6 +16,7 @@ export class Customer extends BaseEntity {
     email?: string | null;
     phone?: string | null;
     address?: string | null;
+    document?: string | null;
     createdAt?: Date;
   }) {
     super({
@@ -26,6 +28,7 @@ export class Customer extends BaseEntity {
     this._email = props.email ?? null;
     this._phone = props.phone ?? null;
     this._address = props.address ?? null;
+    this._document = props.document ?? null;
   }
 
   get name(): string {
@@ -45,6 +48,10 @@ export class Customer extends BaseEntity {
 
   get address(): string | null {
     return this._address;
+  }
+
+  get document(): string | null {
+    return this._document;
   }
 
   rename(name: string): void {

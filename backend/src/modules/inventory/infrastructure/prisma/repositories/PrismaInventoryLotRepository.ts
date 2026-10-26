@@ -1,4 +1,5 @@
-import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
 
 import { IInventoryLotRepository } from "@inventory/domain/repositories/InventoryLotRepository";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
@@ -85,6 +86,28 @@ export class PrismaInventoryLotRepository implements IInventoryLotRepository {
       ],
     });
 
+    return data.map((d) => InventoryLotMapper.toDomain(d));
+  }
+
+  async lockByPurchase(purchaseId: string): Promise<InventoryLot[]> {
+    if (!hasActiveTransaction()) {
+      throw new InternalInvariantError(
+        "Trava de lotes exige transação ativa.",
+        InternalErrorCodes.LOCK_OUTSIDE_TRANSACTION,
+      );
+    }
+    const db = getDb();
+    const rows = await db.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "InventoryLot"
+       WHERE "sourceType" = 'PURCHASE' AND "sourceId" = ${purchaseId}
+       ORDER BY id
+         FOR UPDATE`;
+    if (rows.length === 0) return [];
+    // Leitura após a trava: último estado confirmado (READ COMMITTED).
+    const data = await db.inventoryLot.findMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+      orderBy: { id: "asc" },
+    });
     return data.map((d) => InventoryLotMapper.toDomain(d));
   }
 }

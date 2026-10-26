@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@shared/domain/errors";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
@@ -27,6 +27,13 @@ export class CreateVariantUseCase extends TransactionalUseCase<
   async handle(
     request: ICreateVariantInput,
   ): Promise<IProductVariantOutput> {
+    // Sem catalog.price, só o cadastro inicial do preço é permitido — e ele é obrigatório.
+    if (!request.canSetPrice && request.salePrice === undefined) {
+      throw new ValidationError("Dados inválidos.", [
+        { field: "salePrice", message: "Informe o preço de venda." },
+      ]);
+    }
+
     // Verifica se o produto existe
     const product = await this.productRepository.findById(request.productId);
     if (!product) {

@@ -33,5 +33,7 @@ export interface NfeImportRepository {
   findDocument(id: string): Promise<NfeDocument | null>;
   /** Rascunho → CONFIRMED com o pedido gerado, quem confirmou e quando. */
   markConfirmed(input: { id: string; purchaseId: string; confirmedById: string }): Promise<void>;
+  /** CONFIRMED → REVERTED (importação desfeita; o pedido fica ligado, cancelado). */
+  markReverted(id: string): Promise<void>;
   delete(id: string): Promise<void>;
 }

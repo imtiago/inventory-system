@@ -1,3 +1,4 @@
+import { env } from "@shared/config/env";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { NfeSuggestionService } from "@nfe-import/application/services/NfeSuggestionService";
 import { makeCatalogService, makeCatalogWriteService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
@@ -5,6 +6,10 @@ import { makePurchaseCreator, makeReceivePurchaseUseCase } from "@purchases/infr
 import { PrismaSupplierRepository } from "@purchases/infrastructure/prisma/repositories/PrismaSupplierRepository";
 import { ConfirmNfeImportUseCase } from "@nfe-import/application/useCases/commands/ConfirmNfeImportUseCase";
 import { DiscardNfeImportUseCase } from "@nfe-import/application/useCases/commands/DiscardNfeImportUseCase";
+import { RevertNfeImportUseCase } from "@nfe-import/application/useCases/commands/RevertNfeImportUseCase";
+import { makeFinancialService } from "@finance/infrastructure/http/factories/FinancialServiceFactory";
+import { makeInventoryService } from "@inventory/infrastructure/http/factories/InventoryServiceFactory";
+import { PrismaPurchaseRepository } from "@purchases/infrastructure/prisma/repositories/PrismaPurchaseRepository";
 import { UploadNfeImportUseCase } from "@nfe-import/application/useCases/commands/UploadNfeImportUseCase";
 import { GetNfeImportUseCase } from "@nfe-import/application/useCases/queries/GetNfeImportUseCase";
 import { ListNfeImportsUseCase } from "@nfe-import/application/useCases/queries/ListNfeImportsUseCase";
@@ -25,7 +30,7 @@ export const makeListNfeImportsUseCase = () => new ListNfeImportsUseCase(new Pri
 
 export const makeUploadNfeImportUseCase = () =>
   new UploadNfeImportUseCase(
-    new NfeParser(),
+    new NfeParser({ companyCnpj: env.COMPANY_CNPJ }),
     new PrismaNfeImportRepository(),
     new PrismaTransactionManager(),
     makeGetNfeImportUseCase(),
@@ -55,4 +60,16 @@ export const makeConfirmNfeImportUseCase = () =>
     makeReceivePurchaseUseCase(),
     new PrismaNfeLotLookup(),
     new PrismaTransactionManager(CONFIRM_NFE_TRANSACTION_OPTIONS),
+  );
+
+/** Estorno: mesmos tempos da confirmação (trava importação, pedido, estoque e contas a pagar). */
+export const REVERT_NFE_TRANSACTION_OPTIONS = CONFIRM_NFE_TRANSACTION_OPTIONS;
+
+export const makeRevertNfeImportUseCase = () =>
+  new RevertNfeImportUseCase(
+    new PrismaNfeImportRepository(),
+    new PrismaPurchaseRepository(),
+    makeInventoryService(),
+    makeFinancialService(),
+    new PrismaTransactionManager(REVERT_NFE_TRANSACTION_OPTIONS),
   );

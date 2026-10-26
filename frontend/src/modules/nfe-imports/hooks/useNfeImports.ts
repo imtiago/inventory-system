@@ -4,7 +4,7 @@ import { queryKeys } from '@/shared/react-query/keys';
 import { invalidateInventoryQueries } from '@/modules/inventory/utils/invalidateInventoryQueries';
 import { useIdempotencyKey } from '@/shared/utils/idempotencyKey';
 import { notify } from '@/shared/utils/notify';
-import { confirmNfeImport, discardNfeImport, getNfeImport, getNfeImports, uploadNfeXml } from '../services/nfeImportService';
+import { confirmNfeImport, discardNfeImport, getNfeImport, getNfeImports, revertNfeImport, uploadNfeXml } from '../services/nfeImportService';
 import type { IConfirmNfeDTO, NfeImportStatus } from '../types';
 
 export function useNfeImports(page: number, status?: NfeImportStatus) {
@@ -60,6 +60,24 @@ export function useConfirmNfeImport(id: string) {
         invalidateInventoryQueries(queryClient),
       ]);
       notify.success('Nota importada e pedido de compra registrado.');
+    },
+  });
+}
+
+/** Undoes the import: stock leaves, the payable and the order are canceled. The page renders the block reason itself. */
+export function useRevertNfeImport(id: string) {
+  const queryClient = useQueryClient();
+  const keys = useIdempotencyKey();
+
+  return useMutation({
+    mutationFn: () => keys.run(id, (key) => revertNfeImport(id, key)),
+    async onSuccess(note) {
+      queryClient.setQueryData([...queryKeys.nfeImports, 'detail', id], note);
+      await Promise.all([
+        ...[queryKeys.nfeImports, queryKeys.purchases, queryKeys.payables, queryKeys.dashboard].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+        invalidateInventoryQueries(queryClient),
+      ]);
+      notify.success('Importação desfeita.');
     },
   });
 }

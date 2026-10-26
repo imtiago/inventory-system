@@ -10,6 +10,8 @@ interface ConfirmDialogProps {
   description: string;
   confirmText?: string;
   cancelText?: string;
+  /** Confirm button text while `loading` (default "Excluindo..."). */
+  loadingText?: string;
   loading?: boolean;
   onConfirm(): void;
   onCancel(): void;
@@ -21,6 +23,7 @@ export function ConfirmDialog({
   description,
   confirmText = "Excluir",
   cancelText = "Cancelar",
+  loadingText = "Excluindo...",
   loading = false,
   onConfirm,
   onCancel,
@@ -122,7 +125,7 @@ export function ConfirmDialog({
               disabled:opacity-60
             "
           >
-            {loading ? "Excluindo..." : confirmText}
+            {loading ? loadingText : confirmText}
           </button>
         </div>
       </div>

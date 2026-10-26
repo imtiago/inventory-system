@@ -159,3 +159,21 @@ test("receber: cancelado → 409; item desconhecido → 404; acima do restante �
   assert.throws(() => p.receive([]));
   assert.deepEqual(p.items.map((i) => i.receivedQuantity), [0, 0]);
 });
+
+test("estornar recebimentos (NF-e desfeita): zera o recebido e cancela com motivo; cancelado → 409", () => {
+  const p = newPurchase([
+    item({ id: "i-1", productVariantId: "v-1", quantity: 2 }),
+    item({ id: "i-2", productVariantId: "v-2", quantity: 3 }),
+  ]);
+  p.receive([{ purchaseItemId: "i-1", quantity: 2 }, { purchaseItemId: "i-2", quantity: 3 }]);
+  assert.equal(p.status, PurchaseStatus.RECEIVED);
+  // cancel continua recusando pedido recebido.
+  assert.throws(() => p.cancel({ reason: "x", userId: "u-1" }), { code: "PURCHASE_HAS_RECEIPTS" });
+
+  const now = new Date("2026-10-26T12:00:00.000Z");
+  p.revertReceipts({ reason: "Estorno da NF-e 12345", userId: "u-1", now });
+  assert.equal(p.status, PurchaseStatus.CANCELED);
+  assert.deepEqual(p.items.map((i) => i.receivedQuantity), [0, 0]);
+  assert.deepEqual([p.cancelReason, p.canceledAt, p.canceledById], ["Estorno da NF-e 12345", now, "u-1"]);
+  assert.throws(() => p.revertReceipts({ reason: "x", userId: "u-1" }), { code: "PURCHASE_ALREADY_CANCELED" });
+});

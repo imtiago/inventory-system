@@ -1,5 +1,7 @@
 import type { ICreateCustomerDTO, ICustomer, UpdateCustomerInput } from '../types';
 
+import { normalizeDocument } from '@/modules/suppliers/utils/formatDocument';
+
 const digits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
 
 /** Only the fields that differ from the stored customer; empty optional fields become null (clear). */
@@ -10,6 +12,7 @@ export function diffCustomer(customer: ICustomer, form: ICreateCustomerDTO): Upd
   if (name !== customer.name) changes.name = name;
   if ((form.email ?? null) !== (customer.email ?? null)) changes.email = form.email ?? null;
   if (digits(form.phone) !== digits(customer.phone)) changes.phone = digits(form.phone) || null;
+  if ((normalizeDocument(form.document) || null) !== (customer.document ?? null)) changes.document = normalizeDocument(form.document) || null;
   if ((form.address ?? null) !== (customer.address ?? null)) changes.address = form.address ?? null;
 
   return changes;

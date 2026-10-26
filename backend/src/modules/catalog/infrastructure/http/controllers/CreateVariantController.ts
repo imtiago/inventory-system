@@ -1,5 +1,6 @@
 // src/modules/catalog/infrastructure/http/controllers/CreateVariantController.ts
 import { z } from "zod";
+import { hasPermission } from "@shared/auth/permissions";
 import { parseInput } from "@shared/http/parseInput";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createVariantSchema } from "../../../interfaces/http/schemas/createVariantSchema";
@@ -21,7 +22,11 @@ export function makeCreateVariantController() {
     const { productId } = parseInput(productIdParamsSchema, request.params);
     const data = parseInput(createVariantSchema, request.body);
 
-    const variantCreated = await useCase.execute({ productId, ...data });
+    const variantCreated = await useCase.execute({
+      productId,
+      ...data,
+      canSetPrice: hasPermission(request.user!.role, "catalog.price"),
+    });
     const variantRead = await useCaseGet.execute(variantCreated.id);
 
     return reply.status(201).send(HttpResponse.created(variantRead));

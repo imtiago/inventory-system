@@ -111,6 +111,26 @@ export class Inventory extends BaseEntity {
     this.touch();
   }
 
+  /**
+   * Estorno de uma entrada (importação de NF-e desfeita): retira `quantity` do saldo, que precisa
+   * estar disponível (não reservado), e grava o custo médio recalculado pelo chamador.
+   */
+  public revertReceipt(quantity: number, averageCost: number): void {
+    this.validateQuantity(quantity);
+
+    if (!this.hasAvailableStock(quantity)) {
+      throw new BusinessRuleError("Estoque disponível insuficiente.", ErrorCodes.INSUFFICIENT_STOCK);
+    }
+    if (averageCost < 0) {
+      throw new BusinessRuleError("O custo médio não pode ser negativo.", ErrorCodes.INVALID_UNIT_COST);
+    }
+
+    this._quantity -= quantity;
+    this._averageCost = averageCost;
+
+    this.touch();
+  }
+
   public reserve(quantity: number): void {
     this.validateQuantity(quantity);
 

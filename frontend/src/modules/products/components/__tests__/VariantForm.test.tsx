@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import { VariantForm } from '../VariantForm';
 import { renderWithProviders } from '@/test/render';
+import { loginAs } from '@/test/auth';
 
 function setup(onSubmit = vi.fn()) {
   renderWithProviders(<VariantForm title="Nova" submitLabel="Salvar" onSubmit={onSubmit} onCancel={() => {}} />);
@@ -47,5 +48,64 @@ describe('VariantForm', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /salvando/i })).toBeDisabled());
     await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled());
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  describe('sem a permissão catalog.price (VENDEDOR)', () => {
+    test('criação: o preço é obrigatório', async () => {
+      loginAs('VENDEDOR');
+      const onSubmit = setup();
+
+      await userEvent.type(screen.getByPlaceholderText('Ex: Kaiak 100ml'), 'Kaiak');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(await screen.findByText('Informe o preço de venda.')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Preço de venda (R$)')).not.toHaveAttribute('readonly');
+    });
+
+    test('edição: o preço fica somente leitura com a dica e é reenviado inalterado', async () => {
+      loginAs('VENDEDOR');
+      const onSubmit = vi.fn();
+      renderWithProviders(
+        <VariantForm title="Editar" submitLabel="Salvar" requireSalePrice initialValues={{ name: 'Kaiak', salePrice: 19.9 }} onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+
+      const price = screen.getByLabelText('Preço de venda (R$)');
+      expect(price).toHaveAttribute('readonly');
+      expect(price).toHaveValue('19,90');
+      expect(screen.getByText('Somente o administrador altera o preço')).toBeInTheDocument();
+
+      await userEvent.type(price, '5');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ name: 'Kaiak', salePrice: 19.9 });
+    });
+
+    test('edição com preço atual R$ 0,00: o preço fica editável (cadastro inicial) e é enviado', async () => {
+      loginAs('VENDEDOR');
+      const onSubmit = vi.fn();
+      renderWithProviders(
+        <VariantForm title="Editar" submitLabel="Salvar" requireSalePrice initialValues={{ name: 'Kaiak', salePrice: 0 }} onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+
+      const price = screen.getByLabelText('Preço de venda (R$)');
+      expect(price).not.toHaveAttribute('readonly');
+      expect(screen.queryByText('Somente o administrador altera o preço')).not.toBeInTheDocument();
+
+      await userEvent.clear(price);
+      await userEvent.type(price, '12,5');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ salePrice: 12.5 });
+    });
+
+    test('ADMIN edita o preço normalmente, sem dica', async () => {
+      loginAs('ADMIN');
+      renderWithProviders(
+        <VariantForm title="Editar" submitLabel="Salvar" requireSalePrice initialValues={{ name: 'Kaiak', salePrice: 19.9 }} onSubmit={vi.fn()} onCancel={() => {}} />,
+      );
+      expect(screen.getByLabelText('Preço de venda (R$)')).not.toHaveAttribute('readonly');
+      expect(screen.queryByText('Somente o administrador altera o preço')).not.toBeInTheDocument();
+    });
   });
 });

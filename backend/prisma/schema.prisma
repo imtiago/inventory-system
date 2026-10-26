@@ -26,6 +26,8 @@ enum PurchaseStatus {
 enum NfeImportStatus {
   DRAFT
   CONFIRMED
+  // Desfeita (POST /nfe-imports/:id/revert); reenviar a mesma chave volta a linha para DRAFT.
+  REVERTED
 }
 
 enum PurchaseOrigin {
@@ -323,10 +325,15 @@ model SaleItem {
   @@index([saleId])
 }
 
+// CPF/CNPJ opcional e único: índice único PARCIAL "Customer_document_key"
+// ON "Customer" (document) WHERE document IS NOT NULL, criado só na migration
+// 20261026120000_customer_document (o Prisma não modela índice parcial, por isso a
+// coluna não é @unique aqui). Violação → P2002 → 409 CUSTOMER_DOCUMENT_EXISTS.
 model Customer {
   id        String   @id @default(uuid())
   name      String
   code      String   @unique
+  document  String?
   email     String?
   phone     String?
   address   String?

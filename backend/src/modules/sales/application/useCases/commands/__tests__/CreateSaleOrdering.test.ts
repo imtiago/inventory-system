@@ -17,6 +17,7 @@ function build(variantIds: string[]) {
     },
     returnSaleStock: async () => {},
     receivePurchaseStock: async () => {},
+    revertPurchaseStock: async () => "REVERTED",
   };
   const saleRepository = { create: async (s: Sale) => s } as unknown as SaleRepository;
   const customerService = {

@@ -29,7 +29,12 @@ export class CatalogWriteApplicationService implements CatalogWriteService {
   async createVariant(
     input: Parameters<CatalogWriteService["createVariant"]>[0],
   ): Promise<{ productVariantId: string }> {
-    const variant = await this.createVariantUseCase.execute({ ...input, barcode: input.barcode ?? undefined });
+    const variant = await this.createVariantUseCase.execute({
+      ...input,
+      barcode: input.barcode ?? undefined,
+      // Fluxo interno (confirmação de NF-e, já restrita a purchases.write): preço sempre informado.
+      canSetPrice: true,
+    });
     return { productVariantId: variant.id };
   }
 }

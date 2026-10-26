@@ -54,7 +54,9 @@ test("produção válida; CORS_ORIGINS vira lista", () => {
     NODE_ENV: "production",
     JWT_SECRET: "x".repeat(32),
     CORS_ORIGINS: "https://a.com, https://b.com",
+    COMPANY_CNPJ: "11.444.777/0001-61",
   });
+  assert.equal(env.COMPANY_CNPJ, "11444777000161");
   assert.deepEqual(env.CORS_ORIGINS, ["https://a.com", "https://b.com"]);
   assert.equal(env.isProduction, true);
 });
@@ -81,8 +83,25 @@ test("RATE_LIMIT_DISABLED só vale fora de produção", () => {
       NODE_ENV: "production",
       JWT_SECRET: "x".repeat(32),
       CORS_ORIGINS: "https://a.com",
+      COMPANY_CNPJ: "11444777000161",
       RATE_LIMIT_DISABLED: "1",
     }).RATE_LIMIT_DISABLED,
     false,
   );
+});
+
+const prod = { ...base, NODE_ENV: "production", JWT_SECRET: "x".repeat(32), CORS_ORIGINS: "https://a.com" };
+
+test("produção: sem COMPANY_CNPJ não sobe", () => {
+  assert.throws(() => loadEnv(prod), /COMPANY_CNPJ/);
+});
+
+test("COMPANY_CNPJ inválido não sobe (em qualquer ambiente)", () => {
+  assert.throws(() => loadEnv({ ...prod, COMPANY_CNPJ: "11444777000160" }), /COMPANY_CNPJ/);
+  assert.throws(() => loadEnv({ ...base, COMPANY_CNPJ: "123" }), /COMPANY_CNPJ/);
+});
+
+test("COMPANY_CNPJ é opcional fora de produção e aceita CNPJ alfanumérico", () => {
+  assert.equal(loadEnv(base).COMPANY_CNPJ, undefined);
+  assert.equal(loadEnv({ ...base, COMPANY_CNPJ: "12abc34501de35" }).COMPANY_CNPJ, "12ABC34501DE35");
 });

@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, ForbiddenError, NotFoundError } from "@shared/domain/errors";
 import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
@@ -25,7 +25,16 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
     }
 
     if (request.name !== undefined) variant.rename(request.name);
-    if (request.salePrice !== undefined) variant.changeSalePrice(request.salePrice);
+    if (request.salePrice !== undefined) {
+      // O formulário reenvia o preço atual a cada edição: só o preço diferente exige catalog.price.
+      const changed = Math.round(request.salePrice * 100) !== Math.round(variant.salePrice * 100);
+      // Preço atual 0 = variante nunca precificada: o cadastro inicial do preço é livre.
+      const neverPriced = Math.round(variant.salePrice * 100) === 0;
+      if (changed && !neverPriced && !request.canChangePrice) {
+        throw new ForbiddenError("Somente o administrador pode alterar o preço de venda.");
+      }
+      if (changed) variant.changeSalePrice(request.salePrice);
+    }
     if (request.barcode !== undefined) {
       if (request.barcode !== null && request.barcode !== variant.barcode) {
         const other = await this.variantRepository.findByBarcode(request.barcode);
