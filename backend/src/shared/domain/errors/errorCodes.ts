@@ -87,6 +87,7 @@ export const ErrorCodes = {
   EXPORT_TOO_LARGE: "EXPORT_TOO_LARGE",
   SALE_STOCK_INCONSISTENT: "SALE_STOCK_INCONSISTENT",
   PRICING_PERCENT_SUM_TOO_HIGH: "PRICING_PERCENT_SUM_TOO_HIGH",
+  PRICING_EXPENSE_NOT_FOUND: "PRICING_EXPENSE_NOT_FOUND",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

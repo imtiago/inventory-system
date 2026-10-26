@@ -23,6 +23,7 @@ import { payableRoutes, receivableRoutes } from "@finance/infrastructure/http/ro
 import { dashboardRoutes } from "./modules/dashboard/infrastructure/http/routes/dashboardRoutes";
 import { reportRoutes } from "./modules/reports/infrastructure/http/routes/reportRoutes";
 import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/productVariantsRoutes";
+import { pricingRoutes } from "@pricing/infrastructure/http/routes/pricingRoutes";
 
 export type BuildAppOptions = {
   logger?: FastifyServerOptions["logger"];
@@ -144,6 +145,7 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(nfeImportRoutes, { prefix: "/nfe-imports" });
   app.register(dashboardRoutes, { prefix: "/dashboard" });
   app.register(reportRoutes, { prefix: "/reports" });
+  app.register(pricingRoutes, { prefix: "/pricing" });
 
   return app;
 }
