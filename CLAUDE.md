@@ -112,10 +112,9 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 8. Commits terminam com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
 ## QA visual (headless)
-- Chrome em `/usr/bin/google-chrome`. Os scripts usados ficaram no scratchpad da sessão (não versionados); recrie assim:
-  - Mock da API: `node:http` na porta 3000 que devolve as fixtures de `frontend/src/test/fixtures/**` por rota (`/users/me` → ADMIN, `/dashboard`, `/sales`, `/products`, …) com CORS aberto.
-  - Frontend: `npm run build && npx vite preview` (proxy `/api` → :3000) ou `npm run dev`.
-  - Screenshots: `google-chrome --headless=new --no-sandbox --remote-debugging-port=<p> --user-data-dir=<tmp>`; via CDP (WebSocket do Node 22): `localStorage.setItem('token','t')`, `Emulation.setDeviceMetricsOverride` (375×812, 768×1024, 1280×800, 1440×900), `Page.navigate`, `Page.captureScreenshot`; confira `main.scrollWidth <= clientWidth` (sem rolagem horizontal) e os dois temas (`data-theme`).
+- Ferramentas versionadas em `tools/visual-qa/` (README com o passo a passo): mock da API a partir de `frontend/src/test/fixtures/**` (`server.mjs`, porta 4400), capturas por CDP em 375/768/1280/1440/1920 nos temas claro e escuro (`run.mjs`, `interact.mjs`) e relatório de contraste (`contrast.mjs`, falha abaixo de 4,5/3).
+- Resumo: `cd frontend && npx vite build --outDir <tmp>/dist --emptyOutDir`; `node tools/visual-qa/server.mjs <tmp>/dist`; `node tools/visual-qa/run.mjs --out <tmp>/shots --widths 375,1440`; `node tools/visual-qa/contrast.mjs`. Chrome em `/usr/bin/google-chrome`; portas 4400/4401 (nunca 5173/3000).
+- Confira `main.scrollWidth <= clientWidth` (o `run.mjs` já falha se houver rolagem horizontal) e os dois temas. Rota ou endpoint novo: atualize `pages.mjs` / `route()` do `server.mjs`.
 
 ## Armadilhas conhecidas
 - `pg_dump` local é 14 e o servidor 16: backup sempre com `PGCONTAINER=api_db_1`.
