@@ -79,6 +79,15 @@ describe('SaleCreatePage', () => {
     expect(screen.getByTestId('sale-total')).toHaveTextContent('119,70');
   });
 
+  test('o total é marcado como estimativa (o servidor recalcula ao registrar)', async () => {
+    renderPage();
+    await pickCustomer();
+    await addBarcode('111');
+    await screen.findByLabelText('Quantidade de Camiseta Azul');
+
+    expect(screen.getByTestId('sale-total-estimate')).toHaveTextContent(/estimativa/i);
+  });
+
   test('variante sem preço mostra alerta e bloqueia Registrar venda', async () => {
     renderPage();
     await pickCustomer();

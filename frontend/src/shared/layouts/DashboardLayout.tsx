@@ -7,6 +7,7 @@ import { ChunkErrorBoundary } from "@/shared/components/ChunkErrorBoundary";
 import { MobileDrawer } from "@/shared/components/layout/MobileDrawer";
 import { useBreakpoint } from "@/shared/hooks/useMediaQuery";
 import { allRoutes } from "@/routes/routes";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 /** Nome da tela para a barra superior: rota que casa com o caminho atual (`:param` vira qualquer segmento). */
 function screenTitle(pathname: string): string {
@@ -52,7 +53,7 @@ export function DashboardLayout() {
       <main className="min-h-0 flex-1 overflow-y-auto bg-background p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:p-6">
         {/* The menu stays mounted while a page chunk loads or fails to load. */}
         <ChunkErrorBoundary resetKey={pathname}>
-          <Suspense fallback={<p role="status" className="p-4 text-sm text-muted">Carregando...</p>}>
+          <Suspense fallback={<LoadingState label="Carregando..." />}>
             <Outlet />
           </Suspense>
         </ChunkErrorBoundary>

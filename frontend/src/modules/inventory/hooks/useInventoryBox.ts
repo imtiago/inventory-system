@@ -39,6 +39,7 @@ export function useInventoryBoxContents(code: string | undefined) {
 export function useInventoryBox() {
   const queryClient = useQueryClient();
   const keys = useIdempotencyKey();
+  const createKeys = useIdempotencyKey();
 
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +47,7 @@ export function useInventoryBox() {
     try {
       setLoading(true);
 
-      const box = await createInventoryBox();
+      const box = await createKeys.run(null, (key) => createInventoryBox(key));
 
       void invalidateInventoryQueries(queryClient);
 

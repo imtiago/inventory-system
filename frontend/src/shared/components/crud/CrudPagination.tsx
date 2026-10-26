@@ -4,7 +4,7 @@ import { useBreakpoint } from "@/shared/hooks/useMediaQuery";
 
 /** Botões com cor própria; desabilitado fica legível (sem opacidade) e claramente inativo. */
 const navButton =
-  "rounded border border-input bg-surface text-foreground transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:border-border disabled:bg-surface disabled:text-subtle";
+  "rounded-lg border border-input bg-surface text-foreground transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:border-border disabled:bg-surface disabled:text-subtle";
 
 interface CrudPaginationProps {
   page: number;

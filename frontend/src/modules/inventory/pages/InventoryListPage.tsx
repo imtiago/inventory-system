@@ -15,6 +15,7 @@ import { ExportButton } from '@/shared/components/export/ExportButton';
 import { ExportMenu } from '@/shared/components/export/ExportMenu';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { Can } from '@/shared/auth/Can';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 export function InventoryListPage() {
   const [page, setPage] = useState(1);
@@ -62,9 +63,7 @@ export function InventoryListPage() {
               </button>
             </div>
           ) : isLoading ? (
-            <div role="status" className="p-6 text-center text-sm text-muted">
-              Carregando estoque...
-            </div>
+            <LoadingState label="Carregando estoque..." />
           ) : items.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted">Nenhum item em estoque.</div>
           ) : (

@@ -11,6 +11,7 @@ import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import type { InventoryLot } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 export function InventoryDetailsPage() {
   const isTabletUp = useBreakpoint('md');
@@ -25,7 +26,7 @@ export function InventoryDetailsPage() {
     return (
       <Page width="narrow">
         <PageHeader title="Estoque" backPath="/inventory" backLabel="estoque" />
-        <p role="status" className="py-10 text-center text-sm text-muted">Carregando estoque...</p>
+        <LoadingState label="Carregando estoque..." />
       </Page>
     );
   }
@@ -87,9 +88,7 @@ export function InventoryDetailsPage() {
       >
         <div className="p-4 sm:p-6">
         {isLoadingLots ? (
-          <div className="rounded-lg border border-border p-8 text-center">
-            <span className="text-muted text-sm">Carregando lotes...</span>
-          </div>
+          <LoadingState label="Carregando lotes..." compact />
         ) : isLotsError ? (
           <div className="rounded-lg border border-danger/30 p-6">
             <p className="text-danger text-sm">Não foi possível carregar os lotes.</p>
@@ -181,7 +180,7 @@ function isLotExpired(lot: Pick<InventoryLot, 'expirationDate' | 'remainingQuant
 }
 
 function ExpiredTag() {
-  return <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">Vencido</span>;
+  return <span className="ml-2 rounded-lg bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">Vencido</span>;
 }
 
 function StockCard({ label, value, highlight }: StockCardProps) {

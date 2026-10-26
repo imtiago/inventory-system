@@ -60,7 +60,7 @@ export function PageHeader({
 
       <div className="flex flex-wrap justify-between items-start gap-3">
         <div className="min-w-0">
-          <h1 className="break-words text-2xl font-semibold text-foreground">{title}</h1>
+          {title && <h1 className="break-words text-2xl font-semibold text-foreground">{title}</h1>}
 
           {description && <div className="mt-1 text-muted">{description}</div>}
 

@@ -120,8 +120,8 @@ export async function getInventoryBoxByCode(code: string): Promise<InventoryBoxW
   return response.data.data;
 }
 
-export async function createInventoryBox(): Promise<InventoryBox> {
-  const response = await api.post<{ data: InventoryBox }>('/inventory/boxes');
+export async function createInventoryBox(idempotencyKey: string): Promise<InventoryBox> {
+  const response = await api.post<{ data: InventoryBox }>('/inventory/boxes', undefined, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }

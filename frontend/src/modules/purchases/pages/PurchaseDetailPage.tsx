@@ -17,6 +17,7 @@ import { usePurchase } from '../hooks/usePurchases';
 import { ReceivePurchaseModal } from '../components/ReceivePurchaseModal';
 import { CancelPurchaseModal } from '../components/CancelPurchaseModal';
 import { PURCHASE_STATUS_LABELS } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 export function PurchaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -69,7 +70,7 @@ export function PurchaseDetailPage() {
         actions={actions}
       />
 
-      {isLoading && <p className="text-sm text-muted">Carregando pedido...</p>}
+      {isLoading && <LoadingState label="Carregando pedido..." />}
 
       {isError && !purchase && (
         <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">{isNotFound ? 'Pedido não encontrado.' : 'Não foi possível carregar o pedido.'}</div>

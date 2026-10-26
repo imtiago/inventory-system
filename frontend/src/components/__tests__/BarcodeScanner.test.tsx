@@ -98,6 +98,24 @@ describe('BarcodeScanner', () => {
     expect(await screen.findByText(/liberar a câmera/i)).toBeInTheDocument();
   });
 
+  test.each([
+    ['Chrome', 'Failed to fetch dynamically imported module: https://loja.example/assets/html5-qrcode-abc.js'],
+    ['Firefox', 'error loading dynamically imported module'],
+    ['Safari', 'Importing a module script failed.'],
+  ])('falha ao baixar o leitor (%s) avisa de nova versão e oferece recarregar', async (_browser, message) => {
+    h.getCameras.mockRejectedValueOnce(new TypeError(message));
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    const user = userEvent.setup();
+    await renderScanner();
+
+    expect(await screen.findByText(/Nova versão disponível/)).toBeInTheDocument();
+    expect(screen.queryByText(/Não foi possível iniciar a câmera/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Recarregar' }));
+    expect(reload).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
   test('sem câmera mostra "Nenhuma câmera encontrada"', async () => {
     h.getCameras.mockResolvedValue([]);
     await renderScanner();

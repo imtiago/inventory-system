@@ -20,6 +20,7 @@ import type { ISupplier } from '@/modules/suppliers/types';
 
 import { usePurchases } from '../hooks/usePurchases';
 import { PURCHASE_STATUS_LABELS, type IPurchaseListItem, type PurchaseStatus } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const STATUSES = Object.keys(PURCHASE_STATUS_LABELS) as PurchaseStatus[];
 
@@ -164,7 +165,7 @@ export function PurchaseListPage() {
             </div>
           )}
 
-          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando pedidos...</p>}
+          {isLoading && !data && <LoadingState label="Carregando pedidos..." />}
 
           {!isError && (
             <CrudPagination

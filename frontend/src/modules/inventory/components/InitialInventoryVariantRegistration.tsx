@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ProductVariantRegistration } from './ProductVariantRegistration';
 import { useProductVariantOptions } from '../hooks/useProductVariantOptions';
 import type { ProductVariant } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 interface InitialInventoryVariantRegistrationProps {
   /** Scanned barcode that was not found; null when registering without barcode. */
@@ -36,7 +37,7 @@ export function InitialInventoryVariantRegistration({ barcode, productId, produc
       </div>
 
       <div className="space-y-3 rounded-xl bg-surface p-6 shadow">
-        {isLoading && <p className="text-sm text-muted">Carregando variantes...</p>}
+        {isLoading && <LoadingState label="Carregando variantes..." compact />}
 
         {error && (
           <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">

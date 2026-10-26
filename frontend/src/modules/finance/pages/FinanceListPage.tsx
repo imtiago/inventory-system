@@ -18,6 +18,7 @@ import { PartyFilter } from '../components/PartyFilter';
 import { FINANCE_KINDS, partyOf, summaryValue, type FinanceKind } from '../config';
 import { useFinanceList } from '../hooks/useFinanceList';
 import { FINANCE_STATUS_LABELS, type IFinanceFilters, type IFinanceListItem, type FinanceStatus } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const STATUSES = Object.keys(FINANCE_STATUS_LABELS) as FinanceStatus[];
 
@@ -25,7 +26,7 @@ type FilterKey = 'status' | 'customerId' | 'supplierId' | 'dueFrom' | 'dueTo' | 
 
 function SummaryCard({ id, label, value }: { id: string; label: string; value?: number }) {
   return (
-    <div data-testid={`summary-${id}`} className="rounded-xl border bg-surface p-4 shadow-sm">
+    <div data-testid={`summary-${id}`} className="rounded-xl border bg-surface p-4 shadow">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold">{formatCurrency(value ?? 0)}</p>
     </div>
@@ -213,7 +214,7 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             </div>
           )}
 
-          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando {config.plural}...</p>}
+          {isLoading && !data && <LoadingState label={`Carregando ${config.plural}...`} />}
 
           {!isError && (
             <CrudPagination

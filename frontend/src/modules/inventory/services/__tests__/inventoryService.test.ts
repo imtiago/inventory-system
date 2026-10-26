@@ -97,7 +97,7 @@ describe('inventoryService', () => {
   });
 
   test('createInventoryBox e addLotToBox retornam data', async () => {
-    const box = await createInventoryBox();
+    const box = await createInventoryBox("box-key-12345");
     expect(box.code).toBe('B000123');
 
     const item = await addLotToBox(box.id, { inventoryLotId: 'lot-1', quantity: 4 }, 'key-12345678');

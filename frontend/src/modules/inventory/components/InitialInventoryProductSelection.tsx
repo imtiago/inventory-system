@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useFinePointer } from '@/shared/hooks/useMediaQuery';
 
 import type { InventoryProductSearchResult } from '../hooks/useSearchProducts';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 interface Props {
   products: InventoryProductSearchResult[];
@@ -50,7 +51,7 @@ export function InitialInventoryProductSelection({ products, loading, error, onS
         </div>
       </div>
 
-      {loading && <div className="rounded-xl bg-surface p-6 text-center shadow">Carregando produtos...</div>}
+      {loading && <LoadingState label="Carregando produtos..." compact />}
 
       {error && <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-danger">{error}</div>}
 

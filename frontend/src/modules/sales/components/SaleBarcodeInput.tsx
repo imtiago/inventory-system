@@ -50,7 +50,7 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
   }
 
   return (
-    <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+    <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
       <div className="mb-5">
         <h2 className="text-lg font-semibold">Lançamento de produtos</h2>
 
@@ -97,7 +97,7 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
           <div className="mb-3 flex items-center justify-between">
             <p className="font-medium">Leitura do código de barras</p>
 
-            <button type="button" aria-label="Fechar câmera" onClick={() => setScannerOpen(false)} className="rounded-md p-2 hover:bg-surface-muted">
+            <button type="button" aria-label="Fechar câmera" onClick={() => setScannerOpen(false)} className="rounded-lg p-2 hover:bg-surface-muted">
               <X size={18} />
             </button>
           </div>

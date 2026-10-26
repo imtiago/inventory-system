@@ -67,6 +67,17 @@ describe('ChangePasswordModal', () => {
     expect(useAuthStore.getState().token).toBe('token-VENDEDOR');
   });
 
+  test('senha com acentos conta bytes: 37 "é" (74 bytes) é recusada sem chamar a API', async () => {
+    let puts = 0;
+    server.use(http.put(`${API_URL}/users/me/password`, () => { puts += 1; return HttpResponse.json({ data: { token: 'x' } }); }));
+    renderWithProviders(<ChangePasswordModal open onClose={() => {}} />);
+    const longAccented = 'é'.repeat(37);
+    const dialog = await fill('SenhaAtual1', longAccented, longAccented);
+
+    expect(await within(dialog).findByText('A senha deve ter no máximo 72 bytes.')).toBeInTheDocument();
+    expect(puts).toBe(0);
+  });
+
   test('confirmação diferente não envia', async () => {
     let called = false;
     server.use(

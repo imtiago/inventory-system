@@ -1,5 +1,6 @@
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import type { InventoryLot, ProductVariant } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 interface Props {
   variant: ProductVariant;
@@ -68,7 +69,7 @@ export function InitialInventoryLotStep({ variant, barcode, lots, lotsLoading, l
           ))}
         </select>
 
-        {lotsLoading && <p className="mt-2 text-sm text-muted">Carregando lotes...</p>}
+        {lotsLoading && <LoadingState label="Carregando lotes..." compact />}
 
         {lotsError && (
           <div role="alert" className="mt-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">

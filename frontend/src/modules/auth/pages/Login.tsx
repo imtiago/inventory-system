@@ -8,6 +8,7 @@ import { api } from "@/shared/services/api";
 import { useAuthStore, type SessionUser } from "@/shared/store/auth";
 import { parseApiErrorSync } from "@/shared/services/parseApiError";
 
+import { FieldError, fieldA11y } from "@/shared/components/form";
 type LoginForm = { email: string; password: string };
 
 export function Login() {
@@ -62,8 +63,8 @@ export function Login() {
         w-full
         max-w-md
         bg-surface
-        rounded-2xl
-        shadow-2xl
+        rounded-xl
+        shadow-lg
         p-8
       "
       >
@@ -82,7 +83,7 @@ export function Login() {
             bg-primary
             text-primary-foreground
             p-4
-            rounded-2xl
+            rounded-xl
             mb-4
           "
           >
@@ -175,14 +176,14 @@ export function Login() {
                   focus:ring-2
                   focus:ring-ring/20
                 "
-                id="login-email"
+                id="login-email" {...fieldA11y("login-email", errors.email?.message)}
                 type="email"
                 autoComplete="username"
                 placeholder="seu@email.com"
                 {...register("email", { required: "E-mail obrigatório." })}
               />
             </div>
-            {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
+            <FieldError id="login-email" message={errors.email?.message} />
           </div>
 
           {/* Senha */}
@@ -227,14 +228,14 @@ export function Login() {
                   focus:ring-2
                   focus:ring-ring/20
                 "
-                id="login-password"
+                id="login-password" {...fieldA11y("login-password", errors.password?.message)}
                 type="password"
                 autoComplete="current-password"
                 placeholder="********"
                 {...register("password", { required: "Senha obrigatória." })}
               />
             </div>
-            {errors.password && <p className="mt-1 text-sm text-danger">{errors.password.message}</p>}
+            <FieldError id="login-password" message={errors.password?.message} />
           </div>
 
           <button

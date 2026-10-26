@@ -79,6 +79,8 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 ## Convenções do frontend
 - TanStack Query: chaves só por `queryKeys` (`shared/react-query/keys.ts`). Mutations invalidam os módulos afetados (ex.: venda → sales, receivables, dashboard, `invalidateInventoryQueries`). Sem retry em 4xx.
 - Cores: **só tokens do tema** (`bg-surface`, `text-muted`, `success-soft`…, definidos em `index.css`/`tailwind.config.ts`; temas claro/escuro/sistema). `npm run lint` falha em cor crua (classe Tailwind de paleta, hex, rgb) — exceção só com comentário `raw-color-ok`. Status → `toneFor()`/`statusTone` (`shared/utils/statusTone.ts`).
+- Cantos e sombras (teste `src/test/designScale.test.ts`): `rounded-lg` em controles/itens, `rounded-xl` em superfícies (cartões, seções, modais), `rounded-full` em pílulas; `shadow` em cartões, `shadow-lg` em camadas flutuantes (modal, menu, lista de opções). Não use `rounded`, `rounded-md`, `rounded-2xl`, `shadow-sm/xl/2xl`.
+- Formulários: erro de campo com `<FieldError id=…>` + `{...fieldA11y(id, erro)}` no input (`aria-invalid`/`aria-describedby`); todo `label` com `htmlFor`; botão/link só com ícone leva `aria-label`. Carregamento: `LoadingState` (`shared/components`), não texto solto.
 - `Modal` e `ConfirmDialog` renderizam em portal; formulário dentro de Modal chama `useModalBusy(pending)` (ou `busy`) para não fechar durante envio; `ConfirmDialog` usa `loading`.
 - `MoneyInput`: texto pt-BR → centavos. "," é decimal, "." é milhar; sem vírgula, ponto + 3 dígitos = milhar ("1.000"), ponto + 1–2 dígitos = decimal ("39.9"); > 2 casas = erro. `QuantityInput`: só inteiros, botões −/+ de 44 px.
 - `DataTable`: cada coluna declara `mobile: 'title' | 'subtitle' | 'meta' | 'hidden' | 'actions'`; abaixo de `md` vira cartões.
@@ -112,10 +114,9 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 8. Commits terminam com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
 ## QA visual (headless)
-- Chrome em `/usr/bin/google-chrome`. Os scripts usados ficaram no scratchpad da sessão (não versionados); recrie assim:
-  - Mock da API: `node:http` na porta 3000 que devolve as fixtures de `frontend/src/test/fixtures/**` por rota (`/users/me` → ADMIN, `/dashboard`, `/sales`, `/products`, …) com CORS aberto.
-  - Frontend: `npm run build && npx vite preview` (proxy `/api` → :3000) ou `npm run dev`.
-  - Screenshots: `google-chrome --headless=new --no-sandbox --remote-debugging-port=<p> --user-data-dir=<tmp>`; via CDP (WebSocket do Node 22): `localStorage.setItem('token','t')`, `Emulation.setDeviceMetricsOverride` (375×812, 768×1024, 1280×800, 1440×900), `Page.navigate`, `Page.captureScreenshot`; confira `main.scrollWidth <= clientWidth` (sem rolagem horizontal) e os dois temas (`data-theme`).
+- Ferramentas versionadas em `tools/visual-qa/` (README com o passo a passo): mock da API a partir de `frontend/src/test/fixtures/**` (`server.mjs`, porta 4400), capturas por CDP em 375/768/1280/1440/1920 nos temas claro e escuro (`run.mjs`, `interact.mjs`) e relatório de contraste (`contrast.mjs`, falha abaixo de 4,5/3).
+- Resumo: `cd frontend && npx vite build --outDir <tmp>/dist --emptyOutDir`; `node tools/visual-qa/server.mjs <tmp>/dist`; `node tools/visual-qa/run.mjs --out <tmp>/shots --widths 375,1440`; `node tools/visual-qa/contrast.mjs`. Chrome em `/usr/bin/google-chrome`; portas 4400/4401 (nunca 5173/3000).
+- Confira `main.scrollWidth <= clientWidth` (o `run.mjs` já falha se houver rolagem horizontal) e os dois temas. Rota ou endpoint novo: atualize `pages.mjs` / `route()` do `server.mjs`.
 
 ## Armadilhas conhecidas
 - `pg_dump` local é 14 e o servidor 16: backup sempre com `PGCONTAINER=api_db_1`.

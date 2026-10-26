@@ -24,12 +24,21 @@ beforeEach(() => {
   );
 });
 
+/** Marca e categoria já escolhidas: o formulário as exige antes de enviar. */
+const picked = {
+  initialValues: { brandId: 'b-0', categoryId: 'c-0' },
+  initialBrand: { id: 'b-0', name: 'Marca', productsCount: 0 },
+  initialCategory: { id: 'c-0', name: 'Categoria', productsCount: 0 },
+};
+
 describe('ProductForm', () => {
   test('mostra erro do backend para campo que o formulário não renderiza', async () => {
     renderWithProviders(
       <ProductForm
         title="Novo"
         description=""
+        {...picked}
+        initialValues={{ ...picked.initialValues, name: 'Perfume' }}
         onSubmit={async () => { throw validationError([{ field: 'sku', message: 'SKU inválido.' }]); }}
         onCancel={() => {}}
       />,
@@ -45,6 +54,8 @@ describe('ProductForm', () => {
       <ProductForm
         title="Novo"
         description=""
+        {...picked}
+        initialValues={{ ...picked.initialValues, name: 'Perfume' }}
         onSubmit={async () => { throw validationError([{ field: 'name', message: 'O nome é obrigatório.' }]); }}
         onCancel={() => {}}
       />,
@@ -57,7 +68,7 @@ describe('ProductForm', () => {
 
   test('dois cliques em salvar chamam onSubmit uma única vez', async () => {
     const onSubmit = vi.fn(() => new Promise<void>((resolve) => setTimeout(resolve, 100)));
-    renderWithProviders(<ProductForm title="Novo" description="" onSubmit={onSubmit} onCancel={() => {}} />);
+    renderWithProviders(<ProductForm title="Novo" description="" {...picked} onSubmit={onSubmit} onCancel={() => {}} />);
 
     await userEvent.type(screen.getByLabelText('Nome'), 'Perfume');
     await userEvent.dblClick(screen.getByRole('button', { name: 'Salvar Produto' }));
@@ -108,12 +119,55 @@ describe('ProductForm', () => {
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ brandId: 'b-101', categoryId: 'c-0' });
   });
 
+  describe('validação no cliente', () => {
+    const filled = { name: 'Perfume', brandId: 'b-0', categoryId: 'c-0' };
+    const brand = { id: 'b-0', name: 'Marca', productsCount: 0 };
+    const category = { id: 'c-0', name: 'Categoria', productsCount: 0 };
+    const save = () => userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
+
+    test('nome curto, marca e categoria vazias não chegam ao servidor', async () => {
+      const onSubmit = vi.fn();
+      renderWithProviders(<ProductForm title="Novo" description="" initialValues={{ name: 'ab' }} onSubmit={onSubmit} onCancel={() => {}} />);
+
+      await save();
+
+      expect(await screen.findByText('O nome deve ter ao menos 3 caracteres.')).toBeInTheDocument();
+      expect(screen.getByText('A marca é obrigatória.')).toBeInTheDocument();
+      expect(screen.getByText('A categoria é obrigatória.')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Nome')).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    test('nome com mais de 120 e descrição com mais de 500 caracteres são recusados', async () => {
+      const onSubmit = vi.fn();
+      renderWithProviders(
+        <ProductForm title="Novo" description="" initialValues={{ ...filled, name: 'a'.repeat(121), description: 'd'.repeat(501) }} initialBrand={brand} initialCategory={category} onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+
+      await save();
+
+      expect(await screen.findByText('O nome deve ter no máximo 120 caracteres.')).toBeInTheDocument();
+      expect(screen.getByText('A descrição deve ter no máximo 500 caracteres.')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    test('nome só com espaços conta como curto', async () => {
+      const onSubmit = vi.fn();
+      renderWithProviders(<ProductForm title="Novo" description="" initialValues={{ ...filled, name: '   ab  ' }} initialBrand={brand} initialCategory={category} onSubmit={onSubmit} onCancel={() => {}} />);
+
+      await save();
+
+      expect(await screen.findByText('O nome deve ter ao menos 3 caracteres.')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
   describe('preço de venda inicial (cadastro)', () => {
     const typeName = () => userEvent.type(screen.getByLabelText('Nome'), 'Perfume');
 
     test('com withSalePrice o campo é obrigatório e envia o número', async () => {
       const onSubmit = vi.fn();
-      renderWithProviders(<ProductForm title="Novo" description="" withSalePrice onSubmit={onSubmit} onCancel={() => {}} />);
+      renderWithProviders(<ProductForm title="Novo" description="" {...picked} withSalePrice onSubmit={onSubmit} onCancel={() => {}} />);
 
       await typeName();
       await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
@@ -128,7 +182,7 @@ describe('ProductForm', () => {
 
     test('sem withSalePrice (edição) o campo não aparece e nada é enviado', async () => {
       const onSubmit = vi.fn();
-      renderWithProviders(<ProductForm title="Editar" description="" onSubmit={onSubmit} onCancel={() => {}} />);
+      renderWithProviders(<ProductForm title="Editar" description="" {...picked} onSubmit={onSubmit} onCancel={() => {}} />);
       expect(screen.queryByLabelText('Preço de venda (R$)')).not.toBeInTheDocument();
       await typeName();
       await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));

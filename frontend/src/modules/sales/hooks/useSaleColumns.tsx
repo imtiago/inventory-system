@@ -6,19 +6,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { formatCurrency } from '@/shared/utils/money';
 
 import type { ISale } from '../types';
-
-function formatDate(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '—';
-  }
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(date);
-}
+import { formatDateTime } from '@/shared/utils/formatDateTime';
 
 const statusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
@@ -38,7 +26,7 @@ export function useSaleColumns(): DataTableColumn<ISale>[] {
             #{sale.id.slice(0, 8).toUpperCase()}
           </Link>
 
-          <div className="text-sm text-muted">{formatDate(sale.createdAt)}</div>
+          <div className="text-sm text-muted">{formatDateTime(sale.createdAt)}</div>
         </div>
       ),
     },
