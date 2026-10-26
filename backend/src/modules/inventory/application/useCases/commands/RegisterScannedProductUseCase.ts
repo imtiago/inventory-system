@@ -6,6 +6,7 @@ import { CatalogService } from "@catalog/application/services/CatalogService";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { IRegisterScannedProductInput } from "@inventory/application/dto/InventoryDTO";
+import { countBatchNumber } from "@inventory/domain/services/countLot";
 import { ReceiveInventoryUseCase } from "./ReceiveInventoryUseCase";
 import { AddProductToBoxUseCase } from "./AddProductToBoxUseCase";
 import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
@@ -61,8 +62,10 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     const inventory = await this.inventoryRepository.lockByProductVariantId(variant.id);
     const unitCost = request.unitCost ?? inventory.averageCost ?? 0;
 
-    // Sem lote informado: lote "aberto" da contagem, um por variante e caixa.
-    const batchNumber = request.batchNumber ?? `CONT-${box.code}-${variant.code}`;
+    // Sem lote informado: lote "aberto" da contagem, um por variante, caixa e validade
+    // (leitura com outra validade nunca cai no lote de outra, nem preenche a data de um lote sem validade).
+    const batchNumber =
+      request.batchNumber ?? countBatchNumber(box.code, variant.code, request.expirationDate);
 
     const { lot } = await this.receiveInventory.execute({
       productVariantId: variant.id,

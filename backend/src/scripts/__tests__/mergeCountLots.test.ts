@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
 import { createTestVariant } from "../../test/inventoryFixtures";
 import { mergeCountLots, parseMergeCountLotsArgs } from "../mergeCountLots";
+import { countBatchNumber } from "@inventory/domain/services/countLot";
 
 describe("merge-count-lots", () => {
   let cleanupVariant: () => Promise<void>;
@@ -17,6 +18,12 @@ describe("merge-count-lots", () => {
   let purchaseLot: string;
   let batchLot: string;
   let manualLot: string;
+  let addCountLot: (
+    day: number,
+    over: Record<string, unknown>,
+    box: { id: string },
+    movement?: Record<string, unknown>,
+  ) => Promise<string>;
   const boxIds: string[] = [];
 
   /** Dado legado: 3 lotes de contagem de 1 unidade (custos 2, 4, 6) na caixa A + lotes que não podem ser tocados. */
@@ -37,6 +44,7 @@ describe("merge-count-lots", () => {
       over: Record<string, unknown> = {},
       box?: { id: string },
       origin: "INVENTORY" | "MANUAL" = "INVENTORY",
+      movement: Record<string, unknown> = {},
     ) => {
       const l = await prisma.inventoryLot.create({
         data: {
@@ -52,10 +60,11 @@ describe("merge-count-lots", () => {
       });
       if (box) await prisma.inventoryBoxStock.create({ data: { inventoryLotId: l.id, boxId: box.id, quantity: 1 } });
       await prisma.stockMovement.create({
-        data: { inventoryId, productVariantId: variantId, inventoryLotId: l.id, type: "IN", origin, quantity: 1 },
+        data: { inventoryId, productVariantId: variantId, inventoryLotId: l.id, type: "IN", origin, quantity: 1, ...movement } as never,
       });
       return l.id;
     };
+    addCountLot = (d, over, box, movement) => lot(d, over, box, "INVENTORY", movement);
     countLots = [
       await lot(3, { unitCost: 6 }, boxA),
       await lot(1, { unitCost: 2 }, boxA),
@@ -136,6 +145,47 @@ describe("merge-count-lots", () => {
     for (const id of [purchaseLot, batchLot, manualLot, loneCountLot]) {
       assert.equal(lots.find((l) => l.id === id)!.initialQuantity, 1);
     }
+  });
+
+  test("o sobrevivente recebe o mesmo nome do lote aberto do fluxo ao vivo (com a validade, se houver)", async () => {
+    const variantCode = (await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).code;
+    const exp = new Date(Date.UTC(2030, 5, 15));
+    const dated = [
+      await addCountLot(10, { expirationDate: exp }, boxB),
+      await addCountLot(11, { expirationDate: exp }, boxB),
+    ];
+    const result = await mergeCountLots({ apply: true, variantIds: [variantId], log: () => {} });
+    const group = result.groups.find((g) => g.boxId === boxB.id && g.survivorId === dated[0])!;
+    assert.ok(group, "grupo datado da caixa B");
+    assert.equal(group.batchNumber, countBatchNumber(boxB.code, variantCode, exp));
+    assert.equal(group.batchNumber, `CONT-${boxB.code}-${variantCode}-20300615`);
+  });
+
+  test("entrada manual de 1 unidade (com observação ou documento de origem) nunca é unida", async () => {
+    const noted = await addCountLot(8, {}, boxA, { notes: "ajuste manual" });
+    const withOrigin = await addCountLot(9, {}, boxA, { originId: randomUUID() });
+    const result = await mergeCountLots({ apply: true, variantIds: [variantId], log: () => {} });
+    const touched = result.groups.flatMap((g) => [g.survivorId, ...g.mergedIds]);
+    assert.ok(!touched.includes(noted));
+    assert.ok(!touched.includes(withOrigin));
+    const ids = (await lotsOf()).map((l) => l.id);
+    assert.ok(ids.includes(noted) && ids.includes(withOrigin));
+  });
+
+  test("custo ponderado pelo saldo; sem saldo, pela quantidade inicial", async () => {
+    await prisma.inventoryLot.update({ where: { id: countLots[0] }, data: { remainingQuantity: 0 } }); // custo 6 vendido
+    await mergeCountLots({ apply: true, variantIds: [variantId], log: () => {} });
+    const survivor = (await lotsOf()).find((l) => l.id === countLots[1])!;
+    assert.equal(Number(survivor.unitCost), 3); // (2 + 4) / 2, o custo 6 não entra
+
+  });
+
+  test("sem nenhum saldo, o custo cai para a ponderação pela quantidade inicial", async () => {
+    await prisma.inventoryLot.updateMany({ where: { id: { in: countLots } }, data: { remainingQuantity: 0 } });
+    await mergeCountLots({ apply: true, variantIds: [variantId], log: () => {} });
+    const survivor = (await lotsOf()).find((l) => l.id === countLots[1])!;
+    assert.equal(survivor.remainingQuantity, 0);
+    assert.equal(Number(survivor.unitCost), 4); // (2 + 4 + 6) / 3
   });
 
   test("é idempotente: segunda execução não encontra nada", async () => {

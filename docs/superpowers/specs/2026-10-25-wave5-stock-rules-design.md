@@ -21,7 +21,7 @@ Achados de origem em `docs/reviews/2026-10-25-revisao-geral.md` (seção "Revis�
 - **Vencido:** `expirationDate` anterior à data de negócio de hoje (America/Sao_Paulo). Lote que vence hoje ainda pode ser vendido.
 - **Venda (`origin SALE`):** consome só lotes não vencidos, em FEFO.
 - **Estoque insuficiente na venda:** se o saldo não vencido não cobre a quantidade, a venda inteira é recusada.
-  - Resposta: 409 `EXPIRED_STOCK_ONLY` quando há saldo vencido suficiente para cobrir a falta; caso contrário, 409 `INSUFFICIENT_STOCK`, como hoje.
+  - Resposta: 409 `EXPIRED_STOCK_ONLY` quando há saldo vencido suficiente para cobrir a falta; caso contrário, `INSUFFICIENT_STOCK` continua 422, como hoje.
   - Mensagem: "Estoque insuficiente para <produto/variante>: <n> disponível(is) dentro da validade; <m> vencida(s) — dê baixa manual dos vencidos."
   - Sem `<m>` quando não há vencidos.
   - A mensagem identifica o item da venda.

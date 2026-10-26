@@ -85,3 +85,28 @@ test("com lote informado continua usando o lote do usuário", async () => {
   await s.uc.execute({ barcode: "789", boxCode: "BX1" });
   assert.deepEqual(s.lots.all().map((l) => l.batchNumber).sort(), ["CONT-BX1-V1", "L9"]);
 });
+
+test("leituras com validades diferentes na mesma caixa geram um lote por validade, sem 409", async () => {
+  const s = await build();
+  const d1 = new Date("2026-11-10T00:00:00.000Z");
+  const d2 = new Date("2026-11-20T00:00:00.000Z");
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: d1 });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: d2 });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: d1 });
+  assert.deepEqual(
+    s.lots.all().map((l) => [l.batchNumber, l.remainingQuantity]).sort(),
+    [["CONT-BX1-V1-20261110", 2], ["CONT-BX1-V1-20261120", 1]],
+  );
+});
+
+test("leitura sem validade e depois com validade: dois lotes; o sem validade continua sem data", async () => {
+  const s = await build();
+  await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1", expirationDate: new Date("2026-11-10T00:00:00.000Z") });
+  await s.uc.execute({ barcode: "789", boxCode: "BX1" });
+  const undated = s.lots.all().find((l) => l.batchNumber === "CONT-BX1-V1")!;
+  assert.equal(s.lots.all().length, 2);
+  assert.ok(!undated.expirationDate);
+  assert.equal(undated.remainingQuantity, 2);
+  assert.ok(s.lots.all().some((l) => l.batchNumber === "CONT-BX1-V1-20261110" && l.remainingQuantity === 1));
+});

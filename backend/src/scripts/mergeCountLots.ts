@@ -11,12 +11,15 @@
 // uma única caixa e com uma movimentação IN de origem INVENTORY. Lotes de compra,
 // NF-e, devolução, com lote informado ou entradas manuais comuns nunca entram.
 //
+// Só entram lotes provavelmente criados pela contagem: a única movimentação IN tem
+// quantidade 1, origem INVENTORY, sem originId e sem observação. Revise a simulação
+// (custo e data de cada lote) antes de rodar com --apply.
 // Grupo = mesma variante + mesma caixa + mesmas datas de validade/fabricação.
-// O sobrevivente é o lote "aberto" CONT-<caixa>-<variante> se já existir (e tiver
-// as mesmas datas); senão o mais antigo do grupo, que passa a ser o lote aberto.
+// O sobrevivente é o lote "aberto" CONT-<caixa>-<variante>[-<AAAAMMDD da validade>]
+// (mesmo nome do fluxo ao vivo) se já existir (e tiver as mesmas datas); senão o mais antigo do grupo, que passa a ser o lote aberto.
 // A união preserva: Σ saldo e Σ inicial, Σ alocação por caixa (a alocação do
-// sobrevivente recebe a soma e as dos demais saem), o custo (média ponderada pela
-// quantidade inicial, 2 casas) e o histórico (as movimentações dos lotes unidos
+// sobrevivente recebe a soma e as dos demais saem), o custo (média ponderada pelo
+// saldo, ou pela quantidade inicial se não há saldo, 2 casas) e o histórico (as movimentações dos lotes unidos
 // passam a apontar para o sobrevivente). Os lotes unidos são apagados.
 // Trava na mesma ordem das saídas: inventário (variante) → lotes (por id) →
 // alocações. Idempotente: depois da união não sobra lote de contagem para unir.
@@ -26,6 +29,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@shared/prisma";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { countBatchNumber } from "@inventory/domain/services/countLot";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 
 export interface MergeGroup {
@@ -38,6 +42,8 @@ export interface MergeGroup {
   quantity: number;
   unitCost: number;
   batchNumber: string | null;
+  /** Custo e data de criação de cada lote do grupo, para o operador achar destoantes na simulação. */
+  lots: { id: string; unitCost: number; createdAt: Date }[];
 }
 
 export interface MergeCountLotsResult {
@@ -75,7 +81,6 @@ export function parseMergeCountLotsArgs(argv: readonly string[]): { apply: boole
   return { apply: argv.includes("--apply") };
 }
 
-const openBatchNumber = (boxCode: string, variantCode: string) => `CONT-${boxCode}-${variantCode}`;
 const dayOf = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "-");
 
 async function findCandidates(variantIds?: readonly string[]): Promise<CandidateRow[]> {
@@ -97,7 +102,8 @@ async function findCandidates(variantIds?: readonly string[]): Promise<Candidate
        AND l."initialQuantity" = 1
        AND (SELECT COUNT(*) FROM "InventoryBoxStock" x WHERE x."inventoryLotId" = l."id") = 1
        AND EXISTS (SELECT 1 FROM "StockMovement" m
-                    WHERE m."inventoryLotId" = l."id" AND m."type" = 'IN' AND m."origin" = 'INVENTORY')
+                    WHERE m."inventoryLotId" = l."id" AND m."type" = 'IN' AND m."origin" = 'INVENTORY'
+                      AND m."quantity" = 1 AND m."originId" IS NULL AND m."notes" IS NULL)
        ${filter}
      ORDER BY l."productVariantId", bs."boxId", l."createdAt", l."id"`;
 }
@@ -125,7 +131,7 @@ async function planGroups(variantIds?: readonly string[]): Promise<PlannedGroup[
     const open = await prisma.inventoryLot.findFirst({
       where: {
         productVariantId: first.productVariantId,
-        batchNumber: openBatchNumber(first.boxCode, first.variantCode),
+        batchNumber: countBatchNumber(first.boxCode, first.variantCode, first.expirationDate),
         sourceType: "MANUAL",
         boxStocks: { some: { boxId: first.boxId } },
       },
@@ -173,19 +179,22 @@ async function mergeGroup(group: PlannedGroup, apply: boolean): Promise<MergeGro
 
   const survivor = open ?? legacy[0];
   const merged = lots.filter((l) => l.id !== survivor.id);
+  const openName = countBatchNumber(group.boxCode, group.variantCode, survivor.expirationDate);
   const batchTaken = await db.inventoryLot.findFirst({
     where: {
       productVariantId: group.productVariantId,
-      batchNumber: openBatchNumber(group.boxCode, group.variantCode),
+      batchNumber: openName,
     },
     select: { id: true },
   });
-  const batchNumber = survivor.batchNumber ?? (batchTaken ? null : openBatchNumber(group.boxCode, group.variantCode));
+  const batchNumber = survivor.batchNumber ?? (batchTaken ? null : openName);
 
   const initialQuantity = lots.reduce((s, l) => s + l.initialQuantity, 0);
   const remainingQuantity = lots.reduce((s, l) => s + l.remainingQuantity, 0);
-  const unitCost =
-    Math.round((lots.reduce((s, l) => s + l.initialQuantity * Number(l.unitCost), 0) / initialQuantity) * 100) / 100;
+  // Média ponderada pelo saldo (como o receive ao vivo); sem saldo nenhum, pela quantidade inicial.
+  const weight = (l: (typeof lots)[number]) => (remainingQuantity > 0 ? l.remainingQuantity : l.initialQuantity);
+  const weightSum = lots.reduce((s, l) => s + weight(l), 0);
+  const unitCost = Math.round((lots.reduce((s, l) => s + weight(l) * Number(l.unitCost), 0) / weightSum) * 100) / 100;
   const boxQuantity = lots.reduce((s, l) => s + (l.boxStocks.find((b) => b.boxId === group.boxId)?.quantity ?? 0), 0);
 
   if (apply) {
@@ -213,6 +222,7 @@ async function mergeGroup(group: PlannedGroup, apply: boolean): Promise<MergeGro
     quantity: remainingQuantity,
     unitCost,
     batchNumber,
+    lots: lots.map((l) => ({ id: l.id, unitCost: Number(l.unitCost), createdAt: l.createdAt })),
   };
 }
 
@@ -252,6 +262,9 @@ export async function mergeCountLots(options: MergeCountLotsOptions): Promise<Me
         `(saldo ${result.quantity}, custo ${result.unitCost}, lote ${result.batchNumber ?? "sem número"}); ` +
         `${options.apply ? "apagados" : "a apagar"}: ${result.mergedIds.join(", ")}`,
     );
+    for (const l of result.lots) {
+      log(`    lote ${l.id}: custo ${l.unitCost}, criado em ${l.createdAt.toISOString()}`);
+    }
     groups.push(result);
   }
 
