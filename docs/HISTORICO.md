@@ -77,5 +77,8 @@ Nenhum desses itens afeta dados nem segurança; o usuário recebeu a oferta de u
 6. **Produção:** `NODE_ENV=production`, `CORS_ORIGINS`, `JWT_SECRET` ≥ 32, `TRUST_PROXY` com número de saltos ou IP (não `true`), `COMPANY_CNPJ`, nginx com HTTPS (README raiz).
 7. Recadastrar os produtos com preço de venda (dados perdidos no apagamento de 2026-10-23).
 
-### Próximo tema em discussão (2026-10-26)
-Crediário (crédito interno da loja): valor final varia com número de parcelas e valor da compra. Em avaliação com o usuário, ainda sem spec; base existente: contas a receber parceladas (até 12x, mensais, sem juros) com pagamentos e atraso.
+### Onda 9 — acabamento (2026-10-26)
+Baixos da revisão e menores adiados: senha limitada a 72 bytes, replay de idempotência com cabeçalhos, custos `Decimal(14,4)`, FKs restritivas no histórico financeiro, nome/busca padronizados, ajuste por lote, dashboard de estoque em SQL, limite de 200 itens por venda, NF-e de bonificação (total zero, confirmável pela tela), data de emissão declarada, encoding do XML, a11y dos campos, datas/horas em São Paulo, revisão da NF-e com MoneyInput, dependências mortas removidas, `tools/visual-qa/` versionado. Ainda abertos: status `PENDING` da venda (só documentado), exclusão de produto apaga mapeamentos em cascata, M4 (duplicatas descartadas em nota de total zero), resíduo do custo médio ao desfazer entrada (limite documentado).
+
+### Próximo: precificação, crediário e caderninho (planejado, não implementado)
+Desenhos e planos aprovados para planejamento em 2026-10-26 — implementação só quando o usuário liberar. Ordem e decisões pendentes: `docs/ROADMAP.md`. Specs: `docs/superpowers/specs/2026-10-26-{pricing,credit,notebook-import}-design.md`; planos em `docs/superpowers/plans/` com os mesmos nomes. Decididos: vendedor só pede cancelamento de venda (ADMIN aprova); venda no crediário com parcela paga continua sem cancelamento. Aguardando o usuário: estorno automático do pagamento ao cancelar venda à vista; dívida do caderninho não bloquear por atraso; valores iniciais do crediário (sai desligado até confirmar).
