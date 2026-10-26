@@ -86,6 +86,7 @@ export const ErrorCodes = {
   IDEMPOTENCY_KEY_REUSED: "IDEMPOTENCY_KEY_REUSED",
   EXPORT_TOO_LARGE: "EXPORT_TOO_LARGE",
   SALE_STOCK_INCONSISTENT: "SALE_STOCK_INCONSISTENT",
+  PRICING_PERCENT_SUM_TOO_HIGH: "PRICING_PERCENT_SUM_TOO_HIGH",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
