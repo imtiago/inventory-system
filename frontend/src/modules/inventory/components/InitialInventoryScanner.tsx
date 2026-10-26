@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Camera } from 'lucide-react';
 
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 
@@ -48,8 +49,9 @@ export function InitialInventoryScanner({ barcode, loading, scannerOpen, onOpenS
             Buscar
           </button>
 
-          <button type="button" onClick={onOpenScanner} disabled={loading} className="min-h-11 rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50">
-            📷 Ler
+          <button type="button" onClick={onOpenScanner} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50">
+            <Camera size={18} aria-hidden="true" />
+            Ler
           </button>
         </div>
       </form>

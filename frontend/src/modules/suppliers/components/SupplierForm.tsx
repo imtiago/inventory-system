@@ -15,7 +15,7 @@ interface Props {
 }
 
 const FIELDS = ['name', 'document', 'email', 'phone'] as const;
-const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
 
 export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel }: Props) {
   const {

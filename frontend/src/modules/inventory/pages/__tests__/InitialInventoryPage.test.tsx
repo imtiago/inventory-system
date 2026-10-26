@@ -89,7 +89,7 @@ function renderPage() {
 
 async function scanBarcode(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: /ler código de barras/i }));
-  await user.click(screen.getByRole('button', { name: '📷 Ler' }));
+  await user.click(screen.getByRole('button', { name: 'Ler' }));
   await user.click(screen.getByRole('button', { name: 'Simular leitura' }));
 }
 
@@ -497,7 +497,7 @@ describe('InitialInventoryPage (assistente)', () => {
     renderPage();
 
     await user.click(screen.getByRole('button', { name: /ler código de barras/i }));
-    await user.click(screen.getByRole('button', { name: '📷 Ler' }));
+    await user.click(screen.getByRole('button', { name: 'Ler' }));
     await user.click(screen.getByRole('button', { name: 'Simular duas leituras' }));
 
     expect(await screen.findByText('Variante:')).toBeInTheDocument();

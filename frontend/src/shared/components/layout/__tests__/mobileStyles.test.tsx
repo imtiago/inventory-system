@@ -41,19 +41,24 @@ describe('index.css (temas claro/escuro/sistema)', () => {
 });
 
 describe('Page e Section', () => {
-  test('altura fixa e overflow-hidden só em lg+', () => {
+  test('a página rola inteira: sem altura fixa nem overflow-hidden, em nenhuma largura', () => {
     render(
       <Page>
         <Section title="T">x</Section>
       </Page>,
     );
-    const page = screen.getByText('x').closest('section')!.parentElement!;
-    expect(page).toHaveClass('lg:h-full', 'lg:overflow-hidden');
-    expect(page).not.toHaveClass('h-full');
-    expect(page).not.toHaveClass('overflow-hidden');
     const section = screen.getByText('x').closest('section')!;
-    expect(section).toHaveClass('lg:overflow-hidden');
-    expect(section).not.toHaveClass('overflow-hidden');
+    const page = section.parentElement!;
+    for (const el of [page, section, section.lastElementChild!]) {
+      expect(el.className).not.toMatch(/(^|\s)(lg:)?(h-full|overflow-hidden)(\s|$)/);
+    }
+  });
+
+  test('conteúdo centralizado com largura máxima: listas 1440, formulários e detalhes 1100', () => {
+    const { rerender } = render(<Page>a</Page>);
+    expect(screen.getByText('a')).toHaveClass('mx-auto', 'w-full', 'max-w-[1440px]');
+    rerender(<Page width="narrow">a</Page>);
+    expect(screen.getByText('a')).toHaveClass('mx-auto', 'w-full', 'max-w-[1100px]');
   });
 
   test('cabeçalho da seção quebra linha', () => {
@@ -82,5 +87,31 @@ describe('grades e diálogos', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveClass('p-4');
     expect(dialog.firstElementChild).toHaveClass('max-h-[90dvh]', 'overflow-y-auto');
+  });
+});
+
+describe('PageHeader padrão', () => {
+  test('Voltar fica acima do título, com nome acessível completo; ações à direita', () => {
+    render(
+      <MemoryRouter>
+        <PageHeader title="Venda #1" description="Hoje" backPath="/sales" backLabel="vendas" actions={<button>Ação</button>} meta={<span>badge</span>} />
+      </MemoryRouter>,
+    );
+    const back = screen.getByRole('link', { name: 'Voltar para vendas' });
+    expect(back).toHaveAttribute('href', '/sales');
+    expect(back).toHaveTextContent('Voltar');
+    const heading = screen.getByRole('heading', { level: 1, name: 'Venda #1' });
+    expect(back.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('badge')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ação' }).parentElement).toHaveClass('flex-wrap');
+  });
+
+  test('sem backPath não há link Voltar', () => {
+    render(
+      <MemoryRouter>
+        <PageHeader title="Vendas" />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Voltar/ })).not.toBeInTheDocument();
   });
 });

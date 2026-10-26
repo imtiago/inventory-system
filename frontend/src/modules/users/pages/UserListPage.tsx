@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyRound, LoaderCircle, Pencil, Plus, Search, Users } from 'lucide-react';
 
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { Section } from '@/shared/components/details/Section';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
@@ -69,7 +70,7 @@ export function UserListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title="Usuários"
         description="Gerencie os usuários e seus papéis de acesso."
         actions={
@@ -84,8 +85,10 @@ export function UserListPage() {
             Novo usuário
           </Button>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
           <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-muted">
@@ -113,7 +116,7 @@ export function UserListPage() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="flex-1">
             {isError ? (
               <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
                 <p className="font-medium text-danger">Não foi possível carregar os usuários.</p>
@@ -136,7 +139,7 @@ export function UserListPage() {
             </div>
           )}
 
-          <div className="shrink-0 border-t border-border p-3 sm:p-4">
+          <div className="shrink-0">
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={data?.pagination.totalPages ?? 1}

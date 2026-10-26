@@ -20,7 +20,7 @@ export function ThemeSelector() {
   const setPreference = useThemeStore((state) => state.setPreference);
 
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 py-1 pl-4 pr-1">
+    <div className="flex min-h-11 items-center justify-between gap-3 py-0.5 pl-4 pr-1 lg:min-h-10">
       <span id={`${id}-label`} className="text-sm text-sidebar-foreground/90">
         Tema
       </span>
@@ -29,7 +29,7 @@ export function ThemeSelector() {
           <label
             key={value}
             title={label}
-            className="flex h-10 w-11 cursor-pointer items-center justify-center rounded-md text-sidebar-muted transition hover:text-sidebar-foreground has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-sidebar"
+            className="flex h-10 w-11 lg:h-8 cursor-pointer items-center justify-center rounded-md text-sidebar-muted transition hover:text-sidebar-foreground has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-sidebar"
           >
             <input type="radio" className="sr-only" name={`${id}-theme`} value={value} aria-label={label} checked={preference === value} onChange={() => setPreference(value)} />
             <Icon size={18} aria-hidden="true" />

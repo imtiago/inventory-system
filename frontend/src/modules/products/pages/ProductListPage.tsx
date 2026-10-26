@@ -5,8 +5,10 @@ import { LoaderCircle, Plus, Search } from "lucide-react";
 import { CrudPagination } from "@/shared/components/crud";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { DataTable } from "@/shared/components/table";
+import { FilterBar, FILTER_GRID } from '@/shared/components/layout/FilterBar';
 import { FilterPanel } from "@/shared/components/layout/FilterPanel";
 import { Section } from "@/shared/components/details/Section";
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from "@/shared/components/layout/Page";
 import { Can } from "@/shared/auth/Can";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
@@ -63,7 +65,7 @@ export function ProductListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={pagination ? `Produtos (${pagination.total})` : "Produtos"}
         description="Gerencie seu catálogo"
         actions={
@@ -74,12 +76,14 @@ export function ProductListPage() {
             </Link>
           </Can>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-border p-3 sm:p-5">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <FilterBar>
           <FilterPanel activeCount={[search, brandId, categoryId].filter(Boolean).length}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:max-w-sm">
+          <div className={FILTER_GRID}>
+            <div className="relative w-full sm:col-span-2">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
               <input
                 type="search"
@@ -95,7 +99,7 @@ export function ProductListPage() {
               />
             </div>
 
-            <div className="w-full sm:w-56">
+            <div className="w-full">
               <EntitySearchSelect
                 useOptions={useBrands}
                 ariaLabel="Filtrar por marca"
@@ -108,7 +112,7 @@ export function ProductListPage() {
               />
             </div>
 
-            <div className="w-full sm:w-56">
+            <div className="w-full">
               <EntitySearchSelect
                 useOptions={useCategories}
                 ariaLabel="Filtrar por categoria"
@@ -122,9 +126,9 @@ export function ProductListPage() {
             </div>
           </div>
           </FilterPanel>
-          </div>
+          </FilterBar>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="flex-1">
             {isError ? (
               <div className="p-6 text-center font-medium text-danger">Não foi possível carregar os produtos.</div>
             ) : isLoading ? (

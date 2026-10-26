@@ -23,9 +23,9 @@ function renderItem(item: AppRoute, onNavigate?: () => void) {
       className={({ isActive }) =>
         `
         flex items-center gap-3
-        min-h-11 px-4 py-3
+        min-h-11 px-4 py-3 lg:min-h-8 lg:py-1.5
         rounded-lg
-        mb-1
+        mb-0.5
         transition
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
         ${isActive ? "bg-sidebar-active font-medium text-sidebar-foreground shadow-[inset_3px_0_0_rgb(var(--primary))]" : "text-sidebar-foreground/90 hover:bg-sidebar-active/60 hover:text-sidebar-foreground"}
@@ -40,7 +40,7 @@ function renderItem(item: AppRoute, onNavigate?: () => void) {
 }
 
 const footerButton =
-  "flex w-full items-center gap-3 min-h-11 rounded-lg px-4 py-3 text-sidebar-foreground/90 transition hover:bg-sidebar-active/60 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex w-full items-center gap-3 min-h-11 rounded-lg px-4 py-3 lg:min-h-8 lg:py-1.5 text-sidebar-foreground/90 transition hover:bg-sidebar-active/60 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 interface SidebarProps {
   /** Chamado ao escolher um item do menu (a gaveta usa para fechar). */
@@ -69,14 +69,14 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
         pl-[env(safe-area-inset-left)]
       "
     >
-      <div className="shrink-0 p-6 pr-14 text-xl font-bold lg:pr-6">Estoque</div>
+      <div className="shrink-0 p-6 pr-14 text-xl font-bold lg:px-6 lg:pb-3 lg:pt-5">Estoque</div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3">
+      <nav aria-label="Menu principal" className="scroll-shadow min-h-0 flex-1 overflow-y-auto px-3">
         {ungrouped.map((item) => renderItem(item, onNavigate))}
 
         {groups.map((group) => (
           <div key={group}>
-            <div className="px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-sidebar-muted">{group}</div>
+            <div className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-sidebar-muted">{group}</div>
             {items.filter((item) => item.group === group).map((item) => renderItem(item, onNavigate))}
           </div>
         ))}

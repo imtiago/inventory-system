@@ -186,7 +186,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
             setOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className={`w-full rounded-lg border bg-surface py-2.5 pl-10 pr-20 text-base text-foreground outline-none sm:text-sm focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-muted ${
+          className={`h-11 w-full rounded-lg border bg-surface pl-10 ${value != null && !disabled ? 'pr-[4.75rem]' : 'pr-10'} text-base text-foreground outline-none sm:text-sm focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-muted ${
             error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-input focus:border-ring focus:ring-ring/20'
           }`}
         />

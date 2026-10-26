@@ -3,9 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { CrudPagination } from '@/shared/components/crud';
 import { StatusBadge } from '@/components/ui/badge';
+import { FilterBar, FILTER_FIELD, FILTER_GRID, FILTER_LABEL } from '@/shared/components/layout/FilterBar';
 import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
 import { ExportButton } from '@/shared/components/export/ExportButton';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
@@ -69,7 +71,7 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
     mobile: 'hidden',
     align: 'center',
     cell: (item) => (
-      <Link to={`${config.basePath}/${item.id}`} className="text-sm font-medium hover:underline">
+      <Link to={`${config.basePath}/${item.id}`} className="whitespace-nowrap text-sm font-medium text-primary hover:underline">
         Ver conta
       </Link>
     ),
@@ -128,11 +130,10 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, page]);
-  const inputClass = 'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={`${config.title} (${data?.pagination.total ?? 0})`}
         actions={
           <ExportButton
@@ -143,21 +144,24 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             disabled={invalidRange}
           />
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <div className="grid gap-4 border-b border-border p-4 sm:grid-cols-3 sm:p-5">
             <SummaryCard id="open" label="A vencer" value={data?.summary.openAmount} />
             <SummaryCard id="overdue" label="Vencido" value={data?.summary.overdueAmount} />
             <SummaryCard id={config.summaryId} label={config.summaryLabel} value={summaryValue(kind, data?.summary)} />
           </div>
 
+          <FilterBar>
           <FilterPanel activeCount={[filters.status, filters[config.partyFilterKey], filters.dueFrom, filters.dueTo, filters.openOnly].filter(Boolean).length}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={FILTER_GRID}>
             <div>
-              <label htmlFor={`${kind}-status`} className="mb-2 block text-sm font-medium text-foreground">
+              <label htmlFor={`${kind}-status`} className={FILTER_LABEL}>
                 Status
               </label>
-              <select id={`${kind}-status`} value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value)} className={inputClass}>
+              <select id={`${kind}-status`} value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value)} className={FILTER_FIELD}>
                 <option value="">Todos</option>
                 {STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -170,17 +174,17 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <PartyFilter kind={kind} value={filters[config.partyFilterKey]} onChange={(value) => setFilter(config.partyFilterKey, value)} />
 
             <div>
-              <label htmlFor={`${kind}-due-from`} className="mb-2 block text-sm font-medium text-foreground">
+              <label htmlFor={`${kind}-due-from`} className={FILTER_LABEL}>
                 Vencimento de
               </label>
-              <input id={`${kind}-due-from`} type="date" value={filters.dueFrom ?? ''} max={filters.dueTo} onChange={(e) => setFilter('dueFrom', e.target.value)} className={inputClass} />
+              <input id={`${kind}-due-from`} type="date" value={filters.dueFrom ?? ''} max={filters.dueTo} onChange={(e) => setFilter('dueFrom', e.target.value)} className={FILTER_FIELD} />
             </div>
 
             <div>
-              <label htmlFor={`${kind}-due-to`} className="mb-2 block text-sm font-medium text-foreground">
+              <label htmlFor={`${kind}-due-to`} className={FILTER_LABEL}>
                 Vencimento até
               </label>
-              <input id={`${kind}-due-to`} type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={inputClass} />
+              <input id={`${kind}-due-to`} type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={FILTER_FIELD} />
             </div>
           </div>
 
@@ -199,16 +203,17 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
           <p className="text-xs text-muted">Inclui títulos com alguma parcela no período.</p>
 
           {isFetching && <p className="text-sm text-muted">Atualizando {config.plural}...</p>}
+          </FilterBar>
 
           {isError ? (
-            <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
+            <div className="m-4 rounded-lg border border-danger/30 p-6 text-sm text-danger sm:m-5">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
           ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage={`Nenhuma ${config.singular.toLowerCase()} encontrada`} emptyHint="Ajuste os filtros para ver outros resultados." getRowId={(item) => item.id} getRowHref={(item) => `${config.basePath}/${item.id}`} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-muted">Carregando {config.plural}...</p>}
+          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando {config.plural}...</p>}
 
           {!isError && (
             <CrudPagination

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { useCan } from '@/shared/auth/useCan';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { formatCents, formatCurrency, toCents } from '@/shared/utils/money';
@@ -52,18 +53,8 @@ export function NfeImportReviewPage() {
   };
 
   return (
-    <Page>
-      <div className="min-h-0 w-full flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-4 pb-8 sm:px-6">
-          <header className="flex items-center gap-3">
-            <Link to="/nfe-imports" aria-label="Voltar para importações" className="rounded-lg border p-2 transition hover:bg-surface-muted">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-semibold">Revisão da NF-e</h1>
-              <p className="mt-1 text-sm text-muted">Confira o fornecedor, os itens e as parcelas antes de confirmar.</p>
-            </div>
-          </header>
+    <Page width="narrow">
+      <PageHeader title="Revisão da NF-e" description="Confira o fornecedor, os itens e as parcelas antes de confirmar." backPath="/nfe-imports" backLabel="importações" />
 
           {isLoading && <p className="text-sm text-muted">Carregando nota...</p>}
           {isError && <div role="alert" className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar a importação.</div>}
@@ -78,8 +69,6 @@ export function NfeImportReviewPage() {
             </div>
           )}
           {note?.status === 'DRAFT' && <ReviewForm key={note.id} note={note} onConfirmed={goToPurchase} />}
-        </div>
-      </div>
     </Page>
   );
 }
@@ -238,27 +227,27 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         <ul className="space-y-2">
           {installments.map((row, position) => (
             <li key={position} className="flex flex-wrap items-end gap-3">
-              <div className="pb-2 text-sm text-muted">
+              <div className="flex h-10 items-center text-sm text-muted">
                 Nº <span data-testid={`installment-number-${position}`}>{row.number ?? '—'}</span>
               </div>
               <div>
                 <label htmlFor={`due-${position}`} className="mb-1 block text-xs font-medium text-muted">
                   Vencimento da parcela {position + 1}
                 </label>
-                <input id={`due-${position}`} type="date" min={note.issueDate} value={row.dueDate} disabled={disabled} onChange={(event) => patchInstallment(position, { dueDate: event.target.value })} className={inputClass} />
+                <input id={`due-${position}`} type="date" min={note.issueDate} value={row.dueDate} disabled={disabled} onChange={(event) => patchInstallment(position, { dueDate: event.target.value })} className={`${inputClass} h-10`} />
               </div>
               <div>
                 <label htmlFor={`amount-${position}`} className="mb-1 block text-xs font-medium text-muted">
                   Valor da parcela {position + 1}
                 </label>
-                <input id={`amount-${position}`} type="number" min={0} step="0.01" inputMode="decimal" value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} className={inputClass} />
+                <input id={`amount-${position}`} type="number" min={0} step="0.01" inputMode="decimal" value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} className={`${inputClass} h-10`} />
               </div>
               <button
                 type="button"
                 aria-label={`Remover parcela ${position + 1}`}
                 disabled={disabled || installments.length === 1}
                 onClick={() => setInstallments((current) => current.filter((_, i) => i !== position))}
-                className="rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-md text-danger hover:bg-danger-soft disabled:opacity-50"
               >
                 <Trash2 size={17} />
               </button>

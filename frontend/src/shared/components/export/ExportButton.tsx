@@ -50,7 +50,7 @@ export function ExportButton({ label = 'Exportar CSV', permission, url, params, 
           type="button"
           onClick={handleClick}
           disabled={busy || disabled}
-          className="flex items-center gap-2 rounded-lg border border-input bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-muted disabled:opacity-60"
+          className="flex min-h-10 items-center gap-2 rounded-lg border border-input bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-muted disabled:opacity-60"
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
           {busy ? 'Exportando...' : label}

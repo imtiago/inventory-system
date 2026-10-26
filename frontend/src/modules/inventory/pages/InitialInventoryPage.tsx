@@ -1,3 +1,4 @@
+import { Page } from '@/shared/components/layout/Page';
 import { InitialInventoryHeader } from '../components/InitialInventoryHeader';
 import { InitialInventoryScanner } from '../components/InitialInventoryScanner';
 import { InitialInventoryStart } from '../components/InitialInventoryStart';
@@ -38,7 +39,7 @@ export function InitialInventoryPage() {
   const currentModal = flow.modal ? modalConfig[flow.modal] : null;
 
   return (
-    <div className="space-y-6">
+    <Page width="narrow">
       <InitialInventoryHeader title="Inventário Inicial" description="Cadastre os produtos e organize o estoque inicial." />
 
       {flow.step === 'start' && (
@@ -168,6 +169,6 @@ export function InitialInventoryPage() {
 
         {flow.modal === 'new-lot' && <InventoryLotForm submitting={flow.createLotLoading} submitError={flow.createLotError} onSubmit={flow.handleNewLotSubmit} onCancel={flow.closeModal} />}
       </Modal>
-    </div>
+    </Page>
   );
 }

@@ -178,7 +178,7 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
   }
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto lg:overflow-x-clip">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-surface-muted">
           <tr>

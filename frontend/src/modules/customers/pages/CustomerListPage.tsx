@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Search, Users, LoaderCircle } from 'lucide-react';
 
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { Section } from '@/shared/components/details/Section';
 import { DataTable } from '@/shared/components/table';
@@ -50,7 +51,7 @@ export function CustomerListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title="Clientes"
         description="Gerencie os clientes cadastrados no sistema."
         actions={
@@ -61,8 +62,10 @@ export function CustomerListPage() {
             </Button>
           </Can>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
           {/* Resumo e busca */}
           <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -92,7 +95,7 @@ export function CustomerListPage() {
           </div>
 
           {/* Tabela */}
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="flex-1">
             {isError ? (
               <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
                 <p className="font-medium text-danger">Não foi possível carregar os clientes.</p>
@@ -118,7 +121,7 @@ export function CustomerListPage() {
           )}
 
           {/* Paginação */}
-          <div className="shrink-0 border-t border-border p-3 sm:p-4">
+          <div className="shrink-0">
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={data?.pagination.totalPages ?? 1}

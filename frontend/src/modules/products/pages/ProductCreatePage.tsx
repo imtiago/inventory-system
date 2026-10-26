@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ProductForm, type ProductFormData } from "../components/ProductForm";
 
 import { useCreateProduct } from "../hooks/useCreateProduct";
-import { PageContainer } from "@/shared/components/PageContainer";
+import { Page } from "@/shared/components/layout/Page";
 
 export function ProductCreatePage() {
   const navigate = useNavigate();
@@ -17,13 +17,15 @@ export function ProductCreatePage() {
   }
 
   return (
-    <PageContainer>
+    <Page width="narrow">
       <ProductForm
         title="Novo Produto"
         description="Cadastre um novo produto no catálogo."
         onSubmit={handleSubmit}
+        backPath="/products"
+        backLabel="produtos"
         onCancel={() => navigate("/products")}
       />
-    </PageContainer>
+    </Page>
   );
 }

@@ -10,7 +10,7 @@ import { useChangeOwnPassword } from '../hooks/useChangeOwnPassword';
 type Values = { currentPassword: string; newPassword: string; confirm: string };
 
 const FIELDS = ['currentPassword', 'newPassword'] as const;
-const inputClass = 'w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground p-3 outline-none focus:ring-2 focus:ring-ring/20';
 
 function ChangePasswordForm({ onClose }: { onClose: () => void }) {
   const { mutateAsync } = useChangeOwnPassword();

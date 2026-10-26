@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 
 import { StatusBadge } from '@/components/ui/badge';
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+import { Section } from '@/shared/components/details/Section';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
@@ -38,59 +39,55 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
   const payingParcel = document?.parcels.find((p) => p.id === payingParcelId) ?? null;
 
   return (
-    <Page>
-      <div className="flex-1 overflow-y-auto p-4">
-        <Link to={config.basePath} className="mb-4 inline-flex items-center gap-2 text-sm text-muted hover:underline">
-          <ArrowLeft size={16} />
-          Voltar para {config.plural}
-        </Link>
+    <Page width="narrow">
+      <PageHeader
+        title={document ? `${config.singular} #${document.id.slice(0, 8).toUpperCase()}` : config.singular}
+        description={document ? formatDateTime(document.createdAt) : undefined}
+        meta={document ? <StatusBadge status={document.displayStatus}>{FINANCE_STATUS_LABELS[document.displayStatus] ?? document.displayStatus}</StatusBadge> : undefined}
+        backPath={config.basePath}
+        backLabel={config.plural}
+        actions={
+          document && document.originType === config.originType ? (
+            <Link to={config.originHref(document)} className="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
+              {config.originDetailText(document)}
+            </Link>
+          ) : undefined
+        }
+      />
 
-        {isLoading && <p className="text-sm text-muted">Carregando {config.singular.toLowerCase()}...</p>}
+      {isLoading && <p className="text-sm text-muted">Carregando {config.singular.toLowerCase()}...</p>}
 
-        {isError && !document && (
-          <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">{isNotFound ? `${config.singular} não encontrada.` : `Não foi possível carregar a ${config.singular.toLowerCase()}.`}</div>
-        )}
+      {isError && !document && (
+        <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">{isNotFound ? `${config.singular} não encontrada.` : `Não foi possível carregar a ${config.singular.toLowerCase()}.`}</div>
+      )}
 
-        {document && (
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="text-xl font-semibold">{config.singular} #{document.id.slice(0, 8).toUpperCase()}</h1>
-                <p className="text-sm text-muted">{formatDateTime(document.createdAt)}</p>
-                <div className="mt-2">
-                  <StatusBadge status={document.displayStatus}>{FINANCE_STATUS_LABELS[document.displayStatus] ?? document.displayStatus}</StatusBadge>
-                </div>
-              </div>
-              {document.originType === config.originType && (
-                <Link to={config.originHref(document)} className="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
-                  {config.originDetailText(document)}
-                </Link>
-              )}
-            </div>
-
-            <dl className="grid gap-4 sm:grid-cols-4">
+      {document && (
+        <>
+          <Section title="Resumo">
+            <dl className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
               <div>
                 <dt className="text-sm text-muted">{config.partyLabel}</dt>
                 <dd className="font-medium">{partyOf(kind, document)?.name ?? '—'}</dd>
               </div>
               <div>
                 <dt className="text-sm text-muted">Total</dt>
-                <dd className="font-medium">{formatCurrency(document.totalAmount)}</dd>
+                <dd className="font-medium tabular-nums">{formatCurrency(document.totalAmount)}</dd>
               </div>
               <div>
                 <dt className="text-sm text-muted">Pago</dt>
-                <dd className="font-medium">{formatCurrency(document.paidAmount)}</dd>
+                <dd className="font-medium tabular-nums">{formatCurrency(document.paidAmount)}</dd>
               </div>
               <div>
                 <dt className="text-sm text-muted">Saldo</dt>
-                <dd className="font-medium">{formatCurrency(document.remainingAmount)}</dd>
+                <dd className="font-medium tabular-nums">{formatCurrency(document.remainingAmount)}</dd>
               </div>
             </dl>
+          </Section>
 
-            <section className="flex flex-col gap-4">
-              <h2 className="font-semibold">Parcelas</h2>
+          <Section title="Parcelas">
+            <div className="flex flex-col gap-4 p-4 sm:p-6">
               {document.parcels.map((parcel) => (
-                <div key={parcel.id} data-testid={`parcel-${parcel.number}`} className="rounded-xl border p-4">
+                <div key={parcel.id} data-testid={`parcel-${parcel.number}`} className="rounded-xl border border-border p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h3 className="font-medium">Parcela {parcel.number}</h3>
@@ -115,7 +112,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                   </div>
 
                   {parcel.payments.length > 0 && (
-                    <ul className="mt-3 flex flex-col gap-2 border-t pt-3">
+                    <ul className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
                       {parcel.payments.map((payment) => {
                         const reversed = Boolean(payment.reversedAt);
 
@@ -147,10 +144,10 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                   )}
                 </div>
               ))}
-            </section>
-          </div>
-        )}
-      </div>
+            </div>
+          </Section>
+        </>
+      )}
 
       {document && payingParcel && <RegisterPaymentModal kind={kind} key={payingParcel.id} documentId={document.id} parcel={payingParcel} onClose={() => setPayingParcelId(null)} />}
       {document && reversing && <ReversePaymentModal kind={kind} key={reversing.id} documentId={document.id} payment={reversing} onClose={() => setReversing(null)} />}

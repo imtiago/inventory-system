@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Trash2 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { FormAutocomplete, MoneyInput, QuantityInput } from '@/shared/components/form';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
@@ -194,18 +195,8 @@ export function PurchaseCreatePage() {
   });
 
   return (
-    <Page>
-      <div className="min-h-0 w-full flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-4 pb-8 sm:px-6">
-          <header className="flex items-center gap-3">
-            <Link to="/purchases" aria-label="Voltar para pedidos de compra" className="rounded-lg border p-2 transition hover:bg-surface-muted">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-semibold">Novo pedido de compra</h1>
-              <p className="mt-1 text-sm text-muted">Selecione o fornecedor e lance os itens.</p>
-            </div>
-          </header>
+    <Page width="narrow">
+      <PageHeader title="Novo pedido de compra" description="Selecione o fornecedor e lance os itens." backPath="/purchases" backLabel="pedidos de compra" />
 
           <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">Fornecedor e data</h2>
@@ -492,8 +483,6 @@ export function PurchaseCreatePage() {
               </Button>
             </div>
           </section>
-        </div>
-      </div>
     </Page>
   );
 }

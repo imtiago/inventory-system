@@ -5,7 +5,9 @@ import { Upload } from 'lucide-react';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { CrudPagination } from '@/shared/components/crud';
 import { StatusBadge } from '@/components/ui/badge';
+import { FilterBar, FILTER_FIELD, FILTER_GRID, FILTER_LABEL } from '@/shared/components/layout/FilterBar';
 import { Section } from '@/shared/components/details/Section';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
@@ -16,7 +18,6 @@ import { useDiscardNfeImport, useNfeImports, useUploadNfeImport } from '../hooks
 import { NFE_STATUS_LABELS, type INfeImportSummary, type NfeImportStatus } from '../types';
 
 const STATUSES = Object.keys(NFE_STATUS_LABELS) as NfeImportStatus[];
-const inputClass = 'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 type UploadFeedback = { message: string; purchaseId?: string };
 
@@ -99,7 +100,7 @@ export function NfeImportListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={`Importar NF-e (${data?.pagination.total ?? 0})`}
         actions={
           <>
@@ -124,8 +125,11 @@ export function NfeImportListPage() {
             </button>
           </>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <FilterBar>
           {feedback && (
             <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               <p>{feedback.message}</p>
@@ -142,8 +146,9 @@ export function NfeImportListPage() {
             </div>
           )}
 
-          <div className="max-w-xs">
-            <label htmlFor="nfe-status" className="mb-2 block text-sm font-medium text-foreground">
+          <div className={FILTER_GRID}>
+          <div>
+            <label htmlFor="nfe-status" className={FILTER_LABEL}>
               Status
             </label>
             <select
@@ -153,7 +158,7 @@ export function NfeImportListPage() {
                 setStatus(event.target.value as NfeImportStatus | '');
                 setPage(1);
               }}
-              className={inputClass}
+              className={FILTER_FIELD}
             >
               <option value="">Todos</option>
               {STATUSES.map((value) => (
@@ -163,16 +168,18 @@ export function NfeImportListPage() {
               ))}
             </select>
           </div>
+          </div>
+          </FilterBar>
 
           {isError ? (
-            <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar as importações. Verifique sua conexão e tente novamente.</div>
+            <div className="m-4 rounded-lg border border-danger/30 p-6 text-sm text-danger sm:m-5">Não foi possível carregar as importações. Verifique sua conexão e tente novamente.</div>
           ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhuma nota importada" emptyHint="Envie um XML de NF-e para começar." getRowId={(item) => item.id} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-muted">Carregando importações...</p>}
+          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando importações...</p>}
 
           {!isError && (
             <CrudPagination

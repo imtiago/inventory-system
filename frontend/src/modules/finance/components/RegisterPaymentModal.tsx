@@ -74,7 +74,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
   const serverError = errors.root?.server?.message;
 
   return (
-    <Modal open onClose={close} busy={mutation.isPending} title={`Registrar pagamento — parcela ${parcel.number}`} description={`Saldo da parcela: ${formatCurrency(parcel.remainingAmount)}`} size="md">
+    <Modal open onClose={close} busy={mutation.isPending} title={`Registrar pagamento — parcela ${parcel.number}`} description={`Saldo da parcela: ${formatCurrency(parcel.remainingAmount)}`} size="lg">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div>
           <label htmlFor="payment-amount" className="mb-2 block text-sm font-medium text-foreground">

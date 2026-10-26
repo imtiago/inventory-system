@@ -11,7 +11,7 @@ export function InitialInventoryProductChoice({ barcode, onRegisterVariant, onRe
   return (
     <>
       <div>
-        <h1 className="text-3xl font-bold">{hasBarcode ? 'Produto não encontrado' : 'Cadastro do produto'}</h1>
+        <h2 className="text-xl font-semibold">{hasBarcode ? 'Produto não encontrado' : 'Cadastro do produto'}</h2>
 
         <p className="text-muted">
           {hasBarcode ? 'O código de barras foi lido, mas nenhuma variante foi encontrada.' : 'Informe se o produto já existe no cadastro ou se será necessário criar um novo produto.'}
@@ -28,7 +28,7 @@ export function InitialInventoryProductChoice({ barcode, onRegisterVariant, onRe
         )}
 
         <div>
-          <h2 className="text-xl font-bold">Esse produto já existe no cadastro?</h2>
+          <h3 className="text-lg font-semibold">Esse produto já existe no cadastro?</h3>
 
           <p className="mt-2 text-muted">Se o produto já estiver cadastrado, vamos localizar o produto e cadastrar somente uma nova variante.</p>
         </div>

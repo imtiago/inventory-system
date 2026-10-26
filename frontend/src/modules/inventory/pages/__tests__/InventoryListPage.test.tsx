@@ -46,7 +46,7 @@ describe('InventoryListPage', () => {
   test('mostra carregando e depois o total em português', async () => {
     renderWithProviders(<InventoryListPage />);
     expect(screen.getByText('Carregando estoque...')).toBeInTheDocument();
-    expect(await screen.findByText('Itens (2)')).toBeInTheDocument();
+    expect(await screen.findByText('2 itens em estoque')).toBeInTheDocument();
   });
 
   test('erro da API mostra mensagem com "Tentar novamente", não tabela vazia', async () => {
@@ -59,7 +59,7 @@ describe('InventoryListPage', () => {
     renderWithProviders(<InventoryListPage />);
 
     expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent('Não foi possível carregar o estoque.');
-    expect(screen.queryByText('Itens (0)')).not.toBeInTheDocument();
+    expect(screen.queryByText('0 itens em estoque')).not.toBeInTheDocument();
     expect(screen.queryByText('Nenhum item em estoque.')).not.toBeInTheDocument();
 
     fail = false;
@@ -84,7 +84,7 @@ describe('InventoryListPage', () => {
       ),
     );
     renderWithProviders(<InventoryListPage />);
-    await screen.findByText('Itens (3)');
+    await screen.findByText('3 itens em estoque');
 
     const byCode = (code: string) => screen.getByText(code).closest('tr') as HTMLElement;
     expect(byCode('COD-A')).toHaveTextContent('Sem estoque');
@@ -95,7 +95,7 @@ describe('InventoryListPage', () => {
   test('"Cenário Inicial" (escrita de estoque) não aparece para quem só lê estoque; "Novo" segue catalog.write', async () => {
     loginAs('VENDEDOR');
     renderWithProviders(<InventoryListPage />);
-    await screen.findByText('Itens (2)');
+    await screen.findByText('2 itens em estoque');
     expect(screen.queryByRole('link', { name: /Cenário Inicial/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Novo/ })).toBeInTheDocument();
   });

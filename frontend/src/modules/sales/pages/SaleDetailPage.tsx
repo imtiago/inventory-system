@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+import { Section } from '@/shared/components/details/Section';
 import { DetailTable } from '@/shared/components/details/DetailTable';
 import { StatusBadge } from '@/components/ui/badge';
 import { Modal } from '@/shared/components/Modal/Modal';
@@ -66,63 +67,63 @@ export function SaleDetailPage() {
     });
   }
 
+  const cancelAction =
+    sale && sale.status !== 'CANCELED' ? (
+      hasPayments ? (
+        <Can permission="sales.cancel">
+          <p data-testid="cancel-blocked" className="max-w-xs text-sm text-muted">
+            Esta venda tem pagamento registrado. Estorne os pagamentos em contas a receber para poder cancelá-la.
+          </p>
+        </Can>
+      ) : (
+        <Can permission="sales.cancel">
+          <button
+            type="button"
+            className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50"
+            onClick={() => {
+              setCancelError(null);
+              setConfirmOpen(true);
+            }}
+          >
+            Cancelar venda
+          </button>
+        </Can>
+      )
+    ) : undefined;
+
   return (
-    <Page>
-      <div className="flex-1 overflow-y-auto p-4">
-        <Link to="/sales" className="mb-4 inline-flex items-center gap-2 text-sm text-muted hover:underline">
-          <ArrowLeft size={16} />
-          Voltar para vendas
-        </Link>
+    <Page width="narrow">
+      <PageHeader
+        title={sale ? `Venda #${sale.id.slice(0, 8).toUpperCase()}` : 'Venda'}
+        description={sale ? formatDateTime(sale.createdAt) : undefined}
+        meta={
+          sale ? (
+            <StatusBadge status={sale.status}>{saleStatusLabels[sale.status] ?? sale.status}</StatusBadge>
+          ) : undefined
+        }
+        backPath="/sales"
+        backLabel="vendas"
+        actions={cancelAction}
+      />
 
-        {isLoading && <p className="text-sm text-muted">Carregando venda...</p>}
+      {isLoading && <p className="text-sm text-muted">Carregando venda...</p>}
 
-        {isError && (
-          <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">
-            {isNotFound ? 'Venda não encontrada.' : 'Não foi possível carregar a venda.'}
-          </div>
-        )}
+      {isError && (
+        <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">
+          {isNotFound ? 'Venda não encontrada.' : 'Não foi possível carregar a venda.'}
+        </div>
+      )}
 
-        {sale && (
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="text-xl font-semibold">Venda #{sale.id.slice(0, 8).toUpperCase()}</h1>
-                <p className="text-sm text-muted">{formatDateTime(sale.createdAt)}</p>
-                <StatusBadge status={sale.status} className="mt-2">
-                  {saleStatusLabels[sale.status] ?? sale.status}
-                </StatusBadge>
-              </div>
+      {cancelError && (
+        <div role="alert" className="rounded-lg border border-danger/30 p-4 text-sm text-danger">
+          {cancelError}
+        </div>
+      )}
 
-              {sale.status !== 'CANCELED' && hasPayments && (
-                <Can permission="sales.cancel">
-                  <p data-testid="cancel-blocked" className="max-w-xs text-sm text-muted">
-                    Esta venda tem pagamento registrado. Estorne os pagamentos em contas a receber para poder cancelá-la.
-                  </p>
-                </Can>
-              )}
-              {sale.status !== 'CANCELED' && !hasPayments && (
-                <Can permission="sales.cancel">
-                <button
-                  type="button"
-                  className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50"
-                  onClick={() => {
-                    setCancelError(null);
-                    setConfirmOpen(true);
-                  }}
-                >
-                  Cancelar venda
-                </button>
-                </Can>
-              )}
-            </div>
-
-            {cancelError && (
-              <div role="alert" className="rounded-lg border border-danger/30 p-4 text-sm text-danger">
-                {cancelError}
-              </div>
-            )}
-
-            <dl className="grid gap-4 sm:grid-cols-2">
+      {sale && (
+        <>
+          <Section title="Resumo">
+            <dl className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6">
               <div>
                 <dt className="text-sm text-muted">Cliente</dt>
                 <dd className="font-medium">{sale.customer.name}</dd>
@@ -132,9 +133,10 @@ export function SaleDetailPage() {
                 <dd className="font-medium">{sale.seller?.name ?? '—'}</dd>
               </div>
             </dl>
+          </Section>
 
-            <section>
-              <h2 className="mb-2 font-semibold">Itens</h2>
+          <Section title="Itens">
+            <div className="p-4 sm:p-6">
               <DetailTable
                 rows={sale.items}
                 getRowId={(item) => item.id}
@@ -155,17 +157,20 @@ export function SaleDetailPage() {
                   { id: 'total', header: 'Total', align: 'right', cell: (item) => formatCurrency(item.totalPrice) },
                 ]}
               />
-              <p className="mt-3 text-right text-lg font-semibold">Total: {formatCurrency(sale.totalAmount)}</p>
-            </section>
+            </div>
+            <p className="border-t border-border bg-surface-muted px-4 py-3 text-right text-lg font-semibold tabular-nums sm:px-6">Total: {formatCurrency(sale.totalAmount)}</p>
+          </Section>
 
-            {sale.receivable && (
-              <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <h2 className="font-semibold">Parcelas</h2>
-                  <Link to={`/receivables/${sale.receivable.id}`} className="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
-                    Ver contas a receber
-                  </Link>
-                </div>
+          {sale.receivable && (
+            <Section
+              title="Parcelas"
+              actions={
+                <Link to={`/receivables/${sale.receivable.id}`} className="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
+                  Ver contas a receber
+                </Link>
+              }
+            >
+              <div className="p-4 sm:p-6">
                 <DetailTable
                   rows={sale.receivable.parcels.map((parcel, index) => ({ parcel, number: index + 1 }))}
                   getRowId={(row) => row.parcel.id}
@@ -178,11 +183,11 @@ export function SaleDetailPage() {
                     { id: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.parcel.status}>{FINANCIAL_STATUS_LABELS[row.parcel.status] ?? row.parcel.status}</StatusBadge> },
                   ]}
                 />
-              </section>
-            )}
-          </div>
-        )}
-      </div>
+              </div>
+            </Section>
+          )}
+        </>
+      )}
 
       <Modal open={confirmOpen} onClose={closeDialog} busy={cancel.isPending} title="Cancelar venda" description="O estoque será devolvido e a conta a receber cancelada. Deseja continuar?" size="sm">
         <div className="flex justify-end gap-2">

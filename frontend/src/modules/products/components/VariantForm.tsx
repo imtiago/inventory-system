@@ -1,4 +1,6 @@
 import { MoneyInput } from '@/shared/components/form';
+import { Camera } from "lucide-react";
+import { PageHeader } from "@/shared/components/layout/PageHeader";
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
@@ -17,6 +19,9 @@ export interface VariantFormData {
 
 interface Props {
   title: string;
+  /** Destino do "Voltar" do cabeçalho padrão. */
+  backPath?: string;
+  backLabel?: string;
 
   submitLabel: string;
 
@@ -47,6 +52,8 @@ function validateSalePrice(text: string, required: boolean) {
 
 export function VariantForm({
   title,
+  backPath,
+  backLabel,
   submitLabel,
   initialValues,
   onSubmit,
@@ -87,13 +94,7 @@ export function VariantForm({
         space-y-6
       "
     >
-      <div>
-        <h1 className="text-3xl font-bold">{title}</h1>
-
-        <p className="text-muted">
-          Cadastre uma unidade comercial do produto.
-        </p>
-      </div>
+      <PageHeader title={title} description="Cadastre uma unidade comercial do produto." backPath={backPath} backLabel={backLabel} />
 
       <div
         className="
@@ -155,9 +156,13 @@ export function VariantForm({
                 text-primary-foreground
                 px-4
                 rounded-lg
+                inline-flex
+                items-center
+                gap-2
               "
             >
-              📷 Ler
+              <Camera size={18} aria-hidden="true" />
+              Ler
             </button>
           </div>
           {errors.barcode && <p className="mt-1 text-sm text-danger">{errors.barcode.message}</p>}

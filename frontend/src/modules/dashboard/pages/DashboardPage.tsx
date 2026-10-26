@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
+import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
@@ -76,12 +79,14 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div role="status" aria-live="polite" className="grid animate-pulse gap-4 md:grid-cols-2">
-        <span className="sr-only">Carregando dashboard...</span>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-40 rounded-xl bg-surface-muted" />
-        ))}
-      </div>
+      <Page>
+        <div role="status" aria-live="polite" className="grid animate-pulse gap-4 md:grid-cols-2">
+          <span className="sr-only">Carregando dashboard...</span>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-40 rounded-xl bg-surface-muted" />
+          ))}
+        </div>
+      </Page>
     );
   }
 
@@ -101,8 +106,8 @@ export function DashboardPage() {
   const { sales, receivables, payables, inventory, purchases } = data;
 
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+    <Page>
+      <PageHeader title="Dashboard" description="Resumo de vendas, financeiro, estoque e compras." />
       <div className="grid gap-4 lg:grid-cols-2">
         {sales && (
           <div className="lg:col-span-2">
@@ -188,6 +193,6 @@ export function DashboardPage() {
           </Card>
         )}
       </div>
-    </div>
+    </Page>
   );
 }

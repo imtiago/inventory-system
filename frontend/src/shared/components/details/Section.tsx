@@ -24,16 +24,17 @@ export function Section({
         shadow
         flex
         flex-col
-        min-h-0
-        lg:overflow-hidden
+        min-w-0
+        overflow-clip
         ${className}
       `}
     >
       {(title || description || actions) && (
         <div
           className="
-            p-4
-            sm:p-6
+            px-4
+            py-4
+            sm:px-6
             flex
             flex-wrap
             gap-3
@@ -59,8 +60,7 @@ export function Section({
       <div
         className="
    flex-1
-   min-h-0
-   lg:overflow-hidden
+   min-w-0
    flex
    flex-col
  "

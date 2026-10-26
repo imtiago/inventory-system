@@ -1,4 +1,5 @@
 import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
+import { PageHeader } from "@/shared/components/layout/PageHeader";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { Controller, useForm } from "react-hook-form";
 
@@ -17,6 +18,9 @@ export interface ProductFormData {
 interface Props {
   title: string;
   description: string;
+  /** Destino do "Voltar" do cabeçalho padrão. */
+  backPath?: string;
+  backLabel?: string;
 
   /** Current brand/category (edit): shown by name even when not in the first page of search results. */
   initialBrand?: Brand;
@@ -35,6 +39,8 @@ const FIELDS = ["name", "description", "brandId", "categoryId"] as const;
 export function ProductForm({
   title,
   description,
+  backPath,
+  backLabel,
   initialBrand,
   initialCategory,
   initialValues,
@@ -57,11 +63,7 @@ export function ProductForm({
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <div>
-        {title && <h1 className="text-2xl font-semibold text-foreground">{title}</h1>}
-
-        <p className="text-muted">{description}</p>
-      </div>
+      <PageHeader title={title} description={description} backPath={backPath} backLabel={backLabel} />
 
       <div className="bg-surface rounded-xl shadow p-6 space-y-6">
         <section>
