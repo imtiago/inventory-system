@@ -24,12 +24,13 @@ export function UserListPage() {
   const { data, isLoading, isFetching, isError } = useUsers(page, debouncedSearch);
 
   const columns: DataTableColumn<UserDTO>[] = [
-    { id: 'name', header: 'Nome', cell: (user) => user.name },
-    { id: 'email', header: 'E-mail', cell: (user) => user.email },
-    { id: 'role', header: 'Papel', cell: (user) => ROLE_LABELS[user.role] },
+    { id: 'name', header: 'Nome', mobile: 'title', cell: (user) => user.name },
+    { id: 'email', header: 'E-mail', mobile: 'subtitle', cell: (user) => user.email },
+    { id: 'role', header: 'Papel', mobile: 'meta', cell: (user) => ROLE_LABELS[user.role] },
     {
       id: 'status',
       header: 'Status',
+      mobile: 'meta',
       cell: (user) => (
         <span className={`rounded-full px-3 py-1 text-sm ${user.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
           {user.active ? 'Ativo' : 'Inativo'}
@@ -39,21 +40,22 @@ export function UserListPage() {
     {
       id: 'actions',
       header: 'Ações',
+      mobile: 'actions',
       align: 'center',
       cell: (user) => (
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-1">
           <button
             type="button"
             onClick={() => {
               setEditing(user);
               setFormOpen(true);
             }}
-            className="text-blue-600 hover:text-blue-800"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
             aria-label={`Editar ${user.name}`}
           >
             <Pencil size={18} />
           </button>
-          <button type="button" onClick={() => setResetting(user)} className="text-amber-600 hover:text-amber-800" aria-label={`Redefinir senha de ${user.name}`}>
+          <button type="button" onClick={() => setResetting(user)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-amber-600 hover:text-amber-800" aria-label={`Redefinir senha de ${user.name}`}>
             <KeyRound size={18} />
           </button>
         </div>
@@ -124,7 +126,7 @@ export function UserListPage() {
                 Carregando usuários...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum usuário encontrado" emptyHint="Tente novamente ou cadastre um novo usuário." getRowId={(item) => item.id} />
             )}
           </div>
 

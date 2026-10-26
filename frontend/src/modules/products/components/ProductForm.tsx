@@ -96,7 +96,7 @@ export function ProductForm({
         <section>
           <h2 className="font-semibold text-lg mb-4">Classificação</h2>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <Controller
               control={control}
               name="brandId"

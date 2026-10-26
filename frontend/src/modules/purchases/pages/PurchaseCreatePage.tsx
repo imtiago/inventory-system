@@ -5,7 +5,8 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
-import { FormAutocomplete } from '@/shared/components/form';
+import { FormAutocomplete, MoneyInput, QuantityInput } from '@/shared/components/form';
+import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
 import { formatCents } from '@/shared/utils/money';
@@ -19,7 +20,7 @@ import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import type { ISupplier } from '@/modules/suppliers/types';
 
 import { useCreatePurchase } from '../hooks/usePurchases';
-import { hasTooManyDecimals, itemTotalCents, moneyToSend, parseNumber, parseQuantity, type IPurchaseDraftItem } from '../utils/purchaseTotals';
+import { itemTotalCents, moneyFieldCents, moneyFieldError, moneyFieldToSend, parseQuantity, type IPurchaseDraftItem } from '../utils/purchaseTotals';
 
 type PurchaseFormValues = {
   supplierId: string;
@@ -34,7 +35,8 @@ const MAX_INSTALLMENTS = 12;
 const DEFAULT_FIRST_DUE_DAYS = 30;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const inputClass = 'w-full rounded-md border px-3 py-2';
-const cellInputClass = 'w-24 rounded-md border px-2 py-1.5';
+const cellInputClass = 'w-28 rounded-md border py-1.5 pl-9 pr-2 text-sm';
+const cardMoneyClass = 'h-11 w-full rounded-lg border py-2 pl-10 pr-3 text-base';
 
 const MONEY_FIELDS = [
   { key: 'unitPrice', header: 'Preço unitário', label: 'Preço unitário de' },
@@ -50,11 +52,11 @@ function blockingReason(items: IPurchaseDraftItem[], totalCents: number): string
   for (const item of items) {
     if (parseQuantity(item.quantity) === null) return `${item.productName}: informe uma quantidade inteira maior que zero.`;
 
-    if ([item.unitPrice, item.discount, item.freight, item.tax].some(hasTooManyDecimals)) return `${item.productName}: use no máximo 2 casas decimais.`;
+    const fieldError = [item.unitPrice, item.discount, item.freight, item.tax].map(moneyFieldError).find((message) => message !== null);
 
-    const money = [item.unitPrice, item.discount, item.freight, item.tax].map(parseNumber);
+    if (fieldError) return `${item.productName}: ${fieldError.charAt(0).toLowerCase()}${fieldError.slice(1)}.`;
 
-    if (money.some((value) => !Number.isFinite(value) || value < 0)) return `${item.productName}: informe valores válidos (zero ou mais).`;
+    if ([item.unitPrice, item.discount, item.freight, item.tax].some((text) => moneyFieldCents(text) === null)) return `${item.productName}: informe valores válidos (zero ou mais).`;
 
     const total = itemTotalCents(item);
 
@@ -66,6 +68,7 @@ function blockingReason(items: IPurchaseDraftItem[], totalCents: number): string
 
 export function PurchaseCreatePage() {
   const navigate = useNavigate();
+  const isWide = useBreakpoint('md');
   const today = todayInBusinessTz();
 
   const {
@@ -155,10 +158,10 @@ export function PurchaseCreatePage() {
         items: items.map((item) => ({
           productVariantId: item.productVariantId,
           quantity: parseQuantity(item.quantity) as number,
-          unitPrice: moneyToSend(item.unitPrice),
-          discount: moneyToSend(item.discount),
-          freight: moneyToSend(item.freight),
-          tax: moneyToSend(item.tax),
+          unitPrice: moneyFieldToSend(item.unitPrice),
+          discount: moneyFieldToSend(item.discount),
+          freight: moneyFieldToSend(item.freight),
+          tax: moneyFieldToSend(item.tax),
         })),
         paymentTerms: isInstallments ? { installments, firstDueDate: values.firstDueDate } : { installments: 1 },
       },
@@ -265,6 +268,7 @@ export function PurchaseCreatePage() {
                 <p className="mt-1 text-sm text-gray-500">Digite ou escaneie um código de barras para adicionar uma variante.</p>
               </div>
             ) : (
+              isWide ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] text-left text-sm">
                   <thead>
@@ -291,32 +295,25 @@ export function PurchaseCreatePage() {
                             <p className="text-xs text-gray-500">{item.productCode}</p>
                           </td>
                           <td className="px-2 py-3">
-                            <input
+                            <QuantityInput
                               aria-label={`Quantidade de ${item.productName}`}
-                              type="number"
-                              min={1}
-                              step={1}
+                              itemName={item.productName}
                               value={item.quantity}
                               disabled={createMutation.isPending}
-                              onChange={(event) => updateItem(item.productVariantId, 'quantity', event.target.value)}
-                              className="w-20 rounded-md border px-2 py-1.5"
+                              onChange={(value) => updateItem(item.productVariantId, 'quantity', value)}
                             />
                           </td>
                           {MONEY_FIELDS.map((field) => (
                             <td key={field.key} className="px-2 py-3">
-                              <input
+                              <MoneyInput
                                 aria-label={`${field.label} ${item.productName}`}
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                inputMode="decimal"
                                 value={item[field.key]}
                                 disabled={createMutation.isPending}
                                 onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                                aria-invalid={hasTooManyDecimals(item[field.key]) ? 'true' : undefined}
+                                aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
                                 className={cellInputClass}
                               />
-                              {hasTooManyDecimals(item[field.key]) && <p className="mt-1 text-xs text-red-600">Use no máximo 2 casas decimais.</p>}
+                              {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-red-600">{moneyFieldError(item[field.key])}</p>}
                             </td>
                           ))}
                           <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-red-600' : ''}`}>
@@ -339,6 +336,70 @@ export function PurchaseCreatePage() {
                   </tbody>
                 </table>
               </div>
+              ) : (
+              <ul className="flex flex-col gap-3">
+                {items.map((item, index) => {
+                  const total = itemTotals[index];
+
+                  return (
+                    <li key={item.productVariantId} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="break-words font-medium">{item.productName}</p>
+                          <p className="text-xs text-gray-500">{item.productCode}</p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={createMutation.isPending}
+                          onClick={() => setItems((current) => current.filter((i) => i.productVariantId !== item.productVariantId))}
+                          aria-label={`Remover ${item.productName}`}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      <div className="mt-3">
+                        <QuantityInput
+                          aria-label={`Quantidade de ${item.productName}`}
+                          itemName={item.productName}
+                          value={item.quantity}
+                          disabled={createMutation.isPending}
+                          onChange={(value) => updateItem(item.productVariantId, 'quantity', value)}
+                        />
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        {MONEY_FIELDS.map((field) => (
+                          <div key={field.key}>
+                            <label htmlFor={`${field.key}-${item.productVariantId}`} className="mb-1 block text-xs text-gray-500">
+                              {field.header}
+                            </label>
+                            <MoneyInput
+                              id={`${field.key}-${item.productVariantId}`}
+                              aria-label={`${field.label} ${item.productName}`}
+                              value={item[field.key]}
+                              disabled={createMutation.isPending}
+                              onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
+                              aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
+                              className={cardMoneyClass}
+                            />
+                            {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-red-600">{moneyFieldError(item[field.key])}</p>}
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-3 flex items-center justify-between border-t pt-3 text-sm">
+                        <span className="text-gray-500">Total do item</span>
+                        <span data-testid={`item-total-${item.productVariantId}`} className={`font-semibold ${total !== null && total < 0 ? 'text-red-600' : ''}`}>
+                          {total === null ? '—' : formatCents(total)}
+                        </span>
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+              )
             )}
 
             {reason && (

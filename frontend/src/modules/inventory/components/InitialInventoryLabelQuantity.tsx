@@ -1,3 +1,5 @@
+import { QuantityInput } from '@/shared/components/form';
+
 interface Props {
   boxCode: string;
   /** Raw text so the field can be cleared while typing; validated on submit. */
@@ -34,7 +36,7 @@ export function InitialInventoryLabelQuantity({ boxCode, quantity, onChange, onC
           Quantidade de etiquetas
         </label>
 
-        <input id="label-quantity" type="number" inputMode="numeric" min={1} step={1} value={quantity} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border p-3" />
+        <QuantityInput id="label-quantity" min={1} value={String(quantity)} onChange={onChange} />
 
         {error && (
           <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">

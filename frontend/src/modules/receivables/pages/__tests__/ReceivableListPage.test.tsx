@@ -8,9 +8,21 @@ import { Sidebar } from '@/components/Sidebar';
 import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
+import { setViewport } from '@/test/viewport';
 import receivableList from '@/test/fixtures/finance/receivableList.json';
 
 describe('ReceivableListPage', () => {
+  test('no celular os filtros ficam recolhidos atrás do botão Filtros, com contador', async () => {
+    setViewport(375);
+    renderWithProviders(<ReceivableListPage />, { route: '/receivables?status=OPEN&openOnly=true' });
+
+    await screen.findByText('Carlos Souza');
+    const button = screen.getByRole('button', { name: 'Filtros (2)' });
+    expect(screen.getByLabelText('Status')).not.toBeVisible();
+    await userEvent.click(button);
+    expect(screen.getByLabelText('Status')).toBeVisible();
+  });
+
   test('lista mostra cliente, origem (link para a venda), totais, próximo vencimento e status PT', async () => {
     renderWithProviders(<ReceivableListPage />, { route: '/receivables' });
 

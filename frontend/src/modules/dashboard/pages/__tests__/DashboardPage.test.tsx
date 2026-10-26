@@ -86,7 +86,7 @@ describe('DashboardPage', () => {
   test('gráfico tem 7 barras com rótulos acessíveis, incluindo dias com zero', async () => {
     renderWithProviders(<DashboardPage />);
 
-    const chart = await screen.findByRole('img', { name: /vendas dos últimos 7 dias/i });
+    const chart = await screen.findByRole('group', { name: /vendas dos últimos 7 dias/i });
     const bars = within(chart).getAllByTestId('sales-bar');
     expect(bars).toHaveLength(7);
     expect(bars[1]).toHaveAttribute('aria-label', expect.stringMatching(/^18\/10: R\$\s0,00 \(0 vendas\)$/));

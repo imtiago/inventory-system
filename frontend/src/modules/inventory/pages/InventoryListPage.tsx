@@ -11,6 +11,7 @@ import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Page } from '@/shared/components/layout/Page';
 import { ExportButton } from '@/shared/components/export/ExportButton';
+import { ExportMenu } from '@/shared/components/export/ExportMenu';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { Can } from '@/shared/auth/Can';
 
@@ -29,16 +30,18 @@ export function InventoryListPage() {
       <Section
         title={isError && !hasData ? 'Itens' : `Itens (${data?.pagination.total ?? 0})`}
         actions={
-          <div className="flex items-center gap-4">
-            <ExportButton permission="inventory.read" url="/reports/stock.csv" params={{}} fallbackName={`estoque-${todayInBusinessTz()}.csv`} />
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <ExportMenu>
+              <ExportButton permission="inventory.read" url="/reports/stock.csv" params={{}} fallbackName={`estoque-${todayInBusinessTz()}.csv`} />
+            </ExportMenu>
             <Can permission="catalog.write">
-              <Link to={`/products/new`} className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
+              <Link to={`/products/new`} className="flex min-h-11 items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
                 <Plus size={18} />
                 Novo
               </Link>
             </Can>
             <Can permission="inventory.write">
-              <Link to={`/inventory/initial`} className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white">
+              <Link to={`/inventory/initial`} className="flex min-h-11 items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white">
                 <Plus size={18} />
                 Cenário Inicial
               </Link>
@@ -61,7 +64,7 @@ export function InventoryListPage() {
           ) : items.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500">Nenhum item em estoque.</div>
           ) : (
-            <DataTable data={items} columns={columns} getRowId={(item) => item.id} />
+            <DataTable data={items} columns={columns} getRowId={(item) => item.id} getRowHref={(item) => `/inventory/${item.id}`} />
           )}
         </div>
 

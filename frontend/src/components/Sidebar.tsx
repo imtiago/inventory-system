@@ -9,7 +9,7 @@ import { ChangePasswordModal } from "@/modules/auth/components/ChangePasswordMod
 import { allRoutes } from "@/routes/routes";
 import type { AppRoute } from "@/routes/types";
 
-function renderItem(item: AppRoute) {
+function renderItem(item: AppRoute, onNavigate?: () => void) {
   const Icon = item.icon;
   if (!Icon) return null;
 
@@ -18,10 +18,11 @@ function renderItem(item: AppRoute) {
       key={item.path}
       to={item.path}
       end={item.path === "/"}
+      onClick={onNavigate}
       className={({ isActive }) =>
         `
         flex items-center gap-3
-        px-4 py-3
+        min-h-11 px-4 py-3
         rounded-lg
         mb-1
         transition
@@ -36,7 +37,12 @@ function renderItem(item: AppRoute) {
   );
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  /** Chamado ao escolher um item do menu (a gaveta usa para fechar). */
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const logout = useLogout();
   const [changingPassword, setChangingPassword] = useState(false);
   const role = useAuthStore((state) => state.user?.role);
@@ -49,22 +55,24 @@ export function Sidebar() {
     <aside
       className="
         w-64
-        h-screen
+        h-full
         bg-slate-900
         text-white
         flex
         flex-col
+        pb-[env(safe-area-inset-bottom)]
+        pl-[env(safe-area-inset-left)]
       "
     >
-      <div className="p-6 text-xl font-bold">Inventory System</div>
+      <div className="shrink-0 p-6 pr-14 text-xl font-bold lg:pr-6">Estoque</div>
 
-      <nav className="flex-1 px-3">
-        {ungrouped.map(renderItem)}
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3">
+        {ungrouped.map((item) => renderItem(item, onNavigate))}
 
         {groups.map((group) => (
           <div key={group}>
             <div className="px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{group}</div>
-            {items.filter((item) => item.group === group).map(renderItem)}
+            {items.filter((item) => item.group === group).map((item) => renderItem(item, onNavigate))}
           </div>
         ))}
       </nav>
@@ -73,7 +81,7 @@ export function Sidebar() {
         onClick={() => setChangingPassword(true)}
         className="
           flex items-center gap-3
-          px-6 py-4
+          shrink-0 min-h-11 px-6 py-4
           hover:bg-slate-800
         "
       >
@@ -85,7 +93,7 @@ export function Sidebar() {
         onClick={logout}
         className="
           flex items-center gap-3
-          px-6 py-4
+          shrink-0 min-h-11 px-6 py-4
           hover:bg-slate-800
         "
       >

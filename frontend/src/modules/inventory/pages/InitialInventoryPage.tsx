@@ -8,6 +8,7 @@ import { InitialInventoryLotStep } from '../components/InitialInventoryLotStep';
 import { InitialInventoryBoxStep } from '../components/InitialInventoryBoxStep';
 import { InitialInventoryLabelChoice } from '../components/InitialInventoryLabelChoice';
 import { InitialInventoryLabelQuantity } from '../components/InitialInventoryLabelQuantity';
+import { InitialInventoryLabelsReady } from '../components/InitialInventoryLabelsReady';
 import { InitialInventoryProductSelection } from '../components/InitialInventoryProductSelection';
 import { InventoryLotForm } from '../components/InventoryLotForm';
 
@@ -136,6 +137,18 @@ export function InitialInventoryPage() {
           onChange={flow.handleLabelQuantityChange}
           onConfirm={flow.handleConfirmLabelQuantity}
           onCancel={flow.handleBackToLabelChoice}
+        />
+      )}
+
+      {flow.step === 'labels-ready' && flow.selectedBox && (
+        <InitialInventoryLabelsReady
+          boxCode={flow.selectedBox.code}
+          canShare={flow.canShareLabels}
+          error={flow.labelError}
+          onDownload={flow.handleDownloadLabels}
+          onShare={flow.handleShareLabels}
+          onRegenerate={flow.handleRegenerateLabels}
+          onContinue={flow.handleFinishUnit}
         />
       )}
 

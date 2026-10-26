@@ -26,7 +26,7 @@ function renderSidebar(role: UserRole, client = createTestQueryClient()) {
 const labels = ['Dashboard', 'Vendas', 'Clientes', 'Estoque', 'Catálogo', 'Produtos', 'Marcas', 'Categorias', 'Compras', 'Fornecedores', 'Pedidos de compra', 'Importar NF-e', 'Financeiro', 'Contas a receber', 'Contas a pagar'];
 
 function visible() {
-  return labels.filter((l) => screen.queryByText(l));
+  return labels.filter((l) => screen.queryAllByText(l).length > 0);
 }
 
 describe('Sidebar', () => {

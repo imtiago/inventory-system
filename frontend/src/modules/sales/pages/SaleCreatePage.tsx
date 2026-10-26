@@ -7,7 +7,8 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
-import { FormAutocomplete } from '@/shared/components/form';
+import { FormAutocomplete, QuantityInput } from '@/shared/components/form';
+import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 
 import type { ICustomer } from '@/modules/customers/types';
 import { useCustomerSearch } from '@/modules/customers/hooks/useCustomerSearch';
@@ -33,6 +34,7 @@ const DEFAULT_FIRST_DUE_DAYS = 30;
 
 export function SaleCreatePage() {
   const navigate = useNavigate();
+  const isWide = useBreakpoint('md');
 
   const {
     control,
@@ -292,6 +294,7 @@ export function SaleCreatePage() {
                 <p className="mt-1 text-sm text-gray-500">Digite ou escaneie um código de barras para adicionar uma variante.</p>
               </div>
             ) : (
+              isWide ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px] text-left text-sm">
                   <thead>
@@ -313,15 +316,12 @@ export function SaleCreatePage() {
                         </td>
 
                         <td className="px-3 py-3">
-                          <input
+                          <QuantityInput
                             aria-label={`Quantidade de ${item.productName}`}
-                            type="number"
-                            min={1}
-                            step={1}
-                            value={item.quantity ?? ''}
+                            itemName={item.productName}
+                            value={item.quantity === null ? '' : String(item.quantity)}
                             disabled={createSaleMutation.isPending}
-                            onChange={(event) => cart.updateQuantity(item.productVariantId, event.target.value === '' ? null : Number(event.target.value))}
-                            className="w-20 rounded-md border px-2 py-1.5"
+                            onChange={(value) => cart.updateQuantity(item.productVariantId, value === '' ? null : Number(value))}
                           />
                         </td>
 
@@ -345,6 +345,42 @@ export function SaleCreatePage() {
                   </tbody>
                 </table>
               </div>
+              ) : (
+              <ul className="flex flex-col gap-3">
+                {cart.items.map((item) => (
+                  <li key={item.productVariantId} className="rounded-lg border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words font-medium">{item.productName}</p>
+                        <p className="text-xs text-gray-500">{item.productCode}</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={createSaleMutation.isPending}
+                        onClick={() => cart.removeItem(item.productVariantId)}
+                        aria-label={`Remover ${item.productName}`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <QuantityInput
+                        aria-label={`Quantidade de ${item.productName}`}
+                        itemName={item.productName}
+                        value={item.quantity === null ? '' : String(item.quantity)}
+                        disabled={createSaleMutation.isPending}
+                        onChange={(value) => cart.updateQuantity(item.productVariantId, value === '' ? null : Number(value))}
+                      />
+                      <div className="text-right text-sm">
+                        <p className="text-gray-500">{item.unitPrice > 0 ? formatCurrency(item.unitPrice) : <span className="text-red-600">Sem preço</span>}</p>
+                        <p className="font-semibold">{isQuantityValid(item.quantity) ? formatCurrency(item.quantity * item.unitPrice) : '—'}</p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              )
             )}
 
             {hasUnpricedItems && (

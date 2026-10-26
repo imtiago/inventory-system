@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 
 import { CrudBadge } from '@/shared/components/crud';
 import { Page } from '@/shared/components/layout/Page';
+import { DetailTable } from '@/shared/components/details/DetailTable';
 import { Can } from '@/shared/auth/Can';
 import { useCan } from '@/shared/auth/useCan';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
@@ -93,37 +94,29 @@ export function PurchaseDetailPage() {
 
             <section>
               <h2 className="mb-2 font-semibold">Itens</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-gray-500">
-                      <th className="py-2">Produto</th>
-                      <th className="py-2 text-right">Qtd.</th>
-                      <th className="py-2 text-right">Recebido</th>
-                      <th className="py-2 text-right">Restante</th>
-                      <th className="py-2 text-right">Preço unit.</th>
-                      <th className="py-2 text-right">Total</th>
-                      <th className="py-2 text-right">Custo unit.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchase.items.map((item) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="py-2">
-                          <div className="font-medium">{item.productVariant.name}</div>
-                          <div className="text-xs text-gray-500">{item.productVariant.code}</div>
-                        </td>
-                        <td className="py-2 text-right">{item.quantity}</td>
-                        <td className="py-2 text-right">{item.receivedQuantity}</td>
-                        <td className="py-2 text-right">{item.remainingQuantity}</td>
-                        <td className="py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                        <td className="py-2 text-right">{formatCurrency(item.total)}</td>
-                        <td className="py-2 text-right">{formatCurrency(item.unitCost)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DetailTable
+                rows={purchase.items}
+                getRowId={(item) => item.id}
+                columns={[
+                  {
+                    id: 'product',
+                    header: 'Produto',
+                    mobile: 'title',
+                    cell: (item) => (
+                      <>
+                        <div className="font-medium">{item.productVariant.name}</div>
+                        <div className="text-xs font-normal text-gray-500">{item.productVariant.code}</div>
+                      </>
+                    ),
+                  },
+                  { id: 'quantity', header: 'Qtd.', align: 'right', cell: (item) => item.quantity },
+                  { id: 'received', header: 'Recebido', align: 'right', cell: (item) => item.receivedQuantity },
+                  { id: 'remaining', header: 'Restante', align: 'right', cell: (item) => item.remainingQuantity },
+                  { id: 'unitPrice', header: 'Preço unit.', align: 'right', cell: (item) => formatCurrency(item.unitPrice) },
+                  { id: 'total', header: 'Total', align: 'right', cell: (item) => formatCurrency(item.total) },
+                  { id: 'unitCost', header: 'Custo unit.', align: 'right', cell: (item) => formatCurrency(item.unitCost) },
+                ]}
+              />
               <p className="mt-3 text-right text-lg font-semibold">Total: {formatCurrency(purchase.totalAmount)}</p>
             </section>
 
@@ -136,32 +129,18 @@ export function PurchaseDetailPage() {
                     Ver contas a pagar
                   </Link>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-gray-500">
-                        <th className="py-2">#</th>
-                        <th className="py-2">Vencimento</th>
-                        <th className="py-2 text-right">Valor</th>
-                        <th className="py-2 text-right">Pago</th>
-                        <th className="py-2 text-right">Restante</th>
-                        <th className="py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {purchase.payable.parcels.map((parcel) => (
-                        <tr key={parcel.id} className="border-b">
-                          <td className="py-2">{parcel.number}</td>
-                          <td className="py-2">{formatDateOnly(parcel.dueDate)}</td>
-                          <td className="py-2 text-right">{formatCurrency(parcel.amount)}</td>
-                          <td className="py-2 text-right">{formatCurrency(parcel.paidAmount)}</td>
-                          <td className="py-2 text-right">{formatCurrency(parcel.remainingAmount)}</td>
-                          <td className="py-2">{FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DetailTable
+                  rows={purchase.payable.parcels}
+                  getRowId={(parcel) => parcel.id}
+                  columns={[
+                    { id: 'number', header: '#', mobile: 'title', cell: (parcel) => <span className="font-medium">Parcela {parcel.number}</span> },
+                    { id: 'dueDate', header: 'Vencimento', cell: (parcel) => formatDateOnly(parcel.dueDate) },
+                    { id: 'amount', header: 'Valor', align: 'right', cell: (parcel) => formatCurrency(parcel.amount) },
+                    { id: 'paid', header: 'Pago', align: 'right', cell: (parcel) => formatCurrency(parcel.paidAmount) },
+                    { id: 'remaining', header: 'Restante', align: 'right', cell: (parcel) => formatCurrency(parcel.remainingAmount) },
+                    { id: 'status', header: 'Status', cell: (parcel) => FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status },
+                  ]}
+                />
               </section>
             )}
           </div>

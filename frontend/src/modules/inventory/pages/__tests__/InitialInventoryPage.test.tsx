@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -312,7 +312,7 @@ describe('InitialInventoryPage (assistente)', () => {
     await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
     const input = screen.getByLabelText('Quantidade de etiquetas');
     await user.clear(input);
-    expect(input).toHaveValue(null);
+    expect(input).toHaveValue('');
 
     await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
     expect(await screen.findByText('Informe uma quantidade de etiquetas válida (mínimo 1).')).toBeInTheDocument();
@@ -322,25 +322,103 @@ describe('InitialInventoryPage (assistente)', () => {
     await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
 
     await waitFor(() => expect(labelBody).toEqual({ productCode: variant.code, quantity: 2 }));
-    expect(await screen.findByRole('button', { name: /ler código de barras/i })).toBeInTheDocument();
+    // O assistente não avança sozinho nem baixa sem o clique do usuário.
+    expect(await screen.findByRole('heading', { name: 'Etiquetas prontas' })).toBeInTheDocument();
+    expect(downloads).toEqual([]);
+    expect(screen.queryByRole('button', { name: /ler código de barras/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Baixar PDF' }));
     expect(downloads).toEqual([{ href: 'blob:labels', name: 'etiquetas-B000001.pdf' }]);
     expect(open).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Etiquetas prontas' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(await screen.findByRole('button', { name: /ler código de barras/i })).toBeInTheDocument();
   });
 
-  test('etiquetas: URL do PDF é revogada depois do download', async () => {
+  test('etiquetas: link anexado ao DOM e URL do PDF revogada 60 s depois do download', async () => {
     server.use(
       http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, () => new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } })),
     );
     const { revoked } = mockDownloads();
+    let attachedOnClick = false;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      attachedOnClick = document.body.contains(this);
+    });
     const user = userEvent.setup();
     renderPage();
     await goToBoxWithLot(user, lotWithRoom.id);
     await addThreeUnitsToBox(user);
     await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
     await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+    await screen.findByRole('heading', { name: 'Etiquetas prontas' });
 
-    await screen.findByRole('button', { name: /ler código de barras/i });
-    await waitFor(() => expect(revoked).toEqual(['blob:labels']), { timeout: 3000 });
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        screen.getByRole('button', { name: 'Baixar PDF' }).click();
+      });
+      expect(attachedOnClick).toBe(true);
+      vi.advanceTimersByTime(59_000);
+      expect(revoked).toEqual([]);
+      vi.advanceTimersByTime(1_500);
+      expect(revoked).toEqual(['blob:labels']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('etiquetas: "Compartilhar" só aparece quando o aparelho aceita compartilhar arquivo e envia o PDF', async () => {
+    server.use(
+      http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, () => new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } })),
+    );
+    mockDownloads();
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+    await addThreeUnitsToBox(user);
+    await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
+    await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+    await screen.findByRole('heading', { name: 'Etiquetas prontas' });
+    expect(screen.queryByRole('button', { name: 'Compartilhar' })).not.toBeInTheDocument();
+
+    // outro render, agora com Web Share de arquivos
+    cleanup();
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true });
+    Object.defineProperty(navigator, 'share', { value: share, configurable: true });
+    try {
+      renderPage();
+      await goToBoxWithLot(user, lotWithRoom.id);
+      await addThreeUnitsToBox(user);
+      await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
+      await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+      await user.click(await screen.findByRole('button', { name: 'Compartilhar' }));
+
+      expect(share).toHaveBeenCalledTimes(1);
+      const arg = share.mock.calls[0][0] as { files: File[] };
+      expect(arg.files[0].name).toBe('etiquetas-B000001.pdf');
+      expect(arg.files[0].type).toBe('application/pdf');
+    } finally {
+      delete (navigator as { canShare?: unknown }).canShare;
+      delete (navigator as { share?: unknown }).share;
+    }
+  });
+
+  test('etiquetas: "Gerar de novo" volta para a quantidade', async () => {
+    server.use(
+      http.post(`${API_URL}/inventory/boxes/code/:code/product-labels`, () => new HttpResponse('%PDF-1.4', { headers: { 'Content-Type': 'application/pdf' } })),
+    );
+    mockDownloads();
+    const user = userEvent.setup();
+    renderPage();
+    await goToBoxWithLot(user, lotWithRoom.id);
+    await addThreeUnitsToBox(user);
+    await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
+    await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+    await user.click(await screen.findByRole('button', { name: 'Gerar de novo' }));
+
+    expect(screen.getByLabelText('Quantidade de etiquetas')).toBeInTheDocument();
   });
 
   test('etiquetas: "Voltar" durante a geração não baixa o PDF', async () => {
@@ -382,9 +460,10 @@ describe('InitialInventoryPage (assistente)', () => {
     await addThreeUnitsToBox(user);
     await user.click(await screen.findByRole('button', { name: 'Sim, gerar etiqueta' }));
     await user.click(screen.getByRole('button', { name: 'Gerar etiquetas' }));
+    await user.click(await screen.findByRole('button', { name: 'Baixar PDF' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível entregar o PDF das etiquetas');
-    expect(screen.getByRole('button', { name: 'Gerar etiquetas' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Etiquetas prontas' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ler código de barras/i })).not.toBeInTheDocument();
   });
 
@@ -682,7 +761,7 @@ describe('InitialInventoryPage (assistente)', () => {
     await user.click(await screen.findByRole('button', { name: 'Criar novo lote' }));
     const dialog = await screen.findByRole('dialog');
 
-    expect(within(dialog).getByLabelText('Custo unitário')).toHaveValue(null);
+    expect(within(dialog).getByLabelText('Custo unitário')).toHaveValue('');
     await user.type(within(dialog).getByLabelText('Lote'), 'L1');
     await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
     await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));

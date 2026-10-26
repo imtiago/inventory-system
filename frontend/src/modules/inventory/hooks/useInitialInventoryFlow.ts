@@ -7,10 +7,10 @@ import { useProductByBarcode } from './useProductByBarcode';
 import { useInventoryLots } from './useInventoryLots';
 import { useInventoryBox } from './useInventoryBox';
 import { useCreateInventoryLot } from './useCreateInventoryLot';
-import { downloadPdf, useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
+import { canSharePdf, downloadPdf, pdfFile, sharePdf, useGenerateInventoryProductLabels } from './useGenerateInventoryProductLabels';
 import { useSearchProducts } from './useSearchProducts';
 
-export type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity';
+export type FlowStep = 'start' | 'scan' | 'product-exists-choice' | 'product-search' | 'register-product' | 'register-variant' | 'lot' | 'box' | 'label-choice' | 'label-quantity' | 'labels-ready';
 
 export type InventoryModalType = 'new-product' | 'product-selection' | 'new-lot' | null;
 
@@ -58,6 +58,7 @@ export function useInitialInventoryFlow() {
 
   const [labelQuantity, setLabelQuantity] = useState('1');
   const [labelError, setLabelError] = useState<string | null>(null);
+  const [readyLabels, setReadyLabels] = useState<{ blob: Blob; fileName: string } | null>(null);
   const [lotError, setLotError] = useState<string | null>(null);
 
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
@@ -110,6 +111,7 @@ export function useInitialInventoryFlow() {
     resetLotAndBox();
     setLabelQuantity('1');
     setLabelError(null);
+    setReadyLabels(null);
     barcodeLookup.clearFoundVariant();
     productSearch.clearProducts();
   }
@@ -400,14 +402,37 @@ export function useInitialInventoryFlow() {
       return;
     }
 
+    // Não baixa nem avança sozinho: o PDF fica pronto e o usuário escolhe (baixar, compartilhar, gerar de novo, continuar).
+    setReadyLabels({ blob: result.data, fileName: `etiquetas-${selectedBox.code}.pdf` });
+    setStep('labels-ready');
+  }
+
+  function handleDownloadLabels() {
+    if (!readyLabels) return;
+
     try {
-      downloadPdf(result.data, `etiquetas-${selectedBox.code}.pdf`);
+      downloadPdf(readyLabels.blob, readyLabels.fileName);
+      setLabelError(null);
     } catch {
       setLabelError('Não foi possível entregar o PDF das etiquetas. Tente gerar novamente.');
-      return;
     }
+  }
 
-    handleFinishUnit();
+  async function handleShareLabels() {
+    if (!readyLabels) return;
+
+    try {
+      await sharePdf(pdfFile(readyLabels.blob, readyLabels.fileName), readyLabels.fileName);
+      setLabelError(null);
+    } catch {
+      setLabelError('Não foi possível compartilhar o PDF das etiquetas. Use "Baixar PDF".');
+    }
+  }
+
+  function handleRegenerateLabels() {
+    setReadyLabels(null);
+    setLabelError(null);
+    setStep('label-quantity');
   }
 
   function handleSkipLabel() {
@@ -454,6 +479,8 @@ export function useInitialInventoryFlow() {
     labelQuantity,
     labelLoading: labels.loading,
     labelError,
+    labelsReadyFile: readyLabels ? pdfFile(readyLabels.blob, readyLabels.fileName) : null,
+    canShareLabels: readyLabels ? canSharePdf(pdfFile(readyLabels.blob, readyLabels.fileName)) : false,
 
     handleStartWithBarcode,
     handleStartWithoutBarcode,
@@ -486,6 +513,9 @@ export function useInitialInventoryFlow() {
     handleBackToLabelChoice,
     handleLabelQuantityChange,
     handleConfirmLabelQuantity,
+    handleDownloadLabels,
+    handleShareLabels,
+    handleRegenerateLabels,
     handleSkipLabel,
     handleFinishUnit,
   };

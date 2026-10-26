@@ -45,6 +45,17 @@ describe('ProductVariantRegistration', () => {
     expect(bodies).toEqual([{ name: 'Kaiak 100ml', barcode: '789', salePrice: 39.9 }]);
   });
 
+  test('"1.000" é mil reais: envia salePrice 1000', async () => {
+    const { bodies, onSuccess } = setup();
+
+    await userEvent.type(screen.getByLabelText('Nome da variante'), 'Kaiak 100ml');
+    await userEvent.type(screen.getByLabelText('Preço de venda (R$)'), '1.000');
+    await userEvent.click(screen.getByRole('button', { name: 'Cadastrar variante' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(bodies).toEqual([{ name: 'Kaiak 100ml', barcode: '789', salePrice: 1000 }]);
+  });
+
   test('dois cliques enviam uma única requisição', async () => {
     const { bodies, onSuccess } = setup();
 

@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
+
+import { useFinePointer } from '@/shared/hooks/useMediaQuery';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 
 export type AutocompleteProps<TOption, TValue extends string | number> = {
@@ -49,6 +51,13 @@ export function Autocomplete<TOption, TValue extends string | number>({
   const inputId = `${id}-input`;
   const listId = `${id}-list`;
   const containerRef = useRef<HTMLDivElement>(null);
+  const finePointer = useFinePointer();
+
+  /** Em toque, leva o campo ao topo da área visível para a lista não ficar sob o teclado. */
+  function revealAboveKeyboard() {
+    if (finePointer) return;
+    window.setTimeout(() => containerRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 300);
+  }
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -170,13 +179,14 @@ export function Autocomplete<TOption, TValue extends string | number>({
             onSearchChange?.('');
             setOpen(true);
             setActiveIndex(-1);
+            revealAboveKeyboard();
           }}
           onChange={(event) => {
             updateQuery(event.target.value);
             setOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-20 text-sm outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 ${
+          className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-20 text-base outline-none sm:text-sm focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 ${
             error ? 'border-red-500 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
           }`}
         />
@@ -229,7 +239,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
                       onMouseEnter={() => setActiveIndex(index)}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => selectOption(option)}
-                      className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left ${activeIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                      className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2.5 text-left ${activeIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-gray-900">{getOptionLabel(option)}</span>

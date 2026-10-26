@@ -40,9 +40,9 @@ export function PageHeader({
         </Link>
       )}
 
-      <div className="flex justify-between items-start">
+      <div className="flex flex-wrap justify-between items-start gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{title}</h1>
 
           {description && <p className="text-gray-500 mt-1">{description}</p>}
         </div>

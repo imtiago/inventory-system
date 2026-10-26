@@ -3,10 +3,10 @@ import { toast } from "sonner";
 
 import { queryClient } from "@/shared/react-query/queryClient";
 import { useAuthStore, type SessionUser } from "@/shared/store/auth";
+import { resolveApiBaseUrl } from "./apiBaseUrl";
 
 export const api = axios.create({
-  // baseURL: "http://192.168.100.3:3000", // sua API
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000",
+  baseURL: resolveApiBaseUrl(import.meta.env),
 });
 
 api.interceptors.request.use((config) => {

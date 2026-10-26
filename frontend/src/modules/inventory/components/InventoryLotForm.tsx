@@ -1,5 +1,13 @@
 import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+
+import { MoneyInput, QuantityInput } from '@/shared/components/form';
+import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
+
+/** O custo fica no formulário como o texto digitado (pt-BR); vira número só no envio. */
+interface FormValues extends Omit<InventoryLotFormData, 'unitCost'> {
+  unitCost: string;
+}
 
 export interface InventoryLotFormData {
   batchNumber: string;
@@ -25,10 +33,11 @@ const LOT_FIELDS = ['batchNumber', 'manufacturingDate', 'expirationDate', 'quant
 export function InventoryLotForm({ initialValues, submitting = false, submitError = null, onSubmit, onCancel }: Props) {
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<InventoryLotFormData>({
+  } = useForm<FormValues>({
     defaultValues: {
       batchNumber: initialValues?.batchNumber ?? '',
 
@@ -39,12 +48,12 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
       quantity: initialValues?.quantity ?? 1,
 
       // No silent default: an empty cost must be typed (required below).
-      unitCost: initialValues?.unitCost,
+      unitCost: initialValues?.unitCost === undefined ? '' : formatMoneyInput(initialValues.unitCost),
     },
   });
 
   const submit = handleSubmit(async (data) => {
-    const result = await onSubmit(data);
+    const result = await onSubmit({ ...data, unitCost: (parseMoneyToCents(data.unitCost) ?? 0) / 100 });
 
     if (result?.fieldErrors) {
       const { unmatched } = applyFieldErrors(setError, result.fieldErrors, LOT_FIELDS);
@@ -111,30 +120,12 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             Custo unitário
           </label>
 
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
-
-            <input
-              id="unitCost"
-              type="number"
-              min={0}
-              step="0.01"
-              {...register('unitCost', {
-                required: 'Informe o custo unitário.',
-
-                valueAsNumber: true,
-
-                min: {
-                  value: 0,
-                  message: 'O custo não pode ser negativo.',
-                },
-
-                validate: (value) => Number.isFinite(value) || 'Informe um custo válido.',
-              })}
-              className="w-full rounded-lg border p-3 pl-10"
-              placeholder="0,00"
-            />
-          </div>
+          <MoneyInput
+            id="unitCost"
+            {...register('unitCost', {
+              validate: (value) => (value.trim() === '' ? 'Informe o custo unitário.' : (moneyTextError(value) ?? true)),
+            })}
+          />
 
           {errors.unitCost && <p className="mt-1 text-sm text-red-600">{errors.unitCost.message}</p>}
 
@@ -147,24 +138,19 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             Quantidade
           </label>
 
-          <input
-            id="quantity"
-            type="number"
-            min={1}
-            step={1}
-            {...register('quantity', {
-              required: 'Informe a quantidade.',
-
-              valueAsNumber: true,
-
-              min: {
-                value: 1,
-                message: 'A quantidade deve ser maior que zero.',
+          <Controller
+            control={control}
+            name="quantity"
+            rules={{
+              validate: (value) => {
+                if (!Number.isFinite(value)) return 'Informe a quantidade.';
+                if (value < 1) return 'A quantidade deve ser maior que zero.';
+                return Number.isInteger(value) || 'A quantidade deve ser um número inteiro.';
               },
-
-              validate: (value) => Number.isInteger(value) || 'A quantidade deve ser um número inteiro.',
-            })}
-            className="w-full rounded-lg border p-3"
+            }}
+            render={({ field }) => (
+              <QuantityInput id="quantity" value={Number.isFinite(field.value) ? String(field.value) : ''} onChange={(value) => field.onChange(value === '' ? Number.NaN : Number(value))} onBlur={field.onBlur} />
+            )}
           />
 
           {errors.quantity && <p className="mt-1 text-sm text-red-600">{errors.quantity.message}</p>}

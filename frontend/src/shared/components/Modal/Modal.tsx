@@ -74,7 +74,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
       aria-labelledby={title ? titleId : undefined}
       aria-describedby={description ? descriptionId : undefined}
     >
-      <div className={`relative flex max-h-[90vh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl bg-white shadow-2xl`}>
+      <div className={`relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl bg-white shadow-2xl`}>
         {(title || description || showCloseButton) && (
           <div className="flex shrink-0 items-start justify-between border-b px-6 py-4">
             <div className="pr-8">

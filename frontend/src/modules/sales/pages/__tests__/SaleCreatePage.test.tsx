@@ -143,7 +143,7 @@ describe('SaleCreatePage', () => {
 
     const qty = await screen.findByLabelText('Quantidade de Camiseta Azul');
     await userEvent.clear(qty);
-    expect(qty).toHaveValue(null);
+    expect(qty).toHaveValue('');
 
     await userEvent.click(screen.getByRole('button', { name: 'Registrar venda' }));
     expect(await screen.findByText(/quantidade válida/i)).toBeInTheDocument();

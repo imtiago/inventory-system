@@ -68,14 +68,15 @@ export function NfeImportListPage() {
   }
 
   const columns: DataTableColumn<INfeImportSummary>[] = [
-    { id: 'number', header: 'Número/série', cell: (item) => `${item.number}/${item.series}` },
-    { id: 'supplier', header: 'Fornecedor', cell: (item) => item.supplier.name },
-    { id: 'issueDate', header: 'Emissão', align: 'center', cell: (item) => formatDateOnly(item.issueDate) },
-    { id: 'total', header: 'Total', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-    { id: 'status', header: 'Status', align: 'center', cell: (item) => <CrudBadge>{NFE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+    { id: 'number', header: 'Número/série', mobile: 'title', cell: (item) => `${item.number}/${item.series}` },
+    { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
+    { id: 'issueDate', header: 'Emissão', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.issueDate) },
+    { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
+    { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{NFE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
     {
       id: 'actions',
       header: 'Ações',
+      mobile: 'actions',
       align: 'center',
       cell: (item) =>
         item.status === 'DRAFT' ? (
@@ -166,7 +167,7 @@ export function NfeImportListPage() {
             <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as importações. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhuma nota importada" emptyHint="Envie um XML de NF-e para começar." getRowId={(item) => item.id} />
             </div>
           )}
 

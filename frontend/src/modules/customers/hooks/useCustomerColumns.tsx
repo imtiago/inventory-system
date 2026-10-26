@@ -22,6 +22,7 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
     {
       id: 'code',
       header: 'Código',
+      mobile: 'meta',
 
       cell: (data) => (
         <div>
@@ -36,6 +37,7 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
     {
       id: 'name',
       header: 'Nome',
+      mobile: 'title',
 
       cell: (data) => data.name,
     },
@@ -43,12 +45,14 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
     {
       id: 'phone',
       header: 'Telefone',
+      mobile: 'meta',
 
       cell: (data) => formatPhone(data.phone),
     },
     {
       id: 'email',
       header: 'E-mail',
+      mobile: 'meta',
 
       cell: (data) => data.email ?? "-",
     },
@@ -71,12 +75,13 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
     {
       id: 'actions',
       header: 'Ações',
+      mobile: 'actions',
       align: 'center',
 
       cell: (data) => (
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-1">
           <Can permission="customers.write">
-            <button type="button" onClick={() => onEdit(data)} className="text-blue-600 hover:text-blue-800" aria-label={`Editar ${data.name}`}>
+            <button type="button" onClick={() => onEdit(data)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800" aria-label={`Editar ${data.name}`}>
               <Pencil size={18} />
             </button>
           </Can>

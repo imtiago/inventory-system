@@ -18,6 +18,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
     {
       id: "code",
       header: "Código",
+      mobile: "meta",
 
       cell: (product) => product.code,
     },
@@ -25,6 +26,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
     {
       id: "name",
       header: "Produto",
+      mobile: "title",
 
       cell: (product) => (
         <div>
@@ -45,6 +47,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
     {
       id: "brand",
       header: "Marca",
+      mobile: "meta",
 
       cell: (product) => product.brand.name,
     },
@@ -52,6 +55,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
     {
       id: "category",
       header: "Categoria",
+      mobile: "meta",
 
       cell: (product) => product.category.name,
     },
@@ -59,6 +63,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
     {
       id: "variants",
       header: "Variantes",
+      mobile: "meta",
       align: "center",
 
       cell: (product) => (
@@ -71,14 +76,15 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
     {
       id: "actions",
       header: "Ações",
+      mobile: "actions",
       align: "center",
 
       cell: (product) => (
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-1">
           <Can permission="catalog.write">
             <Link
               to={`/products/${product.id}/edit`}
-              className="text-blue-600 hover:text-blue-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
               aria-label={`Editar ${product.name}`}
             >
               <Pencil size={18} />
@@ -87,7 +93,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
 
           <Can permission="catalog.delete">
             <button
-              className="text-red-600 hover:text-red-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800"
               onClick={() => onDelete(product)}
               aria-label={`Excluir ${product.name}`}
             >

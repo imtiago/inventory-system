@@ -72,14 +72,15 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
   const deleteMutation = useCrudMutation({ mutationFn: remove, invalidateKeys, successMessage: `${capitalize(singular)} excluída.`, errorMessage: `Erro ao excluir ${singular}.` });
 
   const columns: DataTableColumn<T>[] = [
-    { id: 'name', header: 'Nome', cell: (item) => item.name },
-    { id: 'productsCount', header: 'Produtos', align: 'center', cell: (item) => item.productsCount ?? 0 },
+    { id: 'name', header: 'Nome', mobile: 'title', cell: (item) => item.name },
+    { id: 'productsCount', header: 'Produtos', mobile: 'meta', align: 'center', cell: (item) => item.productsCount ?? 0 },
     {
       id: 'actions',
       header: 'Ações',
+      mobile: 'actions',
       align: 'center',
       cell: (item) => (
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-1">
           <Can permission="catalog.write">
             <button
               type="button"
@@ -87,14 +88,14 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 setEditing(item);
                 setFormOpen(true);
               }}
-              className="text-blue-600 hover:text-blue-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
               aria-label={`Editar ${item.name}`}
             >
               <Pencil size={18} />
             </button>
           </Can>
           <Can permission="catalog.delete">
-            <button type="button" onClick={() => setDeleting(item)} className="text-red-600 hover:text-red-800" aria-label={`Excluir ${item.name}`}>
+            <button type="button" onClick={() => setDeleting(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800" aria-label={`Excluir ${item.name}`}>
               <Trash2 size={18} />
             </button>
           </Can>
@@ -176,7 +177,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 Carregando {plural}...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} />
+              <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} emptyMessage={`Nenhuma ${singular} encontrada`} emptyHint="Tente outra busca ou cadastre uma nova." />
             )}
           </div>
 

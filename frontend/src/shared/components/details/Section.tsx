@@ -24,15 +24,18 @@ export function Section({
         flex
         flex-col
         min-h-0
-        overflow-hidden
+        lg:overflow-hidden
         ${className}
       `}
     >
       {(title || description || actions) && (
         <div
           className="
-            p-6
+            p-4
+            sm:p-6
             flex
+            flex-wrap
+            gap-3
             justify-between
             items-center
             border-b
@@ -55,7 +58,7 @@ export function Section({
         className="
    flex-1
    min-h-0
-   overflow-hidden
+   lg:overflow-hidden
    flex
    flex-col
  "

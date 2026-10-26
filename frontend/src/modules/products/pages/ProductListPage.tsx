@@ -5,6 +5,7 @@ import { LoaderCircle, Plus, Search } from "lucide-react";
 import { CrudPagination } from "@/shared/components/crud";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { DataTable } from "@/shared/components/table";
+import { FilterPanel } from "@/shared/components/layout/FilterPanel";
 import { Section } from "@/shared/components/details/Section";
 import { Page } from "@/shared/components/layout/Page";
 import { Can } from "@/shared/auth/Can";
@@ -75,7 +76,9 @@ export function ProductListPage() {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-col gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center">
+          <div className="border-b border-gray-100 p-3 sm:p-5">
+          <FilterPanel activeCount={[search, brandId, categoryId].filter(Boolean).length}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:max-w-sm">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -118,6 +121,8 @@ export function ProductListPage() {
               />
             </div>
           </div>
+          </FilterPanel>
+          </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {isError ? (
@@ -128,7 +133,7 @@ export function ProductListPage() {
                 Carregando produtos...
               </div>
             ) : (
-              <DataTable data={data?.data ?? []} columns={columns} getRowId={(product) => product.id} />
+              <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum produto encontrado" emptyHint="Ajuste a busca ou os filtros, ou cadastre um novo produto." getRowId={(product) => product.id} getRowHref={(product) => `/products/${product.id}`} />
             )}
           </div>
 

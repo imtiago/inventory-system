@@ -1,3 +1,5 @@
+import { MoneyInput } from '@/shared/components/form';
+import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
@@ -30,13 +32,17 @@ interface Props {
 
 const FIELDS = ["name", "barcode", "salePrice"] as const;
 
-function validateSalePrice(value: number | undefined, required: boolean) {
-  if (value === undefined) return required ? "Informe o preço de venda." : true;
-  if (Number.isNaN(value)) return "Informe um preço válido.";
-  if (value < 0) return "O preço não pode ser negativo.";
-  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return "O preço deve ter no máximo 2 casas decimais.";
+/** O campo guarda o texto digitado (pt-BR); a conversão para número só acontece no envio. */
+interface FormValues {
+  name: string;
+  barcode?: string | null;
+  salePrice: string;
+}
 
-  return true;
+function validateSalePrice(text: string, required: boolean) {
+  if (text.trim() === "") return required ? "Informe o preço de venda." : true;
+
+  return moneyTextError(text) ?? true;
 }
 
 export function VariantForm({
@@ -47,8 +53,11 @@ export function VariantForm({
   onCancel,
   requireSalePrice = false,
 }: Props) {
-  const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting } } = useForm<VariantFormData>({
-    defaultValues: initialValues,
+  const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting } } = useForm<FormValues>({
+    defaultValues: {
+      ...initialValues,
+      salePrice: initialValues?.salePrice === undefined ? "" : formatMoneyInput(initialValues.salePrice),
+    },
   });
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -62,7 +71,9 @@ export function VariantForm({
 
   const submit = handleSubmit(once(async (data) => {
     try {
-      await onSubmit({ ...data, barcode: data.barcode?.trim() || null });
+      const cents = data.salePrice.trim() === "" ? null : parseMoneyToCents(data.salePrice);
+
+      await onSubmit({ ...data, salePrice: cents === null ? undefined : cents / 100, barcode: data.barcode?.trim() || null });
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
@@ -151,22 +162,11 @@ export function VariantForm({
         <div>
           <label htmlFor="variant-sale-price" className="block mb-1">Preço de venda (R$)</label>
 
-          <input
+          <MoneyInput
             id="variant-sale-price"
-            type="number"
-            step="0.01"
-            inputMode="decimal"
             {...register("salePrice", {
-              setValueAs: (value) => (value === "" || value == null ? undefined : Number(value)),
               validate: (value) => validateSalePrice(value, requireSalePrice),
             })}
-            className="
-              w-full
-              border
-              rounded-lg
-              p-3
-            "
-            placeholder="0,00"
           />
           {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}
         </div>

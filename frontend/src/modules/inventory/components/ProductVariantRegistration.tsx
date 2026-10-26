@@ -1,3 +1,5 @@
+import { MoneyInput } from '@/shared/components/form';
+import { moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 import { useForm } from 'react-hook-form';
 
 import { useCreateVariant } from '@/modules/products/hooks/useCreateVariant';
@@ -15,16 +17,13 @@ interface ProductVariantRegistrationProps {
 
 interface FormValues {
   name: string;
-  salePrice: number | undefined;
+  salePrice: string;
 }
 
-function validateSalePrice(value: number | undefined) {
-  if (value === undefined) return 'Informe o preço de venda.';
-  if (Number.isNaN(value)) return 'Informe um preço válido.';
-  if (value < 0) return 'O preço não pode ser negativo.';
-  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return 'O preço deve ter no máximo 2 casas decimais.';
+function validateSalePrice(text: string) {
+  if (text.trim() === '') return 'Informe o preço de venda.';
 
-  return true;
+  return moneyTextError(text) ?? true;
 }
 
 export function ProductVariantRegistration({ barcode, productId, productName, onSuccess, onCancel }: ProductVariantRegistrationProps) {
@@ -34,7 +33,7 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ defaultValues: { name: '' } });
+  } = useForm<FormValues>({ defaultValues: { name: '', salePrice: '' } });
 
   const loading = isSubmitting;
 
@@ -42,7 +41,7 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
     once(async ({ name, salePrice }) => {
       try {
         // The shared hook shows the success/error toast and refreshes the product's variants.
-        const variant = await createVariant.mutateAsync({ name: name.trim(), ...(barcode ? { barcode } : {}), salePrice });
+        const variant = await createVariant.mutateAsync({ name: name.trim(), ...(barcode ? { barcode } : {}), salePrice: (parseMoneyToCents(salePrice) ?? 0) / 100 });
 
         onSuccess(variant as ProductVariant);
       } catch {
@@ -105,19 +104,13 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
             Preço de venda (R$)
           </label>
 
-          <input
+          <MoneyInput
             id="variant-sale-price"
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="0,00"
             disabled={loading}
             aria-invalid={errors.salePrice ? 'true' : undefined}
             {...register('salePrice', {
-              setValueAs: (value) => (value === '' || value == null ? undefined : Number(value)),
               validate: validateSalePrice,
             })}
-            className="w-full rounded-lg border p-3 disabled:opacity-50"
           />
 
           {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}

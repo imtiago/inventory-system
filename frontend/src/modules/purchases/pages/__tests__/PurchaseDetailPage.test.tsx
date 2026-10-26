@@ -10,6 +10,7 @@ import { loginAs } from '@/test/auth';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import purchaseDetail from '@/test/fixtures/purchases/purchaseDetail.json';
+import { setViewport } from '@/test/viewport';
 
 const pending = {
   data: {
@@ -34,6 +35,29 @@ let posted: unknown;
 
 beforeEach(() => {
   posted = undefined;
+});
+
+describe('PurchaseDetailPage no celular', () => {
+  test('itens e parcelas viram cartões empilhados, sem tabela', async () => {
+    setViewport(375);
+    renderPage();
+
+    expect(await screen.findByText('PC000012')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const cards = screen.getAllByRole('listitem');
+    expect(cards).toHaveLength(4);
+    expect(within(cards[0]).getByText('Camiseta Básica Azul M')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Recebido')).toBeInTheDocument();
+    expect(within(cards[2]).getByText('Status')).toBeInTheDocument();
+  });
+
+  test('a partir de md continua sendo tabela', async () => {
+    setViewport(1024);
+    renderPage();
+
+    await screen.findByText('PC000012');
+    expect(screen.getAllByRole('table')).toHaveLength(2);
+  });
 });
 
 describe('PurchaseDetailPage', () => {
@@ -129,7 +153,7 @@ describe('PurchaseDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Registrar recebimento' }));
     const dialog = screen.getByRole('dialog');
     const qty1 = within(dialog).getByLabelText('Quantidade a receber de Camiseta Básica Azul M');
-    expect(qty1).toHaveValue(2); // padrão = restante
+    expect(qty1).toHaveValue('2'); // padrão = restante
     await userEvent.clear(qty1);
     await userEvent.type(qty1, '1');
     await userEvent.type(within(dialog).getByLabelText('Lote de Camiseta Básica Azul M'), 'L-001');
