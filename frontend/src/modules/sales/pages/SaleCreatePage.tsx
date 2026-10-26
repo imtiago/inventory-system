@@ -400,6 +400,9 @@ export function SaleCreatePage() {
               <p data-testid="sale-total" className="text-2xl font-semibold">
                 {formatCents(cart.totalCents)}
               </p>
+              <p data-testid="sale-total-estimate" className="text-xs text-muted">
+                Estimativa com os preços lidos agora. O valor final é calculado ao registrar.
+              </p>
             </div>
 
             {/* Condição de pagamento */}

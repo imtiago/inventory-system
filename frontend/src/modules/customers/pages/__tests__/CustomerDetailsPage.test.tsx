@@ -41,6 +41,13 @@ beforeEach(() => {
 });
 
 describe('CustomerDetailsPage', () => {
+  test('mostra o código do cliente, não pedaço do identificador interno', async () => {
+    renderDetails();
+
+    expect(await screen.findByText('Cliente C000001')).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(customer.data.id.slice(0, 8), 'i'))).not.toBeInTheDocument();
+  });
+
   test('mostra o CPF/CNPJ formatado', async () => {
     renderDetails();
 

@@ -404,6 +404,9 @@ export function PurchaseCreatePage() {
               <p data-testid="purchase-total" className="text-2xl font-semibold">
                 {formatCents(totalCents)}
               </p>
+              <p data-testid="purchase-total-estimate" className="text-xs text-muted">
+                Estimativa com os valores digitados. O total final é conferido ao registrar.
+              </p>
             </div>
 
             <fieldset className="mt-6 border-t pt-5">

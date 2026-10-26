@@ -43,7 +43,7 @@ export function CustomerDetailsPage() {
     <Page width="narrow">
       <PageHeader
         title={customer.name}
-        description={`Cliente #${customer.id.slice(0, 8).toUpperCase()}`}
+        description={`Cliente ${customer.code}`}
         backPath="/customers"
         backLabel="clientes"
         actions={
