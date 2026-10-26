@@ -8,7 +8,7 @@
     "dev:https": "DEV_HTTPS=1 vite --host",
     "typecheck": "tsc -b",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . && node scripts/check-raw-colors.mjs",
     "preview": "vite preview",
     "projesctStructure": "tree -I 'node_modules'",
     "test": "vitest run"

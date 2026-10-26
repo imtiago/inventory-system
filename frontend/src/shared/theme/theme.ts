@@ -13,7 +13,7 @@ export const THEME_STORAGE_KEY = 'ui.theme';
 export const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /** Cor da barra do navegador/celular: a mesma do topo do app (menu) em cada tema. */
-export const THEME_COLORS: Record<ResolvedTheme, string> = { light: '#0f172a', dark: '#020617' };
+export const THEME_COLORS: Record<ResolvedTheme, string> = { light: '#0f172a', dark: '#020617' }; // raw-color-ok: <meta theme-color> precisa de cor literal
 
 export function isThemePreference(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'system';
