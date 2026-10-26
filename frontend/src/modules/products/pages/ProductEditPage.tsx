@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import { PageContainer } from "@/shared/components/PageContainer";
+import { Page } from "@/shared/components/layout/Page";
 import { parseApiErrorSync } from "@/shared/services/parseApiError";
 import { handleMutationError } from "@/shared/utils/mutation";
 import { notify } from "@/shared/utils/notify";
@@ -56,7 +56,7 @@ export function ProductEditPage() {
   }
 
   return (
-    <PageContainer>
+    <Page width="narrow">
       <ProductForm
         title="Editar Produto"
         description={`Código ${product.code}`}
@@ -64,8 +64,10 @@ export function ProductEditPage() {
         initialCategory={product.category}
         initialValues={initialValues}
         onSubmit={handleSubmit}
+        backPath={`/products/${id}`}
+        backLabel="produto"
         onCancel={() => navigate(`/products/${id}`)}
       />
-    </PageContainer>
+    </Page>
   );
 }

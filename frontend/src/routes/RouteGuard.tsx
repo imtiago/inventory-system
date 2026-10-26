@@ -23,8 +23,8 @@ export function RouteGuard({ guard, permission, children }: Props) {
     return (
       <div role="alert" className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-lg font-semibold">Não foi possível carregar sua sessão.</p>
-        <p className="text-gray-600">Verifique sua conexão e tente novamente.</p>
-        <button type="button" onClick={retryRestore} disabled={isRetrying} className="rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <p className="text-muted">Verifique sua conexão e tente novamente.</p>
+        <button type="button" onClick={retryRestore} disabled={isRetrying} className="rounded-lg bg-primary px-5 py-2 text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
           {isRetrying ? "Tentando novamente..." : "Tentar novamente"}
         </button>
       </div>

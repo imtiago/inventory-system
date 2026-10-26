@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
+import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
@@ -22,7 +25,7 @@ function pluralize(count: number, one: string, many: string) {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="rounded-xl border bg-white p-4 shadow-sm">
+    <section aria-label={title} className="rounded-xl border bg-surface p-4 shadow-sm">
       <h2 className="mb-3 text-base font-semibold">{title}</h2>
       {children}
     </section>
@@ -32,14 +35,14 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 function Stat({ id, label, value, hint, to, danger }: { id: string; label: string; value: string; hint?: string; to?: string; danger?: boolean }) {
   const content = (
     <>
-      <span className="block text-sm text-gray-500">{label}</span>
-      <span className={`mt-1 block text-xl font-semibold ${danger ? 'text-red-600' : ''}`}>{value}</span>
-      {hint && <span className="block text-xs text-gray-500">{hint}</span>}
+      <span className="block text-sm text-muted">{label}</span>
+      <span className={`mt-1 block break-words text-xl font-semibold tabular-nums ${danger ? 'text-danger' : 'text-foreground'}`}>{value}</span>
+      {hint && <span className="block text-xs text-muted">{hint}</span>}
     </>
   );
 
   return (
-    <div data-testid={id} className="rounded-lg border border-gray-100 p-3">
+    <div data-testid={id} className="min-w-0 rounded-lg border border-border p-3">
       {to ? (
         <Link to={to} className="block hover:underline">
           {content}
@@ -56,7 +59,7 @@ function FinanceCard({ title, base, data, from, to }: { title: string; base: str
 
   return (
     <Card title={title}>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 2xl:grid-cols-3">
         <Stat id={`${kind}-open`} label="Em aberto" value={formatCurrency(data.open)} to={`${base}?openOnly=true`} />
         <Stat id={`${kind}-overdue`} label="Vencido" value={formatCurrency(data.overdue)} to={`${base}?status=OVERDUE`} danger={data.overdue > 0} />
         <Stat
@@ -76,20 +79,22 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div role="status" aria-live="polite" className="grid animate-pulse gap-4 md:grid-cols-2">
-        <span className="sr-only">Carregando dashboard...</span>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-40 rounded-xl bg-gray-100" />
-        ))}
-      </div>
+      <Page>
+        <div role="status" aria-live="polite" className="grid animate-pulse gap-4 md:grid-cols-2">
+          <span className="sr-only">Carregando dashboard...</span>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-40 rounded-xl bg-surface-muted" />
+          ))}
+        </div>
+      </Page>
     );
   }
 
   if (isError || !data) {
     return (
-      <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
         <p>Não foi possível carregar o dashboard.</p>
-        <button type="button" onClick={() => refetch()} disabled={isFetching} className="mt-3 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60">
+        <button type="button" onClick={() => refetch()} disabled={isFetching} className="mt-3 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover disabled:opacity-60">
           Tentar novamente
         </button>
       </div>
@@ -101,8 +106,8 @@ export function DashboardPage() {
   const { sales, receivables, payables, inventory, purchases } = data;
 
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+    <Page>
+      <PageHeader title="Dashboard" description="Resumo de vendas, financeiro, estoque e compras." />
       <div className="grid gap-4 lg:grid-cols-2">
         {sales && (
           <div className="lg:col-span-2">
@@ -113,19 +118,19 @@ export function DashboardPage() {
               </div>
               <div className="mt-4 grid gap-6 lg:grid-cols-2">
                 <div>
-                  <h3 className="mb-2 text-sm font-medium text-gray-700">Últimos 7 dias</h3>
+                  <h3 className="mb-2 text-sm font-medium text-foreground">Últimos 7 dias</h3>
                   <SalesChart days={sales.last7Days} />
                 </div>
                 <div>
-                  <h3 className="mb-2 text-sm font-medium text-gray-700">Mais vendidos no mês</h3>
+                  <h3 className="mb-2 text-sm font-medium text-foreground">Mais vendidos no mês</h3>
                   {sales.topVariants.length === 0 ? (
-                    <p className="text-sm text-gray-500">Nenhuma venda no período.</p>
+                    <p className="text-sm text-muted">Nenhuma venda no período.</p>
                   ) : (
                     <ol className="space-y-1 text-sm">
                       {sales.topVariants.map((item) => (
                         <li key={item.productVariantId} className="flex justify-between gap-2">
                           <span>{item.label}</span>
-                          <span className="text-gray-500">
+                          <span className="text-muted">
                             {item.quantity} un. · {formatCurrency(item.total)}
                           </span>
                         </li>
@@ -143,7 +148,7 @@ export function DashboardPage() {
 
         {inventory && (
           <Card title="Estoque">
-            <p className="mb-2 text-sm text-gray-500">{pluralize(inventory.outOfStockCount, 'variante sem estoque', 'variantes sem estoque')}</p>
+            <p className="mb-2 text-sm text-muted">{pluralize(inventory.outOfStockCount, 'variante sem estoque', 'variantes sem estoque')}</p>
             {inventory.outOfStock.length > 0 && (
               <ul className="mb-4 space-y-1 text-sm">
                 {inventory.outOfStock.map((item) => (
@@ -151,14 +156,14 @@ export function DashboardPage() {
                     <Link to="/inventory" className="hover:underline">
                       {item.label}
                     </Link>{' '}
-                    <span className="text-gray-500">{item.quantity < 0 ? `−${Math.abs(item.quantity)}` : item.quantity} un.</span>
+                    <span className="text-muted">{item.quantity < 0 ? `−${Math.abs(item.quantity)}` : item.quantity} un.</span>
                   </li>
                 ))}
               </ul>
             )}
-            <h3 className="mb-1 text-sm font-medium text-gray-700">Lotes vencendo em 30 dias ({inventory.expiringLots.count})</h3>
+            <h3 className="mb-1 text-sm font-medium text-foreground">Lotes vencendo em 30 dias ({inventory.expiringLots.count})</h3>
             {inventory.expiringLots.items.length === 0 ? (
-              <p className="text-sm text-gray-500">Nenhum lote vencendo.</p>
+              <p className="text-sm text-muted">Nenhum lote vencendo.</p>
             ) : (
               <ul className="space-y-1 text-sm">
                 {inventory.expiringLots.items.map((lot) => (
@@ -166,7 +171,7 @@ export function DashboardPage() {
                     <Link to="/inventory" className="hover:underline">
                       {lot.label}
                     </Link>{' '}
-                    <span className="text-gray-500">
+                    <span className="text-muted">
                       {lot.batchNumber ? `lote ${lot.batchNumber} · ` : ''}vence em {formatDateOnly(lot.expirationDate)} · {lot.remainingQuantity} un.
                     </span>
                   </li>
@@ -188,6 +193,6 @@ export function DashboardPage() {
           </Card>
         )}
       </div>
-    </div>
+    </Page>
   );
 }

@@ -1,20 +1,29 @@
 import React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "default" | "outline";
-};
+import { cn } from "@/lib/utils";
 
-const VARIANT_CLASSES = {
-  default: "bg-blue-500 text-white hover:bg-blue-600",
-  outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-} as const;
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 rounded px-4 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
+  {
+    variants: {
+      variant: {
+        primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        secondary: "bg-surface-muted text-foreground ring-1 ring-inset ring-border hover:bg-border",
+        outline: "border border-input bg-surface text-foreground hover:bg-surface-muted",
+        ghost: "bg-transparent text-foreground hover:bg-surface-muted",
+        danger: "bg-danger-solid text-danger-foreground hover:bg-danger",
+      },
+    },
+    defaultVariants: { variant: "primary" },
+  },
+);
 
-export const Button: React.FC<ButtonProps> = ({ children, variant = "default", className, ...props }) => {
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>;
+
+export const Button: React.FC<ButtonProps> = ({ children, variant, className, ...props }) => {
   return (
-    <button
-      {...props}
-      className={`${VARIANT_CLASSES[variant]} px-4 py-2 rounded transition ${className || ""}`}
-    >
+    <button {...props} className={cn(buttonVariants({ variant }), className)}>
       {children}
     </button>
   );

@@ -51,11 +51,11 @@ describe('InitialInventoryScanner', () => {
     expect(input).not.toHaveAttribute('readonly');
   });
 
-  test('"📷 Ler" continua abrindo a câmera', async () => {
+  test('"Ler" continua abrindo a câmera', async () => {
     const onOpenScanner = vi.fn();
     setup({ onOpenScanner });
 
-    await userEvent.click(screen.getByRole('button', { name: '📷 Ler' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ler' }));
 
     expect(onOpenScanner).toHaveBeenCalled();
   });

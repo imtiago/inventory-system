@@ -50,21 +50,21 @@ function CancelForm({ purchaseId, onClose }: { purchaseId: string; onClose: () =
           value={reason}
           disabled={mutation.isPending}
           onChange={(event) => setReason(event.target.value)}
-          className="w-full rounded-md border px-3 py-2 text-sm"
+          className="w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm"
         />
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
 
       <div className="flex justify-end gap-2">
-        <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={onClose} disabled={mutation.isPending}>
+        <button type="button" className="rounded-lg border border-input bg-surface text-foreground px-4 py-2 hover:bg-surface-muted disabled:opacity-50" onClick={onClose} disabled={mutation.isPending}>
           Voltar
         </button>
-        <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50" onClick={handleSubmit} disabled={mutation.isPending}>
+        <button type="button" className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50" onClick={handleSubmit} disabled={mutation.isPending}>
           {mutation.isPending ? 'Cancelando...' : 'Confirmar cancelamento'}
         </button>
       </div>

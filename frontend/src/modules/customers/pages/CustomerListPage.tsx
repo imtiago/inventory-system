@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Search, Users, LoaderCircle } from 'lucide-react';
 
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { Section } from '@/shared/components/details/Section';
 import { DataTable } from '@/shared/components/table';
@@ -50,35 +51,37 @@ export function CustomerListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title="Clientes"
         description="Gerencie os clientes cadastrados no sistema."
         actions={
           <Can permission="customers.write">
-            <Button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800">
+            <Button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover">
               <Plus size={18} />
               Novo Cliente
             </Button>
           </Can>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
           {/* Resumo e busca */}
-          <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
-                <Users size={21} className="text-gray-600" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-muted">
+                <Users size={21} className="text-muted" />
               </div>
 
               <div>
-                <p className="text-sm text-gray-500">Total de clientes</p>
+                <p className="text-sm text-muted">Total de clientes</p>
 
-                <p className="text-xl font-bold text-gray-800">{data?.pagination.total ?? 0}</p>
+                <p className="text-xl font-bold text-foreground">{data?.pagination.total ?? 0}</p>
               </div>
             </div>
 
             <div className="relative w-full sm:max-w-sm">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
 
               <input
                 type="search"
@@ -86,21 +89,21 @@ export function CustomerListPage() {
                 onChange={(event) => handleSearch(event.target.value)}
                 placeholder="Buscar clientes..."
                 aria-label="Buscar clientes"
-                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-ring focus:ring-2 focus:ring-ring/20"
               />
             </div>
           </div>
 
           {/* Tabela */}
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="flex-1">
             {isError ? (
               <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
-                <p className="font-medium text-red-600">Não foi possível carregar os clientes.</p>
+                <p className="font-medium text-danger">Não foi possível carregar os clientes.</p>
 
-                <p className="text-sm text-gray-500">Verifique sua conexão e tente novamente.</p>
+                <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
                 <LoaderCircle size={20} className="animate-spin" />
                 Carregando clientes...
               </div>
@@ -111,14 +114,14 @@ export function CustomerListPage() {
 
           {/* Indicador de atualização */}
           {isFetching && !isLoading && (
-            <div className="flex items-center gap-2 border-t border-gray-100 px-5 py-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 border-t border-border px-5 py-2 text-xs text-muted">
               <LoaderCircle size={14} className="animate-spin" />
               Atualizando resultados...
             </div>
           )}
 
           {/* Paginação */}
-          <div className="shrink-0 border-t border-gray-100 p-3 sm:p-4">
+          <div className="shrink-0">
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={data?.pagination.totalPages ?? 1}

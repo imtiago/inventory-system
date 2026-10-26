@@ -2,6 +2,10 @@
 
 import { useBreakpoint } from "@/shared/hooks/useMediaQuery";
 
+/** Botões com cor própria; desabilitado fica legível (sem opacidade) e claramente inativo. */
+const navButton =
+  "rounded border border-input bg-surface text-foreground transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:border-border disabled:bg-surface disabled:text-subtle";
+
 interface CrudPaginationProps {
   page: number;
   totalPages: number;
@@ -21,13 +25,13 @@ export function CrudPagination({
 
   if (!isSm) {
     // Celular: só setas e a página atual (o total e "de Y" não cabem e raramente ajudam).
-    const arrow = "min-h-11 min-w-11 rounded border text-lg disabled:opacity-50";
+    const arrow = `min-h-11 min-w-11 text-lg ${navButton}`;
     return (
-      <div className="flex items-center justify-between gap-3 border-t px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
         <button onClick={onPrevious} disabled={page === 1} aria-label="Página anterior" className={arrow}>
           ‹
         </button>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-muted">
           {page} / {totalPages}
         </span>
         <button onClick={onNext} disabled={page >= totalPages} aria-label="Próxima página" className={arrow}>
@@ -41,6 +45,7 @@ export function CrudPagination({
     <div
       className="
         border-t
+        border-border
         px-4
         py-3
         flex
@@ -50,23 +55,17 @@ export function CrudPagination({
         items-center
       "
     >
-      <span className="text-sm text-gray-500">Total: {totalItems}</span>
+      <span className="text-sm text-muted">Total: {totalItems}</span>
 
       <div className="flex flex-wrap items-center gap-4">
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-muted">
           Página {page} de {totalPages}
         </span>
 
         <button
           onClick={onPrevious}
           disabled={page === 1}
-          className="
-            border
-            rounded
-            px-3
-            py-1
-            disabled:opacity-50
-          "
+className={`px-3 py-1 ${navButton}`}
         >
           Anterior
         </button>
@@ -74,13 +73,7 @@ export function CrudPagination({
         <button
           onClick={onNext}
           disabled={page >= totalPages}
-          className="
-            border
-            rounded
-            px-3
-            py-1
-            disabled:opacity-50
-          "
+className={`px-3 py-1 ${navButton}`}
         >
           Próxima
         </button>

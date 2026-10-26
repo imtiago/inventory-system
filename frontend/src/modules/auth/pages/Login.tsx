@@ -51,9 +51,9 @@ export function Login() {
       items-center
       justify-center
       bg-gradient-to-br
-      from-slate-900
-      via-slate-800
-      to-slate-700
+      from-sidebar
+      via-sidebar-active
+      to-sidebar-active
       px-4
     "
     >
@@ -61,7 +61,7 @@ export function Login() {
         className="
         w-full
         max-w-md
-        bg-white
+        bg-surface
         rounded-2xl
         shadow-2xl
         p-8
@@ -79,8 +79,8 @@ export function Login() {
         >
           <div
             className="
-            bg-slate-900
-            text-white
+            bg-primary
+            text-primary-foreground
             p-4
             rounded-2xl
             mb-4
@@ -93,7 +93,7 @@ export function Login() {
             className="
             text-2xl
             font-bold
-            text-slate-900
+            text-foreground
           "
           >
             Inventory System
@@ -102,7 +102,7 @@ export function Login() {
           <p
             className="
             text-sm
-            text-slate-500
+            text-muted
             mt-2
           "
           >
@@ -112,7 +112,7 @@ export function Login() {
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           {expired && !error && (
-            <div role="status" className="bg-amber-50 text-amber-700 text-sm p-3 rounded-lg mb-4">
+            <div role="status" className="bg-warning-soft text-warning text-sm p-3 rounded-lg mb-4">
               Sua sessão expirou.
             </div>
           )}
@@ -121,8 +121,8 @@ export function Login() {
             <div
               role="alert"
               className="
-              bg-red-50
-              text-red-600
+              bg-danger-soft
+              text-danger
               text-sm
               p-3
               rounded-lg
@@ -141,7 +141,7 @@ export function Login() {
               className="
               text-sm
               font-medium
-              text-slate-700
+              text-foreground
             "
             >
               Email
@@ -159,7 +159,7 @@ export function Login() {
                   absolute
                   left-3
                   top-3
-                  text-slate-400
+                  text-subtle
                 "
               />
 
@@ -173,7 +173,7 @@ export function Login() {
                   pr-3
                   outline-none
                   focus:ring-2
-                  focus:ring-slate-900
+                  focus:ring-ring/20
                 "
                 id="login-email"
                 type="email"
@@ -182,7 +182,7 @@ export function Login() {
                 {...register("email", { required: "E-mail obrigatório." })}
               />
             </div>
-            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+            {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
           </div>
 
           {/* Senha */}
@@ -193,7 +193,7 @@ export function Login() {
               className="
               text-sm
               font-medium
-              text-slate-700
+              text-foreground
             "
             >
               Senha
@@ -211,7 +211,7 @@ export function Login() {
                   absolute
                   left-3
                   top-3
-                  text-slate-400
+                  text-subtle
                 "
               />
 
@@ -225,7 +225,7 @@ export function Login() {
                   pr-3
                   outline-none
                   focus:ring-2
-                  focus:ring-slate-900
+                  focus:ring-ring/20
                 "
                 id="login-password"
                 type="password"
@@ -234,7 +234,7 @@ export function Login() {
                 {...register("password", { required: "Senha obrigatória." })}
               />
             </div>
-            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+            {errors.password && <p className="mt-1 text-sm text-danger">{errors.password.message}</p>}
           </div>
 
           <button
@@ -242,12 +242,12 @@ export function Login() {
             disabled={isSubmitting}
             className="
               w-full
-              bg-slate-900
-              text-white
+              bg-primary
+              text-primary-foreground
               py-3
               rounded-xl
               font-semibold
-              hover:bg-slate-800
+              hover:bg-primary-hover
               transition
             "
           >
@@ -259,7 +259,7 @@ export function Login() {
           className="
           text-center
           text-xs
-          text-slate-400
+          text-subtle
           mt-6
         "
         >

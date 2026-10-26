@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
-import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { Autocomplete } from '@/shared/components/form';
+import { FilterBar, FILTER_FIELD, FILTER_GRID, FILTER_LABEL } from '@/shared/components/layout/FilterBar';
 import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { Can } from '@/shared/auth/Can';
@@ -19,7 +22,6 @@ import { usePurchases } from '../hooks/usePurchases';
 import { PURCHASE_STATUS_LABELS, type IPurchaseListItem, type PurchaseStatus } from '../types';
 
 const STATUSES = Object.keys(PURCHASE_STATUS_LABELS) as PurchaseStatus[];
-const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 
 const columns: DataTableColumn<IPurchaseListItem>[] = [
   {
@@ -34,9 +36,9 @@ const columns: DataTableColumn<IPurchaseListItem>[] = [
   },
   { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
   { id: 'date', header: 'Data', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.purchaseDate) },
-  { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-  { id: 'progress', header: 'Recebimento', mobile: 'meta', align: 'center', cell: (item) => `${item.receivedPercent}%` },
-  { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{PURCHASE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+  { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
+  { id: 'progress', header: 'Recebimento', mobile: 'meta', numeric: true, cell: (item) => `${item.receivedPercent}%` },
+  { id: 'status', header: 'Status', mobile: 'meta', cell: (item) => <StatusBadge status={item.status}>{PURCHASE_STATUS_LABELS[item.status] ?? item.status}</StatusBadge> },
 ];
 
 export function PurchaseListPage() {
@@ -74,25 +76,28 @@ export function PurchaseListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={`Pedidos de compra (${data?.pagination.total ?? 0})`}
         actions={
           <Can permission="purchases.write">
-            <Link to="/purchases/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800">
+            <Link to="/purchases/new" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover">
               <Plus size={18} />
               Novo pedido
             </Link>
           </Can>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <FilterBar>
           <FilterPanel activeCount={[status, supplierId, from, to, codeSearch].filter(Boolean).length}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className={FILTER_GRID}>
             <div>
-              <label htmlFor="purchase-status" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-status" className={FILTER_LABEL}>
                 Status
               </label>
-              <select id="purchase-status" value={status} onChange={(e) => filter(setStatus)(e.target.value as PurchaseStatus | '')} className={inputClass}>
+              <select id="purchase-status" value={status} onChange={(e) => filter(setStatus)(e.target.value as PurchaseStatus | '')} className={FILTER_FIELD}>
                 <option value="">Todos</option>
                 {STATUSES.map((value) => (
                   <option key={value} value={value}>
@@ -120,45 +125,46 @@ export function PurchaseListPage() {
             />
 
             <div>
-              <label htmlFor="purchase-from" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-from" className={FILTER_LABEL}>
                 Data de
               </label>
-              <input id="purchase-from" type="date" value={from} max={to || undefined} onChange={(e) => filter(setFrom)(e.target.value)} className={inputClass} />
+              <input id="purchase-from" type="date" value={from} max={to || undefined} onChange={(e) => filter(setFrom)(e.target.value)} className={FILTER_FIELD} />
             </div>
 
             <div>
-              <label htmlFor="purchase-to" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-to" className={FILTER_LABEL}>
                 Data até
               </label>
-              <input id="purchase-to" type="date" value={to} min={from || undefined} onChange={(e) => filter(setTo)(e.target.value)} className={inputClass} />
+              <input id="purchase-to" type="date" value={to} min={from || undefined} onChange={(e) => filter(setTo)(e.target.value)} className={FILTER_FIELD} />
             </div>
 
             <div>
-              <label htmlFor="purchase-search" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-search" className={FILTER_LABEL}>
                 Buscar por código
               </label>
-              <input id="purchase-search" type="search" value={codeSearch} placeholder="PC000012" onChange={(e) => filter(setCodeSearch)(e.target.value)} className={inputClass} />
+              <input id="purchase-search" type="search" value={codeSearch} placeholder="PC000012" onChange={(e) => filter(setCodeSearch)(e.target.value)} className={FILTER_FIELD} />
             </div>
           </div>
           </FilterPanel>
 
           {invalidRange && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               A data inicial deve ser anterior ou igual à final.
             </p>
           )}
 
-          {isFetching && <p className="text-sm text-gray-500">Atualizando pedidos...</p>}
+          {isFetching && <p className="text-sm text-muted">Atualizando pedidos...</p>}
+          </FilterBar>
 
           {isError ? (
-            <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar os pedidos. Verifique sua conexão e tente novamente.</div>
+            <div className="m-4 rounded-lg border border-danger/30 p-6 text-sm text-danger sm:m-5">Não foi possível carregar os pedidos. Verifique sua conexão e tente novamente.</div>
           ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum pedido de compra encontrado" emptyHint="Ajuste os filtros ou registre um novo pedido." getRowId={(item) => item.id} getRowHref={(item) => `/purchases/${item.id}`} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-gray-500">Carregando pedidos...</p>}
+          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando pedidos...</p>}
 
           {!isError && (
             <CrudPagination

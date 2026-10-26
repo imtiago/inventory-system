@@ -5,8 +5,10 @@ import { LoaderCircle, Plus, Search } from "lucide-react";
 import { CrudPagination } from "@/shared/components/crud";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { DataTable } from "@/shared/components/table";
+import { FilterBar, FILTER_GRID } from '@/shared/components/layout/FilterBar';
 import { FilterPanel } from "@/shared/components/layout/FilterPanel";
 import { Section } from "@/shared/components/details/Section";
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from "@/shared/components/layout/Page";
 import { Can } from "@/shared/auth/Can";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
@@ -63,24 +65,26 @@ export function ProductListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={pagination ? `Produtos (${pagination.total})` : "Produtos"}
         description="Gerencie seu catálogo"
         actions={
           <Can permission="catalog.write">
-            <Link to="/products/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
+            <Link to="/products/new" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground">
               <Plus size={18} />
               Novo Produto
             </Link>
           </Can>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-gray-100 p-3 sm:p-5">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <FilterBar>
           <FilterPanel activeCount={[search, brandId, categoryId].filter(Boolean).length}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:max-w-sm">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className={FILTER_GRID}>
+            <div className="relative w-full sm:col-span-2">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
               <input
                 type="search"
                 value={search}
@@ -91,11 +95,11 @@ export function ProductListPage() {
                 }}
                 placeholder="Buscar por nome, código ou código de barras..."
                 aria-label="Buscar produtos"
-                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none focus:border-gray-400"
+                className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none focus:border-ring"
               />
             </div>
 
-            <div className="w-full sm:w-56">
+            <div className="w-full">
               <EntitySearchSelect
                 useOptions={useBrands}
                 ariaLabel="Filtrar por marca"
@@ -108,7 +112,7 @@ export function ProductListPage() {
               />
             </div>
 
-            <div className="w-full sm:w-56">
+            <div className="w-full">
               <EntitySearchSelect
                 useOptions={useCategories}
                 ariaLabel="Filtrar por categoria"
@@ -122,13 +126,13 @@ export function ProductListPage() {
             </div>
           </div>
           </FilterPanel>
-          </div>
+          </FilterBar>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="flex-1">
             {isError ? (
-              <div className="p-6 text-center font-medium text-red-600">Não foi possível carregar os produtos.</div>
+              <div className="p-6 text-center font-medium text-danger">Não foi possível carregar os produtos.</div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
                 <LoaderCircle size={20} className="animate-spin" />
                 Carregando produtos...
               </div>
@@ -138,7 +142,7 @@ export function ProductListPage() {
           </div>
 
           {isFetching && !isLoading && (
-            <div className="border-t border-gray-100 px-5 py-2 text-xs text-gray-500">Atualizando resultados...</div>
+            <div className="border-t border-border px-5 py-2 text-xs text-muted">Atualizando resultados...</div>
           )}
 
           <CrudPagination

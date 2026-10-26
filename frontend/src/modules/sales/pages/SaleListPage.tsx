@@ -3,8 +3,10 @@ import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { CrudPagination } from '@/shared/components/crud';
+import { FilterBar, FILTER_FIELD, FILTER_GRID, FILTER_LABEL } from '@/shared/components/layout/FilterBar';
 import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable } from '@/shared/components/table';
 import { ExportButton } from '@/shared/components/export/ExportButton';
@@ -38,7 +40,7 @@ export function SaleListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={`Vendas (${data?.pagination.total ?? 0})`}
         actions={
           <div className="flex flex-wrap items-start gap-3">
@@ -46,33 +48,36 @@ export function SaleListPage() {
               <ExportButton permission="sales.read" url="/reports/sales.csv" params={{ from, to, status: status || undefined }} fallbackName={`vendas-${today}.csv`} disabled={invalidPeriod} />
               <ExportButton label="Exportar itens" permission="sales.read" url="/reports/sale-items.csv" params={{ from, to }} fallbackName={`itens-vendidos-${today}.csv`} disabled={invalidPeriod} />
             </ExportMenu>
-            <Link to="/sales/new" className="flex min-h-11 items-center gap-2 rounded-lg bg-black px-4 py-2 text-white">
+            <Link to="/sales/new" className="flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground">
               <Plus size={18} />
               Nova Venda
             </Link>
           </div>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <FilterBar>
           <FilterPanel activeCount={[from !== defaultFrom, to !== today, status !== ''].filter(Boolean).length}>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className={FILTER_GRID}>
             <div>
-              <label htmlFor="sales-from" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="sales-from" className={FILTER_LABEL}>
                 De
               </label>
-              <input id="sales-from" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <input id="sales-from" type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className={FILTER_FIELD} />
             </div>
             <div>
-              <label htmlFor="sales-to" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="sales-to" className={FILTER_LABEL}>
                 Até
               </label>
-              <input id="sales-to" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+              <input id="sales-to" type="date" value={to} min={from || undefined} onChange={(e) => { setTo(e.target.value); setPage(1); }} className={FILTER_FIELD} />
             </div>
             <div>
-              <label htmlFor="sales-status" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="sales-status" className={FILTER_LABEL}>
                 Status
               </label>
-              <select id="sales-status" value={status} onChange={(e) => { setStatus(e.target.value as SaleStatus | ''); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
+              <select id="sales-status" value={status} onChange={(e) => { setStatus(e.target.value as SaleStatus | ''); setPage(1); }} className={FILTER_FIELD}>
                 <option value="">Todos</option>
                 <option value="PENDING">Pendente</option>
                 <option value="COMPLETED">Concluída</option>
@@ -82,21 +87,22 @@ export function SaleListPage() {
           </div>
           </FilterPanel>
           {invalidPeriod && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               {periodTooLong ? `O período deve ter no máximo ${MAX_PERIOD_DAYS} dias.` : !from || !to ? 'Informe o período.' : 'Período inválido: a data inicial deve ser anterior ou igual à final.'}
             </p>
           )}
-          {!invalidPeriod && isFetching && <p className="text-sm text-gray-500">Atualizando vendas...</p>}
+          {!invalidPeriod && isFetching && <p className="text-sm text-muted">Atualizando vendas...</p>}
+          </FilterBar>
 
           {invalidPeriod ? null : isError ? (
-            <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as vendas. Verifique sua conexão e tente novamente.</div>
+            <div className="m-4 rounded-lg border border-danger/30 p-6 text-sm text-danger sm:m-5">Não foi possível carregar as vendas. Verifique sua conexão e tente novamente.</div>
           ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhuma venda encontrada" emptyHint="Ajuste o período ou o status, ou registre uma nova venda." getRowId={(sale) => sale.id} getRowHref={(sale) => `/sales/${sale.id}`} />
             </div>
           )}
 
-          {!invalidPeriod && isLoading && !data && <p className="text-sm text-gray-500">Carregando vendas...</p>}
+          {!invalidPeriod && isLoading && !data && <p className="p-4 text-sm text-muted">Carregando vendas...</p>}
 
           {!invalidPeriod && !isError && (
             <CrudPagination

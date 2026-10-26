@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { useCan } from '@/shared/auth/useCan';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { formatCents, formatCurrency, toCents } from '@/shared/utils/money';
@@ -28,7 +29,7 @@ import {
 } from '../utils/review';
 import type { INfeImport } from '../types';
 
-const inputClass = 'w-full rounded-md border px-3 py-2 text-sm';
+const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
 /** "3526 1011 ..." in groups of 4 (the key may be alphanumeric: CNPJ with letters). */
 const formatAccessKey = (key: string) => key.replace(/([0-9A-Z]{4})(?=[0-9A-Z])/g, '$1 ');
@@ -52,21 +53,11 @@ export function NfeImportReviewPage() {
   };
 
   return (
-    <Page>
-      <div className="min-h-0 w-full flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-4 pb-8 sm:px-6">
-          <header className="flex items-center gap-3">
-            <Link to="/nfe-imports" aria-label="Voltar para importações" className="rounded-lg border p-2 transition hover:bg-gray-50">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-semibold">Revisão da NF-e</h1>
-              <p className="mt-1 text-sm text-gray-500">Confira o fornecedor, os itens e as parcelas antes de confirmar.</p>
-            </div>
-          </header>
+    <Page width="narrow">
+      <PageHeader title="Revisão da NF-e" description="Confira o fornecedor, os itens e as parcelas antes de confirmar." backPath="/nfe-imports" backLabel="importações" />
 
-          {isLoading && <p className="text-sm text-gray-500">Carregando nota...</p>}
-          {isError && <div role="alert" className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar a importação.</div>}
+          {isLoading && <p className="text-sm text-muted">Carregando nota...</p>}
+          {isError && <div role="alert" className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar a importação.</div>}
           {note?.status === 'CONFIRMED' && (
             <div className="rounded-lg border p-6 text-sm">
               Esta nota já foi confirmada.{' '}
@@ -78,8 +69,6 @@ export function NfeImportReviewPage() {
             </div>
           )}
           {note?.status === 'DRAFT' && <ReviewForm key={note.id} note={note} onConfirmed={goToPurchase} />}
-        </div>
-      </div>
     </Page>
   );
 }
@@ -145,64 +134,64 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
 
   return (
     <>
-      <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Nota fiscal</h2>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-gray-500">Número / série</dt>
+            <dt className="text-muted">Número / série</dt>
             <dd className="font-medium">
               {note.number}/{note.series}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Emissão</dt>
+            <dt className="text-muted">Emissão</dt>
             <dd className="font-medium">{formatDateOnly(note.issueDate)}</dd>
           </div>
           <div className="sm:col-span-2">
-            <dt className="text-gray-500">Chave de acesso</dt>
+            <dt className="text-muted">Chave de acesso</dt>
             <dd className="break-all font-mono text-xs">{formatAccessKey(note.accessKey)}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">Total da nota</dt>
+            <dt className="text-muted">Total da nota</dt>
             <dd className="font-medium">{formatCurrency(note.totalAmount)}</dd>
           </div>
         </dl>
         {noteDifferenceCents !== 0 && (
-          <p data-testid="note-total-difference" className="mt-3 text-sm text-amber-700">
+          <p data-testid="note-total-difference" className="mt-3 text-sm text-warning">
             Total do pedido difere do total da nota em {formatCents(noteDifferenceCents)} (arredondamento da nota).
           </p>
         )}
       </section>
 
       {unsupported && (
-        <div role="alert" data-testid="unsupported-items" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" data-testid="unsupported-items" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
           {UNSUPPORTED_ITEMS_MESSAGE}
         </div>
       )}
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Fornecedor</h2>
-        <p className="text-sm text-gray-500">{maskDocument(note.supplier.document)}</p>
+        <p className="text-sm text-muted">{maskDocument(note.supplier.document)}</p>
         {note.supplier.match ? (
           <p className="mt-1 font-medium">{note.supplier.match.name}</p>
         ) : (
           <div className="mt-2 space-y-3">
-            <p className="text-sm font-medium text-amber-700">Será cadastrado</p>
+            <p className="text-sm font-medium text-warning">Será cadastrado</p>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <label htmlFor="supplier-name" className="mb-1 block text-xs font-medium text-gray-600">
+                <label htmlFor="supplier-name" className="mb-1 block text-xs font-medium text-muted">
                   Nome do fornecedor
                 </label>
                 <input id="supplier-name" value={supplier.name} disabled={disabled} maxLength={120} onChange={(event) => setSupplier((s) => ({ ...s, name: event.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="supplier-email" className="mb-1 block text-xs font-medium text-gray-600">
+                <label htmlFor="supplier-email" className="mb-1 block text-xs font-medium text-muted">
                   E-mail do fornecedor (opcional)
                 </label>
                 <input id="supplier-email" type="email" value={supplier.email} disabled={disabled} onChange={(event) => setSupplier((s) => ({ ...s, email: event.target.value }))} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="supplier-phone" className="mb-1 block text-xs font-medium text-gray-600">
+                <label htmlFor="supplier-phone" className="mb-1 block text-xs font-medium text-muted">
                   Telefone do fornecedor (opcional)
                 </label>
                 <input id="supplier-phone" type="tel" maxLength={15} value={supplier.phone} disabled={disabled} onChange={(event) => setSupplier((s) => ({ ...s, phone: maskSupplierPhone(event.target.value) }))} className={inputClass} />
@@ -212,7 +201,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         )}
       </section>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
         <h2 className="mb-3 text-lg font-semibold">Itens ({note.items.length})</h2>
         <ul className="space-y-3">
           {note.items.map((item, position) => (
@@ -221,7 +210,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         </ul>
       </section>
 
-      <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Parcelas</h2>
           <Button
@@ -238,27 +227,27 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         <ul className="space-y-2">
           {installments.map((row, position) => (
             <li key={position} className="flex flex-wrap items-end gap-3">
-              <div className="pb-2 text-sm text-gray-500">
+              <div className="flex h-10 items-center text-sm text-muted">
                 Nº <span data-testid={`installment-number-${position}`}>{row.number ?? '—'}</span>
               </div>
               <div>
-                <label htmlFor={`due-${position}`} className="mb-1 block text-xs font-medium text-gray-600">
+                <label htmlFor={`due-${position}`} className="mb-1 block text-xs font-medium text-muted">
                   Vencimento da parcela {position + 1}
                 </label>
-                <input id={`due-${position}`} type="date" min={note.issueDate} value={row.dueDate} disabled={disabled} onChange={(event) => patchInstallment(position, { dueDate: event.target.value })} className={inputClass} />
+                <input id={`due-${position}`} type="date" min={note.issueDate} value={row.dueDate} disabled={disabled} onChange={(event) => patchInstallment(position, { dueDate: event.target.value })} className={`${inputClass} h-10`} />
               </div>
               <div>
-                <label htmlFor={`amount-${position}`} className="mb-1 block text-xs font-medium text-gray-600">
+                <label htmlFor={`amount-${position}`} className="mb-1 block text-xs font-medium text-muted">
                   Valor da parcela {position + 1}
                 </label>
-                <input id={`amount-${position}`} type="number" min={0} step="0.01" inputMode="decimal" value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} className={inputClass} />
+                <input id={`amount-${position}`} type="number" min={0} step="0.01" inputMode="decimal" value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} className={`${inputClass} h-10`} />
               </div>
               <button
                 type="button"
                 aria-label={`Remover parcela ${position + 1}`}
                 disabled={disabled || installments.length === 1}
                 onClick={() => setInstallments((current) => current.filter((_, i) => i !== position))}
-                className="rounded-md p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-md text-danger hover:bg-danger-soft disabled:opacity-50"
               >
                 <Trash2 size={17} />
               </button>
@@ -270,20 +259,20 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
           Soma das parcelas: <strong>{formatCents(sumCents)}</strong> · Total do pedido: <strong>{formatCents(totalCents)}</strong>
         </p>
         {sumMismatch && (
-          <p data-testid="installments-mismatch" className="mt-1 text-sm text-red-600">
+          <p data-testid="installments-mismatch" className="mt-1 text-sm text-danger">
             A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}).
           </p>
         )}
       </section>
 
       {topError && (
-        <div role="alert" data-testid="confirm-error" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" data-testid="confirm-error" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
           {topError}
         </div>
       )}
 
       {reason && (
-        <div data-testid="blocking-reason" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <div data-testid="blocking-reason" className="rounded-lg border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
           {reason}
         </div>
       )}

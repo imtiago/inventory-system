@@ -3,8 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
-import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
+import { FilterBar, FILTER_FIELD, FILTER_GRID, FILTER_LABEL } from '@/shared/components/layout/FilterBar';
 import { Section } from '@/shared/components/details/Section';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
@@ -15,7 +18,6 @@ import { useDiscardNfeImport, useNfeImports, useUploadNfeImport } from '../hooks
 import { NFE_STATUS_LABELS, type INfeImportSummary, type NfeImportStatus } from '../types';
 
 const STATUSES = Object.keys(NFE_STATUS_LABELS) as NfeImportStatus[];
-const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 
 type UploadFeedback = { message: string; purchaseId?: string };
 
@@ -71,8 +73,8 @@ export function NfeImportListPage() {
     { id: 'number', header: 'Número/série', mobile: 'title', cell: (item) => `${item.number}/${item.series}` },
     { id: 'supplier', header: 'Fornecedor', mobile: 'subtitle', cell: (item) => item.supplier.name },
     { id: 'issueDate', header: 'Emissão', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.issueDate) },
-    { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-    { id: 'status', header: 'Status', mobile: 'meta', align: 'center', cell: (item) => <CrudBadge>{NFE_STATUS_LABELS[item.status] ?? item.status}</CrudBadge> },
+    { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
+    { id: 'status', header: 'Status', mobile: 'meta', cell: (item) => <StatusBadge status={item.status}>{NFE_STATUS_LABELS[item.status] ?? item.status}</StatusBadge> },
     {
       id: 'actions',
       header: 'Ações',
@@ -84,7 +86,7 @@ export function NfeImportListPage() {
             <Link to={`/nfe-imports/${item.id}`} className="font-medium hover:underline">
               Revisar
             </Link>
-            <button type="button" onClick={() => setToDiscard(item)} className="text-red-600 hover:underline">
+            <button type="button" onClick={() => setToDiscard(item)} className="text-danger hover:underline">
               Descartar
             </button>
           </div>
@@ -98,7 +100,7 @@ export function NfeImportListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={`Importar NF-e (${data?.pagination.total ?? 0})`}
         actions={
           <>
@@ -116,17 +118,20 @@ export function NfeImportListPage() {
               type="button"
               disabled={upload.isPending}
               onClick={() => fileInput.current?.click()}
-              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
               <Upload size={18} />
               {upload.isPending ? 'Enviando...' : 'Enviar XML'}
             </button>
           </>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <FilterBar>
           {feedback && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               <p>{feedback.message}</p>
               {feedback.purchaseId && (
                 <Link to={`/purchases/${feedback.purchaseId}`} className="mt-1 inline-block font-medium underline">
@@ -136,13 +141,14 @@ export function NfeImportListPage() {
             </div>
           )}
           {discardError && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               {discardError}
             </div>
           )}
 
-          <div className="max-w-xs">
-            <label htmlFor="nfe-status" className="mb-2 block text-sm font-medium text-gray-700">
+          <div className={FILTER_GRID}>
+          <div>
+            <label htmlFor="nfe-status" className={FILTER_LABEL}>
               Status
             </label>
             <select
@@ -152,7 +158,7 @@ export function NfeImportListPage() {
                 setStatus(event.target.value as NfeImportStatus | '');
                 setPage(1);
               }}
-              className={inputClass}
+              className={FILTER_FIELD}
             >
               <option value="">Todos</option>
               {STATUSES.map((value) => (
@@ -162,16 +168,18 @@ export function NfeImportListPage() {
               ))}
             </select>
           </div>
+          </div>
+          </FilterBar>
 
           {isError ? (
-            <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as importações. Verifique sua conexão e tente novamente.</div>
+            <div className="m-4 rounded-lg border border-danger/30 p-6 text-sm text-danger sm:m-5">Não foi possível carregar as importações. Verifique sua conexão e tente novamente.</div>
           ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhuma nota importada" emptyHint="Envie um XML de NF-e para começar." getRowId={(item) => item.id} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-gray-500">Carregando importações...</p>}
+          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando importações...</p>}
 
           {!isError && (
             <CrudPagination

@@ -38,7 +38,7 @@ export function ExportMenu({ children }: { children: ReactNode }) {
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
+        className="flex min-h-11 items-center gap-2 rounded-lg border border-input bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-muted"
       >
         <Download size={16} aria-hidden="true" />
         Exportar
@@ -47,7 +47,7 @@ export function ExportMenu({ children }: { children: ReactNode }) {
 
       <div
         hidden={!open}
-        className={`${open ? 'flex' : 'hidden'} absolute left-0 top-full z-30 mt-1 w-56 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-lg [&_button]:min-h-11 [&_button]:w-full [&_button]:justify-start [&_button]:border-0 [&_div]:w-full`}
+        className={`${open ? 'flex' : 'hidden'} absolute left-0 top-full z-30 mt-1 w-56 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-lg border border-border bg-surface p-1 shadow-lg [&_button]:min-h-11 [&_button]:w-full [&_button]:justify-start [&_button]:border-0 [&_div]:w-full`}
       >
         {children}
       </div>

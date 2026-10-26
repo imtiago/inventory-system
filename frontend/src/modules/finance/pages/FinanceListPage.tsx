@@ -1,10 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { CrudBadge, CrudPagination } from '@/shared/components/crud';
+import { CrudPagination } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
+import { FilterBar, FILTER_FIELD, FILTER_GRID, FILTER_LABEL } from '@/shared/components/layout/FilterBar';
 import { FilterPanel } from '@/shared/components/layout/FilterPanel';
 import { Section } from '@/shared/components/details/Section';
 import { ExportButton } from '@/shared/components/export/ExportButton';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
@@ -22,8 +25,8 @@ type FilterKey = 'status' | 'customerId' | 'supplierId' | 'dueFrom' | 'dueTo' | 
 
 function SummaryCard({ id, label, value }: { id: string; label: string; value?: number }) {
   return (
-    <div data-testid={`summary-${id}`} className="rounded-xl border bg-white p-4 shadow-sm">
-      <p className="text-sm text-gray-500">{label}</p>
+    <div data-testid={`summary-${id}`} className="rounded-xl border bg-surface p-4 shadow-sm">
+      <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold">{formatCurrency(value ?? 0)}</p>
     </div>
   );
@@ -52,16 +55,15 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
         item.originType
       ),
   },
-  { id: 'total', header: 'Total', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.totalAmount) },
-  { id: 'paid', header: 'Pago', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.paidAmount) },
-  { id: 'remaining', header: 'Saldo', mobile: 'meta', align: 'center', cell: (item) => formatCurrency(item.remainingAmount) },
+  { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
+  { id: 'paid', header: 'Pago', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.paidAmount) },
+  { id: 'remaining', header: 'Saldo', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.remainingAmount) },
   { id: 'nextDueDate', header: 'Próx. vencimento', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.nextDueDate) },
   {
     id: 'status',
     header: 'Status',
     mobile: 'meta',
-    align: 'center',
-    cell: (item) => <CrudBadge>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</CrudBadge>,
+    cell: (item) => <StatusBadge status={item.displayStatus}>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</StatusBadge>,
   },
   {
     id: 'actions',
@@ -69,7 +71,7 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
     mobile: 'hidden',
     align: 'center',
     cell: (item) => (
-      <Link to={`${config.basePath}/${item.id}`} className="text-sm font-medium hover:underline">
+      <Link to={`${config.basePath}/${item.id}`} className="whitespace-nowrap text-sm font-medium text-primary hover:underline">
         Ver conta
       </Link>
     ),
@@ -128,11 +130,10 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, page]);
-  const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title={`${config.title} (${data?.pagination.total ?? 0})`}
         actions={
           <ExportButton
@@ -143,21 +144,24 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             disabled={invalidRange}
           />
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <div className="grid gap-4 border-b border-border p-4 sm:grid-cols-3 sm:p-5">
             <SummaryCard id="open" label="A vencer" value={data?.summary.openAmount} />
             <SummaryCard id="overdue" label="Vencido" value={data?.summary.overdueAmount} />
             <SummaryCard id={config.summaryId} label={config.summaryLabel} value={summaryValue(kind, data?.summary)} />
           </div>
 
+          <FilterBar>
           <FilterPanel activeCount={[filters.status, filters[config.partyFilterKey], filters.dueFrom, filters.dueTo, filters.openOnly].filter(Boolean).length}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={FILTER_GRID}>
             <div>
-              <label htmlFor={`${kind}-status`} className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor={`${kind}-status`} className={FILTER_LABEL}>
                 Status
               </label>
-              <select id={`${kind}-status`} value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value)} className={inputClass}>
+              <select id={`${kind}-status`} value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value)} className={FILTER_FIELD}>
                 <option value="">Todos</option>
                 {STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -170,45 +174,46 @@ export function FinanceListPage({ kind }: { kind: FinanceKind }) {
             <PartyFilter kind={kind} value={filters[config.partyFilterKey]} onChange={(value) => setFilter(config.partyFilterKey, value)} />
 
             <div>
-              <label htmlFor={`${kind}-due-from`} className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor={`${kind}-due-from`} className={FILTER_LABEL}>
                 Vencimento de
               </label>
-              <input id={`${kind}-due-from`} type="date" value={filters.dueFrom ?? ''} max={filters.dueTo} onChange={(e) => setFilter('dueFrom', e.target.value)} className={inputClass} />
+              <input id={`${kind}-due-from`} type="date" value={filters.dueFrom ?? ''} max={filters.dueTo} onChange={(e) => setFilter('dueFrom', e.target.value)} className={FILTER_FIELD} />
             </div>
 
             <div>
-              <label htmlFor={`${kind}-due-to`} className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor={`${kind}-due-to`} className={FILTER_LABEL}>
                 Vencimento até
               </label>
-              <input id={`${kind}-due-to`} type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={inputClass} />
+              <input id={`${kind}-due-to`} type="date" value={filters.dueTo ?? ''} min={filters.dueFrom} onChange={(e) => setFilter('dueTo', e.target.value)} className={FILTER_FIELD} />
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={Boolean(filters.openOnly)} onChange={(e) => setFilter('openOnly', e.target.checked ? 'true' : null)} />
             Somente com saldo
           </label>
           </FilterPanel>
 
           {invalidRange && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               A data inicial deve ser anterior ou igual à final.
             </p>
           )}
 
-          <p className="text-xs text-gray-500">Inclui títulos com alguma parcela no período.</p>
+          <p className="text-xs text-muted">Inclui títulos com alguma parcela no período.</p>
 
-          {isFetching && <p className="text-sm text-gray-500">Atualizando {config.plural}...</p>}
+          {isFetching && <p className="text-sm text-muted">Atualizando {config.plural}...</p>}
+          </FilterBar>
 
           {isError ? (
-            <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
+            <div className="m-4 rounded-lg border border-danger/30 p-6 text-sm text-danger sm:m-5">Não foi possível carregar as {config.plural}. Verifique sua conexão e tente novamente.</div>
           ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage={`Nenhuma ${config.singular.toLowerCase()} encontrada`} emptyHint="Ajuste os filtros para ver outros resultados." getRowId={(item) => item.id} getRowHref={(item) => `${config.basePath}/${item.id}`} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-gray-500">Carregando {config.plural}...</p>}
+          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando {config.plural}...</p>}
 
           {!isError && (
             <CrudPagination

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { KeyRound, LoaderCircle, Pencil, Plus, Search, Users } from 'lucide-react';
 
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
 import { Section } from '@/shared/components/details/Section';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { CrudPagination } from '@/shared/components/crud';
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/badge';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 
 import { useUsers } from '../hooks/useUsers';
@@ -32,9 +34,7 @@ export function UserListPage() {
       header: 'Status',
       mobile: 'meta',
       cell: (user) => (
-        <span className={`rounded-full px-3 py-1 text-sm ${user.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-          {user.active ? 'Ativo' : 'Inativo'}
-        </span>
+        <StatusBadge status={user.active ? 'ACTIVE' : 'INACTIVE'}>{user.active ? 'Ativo' : 'Inativo'}</StatusBadge>
       ),
     },
     {
@@ -50,12 +50,12 @@ export function UserListPage() {
               setEditing(user);
               setFormOpen(true);
             }}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover"
             aria-label={`Editar ${user.name}`}
           >
             <Pencil size={18} />
           </button>
-          <button type="button" onClick={() => setResetting(user)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-amber-600 hover:text-amber-800" aria-label={`Redefinir senha de ${user.name}`}>
+          <button type="button" onClick={() => setResetting(user)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-warning hover:bg-surface-muted" aria-label={`Redefinir senha de ${user.name}`}>
             <KeyRound size={18} />
           </button>
         </div>
@@ -70,7 +70,7 @@ export function UserListPage() {
 
   return (
     <Page>
-      <Section
+      <PageHeader
         title="Usuários"
         description="Gerencie os usuários e seus papéis de acesso."
         actions={
@@ -79,27 +79,29 @@ export function UserListPage() {
               setEditing(null);
               setFormOpen(true);
             }}
-            className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
           >
             <Plus size={18} />
             Novo usuário
           </Button>
         }
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+      />
+
+      <Section>
+        <div className="flex flex-1 flex-col">
+          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
-                <Users size={21} className="text-gray-600" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-muted">
+                <Users size={21} className="text-muted" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total de usuários</p>
-                <p className="text-xl font-bold text-gray-800">{data?.pagination.total ?? 0}</p>
+                <p className="text-sm text-muted">Total de usuários</p>
+                <p className="text-xl font-bold text-foreground">{data?.pagination.total ?? 0}</p>
               </div>
             </div>
 
             <div className="relative w-full sm:max-w-sm">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
               <input
                 type="search"
                 value={search}
@@ -109,19 +111,19 @@ export function UserListPage() {
                 }}
                 placeholder="Buscar usuários..."
                 aria-label="Buscar usuários"
-                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-ring focus:ring-2 focus:ring-ring/20"
               />
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="flex-1">
             {isError ? (
               <div className="flex min-h-48 flex-col items-center justify-center gap-2 p-6 text-center">
-                <p className="font-medium text-red-600">Não foi possível carregar os usuários.</p>
-                <p className="text-sm text-gray-500">Verifique sua conexão e tente novamente.</p>
+                <p className="font-medium text-danger">Não foi possível carregar os usuários.</p>
+                <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-gray-500">
+              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
                 <LoaderCircle size={20} className="animate-spin" />
                 Carregando usuários...
               </div>
@@ -131,13 +133,13 @@ export function UserListPage() {
           </div>
 
           {isFetching && !isLoading && (
-            <div className="flex items-center gap-2 border-t border-gray-100 px-5 py-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 border-t border-border px-5 py-2 text-xs text-muted">
               <LoaderCircle size={14} className="animate-spin" />
               Atualizando resultados...
             </div>
           )}
 
-          <div className="shrink-0 border-t border-gray-100 p-3 sm:p-4">
+          <div className="shrink-0">
             <CrudPagination
               page={data?.pagination.page ?? page}
               totalPages={data?.pagination.totalPages ?? 1}

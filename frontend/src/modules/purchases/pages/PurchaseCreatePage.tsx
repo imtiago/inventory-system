@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Trash2 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { FormAutocomplete, MoneyInput, QuantityInput } from '@/shared/components/form';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
@@ -34,9 +35,9 @@ type PaymentMode = 'cash' | 'installments';
 const MAX_INSTALLMENTS = 12;
 const DEFAULT_FIRST_DUE_DAYS = 30;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const inputClass = 'w-full rounded-md border px-3 py-2';
-const cellInputClass = 'w-28 rounded-md border py-1.5 pl-9 pr-2 text-sm';
-const cardMoneyClass = 'h-11 w-full rounded-lg border py-2 pl-10 pr-3 text-base';
+const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2';
+const cellInputClass = 'w-28 rounded-md border border-input bg-surface text-foreground py-1.5 pl-9 pr-2 text-sm';
+const cardMoneyClass = 'h-11 w-full rounded-lg border border-input bg-surface text-foreground py-2 pl-10 pr-3 text-base';
 
 const MONEY_FIELDS = [
   { key: 'unitPrice', header: 'Preço unitário', label: 'Preço unitário de' },
@@ -194,20 +195,10 @@ export function PurchaseCreatePage() {
   });
 
   return (
-    <Page>
-      <div className="min-h-0 w-full flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-4 pb-8 sm:px-6">
-          <header className="flex items-center gap-3">
-            <Link to="/purchases" aria-label="Voltar para pedidos de compra" className="rounded-lg border p-2 transition hover:bg-gray-50">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-semibold">Novo pedido de compra</h1>
-              <p className="mt-1 text-sm text-gray-500">Selecione o fornecedor e lance os itens.</p>
-            </div>
-          </header>
+    <Page width="narrow">
+      <PageHeader title="Novo pedido de compra" description="Selecione o fornecedor e lance os itens." backPath="/purchases" backLabel="pedidos de compra" />
 
-          <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">Fornecedor e data</h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -234,12 +225,12 @@ export function PurchaseCreatePage() {
                   Data do pedido
                 </label>
                 <input id="purchase-date" type="date" max={today} {...register('purchaseDate', { required: 'Informe a data do pedido.' })} className={inputClass} />
-                {errors.purchaseDate && <p className="mt-1 text-sm text-red-600">{errors.purchaseDate.message}</p>}
+                {errors.purchaseDate && <p className="mt-1 text-sm text-danger">{errors.purchaseDate.message}</p>}
               </div>
             </div>
 
             {suppliersError && (
-              <p role="alert" className="mt-2 text-sm text-red-600">
+              <p role="alert" className="mt-2 text-sm text-danger">
                 Não foi possível consultar os fornecedores.
               </p>
             )}
@@ -248,12 +239,12 @@ export function PurchaseCreatePage() {
           <SaleBarcodeInput loading={variantLoading} onSubmitBarcode={handleBarcodeSubmit} />
 
           {feedback && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               {feedback.message}
             </div>
           )}
 
-          <section className="rounded-xl border bg-white p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Itens do pedido</h2>
               <Button type="button" variant="outline" onClick={() => setItems([])} disabled={items.length === 0 || createMutation.isPending}>
@@ -263,16 +254,16 @@ export function PurchaseCreatePage() {
 
             {items.length === 0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center">
-                <Package className="mx-auto mb-3 text-gray-400" size={32} />
+                <Package className="mx-auto mb-3 text-subtle" size={32} />
                 <p className="font-medium">Nenhum produto lançado</p>
-                <p className="mt-1 text-sm text-gray-500">Digite ou escaneie um código de barras para adicionar uma variante.</p>
+                <p className="mt-1 text-sm text-muted">Digite ou escaneie um código de barras para adicionar uma variante.</p>
               </div>
             ) : (
               isWide ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] text-left text-sm">
                   <thead>
-                    <tr className="border-b text-gray-500">
+                    <tr className="border-b text-muted">
                       <th className="px-2 py-3 font-medium">Variante</th>
                       <th className="px-2 py-3 font-medium">Quantidade</th>
                       {MONEY_FIELDS.map((field) => (
@@ -292,7 +283,7 @@ export function PurchaseCreatePage() {
                         <tr key={item.productVariantId} className="border-b last:border-0">
                           <td className="px-2 py-3">
                             <p className="font-medium">{item.productName}</p>
-                            <p className="text-xs text-gray-500">{item.productCode}</p>
+                            <p className="text-xs text-muted">{item.productCode}</p>
                           </td>
                           <td className="px-2 py-3">
                             <QuantityInput
@@ -313,10 +304,10 @@ export function PurchaseCreatePage() {
                                 aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
                                 className={cellInputClass}
                               />
-                              {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-red-600">{moneyFieldError(item[field.key])}</p>}
+                              {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-danger">{moneyFieldError(item[field.key])}</p>}
                             </td>
                           ))}
-                          <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-red-600' : ''}`}>
+                          <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-danger' : ''}`}>
                             {total === null ? '—' : formatCents(total)}
                           </td>
                           <td className="px-2 py-3">
@@ -325,7 +316,7 @@ export function PurchaseCreatePage() {
                               disabled={createMutation.isPending}
                               onClick={() => setItems((current) => current.filter((i) => i.productVariantId !== item.productVariantId))}
                               aria-label={`Remover ${item.productName}`}
-                              className="rounded-md p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              className="rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
                             >
                               <Trash2 size={17} />
                             </button>
@@ -342,18 +333,18 @@ export function PurchaseCreatePage() {
                   const total = itemTotals[index];
 
                   return (
-                    <li key={item.productVariantId} className="rounded-lg border p-3">
+                    <li key={item.productVariantId} className="rounded-lg border border-input bg-surface text-foreground p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="break-words font-medium">{item.productName}</p>
-                          <p className="text-xs text-gray-500">{item.productCode}</p>
+                          <p className="text-xs text-muted">{item.productCode}</p>
                         </div>
                         <button
                           type="button"
                           disabled={createMutation.isPending}
                           onClick={() => setItems((current) => current.filter((i) => i.productVariantId !== item.productVariantId))}
                           aria-label={`Remover ${item.productName}`}
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-danger hover:bg-danger-soft disabled:opacity-50"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -372,7 +363,7 @@ export function PurchaseCreatePage() {
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         {MONEY_FIELDS.map((field) => (
                           <div key={field.key}>
-                            <label htmlFor={`${field.key}-${item.productVariantId}`} className="mb-1 block text-xs text-gray-500">
+                            <label htmlFor={`${field.key}-${item.productVariantId}`} className="mb-1 block text-xs text-muted">
                               {field.header}
                             </label>
                             <MoneyInput
@@ -384,14 +375,14 @@ export function PurchaseCreatePage() {
                               aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
                               className={cardMoneyClass}
                             />
-                            {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-red-600">{moneyFieldError(item[field.key])}</p>}
+                            {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-danger">{moneyFieldError(item[field.key])}</p>}
                           </div>
                         ))}
                       </div>
 
                       <p className="mt-3 flex items-center justify-between border-t pt-3 text-sm">
-                        <span className="text-gray-500">Total do item</span>
-                        <span data-testid={`item-total-${item.productVariantId}`} className={`font-semibold ${total !== null && total < 0 ? 'text-red-600' : ''}`}>
+                        <span className="text-muted">Total do item</span>
+                        <span data-testid={`item-total-${item.productVariantId}`} className={`font-semibold ${total !== null && total < 0 ? 'text-danger' : ''}`}>
                           {total === null ? '—' : formatCents(total)}
                         </span>
                       </p>
@@ -403,13 +394,13 @@ export function PurchaseCreatePage() {
             )}
 
             {reason && (
-              <div role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <div role="alert" className="mt-4 rounded-lg border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
                 {reason}
               </div>
             )}
 
             <div className="mt-5 flex flex-col gap-2 border-t pt-4 sm:items-end">
-              <p className="text-sm text-gray-500">Total do pedido</p>
+              <p className="text-sm text-muted">Total do pedido</p>
               <p data-testid="purchase-total" className="text-2xl font-semibold">
                 {formatCents(totalCents)}
               </p>
@@ -456,7 +447,7 @@ export function PurchaseCreatePage() {
                       Primeiro vencimento
                     </label>
                     <input id="purchase-first-due" type="date" min={purchaseDate || undefined} {...register('firstDueDate')} className={inputClass} />
-                    {errors.firstDueDate && <p className="mt-1 text-sm text-red-600">{errors.firstDueDate.message}</p>}
+                    {errors.firstDueDate && <p className="mt-1 text-sm text-danger">{errors.firstDueDate.message}</p>}
                   </div>
                 </div>
               )}
@@ -480,7 +471,7 @@ export function PurchaseCreatePage() {
                 Observações
               </label>
               <textarea id="purchase-notes" rows={2} maxLength={500} {...register('notes')} className={inputClass} />
-              {errors.notes && <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>}
+              {errors.notes && <p className="mt-1 text-sm text-danger">{errors.notes.message}</p>}
             </div>
 
             <div className="mt-6 flex flex-col-reverse justify-end gap-3 border-t pt-5 sm:flex-row">
@@ -492,8 +483,6 @@ export function PurchaseCreatePage() {
               </Button>
             </div>
           </section>
-        </div>
-      </div>
     </Page>
   );
 }

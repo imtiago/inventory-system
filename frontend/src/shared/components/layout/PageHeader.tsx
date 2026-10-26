@@ -8,21 +8,33 @@ import type { ReactNode } from "react";
 interface PageHeaderProps {
   title: string;
 
-  description?: string;
+  description?: ReactNode;
+
+  /** Selo/estado exibido logo abaixo do título (ex.: status da venda). */
+  meta?: ReactNode;
 
   backPath?: string;
+
+  /** Destino do "Voltar" para leitores de tela: "Voltar para vendas". */
+  backLabel?: string;
 
   actions?: ReactNode;
 }
 
+/**
+ * Cabeçalho padrão de toda tela: "Voltar" (quando há) sempre acima do título,
+ * título e descrição à esquerda, ações à direita.
+ */
 export function PageHeader({
   title,
   description,
+  meta,
   backPath,
+  backLabel,
   actions,
 }: PageHeaderProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {backPath && (
         <Link
           to={backPath}
@@ -30,24 +42,32 @@ export function PageHeader({
             flex
             items-center
             gap-2
-            text-gray-600
-            hover:text-black
+            text-sm
+            font-medium
+            text-muted
+            hover:text-foreground
             w-fit
           "
         >
-          <ArrowLeft size={18} />
-          Voltar
+          <ArrowLeft size={16} />
+          <span>
+            Voltar
+            {backLabel && " "}
+            {backLabel && <span className="sr-only">para {backLabel}</span>}
+          </span>
         </Link>
       )}
 
       <div className="flex flex-wrap justify-between items-start gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="break-words text-2xl font-semibold text-foreground">{title}</h1>
 
-          {description && <p className="text-gray-500 mt-1">{description}</p>}
+          {description && <div className="mt-1 text-muted">{description}</div>}
+
+          {meta && <div className="mt-2">{meta}</div>}
         </div>
 
-        {actions}
+        {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
       </div>
     </div>
   );

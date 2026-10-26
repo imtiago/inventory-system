@@ -12,16 +12,21 @@ const alignment = {
   right: 'text-right',
 } as const;
 
+/** Colunas numéricas (dinheiro, quantidades) ficam à direita, salvo alinhamento explícito. */
+function alignOf<T>(column: DataTableColumn<T>): keyof typeof alignment {
+  return column.align ?? (column.numeric ? 'right' : 'left');
+}
+
 function EmptyState({ message = 'Nenhum registro encontrado', hint = 'Tente novamente ou ajuste os filtros.' }: { message?: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-        <span className="text-xl text-gray-400">—</span>
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted">
+        <span className="text-xl text-subtle">—</span>
       </div>
 
-      <p className="font-medium text-gray-700">{message}</p>
+      <p className="font-medium text-foreground">{message}</p>
 
-      <p className="text-sm text-gray-500">{hint}</p>
+      <p className="text-sm text-muted">{hint}</p>
     </div>
   );
 }
@@ -46,7 +51,7 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
       if (!text) return;
       const label = document.createElement('span');
       label.dataset.menuLabel = '';
-      label.className = 'text-sm font-medium text-gray-800';
+      label.className = 'text-sm font-medium text-foreground';
       label.textContent = text;
       el.appendChild(label);
     });
@@ -77,7 +82,7 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
         aria-expanded={open}
         aria-labelledby={`${triggerId} ${labelledBy}`}
         onClick={() => setOpen((value) => !value)}
-        className={`flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100`}
+        className={`flex h-11 w-11 items-center justify-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground`}
       >
         <span className="sr-only">Mais ações</span>
         <MoreHorizontal size={20} aria-hidden="true" />
@@ -86,7 +91,7 @@ function ActionsMenu({ content, labelledBy }: { content: ReactNode; labelledBy: 
       <div
         ref={panel}
         hidden={!open}
-        className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-lg [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-start [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:text-left [&_a]:hover:bg-gray-50 [&_button]:flex [&_button]:min-h-[44px] [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:gap-3 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-left [&_button]:hover:bg-gray-50 [&_div]:contents`}
+        className={`${open ? 'flex' : 'hidden'} absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-1 rounded-lg border border-border bg-surface p-1 text-foreground shadow-lg [&_a]:flex [&_a]:min-h-[44px] [&_a]:w-full [&_a]:items-center [&_a]:justify-start [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:text-left [&_a]:hover:bg-surface-muted [&_button]:flex [&_button]:min-h-[44px] [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:gap-3 [&_button]:rounded-md [&_button]:px-3 [&_button]:text-left [&_button]:hover:bg-surface-muted [&_div]:contents`}
       >
         {content}
       </div>
@@ -119,16 +124,16 @@ function Card<T>({ row, columns, href }: { row: T; columns: DataTableColumn<T>[]
   }
 
   return (
-    <li onClick={open} onKeyDown={onKeyDown} tabIndex={href ? 0 : undefined} aria-labelledby={href ? titleId : undefined} className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${href ? 'cursor-pointer active:bg-gray-50' : ''}`}>
+    <li onClick={open} onKeyDown={onKeyDown} tabIndex={href ? 0 : undefined} aria-labelledby={href ? titleId : undefined} className={`rounded-xl border border-border bg-surface p-4 text-foreground shadow-sm ${href ? 'cursor-pointer active:bg-surface-muted' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {title && (
-            <div id={titleId} className="break-words font-medium text-gray-900">
+            <div id={titleId} className="break-words font-medium text-foreground">
               {title.cell(row)}
             </div>
           )}
           {subtitles.map((column) => (
-            <div key={column.id} className="break-words text-sm text-gray-500">
+            <div key={column.id} className="break-words text-sm text-muted">
               {column.cell(row)}
             </div>
           ))}
@@ -141,8 +146,8 @@ function Card<T>({ row, columns, href }: { row: T; columns: DataTableColumn<T>[]
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           {meta.map((column) => (
             <div key={column.id} className="min-w-0">
-              <dt className="text-xs uppercase tracking-wide text-gray-500">{column.header}</dt>
-              <dd className="break-words text-gray-700">{column.cell(row)}</dd>
+              <dt className="text-xs uppercase tracking-wide text-muted">{column.header}</dt>
+              <dd className={`break-words text-foreground ${column.numeric ? 'tabular-nums' : ''}`}>{column.cell(row)}</dd>
             </div>
           ))}
         </dl>
@@ -175,13 +180,13 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 z-10 bg-gray-50">
+        <thead className="bg-surface-muted">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.id}
                 style={{ width: column.width }}
-                className={`whitespace-nowrap border-b border-gray-200 px-3 py-4 lg:px-5 text-xs font-semibold uppercase tracking-wide text-gray-500 ${alignment[column.align ?? 'left']} `}
+                className={`whitespace-nowrap border-b border-border px-3 py-4 text-xs font-semibold uppercase tracking-wide text-muted first:rounded-tl-xl last:rounded-tr-xl lg:px-5 ${alignment[alignOf(column)]}`}
               >
                 {column.header}
               </th>
@@ -189,11 +194,11 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-border">
           {data.map((row, index) => (
-            <tr key={getRowId ? getRowId(row) : index} className="bg-white transition-colors hover:bg-gray-50">
+            <tr key={getRowId ? getRowId(row) : index} className="bg-surface transition-colors hover:bg-surface-muted">
               {columns.map((column) => (
-                <td key={column.id} className={`px-3 py-4 align-middle lg:px-5 text-gray-700 ${alignment[column.align ?? 'left']} `}>
+                <td key={column.id} className={`px-3 py-4 align-middle text-foreground lg:px-5 ${alignment[alignOf(column)]} ${column.numeric ? 'whitespace-nowrap tabular-nums' : ''}`}>
                   {column.cell(row)}
                 </td>
               ))}

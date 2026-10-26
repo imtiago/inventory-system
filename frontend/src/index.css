@@ -1,124 +1,223 @@
 /* frontend/src/index.css */
-/* Fonte */
-@import "@fontsource-variable/geist";
-
-/* Tailwind base, components e utilities */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens globais */
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light;
-  --background: #fff;
-  --foreground: #6b6375;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-@media (max-width: 1024px) {
+/*
+ * Tokens de tema em canais RGB ("R G B"): o Tailwind usa rgb(var(--x) / <alpha-value>), então bg-primary/10 funciona.
+ * Claro em :root; escuro em [data-theme="dark"] e, sem escolha explícita de claro, quando o sistema está escuro
+ * (assim "seguir o sistema" funciona até sem JavaScript). Valores e contrastes: auditoria de UI, seção "Temas".
+ */
+@layer base {
   :root {
+    --background: 241 245 249; /* #f1f5f9 */
+    --surface: 255 255 255; /* #ffffff */
+    --surface-muted: 248 250 252; /* #f8fafc */
+    --border: 226 232 240; /* #e2e8f0 */
+    --input: 203 213 225; /* #cbd5e1 */
+
+    --text: 15 23 42; /* #0f172a */
+    --foreground: var(--text);
+    --text-muted: 71 85 105; /* #475569 */
+    --text-subtle: 100 116 139; /* #64748b */
+
+    --primary: 37 99 235; /* #2563eb */
+    --primary-foreground: 255 255 255;
+    --primary-hover: 29 78 216; /* #1d4ed8 */
+
+    --success: 21 128 61; /* #15803d */
+    --success-soft: 220 252 231; /* #dcfce7 */
+    --warning: 180 83 9; /* #b45309 */
+    --warning-soft: 254 243 199; /* #fef3c7 */
+    --danger: 185 28 28; /* #b91c1c */
+    --danger-soft: 254 226 226; /* #fee2e2 */
+    --danger-solid: 220 38 38; /* #dc2626 */
+    --danger-foreground: 255 255 255;
+    --info: 29 78 216; /* #1d4ed8 */
+    --info-soft: 219 234 254; /* #dbeafe */
+
+    --ring: 37 99 235; /* #2563eb */
+
+    --sidebar: 15 23 42; /* #0f172a */
+    --sidebar-foreground: 241 245 249; /* #f1f5f9 */
+    --sidebar-muted: 148 163 184; /* #94a3b8 */
+    --sidebar-active: 30 41 59; /* #1e293b */
+
+    --overlay: 2 6 23;
+    --overlay-alpha: 0.5;
+
+    --chart-1: 37 99 235; /* #2563eb */
+    --chart-2: 13 148 136; /* #0d9488 */
+    --chart-3: 217 119 6; /* #d97706 */
+    --chart-4: 219 39 119; /* #db2777 */
+    --chart-5: 124 58 237; /* #7c3aed */
+    --chart-6: 100 116 139; /* #64748b */
+
+    --radius: 0.5rem; /* controles; cartões usam rounded-xl */
+    --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    --background: 2 6 23; /* #020617 */
+    --surface: 15 23 42; /* #0f172a */
+    --surface-muted: 30 41 59; /* #1e293b */
+    --border: 30 41 59; /* #1e293b */
+    --input: 51 65 85; /* #334155 */
+
+    --text: 241 245 249; /* #f1f5f9 */
+    --text-muted: 148 163 184; /* #94a3b8 */
+    --text-subtle: 124 138 160; /* #7c8aa0 */
+
+    --primary: 96 165 250; /* #60a5fa */
+    --primary-foreground: 15 23 42; /* #0f172a */
+    --primary-hover: 147 197 253; /* #93c5fd */
+
+    --success: 74 222 128; /* #4ade80 */
+    --success-soft: 5 46 22; /* #052e16 */
+    --warning: 252 211 77; /* #fcd34d */
+    --warning-soft: 69 26 3; /* #451a03 */
+    --danger: 248 113 113; /* #f87171 */
+    --danger-soft: 69 10 10; /* #450a0a */
+    --danger-solid: 248 113 113; /* #f87171 */
+    --danger-foreground: 15 23 42; /* #0f172a */
+    --info: 147 197 253; /* #93c5fd */
+    --info-soft: 23 37 84; /* #172554 */
+
+    --ring: 96 165 250; /* #60a5fa */
+
+    --sidebar: 2 6 23; /* #020617 */
+    --sidebar-foreground: 241 245 249;
+    --sidebar-muted: 148 163 184;
+    --sidebar-active: 30 41 59;
+
+    --overlay: 0 0 0;
+    --overlay-alpha: 0.6;
+
+    --chart-1: 96 165 250; /* #60a5fa */
+    --chart-2: 45 212 191; /* #2dd4bf */
+    --chart-3: 251 191 36; /* #fbbf24 */
+    --chart-4: 244 114 182; /* #f472b6 */
+    --chart-5: 167 139 250; /* #a78bfa */
+    --chart-6: 148 163 184; /* #94a3b8 */
+
+    /* No escuro a sombra some no fundo: vira um contorno de 1px na cor da borda. */
+    --shadow: 0 0 0 1px rgb(30 41 59);
+
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --background: 2 6 23;
+      --surface: 15 23 42;
+      --surface-muted: 30 41 59;
+      --border: 30 41 59;
+      --input: 51 65 85;
+
+      --text: 241 245 249;
+      --text-muted: 148 163 184;
+      --text-subtle: 124 138 160;
+
+      --primary: 96 165 250;
+      --primary-foreground: 15 23 42;
+      --primary-hover: 147 197 253;
+
+      --success: 74 222 128;
+      --success-soft: 5 46 22;
+      --warning: 252 211 77;
+      --warning-soft: 69 26 3;
+      --danger: 248 113 113;
+      --danger-soft: 69 10 10;
+      --danger-solid: 248 113 113;
+      --danger-foreground: 15 23 42;
+      --info: 147 197 253;
+      --info-soft: 23 37 84;
+
+      --ring: 96 165 250;
+
+      --sidebar: 2 6 23;
+      --sidebar-foreground: 241 245 249;
+      --sidebar-muted: 148 163 184;
+      --sidebar-active: 30 41 59;
+
+      --overlay: 0 0 0;
+      --overlay-alpha: 0.6;
+
+      --chart-1: 96 165 250;
+      --chart-2: 45 212 191;
+      --chart-3: 251 191 36;
+      --chart-4: 244 114 182;
+      --chart-5: 167 139 250;
+      --chart-6: 148 163 184;
+
+      --shadow: 0 0 0 1px rgb(30 41 59);
+
+      color-scheme: dark;
+    }
+  }
+
+  html {
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
+    line-height: 1.5;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Escala: página 24/600, seção 18/600, cartão 16/600 (classes utilitárias continuam valendo) */
+  h1 {
+    @apply text-2xl font-semibold;
+  }
+
+  h2 {
+    @apply text-lg font-semibold;
+  }
+
+  h3 {
+    @apply text-base font-semibold;
+  }
+
+  /* Valores alinhados em tabelas */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Placeholder legível nos dois temas (o padrão do Tailwind, gray-400, reprova no contraste). */
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--text-subtle));
+    opacity: 1;
+  }
+
+  code {
+    font-family: ui-monospace, Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 }
 
-/* Layout root */
 #root {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  margin: 0;
-}
-
-body {
-  margin: 0;
-  @apply bg-background text-foreground font-sans;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-}
-
-@media (max-width: 1024px) {
-  h1 {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-}
-
-@media (max-width: 1024px) {
-  h2 {
-    font-size: 20px;
-  }
-}
-
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
-
-html,
-body {
-  width: 100%;
-  min-height: 100%;
-  margin: 0;
-  overflow-x: hidden;
-}
-
-* {
-  box-sizing: border-box;
 }
 
 /* iOS dá zoom ao focar campos com menos de 16px */
@@ -127,5 +226,21 @@ body {
   select,
   textarea {
     font-size: 16px;
+  }
+}
+
+/* Menu lateral: sombra no topo/rodapé quando há itens escondidos pela rolagem (e barra fina visível). */
+@layer components {
+  .scroll-shadow {
+    background:
+      linear-gradient(rgb(var(--sidebar)) 30%, transparent) center top,
+      linear-gradient(transparent, rgb(var(--sidebar)) 70%) center bottom,
+      radial-gradient(farthest-side at 50% 0, rgb(255 255 255 / 0.22), transparent) center top,
+      radial-gradient(farthest-side at 50% 100%, rgb(255 255 255 / 0.22), transparent) center bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 28px, 100% 28px, 100% 12px, 100% 12px;
+    background-attachment: local, local, scroll, scroll;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--sidebar-muted)) transparent;
   }
 }

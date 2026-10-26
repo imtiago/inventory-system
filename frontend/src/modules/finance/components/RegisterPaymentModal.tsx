@@ -28,7 +28,7 @@ interface Props {
   onClose: () => void;
 }
 
-const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
+const inputClass = 'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Props) {
   const mutation = useRegisterPayment(kind, documentId);
@@ -74,10 +74,10 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
   const serverError = errors.root?.server?.message;
 
   return (
-    <Modal open onClose={close} busy={mutation.isPending} title={`Registrar pagamento — parcela ${parcel.number}`} description={`Saldo da parcela: ${formatCurrency(parcel.remainingAmount)}`} size="md">
+    <Modal open onClose={close} busy={mutation.isPending} title={`Registrar pagamento — parcela ${parcel.number}`} description={`Saldo da parcela: ${formatCurrency(parcel.remainingAmount)}`} size="lg">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div>
-          <label htmlFor="payment-amount" className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="payment-amount" className="mb-2 block text-sm font-medium text-foreground">
             Valor
           </label>
           <MoneyInput
@@ -93,11 +93,11 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
               },
             })}
           />
-          {errors.amount && <p className="mt-1 text-sm text-red-600">{errors.amount.message}</p>}
+          {errors.amount && <p className="mt-1 text-sm text-danger">{errors.amount.message}</p>}
         </div>
 
         <div>
-          <label htmlFor="payment-method" className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="payment-method" className="mb-2 block text-sm font-medium text-foreground">
             Forma de pagamento
           </label>
           <select id="payment-method" className={inputClass} {...register('method', { required: 'Selecione a forma de pagamento.' })}>
@@ -107,11 +107,11 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
               </option>
             ))}
           </select>
-          {errors.method && <p className="mt-1 text-sm text-red-600">{errors.method.message}</p>}
+          {errors.method && <p className="mt-1 text-sm text-danger">{errors.method.message}</p>}
         </div>
 
         <div>
-          <label htmlFor="payment-date" className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="payment-date" className="mb-2 block text-sm font-medium text-foreground">
             Data do pagamento
           </label>
           <input
@@ -127,28 +127,28 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
               },
             })}
           />
-          {errors.paymentDate && <p className="mt-1 text-sm text-red-600">{errors.paymentDate.message}</p>}
+          {errors.paymentDate && <p className="mt-1 text-sm text-danger">{errors.paymentDate.message}</p>}
         </div>
 
         <div>
-          <label htmlFor="payment-reference" className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="payment-reference" className="mb-2 block text-sm font-medium text-foreground">
             Referência
           </label>
           <input id="payment-reference" type="text" className={inputClass} {...register('reference', { maxLength: { value: 100, message: 'Máximo de 100 caracteres.' } })} />
-          {errors.reference && <p className="mt-1 text-sm text-red-600">{errors.reference.message}</p>}
+          {errors.reference && <p className="mt-1 text-sm text-danger">{errors.reference.message}</p>}
         </div>
 
         {serverError && (
-          <div role="alert" className="rounded-lg border border-red-200 p-3 text-sm text-red-600">
+          <div role="alert" className="rounded-lg border border-danger/30 p-3 text-sm text-danger">
             {serverError}
           </div>
         )}
 
         <div className="flex justify-end gap-2">
-          <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={close} disabled={mutation.isPending}>
+          <button type="button" className="rounded-lg border px-4 py-2 hover:bg-surface-muted disabled:opacity-50" onClick={close} disabled={mutation.isPending}>
             Voltar
           </button>
-          <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50" disabled={mutation.isPending}>
+          <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover disabled:opacity-50" disabled={mutation.isPending}>
             {mutation.isPending ? 'Registrando...' : 'Confirmar pagamento'}
           </button>
         </div>

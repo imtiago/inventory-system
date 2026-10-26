@@ -1,4 +1,6 @@
 import { MoneyInput } from '@/shared/components/form';
+import { Camera } from "lucide-react";
+import { PageHeader } from "@/shared/components/layout/PageHeader";
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
@@ -17,6 +19,9 @@ export interface VariantFormData {
 
 interface Props {
   title: string;
+  /** Destino do "Voltar" do cabeçalho padrão. */
+  backPath?: string;
+  backLabel?: string;
 
   submitLabel: string;
 
@@ -47,6 +52,8 @@ function validateSalePrice(text: string, required: boolean) {
 
 export function VariantForm({
   title,
+  backPath,
+  backLabel,
   submitLabel,
   initialValues,
   onSubmit,
@@ -87,17 +94,11 @@ export function VariantForm({
         space-y-6
       "
     >
-      <div>
-        <h1 className="text-3xl font-bold">{title}</h1>
-
-        <p className="text-gray-500">
-          Cadastre uma unidade comercial do produto.
-        </p>
-      </div>
+      <PageHeader title={title} description="Cadastre uma unidade comercial do produto." backPath={backPath} backLabel={backLabel} />
 
       <div
         className="
-          bg-white
+          bg-surface
           rounded-xl
           shadow
           p-6
@@ -115,12 +116,15 @@ export function VariantForm({
             className="
               w-full
               border
+              border-input
+              bg-surface
+              text-foreground
               rounded-lg
               p-3
             "
             placeholder="Ex: Kaiak 100ml"
           />
-              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+              {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
         </div>
 
         {/* Código de barras */}
@@ -135,6 +139,9 @@ export function VariantForm({
               className="
                 flex-1
                 border
+                border-input
+                bg-surface
+                text-foreground
                 rounded-lg
                 p-3
               "
@@ -145,16 +152,20 @@ export function VariantForm({
               type="button"
               onClick={() => setScannerOpen(true)}
               className="
-                bg-gray-900
-                text-white
+                bg-primary
+                text-primary-foreground
                 px-4
                 rounded-lg
+                inline-flex
+                items-center
+                gap-2
               "
             >
-              📷 Ler
+              <Camera size={18} aria-hidden="true" />
+              Ler
             </button>
           </div>
-          {errors.barcode && <p className="mt-1 text-sm text-red-600">{errors.barcode.message}</p>}
+          {errors.barcode && <p className="mt-1 text-sm text-danger">{errors.barcode.message}</p>}
         </div>
 
         {/* Preço de venda */}
@@ -168,7 +179,7 @@ export function VariantForm({
               validate: (value) => validateSalePrice(value, requireSalePrice),
             })}
           />
-          {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}
+          {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
         </div>
 
         {scannerOpen && (
@@ -186,7 +197,7 @@ export function VariantForm({
               onClick={() => setScannerOpen(false)}
               className="
                   mt-3
-                  text-red-600
+                  text-danger
                 "
             >
               Cancelar leitura
@@ -218,13 +229,13 @@ export function VariantForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-black text-white rounded-lg px-6 py-3 disabled:opacity-50"
+          className="bg-primary text-primary-foreground rounded-lg px-6 py-3 disabled:opacity-50"
         >
           {isSubmitting ? "Salvando..." : submitLabel}
         </button>
       </div>
           {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}

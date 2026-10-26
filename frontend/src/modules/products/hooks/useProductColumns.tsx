@@ -37,7 +37,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
             {product.name}
           </Link>
 
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted">
             {product.description ?? ""}
           </div>
         </div>
@@ -84,7 +84,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
           <Can permission="catalog.write">
             <Link
               to={`/products/${product.id}/edit`}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover"
               aria-label={`Editar ${product.name}`}
             >
               <Pencil size={18} />
@@ -93,7 +93,7 @@ export function useProductColumns({ onDelete }: Props): DataTableColumn<Product>
 
           <Can permission="catalog.delete">
             <button
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:text-danger"
               onClick={() => onDelete(product)}
               aria-label={`Excluir ${product.name}`}
             >

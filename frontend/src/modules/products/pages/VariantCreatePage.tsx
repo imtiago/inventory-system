@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 
+import { Page } from "@/shared/components/layout/Page";
 import { VariantForm, type VariantFormData } from "../components/VariantForm";
 
 import { useCreateVariant } from "../hooks/useCreateVariant";
@@ -18,18 +19,15 @@ export function VariantCreatePage() {
   }
 
   return (
-    <div
-      className="
-        max-w-4xl
-        mx-auto
-      "
-    >
+    <Page width="narrow">
       <VariantForm
         title="Nova Variante"
         submitLabel="Salvar Variante"
         onSubmit={handleSubmit}
+        backPath={`/products/${id}`}
+        backLabel="produto"
         onCancel={() => navigate(`/products/${id}`)}
       />
-    </div>
+    </Page>
   );
 }

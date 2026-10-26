@@ -52,13 +52,13 @@ export function ReversePaymentModal({ kind, documentId, payment, onClose }: Prop
     <Modal open onClose={close} busy={mutation.isPending} title="Estornar pagamento" description={`Pagamento de ${formatCurrency(payment.amount)}. O saldo da parcela será restaurado.`} size="md">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div>
-          <label htmlFor="reverse-reason" className="mb-2 block text-sm font-medium text-gray-700">
+          <label htmlFor="reverse-reason" className="mb-2 block text-sm font-medium text-foreground">
             Motivo
           </label>
           <textarea
             id="reverse-reason"
             rows={3}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             {...register('reason', {
               validate: (value) => {
                 const length = value.trim().length;
@@ -66,20 +66,20 @@ export function ReversePaymentModal({ kind, documentId, payment, onClose }: Prop
               },
             })}
           />
-          {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason.message}</p>}
+          {errors.reason && <p className="mt-1 text-sm text-danger">{errors.reason.message}</p>}
         </div>
 
         {serverError && (
-          <div role="alert" className="rounded-lg border border-red-200 p-3 text-sm text-red-600">
+          <div role="alert" className="rounded-lg border border-danger/30 p-3 text-sm text-danger">
             {serverError}
           </div>
         )}
 
         <div className="flex justify-end gap-2">
-          <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={close} disabled={mutation.isPending}>
+          <button type="button" className="rounded-lg border px-4 py-2 hover:bg-surface-muted disabled:opacity-50" onClick={close} disabled={mutation.isPending}>
             Voltar
           </button>
-          <button type="submit" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50" disabled={mutation.isPending}>
+          <button type="submit" className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50" disabled={mutation.isPending}>
             {mutation.isPending ? 'Estornando...' : 'Confirmar estorno'}
           </button>
         </div>

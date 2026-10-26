@@ -258,7 +258,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
         <p>{MESSAGES[status]}</p>
 
         {status !== 'insecure' && (
-          <button type="button" onClick={retry} className="min-h-11 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50">
+          <button type="button" onClick={retry} className="min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 py-2 text-sm font-medium hover:bg-surface-muted">
             Tentar de novo
           </button>
         )}
@@ -274,7 +274,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
             Câmera
           </label>
 
-          <select id={`${scannerId}-camera`} value={selectedCamera} onChange={(event) => setSelectedCamera(event.target.value)} className="w-full rounded-lg border p-2">
+          <select id={`${scannerId}-camera`} value={selectedCamera} onChange={(event) => setSelectedCamera(event.target.value)} className="w-full rounded-lg border border-input bg-surface p-2 text-foreground">
             <option value="">Automática (traseira)</option>
             {cameras.map((camera) => (
               <option key={camera.id} value={camera.id}>
@@ -292,14 +292,14 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
           type="button"
           aria-pressed={torchOn}
           onClick={() => void toggleTorch()}
-          className={`mt-3 min-h-11 rounded-lg border px-4 py-2 text-sm font-medium ${torchOn ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}
+          className={`mt-3 min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 py-2 text-sm font-medium ${torchOn ? 'bg-warning-soft' : 'hover:bg-surface-muted'}`}
         >
           Lanterna
         </button>
       )}
 
       {continuous && lastCode && (
-        <p role="status" className="mt-3 text-sm text-gray-600">
+        <p role="status" className="mt-3 text-sm text-muted">
           Último código lido: <strong>{lastCode}</strong>
         </p>
       )}

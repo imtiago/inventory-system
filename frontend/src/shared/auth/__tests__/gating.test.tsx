@@ -56,19 +56,19 @@ describe('botões por permissão', () => {
     loginAs('VENDEDOR');
     const r = renderProducts();
     await screen.findByText('Perfume');
-    expect(document.querySelector('button.text-red-600')).toBeNull();
+    expect(document.querySelector('button.text-danger')).toBeNull();
     r.unmount();
 
     loginAs('ADMIN');
     renderProducts();
     await screen.findByText('Perfume');
-    expect(document.querySelector('button.text-red-600')).not.toBeNull();
+    expect(document.querySelector('button.text-danger')).not.toBeNull();
   });
 
   test('Cenário Inicial oculto para VENDEDOR', async () => {
     loginAs('VENDEDOR');
     renderWithProviders(<InventoryListPage />);
-    await screen.findByText(/Itens \(/);
+    await screen.findByText(/itens? em estoque/);
     expect(screen.queryByText('Cenário Inicial')).not.toBeInTheDocument();
   });
 });

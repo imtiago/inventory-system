@@ -43,6 +43,7 @@ export default defineConfig(({ command }) => ({
   test: {
     environment: "jsdom",
     setupFiles: ["src/test/setup.ts"],
+    exclude: ["**/node_modules/**", "dist/**", "scripts/**"],
     testTimeout: 20000,
     env: { TZ: "America/Sao_Paulo", VITE_API_URL: "http://localhost:3000" },
   },

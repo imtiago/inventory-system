@@ -21,11 +21,11 @@ export function CrudActions({
                 gap-3
             "
     >
-      <Link to={editPath} className="inline-flex h-11 w-11 items-center justify-center text-blue-600" aria-label="Editar">
+      <Link to={editPath} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:bg-surface-muted" aria-label="Editar">
         <Pencil size={18} />
       </Link>
 
-      <button onClick={onDelete} className="inline-flex h-11 w-11 items-center justify-center text-red-600" aria-label="Excluir">
+      <button onClick={onDelete} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:bg-surface-muted" aria-label="Excluir">
         <Trash2 size={18} />
       </button>
     </div>

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 
-import { CrudBadge } from '@/shared/components/crud';
+import { StatusBadge } from '@/components/ui/badge';
 import { Page } from '@/shared/components/layout/Page';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+import { Section } from '@/shared/components/details/Section';
 import { DetailTable } from '@/shared/components/details/DetailTable';
 import { Can } from '@/shared/auth/Can';
 import { useCan } from '@/shared/auth/useCan';
@@ -31,69 +32,66 @@ export function PurchaseDetailPage() {
   const hasPayments = purchase?.payable?.parcels.some((parcel) => parcel.paidAmount > 0) ?? false;
   const canCancel = purchase !== undefined && purchase.status === 'PENDING' && purchase.items.every((item) => item.receivedQuantity === 0);
 
+  const actions = purchase ? (
+    <>
+      {canReceive && (
+        <Can permission="purchases.receive">
+          <button type="button" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover" onClick={() => setReceiving(true)}>
+            Registrar recebimento
+          </button>
+        </Can>
+      )}
+      {canCancel && hasPayments && (
+        <Can permission="purchases.write">
+          <p data-testid="cancel-blocked" className="max-w-xs text-sm text-muted">
+            Este pedido tem pagamento registrado. Estorne os pagamentos em contas a pagar para poder cancelá-lo.
+          </p>
+        </Can>
+      )}
+      {canCancel && !hasPayments && (
+        <Can permission="purchases.write">
+          <button type="button" className="rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90" onClick={() => setCanceling(true)}>
+            Cancelar pedido
+          </button>
+        </Can>
+      )}
+    </>
+  ) : undefined;
+
   return (
-    <Page>
-      <div className="flex-1 overflow-y-auto p-4">
-        <Link to="/purchases" className="mb-4 inline-flex items-center gap-2 text-sm text-gray-600 hover:underline">
-          <ArrowLeft size={16} />
-          Voltar para pedidos de compra
-        </Link>
+    <Page width="narrow">
+      <PageHeader
+        title={purchase ? purchase.code : 'Pedido de compra'}
+        description={purchase ? `Data do pedido: ${formatDateOnly(purchase.purchaseDate)}` : undefined}
+        meta={purchase ? <StatusBadge status={purchase.status}>{PURCHASE_STATUS_LABELS[purchase.status] ?? purchase.status}</StatusBadge> : undefined}
+        backPath="/purchases"
+        backLabel="pedidos de compra"
+        actions={actions}
+      />
 
-        {isLoading && <p className="text-sm text-gray-500">Carregando pedido...</p>}
+      {isLoading && <p className="text-sm text-muted">Carregando pedido...</p>}
 
-        {isError && !purchase && (
-          <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">{isNotFound ? 'Pedido não encontrado.' : 'Não foi possível carregar o pedido.'}</div>
-        )}
+      {isError && !purchase && (
+        <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">{isNotFound ? 'Pedido não encontrado.' : 'Não foi possível carregar o pedido.'}</div>
+      )}
 
-        {purchase && (
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+      {purchase && (
+        <>
+          <Section title="Resumo">
+            <dl className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6">
               <div>
-                <h1 className="text-xl font-semibold">{purchase.code}</h1>
-                <p className="text-sm text-gray-500">Data do pedido: {formatDateOnly(purchase.purchaseDate)}</p>
-                <div className="mt-2">
-                  <CrudBadge>{PURCHASE_STATUS_LABELS[purchase.status] ?? purchase.status}</CrudBadge>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                {canReceive && (
-                  <Can permission="purchases.receive">
-                    <button type="button" className="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800" onClick={() => setReceiving(true)}>
-                      Registrar recebimento
-                    </button>
-                  </Can>
-                )}
-                {canCancel && hasPayments && (
-                  <Can permission="purchases.write">
-                    <p data-testid="cancel-blocked" className="max-w-xs text-sm text-gray-600">
-                      Este pedido tem pagamento registrado. Estorne os pagamentos em contas a pagar para poder cancelá-lo.
-                    </p>
-                  </Can>
-                )}
-                {canCancel && !hasPayments && (
-                  <Can permission="purchases.write">
-                    <button type="button" className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700" onClick={() => setCanceling(true)}>
-                      Cancelar pedido
-                    </button>
-                  </Can>
-                )}
-              </div>
-            </div>
-
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-gray-500">Fornecedor</dt>
+                <dt className="text-sm text-muted">Fornecedor</dt>
                 <dd className="font-medium">{purchase.supplier.name}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Observações</dt>
+                <dt className="text-sm text-muted">Observações</dt>
                 <dd className="font-medium">{purchase.notes ?? '—'}</dd>
               </div>
             </dl>
+          </Section>
 
-            <section>
-              <h2 className="mb-2 font-semibold">Itens</h2>
+          <Section title="Itens">
+            <div className="p-4 sm:p-6">
               <DetailTable
                 rows={purchase.items}
                 getRowId={(item) => item.id}
@@ -105,7 +103,7 @@ export function PurchaseDetailPage() {
                     cell: (item) => (
                       <>
                         <div className="font-medium">{item.productVariant.name}</div>
-                        <div className="text-xs font-normal text-gray-500">{item.productVariant.code}</div>
+                        <div className="text-xs font-normal text-muted">{item.productVariant.code}</div>
                       </>
                     ),
                   },
@@ -117,18 +115,21 @@ export function PurchaseDetailPage() {
                   { id: 'unitCost', header: 'Custo unit.', align: 'right', cell: (item) => formatCurrency(item.unitCost) },
                 ]}
               />
-              <p className="mt-3 text-right text-lg font-semibold">Total: {formatCurrency(purchase.totalAmount)}</p>
-            </section>
+            </div>
+            <p className="border-t border-border bg-surface-muted px-4 py-3 text-right text-lg font-semibold tabular-nums sm:px-6">Total: {formatCurrency(purchase.totalAmount)}</p>
+          </Section>
 
-            {!canReadPayables && <p className="text-sm text-gray-500">Informações financeiras disponíveis para administradores.</p>}
-            {canReadPayables && purchase.payable && (
-              <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <h2 className="font-semibold">Parcelas</h2>
-                  <Link to={`/payables/${purchase.payable.id}`} className="text-sm font-medium hover:underline">
-                    Ver contas a pagar
-                  </Link>
-                </div>
+          {!canReadPayables && <p className="text-sm text-muted">Informações financeiras disponíveis para administradores.</p>}
+          {canReadPayables && purchase.payable && (
+            <Section
+              title="Parcelas"
+              actions={
+                <Link to={`/payables/${purchase.payable.id}`} className="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
+                  Ver contas a pagar
+                </Link>
+              }
+            >
+              <div className="p-4 sm:p-6">
                 <DetailTable
                   rows={purchase.payable.parcels}
                   getRowId={(parcel) => parcel.id}
@@ -138,14 +139,14 @@ export function PurchaseDetailPage() {
                     { id: 'amount', header: 'Valor', align: 'right', cell: (parcel) => formatCurrency(parcel.amount) },
                     { id: 'paid', header: 'Pago', align: 'right', cell: (parcel) => formatCurrency(parcel.paidAmount) },
                     { id: 'remaining', header: 'Restante', align: 'right', cell: (parcel) => formatCurrency(parcel.remainingAmount) },
-                    { id: 'status', header: 'Status', cell: (parcel) => FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status },
+                    { id: 'status', header: 'Status', cell: (parcel) => <StatusBadge status={parcel.status}>{FINANCIAL_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge> },
                   ]}
                 />
-              </section>
-            )}
-          </div>
-        )}
-      </div>
+              </div>
+            </Section>
+          )}
+        </>
+      )}
 
       {purchase && <ReceivePurchaseModal purchase={purchase} open={receiving} onClose={() => setReceiving(false)} />}
       {purchase && <CancelPurchaseModal purchaseId={purchase.id} open={canceling} onClose={() => setCanceling(false)} />}
