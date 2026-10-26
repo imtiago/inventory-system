@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { blankTo, salePriceSchema } from "./createVariantSchema";
+import { barcodeString, blankTo, salePriceSchema } from "./createVariantSchema";
 
 export const updateVariantSchema = z
   .object({
     name: z.string({ error: "O nome é inválido." }).min(1, "O nome é obrigatório.").optional(),
     barcode: z.preprocess(
       blankTo(null),
-      z.string({ error: "O código de barras é inválido." }).nullable().optional(),
+      barcodeString.nullable().optional(),
     ),
     salePrice: salePriceSchema.optional(),
   })

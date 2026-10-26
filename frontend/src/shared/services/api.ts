@@ -10,7 +10,8 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  // The store mirrors localStorage (and keeps working when storage is blocked).
+  const token = useAuthStore.getState().token;
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

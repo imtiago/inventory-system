@@ -21,6 +21,49 @@ const TOO_MANY = {
 const login = (email: string, password: string, remoteAddress = "127.0.0.1") =>
   app.inject({ method: "POST", url: "/auth/login", payload: { email, password }, remoteAddress });
 
+describe("POST /auth/login — limites por conta e por IP", () => {
+  beforeEach(() => loginAttemptLimiter.reset());
+
+  test("31ª falha na mesma conta vinda de IPs diferentes → 429", async () => {
+    const user = await createTestUser();
+    try {
+      for (let i = 0; i < 30; i++) {
+        const res = await login(user.email, "senha-errada-123", `10.1.0.${i + 1}`);
+        assert.equal(res.statusCode, 401, `falha ${i + 1}: ${res.body}`);
+      }
+      const blocked = await login(user.email, "senha-errada-123", "10.9.9.9");
+      assert.equal(blocked.statusCode, 429, blocked.body);
+      assert.deepEqual(blocked.json(), TOO_MANY);
+    } finally {
+      await user.cleanup();
+    }
+  });
+
+  test("51ª falha do mesmo IP com e-mails diferentes → 429", async () => {
+    for (let i = 0; i < 50; i++) {
+      const res = await login(`nobody-${i}@example.com`, "senha-errada-123", "10.2.0.1");
+      assert.equal(res.statusCode, 401, `falha ${i + 1}: ${res.body}`);
+    }
+    const blocked = await login("nobody-x@example.com", "senha-errada-123", "10.2.0.1");
+    assert.equal(blocked.statusCode, 429, blocked.body);
+    assert.deepEqual(blocked.json(), TOO_MANY);
+  });
+
+  test("login bem-sucedido na própria conta não zera o contador por IP", async () => {
+    const own = await createTestUser();
+    try {
+      for (let i = 0; i < 50; i++) {
+        if (i % 5 === 0) assert.equal((await login(own.email, own.password, "10.3.0.1")).statusCode, 200);
+        const res = await login(`nobody-${i}@example.com`, "senha-errada-123", "10.3.0.1");
+        assert.equal(res.statusCode, 401, `falha ${i + 1}: ${res.body}`);
+      }
+      assert.equal((await login("nobody-z@example.com", "senha-errada-123", "10.3.0.1")).statusCode, 429);
+    } finally {
+      await own.cleanup();
+    }
+  });
+});
+
 describe("POST /auth/login", () => {
   beforeEach(() => loginAttemptLimiter.reset());
   after(async () => {

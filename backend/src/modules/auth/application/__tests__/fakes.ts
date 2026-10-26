@@ -127,14 +127,18 @@ export class FakePasswordHasher implements IPasswordHasher {
 export class FakeLimiter implements ILoginAttemptLimiter {
   readonly counts = new Map<string, number>();
   constructor(private readonly max = 10) {}
-  tryConsume(key: string) {
+  tryConsume(key: string, maxAttempts = this.max) {
     const n = this.counts.get(key) ?? 0;
-    if (n >= this.max) return false;
+    if (n >= maxAttempts) return false;
     this.counts.set(key, n + 1);
     return true;
   }
   clear(key: string) {
     this.counts.delete(key);
+  }
+  release(key: string) {
+    const n = this.counts.get(key) ?? 0;
+    if (n > 0) this.counts.set(key, n - 1);
   }
 }
 

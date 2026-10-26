@@ -1,9 +1,13 @@
 import { Prisma } from "@prisma/client";
-import { ProductVariantRepository } from "@catalog/domain/repositories/ProductVariantRepository";
+import {
+  ProductVariantRepository,
+  VariantUpdatableField,
+} from "@catalog/domain/repositories/ProductVariantRepository";
 import { ProductVariantMapper } from "../mappers/ProductVariantMapper";
 import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { ProductVariant } from "@catalog/domain/entities/ProductVariant";
+import { barcodeAlreadyExists } from "@catalog/domain/errors/barcodeAlreadyExists";
 
 function assertInTransaction(what: string): void {
   if (!hasActiveTransaction()) {
@@ -14,11 +18,23 @@ function assertInTransaction(what: string): void {
   }
 }
 
+/** Corrida entre a checagem do use case e a gravação: o índice único do barcode decide. */
+function mapUniqueBarcode(error: unknown): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = error.meta?.target;
+    const fields = Array.isArray(target) ? target.map(String) : [String(target ?? "")];
+    if (fields.some((f) => f.includes("barcode"))) throw barcodeAlreadyExists();
+  }
+  throw error;
+}
+
 export class PrismaProductVariantRepository implements ProductVariantRepository {
   async create(variant: ProductVariant): Promise<ProductVariant> {
-    const created = await getDb().productVariant.create({
-      data: ProductVariantMapper.toCreatePersistence(variant),
-    });
+    const created = await getDb()
+      .productVariant.create({
+        data: ProductVariantMapper.toCreatePersistence(variant),
+      })
+      .catch(mapUniqueBarcode);
 
     return ProductVariantMapper.toDomain(created);
   }
@@ -29,9 +45,29 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
         id: variant.id,
       },
       data: ProductVariantMapper.toUpdatePersistence(variant),
-    });
+    }).catch(mapUniqueBarcode);
 
     return ProductVariantMapper.toDomain(updated);
+  }
+
+  async updateFields(
+    variant: ProductVariant,
+    fields: readonly VariantUpdatableField[],
+  ): Promise<ProductVariant> {
+    const full = ProductVariantMapper.toUpdatePersistence(variant);
+    const data: Prisma.ProductVariantUncheckedUpdateInput = {};
+    for (const field of fields) (data as Record<string, unknown>)[field] = full[field];
+    const updated = await getDb()
+      .productVariant.update({ where: { id: variant.id }, data })
+      .catch(mapUniqueBarcode);
+    return ProductVariantMapper.toDomain(updated);
+  }
+
+  async lockById(id: string): Promise<boolean> {
+    assertInTransaction("variante");
+    const rows = await getDb().$queryRaw<{ id: string }[]>`
+      SELECT id FROM "ProductVariant" WHERE id = ${id} FOR UPDATE`;
+    return rows.length > 0;
   }
 
   async findById(id: string): Promise<ProductVariant | null> {

@@ -1,5 +1,6 @@
 import { Product } from "@catalog/domain/entities/Product";
-import { ProductRepository } from "@catalog/domain/repositories/ProductRepository";
+import { Prisma } from "@prisma/client";
+import { ProductRepository, ProductUpdatableField } from "@catalog/domain/repositories/ProductRepository";
 import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { ProductMapper } from "../mappers/ProductMapper";
@@ -28,6 +29,14 @@ export class PrismaProductRepository implements ProductRepository {
       data: ProductMapper.toUpdatePersistence(product),
     });
 
+    return ProductMapper.toDomain(updated);
+  }
+
+  async updateFields(product: Product, fields: readonly ProductUpdatableField[]): Promise<Product> {
+    const full = ProductMapper.toUpdatePersistence(product);
+    const data: Prisma.ProductUncheckedUpdateInput = {};
+    for (const field of fields) (data as Record<string, unknown>)[field] = full[field];
+    const updated = await getDb().product.update({ where: { id: product.id }, data });
     return ProductMapper.toDomain(updated);
   }
 

@@ -15,10 +15,16 @@ export const salePriceSchema = z
   .max(MAX_AMOUNT, "O preço de venda deve ser no máximo 9.999.999.999,99.")
   .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, "O preço deve ter no máximo 2 casas decimais.");
 
+export const BARCODE_MAX_LENGTH = 64;
+export const barcodeString = z
+  .string({ error: "O código de barras é inválido." })
+  .trim()
+  .max(BARCODE_MAX_LENGTH, "O código de barras deve ter no máximo 64 caracteres.");
+
 export const createVariantSchema = z.object({
   name: z.string({ error: "O nome é obrigatório." }).min(1, "O nome é obrigatório."),
   // sku: z.string().min(1),
-  barcode: z.preprocess((v) => (v === null ? undefined : blankTo(undefined)(v)), z.string().optional()),
+  barcode: z.preprocess((v) => (v === null ? undefined : blankTo(undefined)(v)), barcodeString.optional()),
   salePrice: salePriceSchema.optional(),
 });
 

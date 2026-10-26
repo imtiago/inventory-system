@@ -106,6 +106,8 @@ CORS_ORIGINS="https://estoque.exemplo.com"     # continua obrigatório em produ�
 COMPANY_CNPJ="11444777000161"                  # obrigatório em produção: CNPJ da empresa; só NF-e destinadas a ele são importadas
 ```
 
+**Limite de tentativas de login:** o estado fica em memória do processo (instância única da API): 10 falhas/15 min por IP+e-mail, 30 por conta (de qualquer IP) e 50 por IP (de qualquer e-mail); login com sucesso zera IP+e-mail e conta, mas não o contador do IP. Com mais de uma instância da API (ou reinício frequente) cada processo conta separado: nesse caso use um armazenamento compartilhado (ex.: Redis) para os contadores.
+
 Mesmo com tudo na mesma origem, `CORS_ORIGINS` deve conter a origem do site (esquema + domínio, sem barra final). Se preferir a API em outro domínio, defina `VITE_API_URL=https://api.exemplo.com` no build e inclua a origem do frontend em `CORS_ORIGINS`.
 
 ## Banco legado (criado antes de out/2026)
