@@ -28,6 +28,8 @@
   - Se o cliente não existir, é criado com nome, celular opcional e o perfil escolhido.
   - O código do cliente é gerado normalmente.
 
+- **Atraso:** dívidas do caderninho, mesmo vencidas, **não** bloqueiam o cliente no crediário nem pioram perfil/pontuação; só contam no saldo e no limite (decidido 2026-10-26).
+
 ## 2. Formas de entrada
 1. **Planilha modelo (CSV)**
    - **Modelo para baixar:** Excel ou Google Sheets salvam em CSV; não é preciso dependência nova.

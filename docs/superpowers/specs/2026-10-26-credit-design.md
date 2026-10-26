@@ -177,9 +177,12 @@ A venda passa a ter **uma condição de pagamento**, escolhida no fim:
   - Permissões: `sales.cancel.request` (VENDEDOR e ADMIN) para pedir; `sales.cancel` passa a ser só ADMIN (aprovar, recusar e cancelar direto).
   - Lista "Pedidos de cancelamento" para o ADMIN, com contador no menu.
 - **Cancelamento de venda no crediário com parcelas pagas:** continua como hoje — bloqueado (`SALE_HAS_PAYMENTS`).
+- **Cancelamento de venda paga no ato (à vista, cartão e entrada do crediário):** o cancelamento aprovado estorna automaticamente os pagamentos feitos no fechamento (`Payment.atCheckout`), **somente até 7 dias corridos depois da venda** (data de negócio). Depois disso → 409 `CHECKOUT_REFUND_WINDOW_EXPIRED` "Venda paga no ato só pode ser cancelada com estorno em até 7 dias.". Interpretação registrada de "o estorno é feito em até 7 dias" (2026-10-26).
+- **Dívidas do caderninho:** contam no saldo devedor e no limite, mas **não** bloqueiam o cliente por atraso e **não** pioram perfil nem pontuação (nem as vencidas). Decidido em 2026-10-26.
+- **Ativação do crediário:** nasce desligado com os valores iniciais já preenchidos. O ADMIN ativa em Configurações de crédito depois de conferir; a ativação exige dados da loja preenchidos (para o carnê) e ao menos um aprovador de crédito, e registra quem e quando ativou. A rotina mensal de revisão de limite fica desligada no cron até os pesos serem aprovados (dá para rodar manualmente com prévia). Precificação: sem preço sugerido até a configuração de preço ser salva. Decidido pelo Claude a pedido do usuário ("da melhor forma").
 
-## 11. Em aberto (perguntar ao usuário)
-- **Valores iniciais:** faixas, perfis e taxa de 3,99% ao mês — a usuária deve conferir antes de ligar.
+## 11. Valores iniciais
+Faixas, perfis, taxa de 3,99% ao mês e pesos da revisão são valores iniciais; a usuária confere e ajusta antes de ativar (§10).
 
 ## Testes e aceite
 Cada regra com teste que falha antes:

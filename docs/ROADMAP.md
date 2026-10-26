@@ -27,8 +27,8 @@ Paralelismo entre planos: as Tasks 1–3 do crediário (cancelamento por pedido 
 - Confirmar: o preço com repasse da taxa do cartão sobe só até o centavo, sem a tabela de arredondamento (decisão provisória do plano).
 
 **Antes do crediário**
-- **Bloqueia a Task 7:** com o pagamento registrado na hora, uma venda à vista não poderia mais ser cancelada. Proposta: ao cancelar, o sistema estorna sozinho o pagamento feito no fechamento; parcelas do crediário já pagas continuam bloqueando o cancelamento (decidido).
-- Conferir os valores iniciais antes de **ligar** o crediário (ele nasce desligado): faixas de parcelas, parcela mínima R$ 30, taxa 3,99% a.m., perfis (Novo R$ 300, Regular R$ 800, Bom R$ 2.000, Excelente R$ 5.000) e entrada mínima.
+- **Decidido:** cancelar venda paga no ato estorna o pagamento automaticamente, só até 7 dias da venda; parcelas do crediário pagas continuam bloqueando.
+- Crediário nasce desligado (decidido): conferir os valores iniciais e ativar na tela (exige dados da loja e um aprovador): faixas de parcelas, parcela mínima R$ 30, taxa 3,99% a.m., perfis (Novo R$ 300, Regular R$ 800, Bom R$ 2.000, Excelente R$ 5.000) e entrada mínima.
 - Aprovar os pesos da pontuação da revisão mensal antes de ligar o cron.
 - Marcar na tela de usuários quem "Pode aprovar crédito".
 - Preencher os dados da loja (nome, CNPJ, endereço, telefone) para o carnê.

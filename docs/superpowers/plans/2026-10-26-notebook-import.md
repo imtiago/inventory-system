@@ -30,7 +30,7 @@
 2. Nomes diferentes mas próximos ("Maria Silva" × "Mariana Silva", "João Souza" × "Joana Souza", "Ana Paula" × "Ana Lúcia") **não** são marcados como a mesma pessoa; "Maria Silva" × "Maria S." e "José da Silva" × "Jose Silva" são — Task 2.
 3. Parcela "a combinar" não aparece como vencida em nenhum lugar (lista, detalhe, resumo, dashboard, CSV, bloqueio do crediário, revisão de limite) — Task 3.
 4. Confirmação com falha no meio (ex.: cliente vinculado excluído) não grava nada; repetir com a mesma chave não duplica; duas confirmações simultâneas → uma só — Task 5.
-5. Dívida antiga com vencimento anotado no passado: entra sem multa/juros, mas conta no saldo e no atraso do crediário (comportamento da spec, ver Open questions) — Task 5.
+5. Dívida antiga com vencimento anotado no passado: entra sem multa/juros, conta no saldo/limite e NÃO no atraso nem na pontuação (decidido 2026-10-26; ver Open questions) — Task 5.
 
 ---
 
@@ -52,7 +52,7 @@ Migration única: Task 3 `20261030100000_legacy_import`.
 
 ## Open questions
 
-- **Dívida antiga com vencimento no passado** (não está na spec): pela regra do crediário ela conta como atraso e pode bloquear o cliente de comprar no crediário (> 10 dias) logo após a importação. Este plano segue a spec (conta). Alternativa a perguntar: importar vencimentos passados como "a combinar". **Não bloqueia** (Task 5 implementa a regra da spec; mudar depois é trocar uma condição).
+- **Dívida antiga com vencimento no passado — DECIDIDO (2026-10-26):** conta no saldo e no limite, mas **não** conta como atraso para bloqueio do crediário e **não** afeta perfil/pontuação.
 - **Soma dos vencimentos ≠ saldo em aberto** (spec silente): este plano trata como `ERROR` "A soma dos vencimentos (X) é diferente do saldo em aberto (Y).". **Não bloqueia.**
 - **Regra do limite na confirmação "configurável"**: este plano a expõe como opção do lote (`limitRule`: `MAX_OF_PROFILE_AND_BALANCE` padrão, ou `PROFILE_ONLY`). **Não bloqueia.**
 - **"Parcelar saldo" conta como renegociação na pontuação do crédito?** Este plano: não (a parcela "a combinar" nunca esteve vencida). **Não bloqueia.**
@@ -222,7 +222,7 @@ test("VENDEDOR → 403 em todas as rotas")
 - [ ] **Step 1: Testes (falhando)**
 ```ts
 test("confirma: cliente novo criado com código, documento LEGACY noLateFees, parcela única a combinar; perfil Bom aplicado com histórico LEGACY_IMPORT")
-test("linha com vencimentos → parcelas nas datas; vencimento passado entra sem encargos e conta como atraso do crediário")  // Review Focus 5
+test("linha com vencimentos → parcelas nas datas; vencimento passado entra sem encargos, conta no limite e não bloqueia por atraso nem afeta a pontuação")  // Review Focus 5
 test("limite: perfil Novo (300) e saldo importado 450 → limite 450; PROFILE_ONLY → 300")
 test("linha com ERROR → 422 LEGACY_BATCH_HAS_ERRORS; SIMILAR sem decisão → 422 UNRESOLVED_SIMILAR_NAMES")
 test("falha no meio (cliente vinculado apagado entre revisão e confirmação) → nada gravado")  // Review Focus 4
