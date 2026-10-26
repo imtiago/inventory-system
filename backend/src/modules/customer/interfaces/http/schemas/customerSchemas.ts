@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidCnpj, isValidCpf, normalizeDocument } from "@shared/domain/document";
 import { normalizeWhitespace } from "@shared/domain/text/normalizeWhitespace";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
@@ -37,12 +38,23 @@ const addressSchema = z.preprocess(
   z.string().trim().max(200, "O endereço deve ter no máximo 200 caracteres.").nullable(),
 );
 
+/** CPF/CNPJ opcional, com ou sem máscara; guarda normalizado (CNPJ alfanumérico em maiúsculas). Vazio → null. */
+const documentSchema = z.preprocess(
+  blankToNull,
+  z
+    .string({ error: "CPF/CNPJ inválido." })
+    .transform(normalizeDocument)
+    .pipe(z.string().refine((d) => isValidCpf(d) || isValidCnpj(d), "CPF/CNPJ inválido."))
+    .nullable(),
+);
+
 /** POST: só o nome é obrigatório; opcionais ausentes viram null no use case. */
 export const createCustomerBodySchema = z.object({
   name: nameSchema,
   email: emailSchema.optional(),
   phone: phoneSchema.optional(),
   address: addressSchema.optional(),
+  document: documentSchema.optional(),
 });
 
 /** PATCH: pelo menos um campo conhecido; só o que vier é gravado. */
@@ -52,6 +64,7 @@ export const updateCustomerBodySchema = z
     email: emailSchema.optional(),
     phone: phoneSchema.optional(),
     address: addressSchema.optional(),
+  document: documentSchema.optional(),
   })
   .refine(
     (body) => Object.values(body).some((v) => v !== undefined),

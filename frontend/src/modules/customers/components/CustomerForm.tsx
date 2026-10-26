@@ -2,6 +2,7 @@ import { useSingleSubmit } from '@/shared/hooks/useSingleSubmit';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { useForm } from 'react-hook-form';
+import { isValidDocumentFormat, maskDocument, normalizeDocument } from '@/modules/suppliers/utils/formatDocument';
 import type { ICreateCustomerDTO } from '../types';
 
 interface Props {
@@ -32,7 +33,7 @@ function maskPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-const FIELDS = ['name', 'email', 'phone', 'address'] as const;
+const FIELDS = ['name', 'document', 'email', 'phone', 'address'] as const;
 
 export function CustomerForm({ loading = false, error = null, mode = 'create', initialData, onSubmit, onCancel }: Props) {
   const {
@@ -43,6 +44,7 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
   } = useForm<ICreateCustomerDTO>({
     defaultValues: {
       name: initialData?.name ?? '',
+      document: maskDocument(initialData?.document),
       email: initialData?.email ?? '',
       phone: maskPhone(initialData?.phone ?? ''),
       address: initialData?.address ?? '',
@@ -57,8 +59,12 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
       await onSubmit(data);
     } catch (error) {
       // Field errors go inline; anything else is shown in the form (mutations are silent).
-      if (!applySubmitError(setError, error, FIELDS)) {
-        setError('root.server', { type: 'server', message: parseApiErrorSync(error).message });
+      const parsed = parseApiErrorSync(error);
+
+      if (parsed.code === 'CUSTOMER_DOCUMENT_EXISTS') {
+        setError('document', { type: 'server', message: parsed.message });
+      } else if (!applySubmitError(setError, error, FIELDS)) {
+        setError('root.server', { type: 'server', message: parsed.message });
       }
     }
   }));
@@ -89,6 +95,40 @@ export function CustomerForm({ loading = false, error = null, mode = 'create', i
           />
 
           {errors.name && <p id="name-error" className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+        </div>
+
+        {/* CPF/CNPJ com máscara */}
+        <div>
+          <label htmlFor="document" className="mb-1 block font-medium">
+            CPF/CNPJ
+          </label>
+
+          <input
+            id="document"
+            aria-invalid={errors.document ? 'true' : undefined}
+            aria-describedby={errors.document ? 'document-error' : undefined}
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            maxLength={18}
+            {...register('document', {
+              setValueAs: (value: string) => normalizeDocument(value) || null,
+              validate: (value) => !value || isValidDocumentFormat(value) || 'Informe um CPF (11 dígitos) ou CNPJ (14 caracteres, os 2 últimos numéricos).',
+              onChange: (event) => {
+                const input = event.target as HTMLInputElement;
+                input.value = maskDocument(input.value);
+              },
+            })}
+            placeholder="000.000.000-00"
+            disabled={busy}
+            className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted"
+          />
+
+          {errors.document && (
+            <p id="document-error" className="mt-1 text-sm text-danger">
+              {errors.document.message}
+            </p>
+          )}
         </div>
 
         {/* E-mail */}

@@ -1,4 +1,5 @@
 import { IAdjustInventoryInput } from "@inventory/application/dto/InventoryDTO";
+import { Inventory } from "@inventory/domain/entities/Inventory";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { StockMovement } from "@inventory/domain/entities/StockMovement";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
@@ -10,7 +11,7 @@ import { IInventoryRepository } from "@inventory/domain/repositories/InventoryRe
 import { IStockMovementRepository } from "@inventory/domain/repositories/StockMovementRepository";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { ErrorCodes, InternalErrorCodes, InternalInvariantError, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes, InternalErrorCodes, InternalInvariantError, NotFoundError } from "@shared/domain/errors";
 
 export class AdjustInventoryUseCase extends TransactionalUseCase<
   IAdjustInventoryInput,
@@ -41,7 +42,16 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
     }
 
     const previousQuantity = inventory.quantity;
+    const previousReserved = inventory.reservedQuantity;
     const counted = request.countedQuantity;
+
+    // Contar abaixo do reservado cortaria reservas de pedidos sem rastro: recusa.
+    if (counted >= 0 && counted < previousReserved) {
+      throw new ConflictError(
+        `Há ${previousReserved} unidade(s) reservada(s) para: ${await this.describeReservations(inventory)}. Libere as reservas antes de ajustar abaixo disso.`,
+        ErrorCodes.ADJUST_BELOW_RESERVED,
+      );
+    }
     const difference = counted - previousQuantity;
 
     // Valida a contagem (não negativa) antes de qualquer gravação.
@@ -100,9 +110,43 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       currentQuantity: inventory.quantity,
       averageCost: inventory.averageCost,
       userId: request.userId,
-      notes: request.notes,
+      notes: this.withReserved(request.notes, previousReserved),
     });
     await this.stockMovementRepository.create(movement);
     return movement;
+  }
+
+  /** O ajuste não altera o reservado; ele fica registrado nas notas da movimentação. */
+  private withReserved(notes: string | undefined, reserved: number): string | undefined {
+    if (reserved <= 0) return notes;
+    return notes ? `${notes} (reservado: ${reserved})` : `Reservado: ${reserved}`;
+  }
+
+  /** Documentos com reserva em aberto: Σ RESERVE − Σ RELEASE por origem + originId. */
+  private async describeReservations(inventory: Inventory): Promise<string> {
+    const movements = await this.stockMovementRepository.findByProductVariantId(
+      inventory.productVariantId,
+    );
+    const open = new Map<string, number>();
+    let identified = 0;
+    for (const m of movements) {
+      if (m.inventoryId !== inventory.id) continue;
+      const sign =
+        m.type === StockMovementType.RESERVE ? 1 : m.type === StockMovementType.RELEASE ? -1 : 0;
+      if (sign === 0) continue;
+      const key = m.originId ? `${m.origin} ${m.originId}` : "documento não identificado";
+      open.set(key, (open.get(key) ?? 0) + sign * m.quantity);
+    }
+    const labels: string[] = [];
+    for (const [key, qty] of open) {
+      if (qty <= 0) continue;
+      labels.push(`${key} (${qty})`);
+      identified += qty;
+    }
+    // Reserva sem movimentação correspondente (dados antigos): não some da mensagem.
+    if (identified < inventory.reservedQuantity) {
+      labels.push(`documento não identificado (${inventory.reservedQuantity - identified})`);
+    }
+    return labels.join(", ");
   }
 }

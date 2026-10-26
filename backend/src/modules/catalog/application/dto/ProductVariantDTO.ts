@@ -23,6 +23,8 @@ export interface ICreateVariantInput {
   // sku: string;
   barcode?: string;
   salePrice?: number;
+  /** Quem tem `catalog.price` (só ADMIN). Sem ele, o preço inicial é obrigatório. */
+  canSetPrice: boolean;
 }
 
 export interface IDeleteProductVariantInput {
@@ -43,4 +45,6 @@ export interface IUpdateVariantInput {
   name?: string;
   barcode?: string | null;
   salePrice?: number;
+  /** Quem tem `catalog.price` (só ADMIN). Sem ele, só é aceito o preço igual ao atual. */
+  canChangePrice: boolean;
 }

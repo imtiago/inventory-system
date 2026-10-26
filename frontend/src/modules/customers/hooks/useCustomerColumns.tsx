@@ -5,6 +5,7 @@ import type { DataTableColumn } from '@/shared/components/table';
 
 import type { ICustomer } from '../types';
 import { formatPhone } from '@/shared/utils/formatPhone';
+import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import { Can } from '@/shared/auth/Can';
 // import { useDeleteProduct } from './useDeleteProduct';
 
@@ -40,6 +41,14 @@ export function useCustomerColumns(onEdit: (customer: ICustomer) => void): DataT
       mobile: 'title',
 
       cell: (data) => data.name,
+    },
+
+    {
+      id: 'document',
+      header: 'CPF/CNPJ',
+      mobile: 'meta',
+
+      cell: (data) => (data.document ? maskDocument(data.document) : '-'),
     },
 
     {

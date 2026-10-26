@@ -14,7 +14,7 @@ const FIXTURES_DIR = new URL("../../../../../../../frontend/src/test/fixtures/cu
 const loadFixture = (name: string): unknown =>
   JSON.parse(readFileSync(new URL(`${name}.json`, FIXTURES_DIR), "utf8"));
 
-const CUSTOMER_KEYS = ["address", "code", "createdAt", "email", "id", "name", "phone"];
+const CUSTOMER_KEYS = ["address", "code", "createdAt", "document", "email", "id", "name", "phone"];
 
 describe("Clientes (/customers)", () => {
   let admin: TestUser;

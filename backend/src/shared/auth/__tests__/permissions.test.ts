@@ -19,6 +19,7 @@ const MATRIX: Record<Permission, Role[]> = {
   "catalog.read": ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
   "catalog.write": ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
   "catalog.delete": ["ADMIN"],
+  "catalog.price": ["ADMIN"],
   "customers.read": ["ADMIN", "VENDEDOR"],
   "customers.write": ["ADMIN", "VENDEDOR"],
   "sales.read": ["ADMIN", "VENDEDOR"],
@@ -45,12 +46,21 @@ const MATRIX: Record<Permission, Role[]> = {
  * sem gravar nada no banco compartilhado (testes paralelos).
  */
 const missing = randomUUID();
-type RouteProbe = { method: "GET" | "POST" | "PUT" | "DELETE"; url: string; payload?: object; allowed: number };
+type RouteProbe = {
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  url: string;
+  payload?: object;
+  allowed: number;
+  /** Status esperado para quem não tem a permissão (padrão 403). */
+  denied?: number;
+};
 const ROUTES: Record<Permission, RouteProbe> = {
   "users.manage": { method: "GET", url: "/users?limit=1", allowed: 200 },
   "catalog.read": { method: "GET", url: "/brands", allowed: 200 },
   "catalog.write": { method: "POST", url: "/brands", payload: {}, allowed: 400 },
   "catalog.delete": { method: "DELETE", url: `/products/${missing}`, allowed: 404 },
+  // Sem catalog.price o preço inicial é obrigatório (400 antes de buscar o produto); com ele → 404.
+  "catalog.price": { method: "POST", url: `/products/${missing}/variants`, payload: { name: "x" }, allowed: 404, denied: 400 },
   "customers.read": { method: "GET", url: "/customers?limit=1", allowed: 200 },
   "customers.write": { method: "POST", url: "/customers", payload: {}, allowed: 400 },
   "sales.read": { method: "GET", url: "/sales?limit=1", allowed: 200 },
@@ -167,12 +177,12 @@ describe("matriz por HTTP: papel × rota representativa", () => {
           payload: route.payload,
           headers: withIdempotencyKey(route.method, { authorization: `Bearer ${users[role].token}` }),
         });
-        const expected = MATRIX[permission].includes(role) ? route.allowed : 403;
+        const expected = MATRIX[permission].includes(role) ? route.allowed : (route.denied ?? 403);
         if (res.statusCode !== expected) {
           failures.push(
             `${role} × ${permission} (${route.method} ${route.url}): esperado ${expected}, veio ${res.statusCode} ${res.body.slice(0, 120)}`,
           );
-        } else if (expected === 403) {
+        } else if (expected === 403 && route.denied === undefined) {
           assert.deepEqual(res.json(), { message: "Acesso negado.", code: "FORBIDDEN" });
         }
       }

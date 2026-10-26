@@ -41,6 +41,12 @@ beforeEach(() => {
 });
 
 describe('CustomerDetailsPage', () => {
+  test('mostra o CPF/CNPJ formatado', async () => {
+    renderDetails();
+
+    expect(await screen.findByText('529.982.247-25')).toBeInTheDocument();
+  });
+
   test('exibe o nome como gravado e não há link para /edit', async () => {
     renderDetails();
     expect(await screen.findByRole('heading', { name: 'Ana McDonald' })).toBeInTheDocument();

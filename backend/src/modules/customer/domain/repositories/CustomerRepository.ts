@@ -5,10 +5,12 @@ export interface CustomerPatchData {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  document?: string | null;
 }
 
 export interface CustomerRepository {
   findById(id: string): Promise<Customer | null>;
+  findByDocument(document: string): Promise<Customer | null>;
   create(customer: Customer): Promise<Customer>;
   /** Grava só as chaves presentes em `patch` (undefined = não toca; null = limpa). */
   update(id: string, patch: CustomerPatchData): Promise<Customer>;

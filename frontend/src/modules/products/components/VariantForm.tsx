@@ -5,6 +5,7 @@ import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/ut
 import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { useForm } from "react-hook-form";
+import { useCan } from "@/shared/auth/useCan";
 import { useState } from "react";
 
 import { BarcodeScanner } from "@/components/BarcodeScanner";
@@ -67,6 +68,11 @@ export function VariantForm({
     },
   });
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  // Só o administrador (catalog.price) altera o preço; os demais só informam o preço inicial (obrigatório).
+  const canPrice = useCan("catalog.price");
+  const priceReadOnly = requireSalePrice && !canPrice;
+  const priceRequired = requireSalePrice || !canPrice;
 
   function handleBarcodeRead(barcode: string) {
     setValue("barcode", barcode);
@@ -175,10 +181,13 @@ export function VariantForm({
 
           <MoneyInput
             id="variant-sale-price"
+            readOnly={priceReadOnly}
+            aria-describedby={priceReadOnly ? "variant-sale-price-hint" : undefined}
             {...register("salePrice", {
-              validate: (value) => validateSalePrice(value, requireSalePrice),
+              validate: (value) => validateSalePrice(value, priceRequired),
             })}
           />
+          {priceReadOnly && <p id="variant-sale-price-hint" className="mt-1 text-sm text-muted">Somente o administrador altera o preço</p>}
           {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
         </div>
 

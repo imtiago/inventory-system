@@ -6,6 +6,7 @@ export const PERMISSIONS = [
   "catalog.read",
   "catalog.write",
   "catalog.delete",
+  "catalog.price",
   "customers.read",
   "customers.write",
   "sales.read",
