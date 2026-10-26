@@ -145,7 +145,7 @@ describe("NfeParser", () => {
     assert.equal(doc.supplier.tradeName, null);
     assert.equal(doc.supplier.phone, null);
     assert.equal(doc.totals.total, 3000);
-    assert.equal(doc.issueDate, "2026-10-23", "01:30-01:00 = 23:30 em Brasília do dia anterior");
+    assert.equal(doc.issueDate, "2026-10-24", "data local declarada em dhEmi (01:30-01:00), sem converter de fuso");
   });
 
   test("modelo 65, chave com DV errado, sem itens, totais que não conferem → INVALID_NFE com mensagem", () => {
@@ -314,13 +314,17 @@ describe("NfeParser", () => {
     expectInvalidFile("");
   });
 
-  test("dhEmi 2026-10-23T23:30:00-03:00 → issueDate 2026-10-23", () => {
+  test("dhEmi: issueDate é a data local declarada na nota (sem converter de fuso)", () => {
     const full = fixture("nfe-completa.xml");
     assert.equal(parser.parse(full).issueDate, "2026-10-23");
-    assert.equal(
-      parser.parse(full.replace("2026-10-23T23:30:00-03:00", "2026-10-24T02:30:00Z")).issueDate,
-      "2026-10-23",
-    );
+    // Amazonas (-04:00) e Noronha (-02:00): a data é a que consta no DANFE.
+    assert.equal(parser.parse(full.replace("2026-10-23T23:30:00-03:00", "2026-10-23T23:30:00-04:00")).issueDate, "2026-10-23");
+    assert.equal(parser.parse(full.replace("2026-10-23T23:30:00-03:00", "2026-10-23T23:30:00-02:00")).issueDate, "2026-10-23");
+    assert.equal(parser.parse(full.replace("2026-10-23T23:30:00-03:00", "2026-10-24T00:10:00-02:00")).issueDate, "2026-10-24");
+    // Em UTC a data declarada é a que vale.
+    assert.equal(parser.parse(full.replace("2026-10-23T23:30:00-03:00", "2026-10-24T02:30:00Z")).issueDate, "2026-10-24");
+    // Data inexistente continua inválida.
+    expectInvalidNfe(full.replace("2026-10-23T23:30:00-03:00", "2026-02-31T10:00:00-03:00"), "Data de emissão inválida.");
     // layout antigo: dEmi
     assert.equal(
       parser.parse(full.replace("<dhEmi>2026-10-23T23:30:00-03:00</dhEmi>", "<dEmi>2026-10-20</dEmi>")).issueDate,
@@ -386,5 +390,36 @@ describe("NfeParser", () => {
       assert.equal(k.slice(20, 22), "55");
       assert.equal(isValidAccessKey(k), true);
     }
+  });
+
+  describe("encoding declarado", () => {
+    const latin1 = (xml: string, name: string) =>
+      Buffer.from(
+        xml.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"').replace("Distribuidora Exemplo Ltda", name),
+        "latin1",
+      );
+
+    test("ISO-8859-1 é decodificado com os acentos corretos", () => {
+      const doc = parser.parse(latin1(fixture("nfe-completa.xml"), "Distribuidora Ação &amp; Cia"));
+      assert.equal(doc.supplier.name, "Distribuidora Ação & Cia");
+    });
+
+    test("windows-1252 é aceito (aspas curvas)", () => {
+      const xml = fixture("nfe-completa.xml").replace('encoding="UTF-8"', 'encoding="windows-1252"').replace("Distribuidora Exemplo Ltda", "Casa “Boa” Ltda");
+      const doc = parser.parse(Buffer.from(xml.replace("“", "\u0093").replace("”", "\u0094"), "latin1"));
+      assert.equal(doc.supplier.name, "Casa “Boa” Ltda");
+    });
+
+    test("UTF-8 (declarado, sem declaração ou com BOM) continua funcionando", () => {
+      const full = fixture("nfe-completa.xml").replace("Distribuidora Exemplo Ltda", "Distribuidora Ação");
+      assert.equal(parser.parse(Buffer.from(full, "utf-8")).supplier.name, "Distribuidora Ação");
+      assert.equal(parser.parse(Buffer.from(full.replace(/<\?xml[^>]*\?>\s*/, ""), "utf-8")).supplier.name, "Distribuidora Ação");
+      assert.equal(parser.parse(Buffer.from("\uFEFF" + full, "utf-8")).supplier.name, "Distribuidora Ação");
+    });
+
+    test("encoding fora de utf-8 / iso-8859-1 / windows-1252 → arquivo inválido", () => {
+      expectInvalidFile(Buffer.from(fixture("nfe-completa.xml").replace('encoding="UTF-8"', 'encoding="UTF-16"'), "utf-8"));
+      expectInvalidFile(Buffer.from(fixture("nfe-completa.xml").replace('encoding="UTF-8"', 'encoding="Shift_JIS"'), "utf-8"));
+    });
   });
 });

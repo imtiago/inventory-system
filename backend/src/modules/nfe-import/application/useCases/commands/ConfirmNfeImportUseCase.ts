@@ -113,9 +113,17 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     const supplier = await this.resolveSupplier(document, input.supplier);
 
     // 3. Variantes; erros do cadastro de um item levam "Item <n>: " (o front marca a linha).
+    // Variantes vinculadas: uma consulta só (as criadas seguem uma a uma, pois gravam).
+    const linked = new Map(
+      (
+        await this.catalog.getProductVariants(
+          requests.flatMap(({ request }) => ("link" in request ? [request.link.productVariantId] : [])),
+        )
+      ).map((variant) => [variant.id, variant]),
+    );
     const resolved = [];
     for (const { item, request } of requests) {
-      const productVariantId = await this.resolveVariant(item, request).catch((e: unknown) => {
+      const productVariantId = await this.resolveVariant(item, request, linked).catch((e: unknown) => {
         throw withItemPrefix(e, item.index);
       });
       resolved.push({ item, request, productVariantId, units: units.get(item.index)! });
@@ -148,7 +156,12 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     if (purchase.totalAmountCents !== costTotal) {
       throw new InternalInvariantError("Total do pedido difere do custo da nota.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
     }
-    const created = await this.purchaseCreator.save(purchase, reconcileParcels(this.parcelsFor(document, purchase, input.installments), purchase.totalAmountCents));
+    // Nota de bonificação (total zero): sem parcelas e sem contas a pagar (duplicatas de valor zero são ignoradas).
+    const parcels =
+      purchase.totalAmountCents === 0 && !input.installments?.length
+        ? []
+        : reconcileParcels(this.parcelsFor(document, purchase, input.installments), purchase.totalAmountCents);
+    const created = await this.purchaseCreator.save(purchase, parcels);
 
     // 6. Entrada no estoque.
     if (input.receive) await this.receiveAll(created, lines, input.userId);
@@ -195,9 +208,13 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     );
   }
 
-  private async resolveVariant(item: NfeItem, request: ConfirmItemInput): Promise<string> {
+  private async resolveVariant(
+    item: NfeItem,
+    request: ConfirmItemInput,
+    linked: Map<string, { id: string }>,
+  ): Promise<string> {
     if ("link" in request) {
-      const variant = await this.catalog.getProductVariant(request.link.productVariantId);
+      const variant = linked.get(request.link.productVariantId);
       if (!variant) throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
       return variant.id;
     }

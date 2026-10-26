@@ -47,6 +47,19 @@ test("pedido: total = Σ itens; status PENDING, origem MANUAL, sem recebimentos"
   assert.equal(p.hasReceipts, false);
 });
 
+test("pedido de origem XML com total 0 (nota de bonificação) é aceito", () => {
+  const p = Purchase.create({
+    code: "PC000002",
+    supplierId: "s-1",
+    purchaseDate: "2026-10-20",
+    notes: null,
+    origin: PurchaseOrigin.XML,
+    items: [item({ unitPriceCents: 0 })],
+  });
+  assert.equal(p.totalAmountCents, 0);
+  assert.equal(p.origin, PurchaseOrigin.XML);
+});
+
 test("pedido com total 0 → 422 PURCHASE_TOTAL_ZERO", () => {
   assert.throws(() => newPurchase([item({ unitPriceCents: 0 })]), {
     name: "BusinessRuleError",

@@ -224,6 +224,39 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.deepEqual(again.json(), { message: "Importação já confirmada.", code: "NFE_IMPORT_CONFIRMED" });
   });
 
+  test("nota 100% bonificação (total zero): aceita, sem parcelas e sem contas a pagar; estoque entra com custo zero", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    // Todos os valores da nota viram 0,00 e a cobrança some.
+    const zero = (xml: string) => xml.replace(/<cobr>[\s\S]*?<\/cobr>/, "").replace(/<(v[A-Za-z]+)>[\d.]+<\/\1>/g, "<$1>0.00</$1>");
+    const draft = await uploadNote(note, zero);
+    assert.equal(draft.totalAmount, 0);
+    assert.deepEqual(draft.installments, []);
+    const [a, b, c] = [await existingVariant(), await existingVariant(), await existingVariant()];
+
+    const res = await confirm(draft.id, {
+      supplier: { id: supplier.id },
+      items: [a, b, c].map((productVariantId, i) => ({ index: i + 1, link: { productVariantId, unitsPerPackage: i === 1 ? 2 : 1 } })),
+      receive: true,
+    });
+    assert.equal(res.statusCode, 201, res.body);
+    const { purchaseId } = res.json().data;
+
+    const purchase = await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } });
+    assert.equal(purchase.totalAmount.toNumber(), 0);
+    assert.equal(purchase.status, "RECEIVED");
+    assert.equal(await prisma.financialDocument.count({ where: { originType: "PURCHASE", originId: purchaseId } }), 0);
+    const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: { in: [a, b, c] } } });
+    assert.ok(lots.length >= 3);
+    assert.ok(lots.every((l) => l.unitCost.toNumber() === 0));
+    const row = await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } });
+    assert.equal(row.status, "CONFIRMED");
+
+    // Desfazer a nota também funciona sem contas a pagar.
+    const reverted = await call("POST", `/nfe-imports/${draft.id}/revert`, {});
+    assert.equal(reverted.statusCode, 200, reverted.body);
+  });
+
   test("caixa com 12 unidades: 2 CX → 24 unidades, custo unitário = custo/24 no pedido e no estoque", async () => {
     const note = newNote();
     const supplier = await createSupplier(note.cnpj);
