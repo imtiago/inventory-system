@@ -16,16 +16,7 @@ import { useFinanceDocument } from '../hooks/useFinanceDocument';
 import { PAYMENT_METHOD_LABELS, FINANCE_STATUS_LABELS, type IFinancePayment } from '../types';
 import { Can } from '@/shared/auth/Can';
 import { LoadingState } from '@/shared/components/LoadingState';
-
-function formatDateTime(value: string | null) {
-  if (!value) return '—';
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return '—';
-
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
-}
+import { formatDateTime } from '@/shared/utils/formatDateTime';
 
 export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
   const config = FINANCE_KINDS[kind];

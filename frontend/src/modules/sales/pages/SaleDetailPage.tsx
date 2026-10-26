@@ -19,20 +19,13 @@ import { useCancelSale } from '../hooks/useCancelSale';
 import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
 import { Can } from '@/shared/auth/Can';
 import { LoadingState } from '@/shared/components/LoadingState';
+import { formatDateTime } from '@/shared/utils/formatDateTime';
 
 const saleStatusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
   CANCELED: 'Cancelada',
   PENDING: 'Pendente',
 };
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return '—';
-
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
-}
 
 export function SaleDetailPage() {
   const { id } = useParams<{ id: string }>();
