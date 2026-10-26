@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
-import { useInventoryBoxes } from '../hooks/useInventoryBox';
+import { useInventoryBoxContents, useInventoryBoxes } from '../hooks/useInventoryBox';
 import type { InventoryBox, InventoryLot } from '../types';
 
 interface Props {
@@ -31,6 +31,9 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
 
   // Kept as text so the field can be cleared while typing; validated on submit.
   const [quantity, setQuantity] = useState('1');
+
+  const { box: contents } = useInventoryBoxContents(selectedBox?.code);
+  const inBox = contents ? (contents.stocks.find((stock) => stock.inventoryLot.id === lot.id)?.quantity ?? 0) : null;
 
   const noRoom = availableForBoxes === 0;
 
@@ -155,6 +158,13 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
           </p>
         ) : (
           <p className="text-sm text-gray-500">Selecione ou crie uma caixa.</p>
+        )}
+
+        {selectedBox && inBox !== null && (
+          <p className="mt-1 text-sm text-gray-600">
+            <span>Na caixa: {inBox}</span>
+            <span className="text-gray-500"> (o lote tem {lot.allocatedQuantity} em caixas no total)</span>
+          </p>
         )}
 
         <label htmlFor="box-quantity" className="mb-1 mt-4 block font-medium">

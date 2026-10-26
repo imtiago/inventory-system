@@ -56,17 +56,19 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
       throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
 
-    const unitCost =
-      request.unitCost ??
-      (await this.inventoryRepository.findByProductVariantId(variant.id))
-        ?.averageCost ??
-      0;
+    // Trava a variante antes de ler o custo médio padrão (a trava é reentrante
+    // na transação do receive), para o custo não ficar defasado por concorrência.
+    const inventory = await this.inventoryRepository.lockByProductVariantId(variant.id);
+    const unitCost = request.unitCost ?? inventory.averageCost ?? 0;
+
+    // Sem lote informado: lote "aberto" da contagem, um por variante e caixa.
+    const batchNumber = request.batchNumber ?? `CONT-${box.code}-${variant.code}`;
 
     const { lot } = await this.receiveInventory.execute({
       productVariantId: variant.id,
       quantity,
       unitCost,
-      batchNumber: request.batchNumber,
+      batchNumber,
       expirationDate: request.expirationDate,
       origin: StockMovementOrigin.INVENTORY,
       sourceType: InventoryLotSource.MANUAL,

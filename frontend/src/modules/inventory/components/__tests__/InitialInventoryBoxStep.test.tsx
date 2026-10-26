@@ -61,4 +61,41 @@ describe('InitialInventoryBoxStep', () => {
 
     expect(screen.queryByRole('button', { name: 'Simular leitura da caixa' })).not.toBeInTheDocument();
   });
+
+  test('caixa selecionada mostra "Na caixa: n" (quantidade deste lote nela) e o total do lote em caixas', async () => {
+    const lot = inventoryLotList.data[0];
+    server.use(
+      http.get(`${API_URL}/inventory/boxes/code/B000123`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'box-1',
+            code: 'B000123',
+            createdAt: '2026-10-20T14:35:00.000Z',
+            updatedAt: '2026-10-20T14:35:00.000Z',
+            stocks: [
+              { id: 's-other', boxId: 'box-1', quantity: 9, inventoryLot: { ...lot, id: 'other-lot' } },
+              { id: 's-1', boxId: 'box-1', quantity: 5, inventoryLot: lot },
+            ],
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <InitialInventoryBoxStep
+        lot={lot as never}
+        availableForBoxes={10}
+        selectedBox={{ id: 'box-1', code: 'B000123', createdAt: '', updatedAt: '' }}
+        loading={false}
+        error={null}
+        onSelectBox={() => {}}
+        onCreateBox={() => {}}
+        onAddToBox={() => {}}
+        onBack={() => {}}
+      />,
+    );
+
+    expect(await screen.findByText('Na caixa: 5')).toBeInTheDocument();
+    expect(screen.getByText(/lote tem 12 em caixas no total/)).toBeInTheDocument();
+  });
 });

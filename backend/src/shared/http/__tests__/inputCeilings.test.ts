@@ -89,10 +89,10 @@ describe("Tetos de quantidade e valor (400 no campo, nunca 500)", () => {
     await expect400("/inventory/adjust", { productVariantId: variantId, countedQuantity: TOO_MANY }, "countedQuantity");
     await expect400(
       "/inventory/reserve",
-      { productVariantId: variantId, quantity: TOO_MANY, originId: randomUUID() },
+      { productVariantId: variantId, quantity: TOO_MANY, origin: "SALE", originId: randomUUID() },
       "quantity",
     );
-    await expect400("/inventory/release", { inventoryId: randomUUID(), quantity: TOO_MANY }, "quantity");
+    await expect400("/inventory/release", { inventoryId: randomUUID(), quantity: TOO_MANY, origin: "SALE", originId: randomUUID() }, "quantity");
     await expect400(
       "/inventory/initial-count",
       { barcode: "x", boxCode: "y", quantity: TOO_MANY },

@@ -209,6 +209,43 @@ describe("HTTP de estoque", () => {
     assert.equal(ok.statusCode, 200, ok.body);
   });
 
+  test("GET /inventory/movements: total respeita os filtros da listagem", async () => {
+    const other = await createTestVariant();
+    try {
+      await request("POST", "/inventory/lots", lotBody({ quantity: 4 }));
+      await request("POST", "/inventory/lots", lotBody({ quantity: 6 }));
+      await request("POST", "/inventory/lots", { ...lotBody({ quantity: 2 }), productVariantId: other.variantId });
+
+      const res = await request("GET", `/inventory/movements?productVariantId=${variantId}&limit=1`);
+      assert.equal(res.statusCode, 200, res.body);
+      assert.equal(res.json().data.length, 1);
+      assert.equal(res.json().pagination.total, 2);
+
+      const byType = await request("GET", `/inventory/movements?productVariantId=${variantId}&type=OUT`);
+      assert.equal(byType.json().pagination.total, 0);
+    } finally {
+      await other.cleanup();
+    }
+  });
+
+  test("GET /inventory/boxes/code/:code informa a quantidade do lote na caixa (id da alocação) e o saldo do lote", async () => {
+    const lotRes = await request("POST", "/inventory/lots", lotBody({ quantity: 10 }));
+    const lot = lotRes.json().data;
+    const a = await createBox();
+    const b = await createBox();
+    for (const [box, quantity] of [[a, 4], [b, 6]] as const) {
+      const add = await request("POST", `/inventory/boxes/${box.id}/items`, { inventoryLotId: lot.id, quantity });
+      assert.equal(add.statusCode, 200, add.body);
+    }
+
+    const res = await request("GET", `/inventory/boxes/code/${a.code}`);
+    assert.equal(res.statusCode, 200, res.body);
+    const [stock] = res.json().data.stocks;
+    assert.equal(stock.quantity, 4);
+    assert.equal(stock.id, (await prisma.inventoryBoxStock.findFirstOrThrow({ where: { boxId: a.id } })).id);
+    assert.equal(stock.inventoryLot.remainingQuantity, 10);
+  });
+
   test("GET /inventory/boxes?search filtra por código", async () => {
     const a = await createBox();
     await createBox();
@@ -281,10 +318,12 @@ describe("HTTP de estoque", () => {
       where: { productVariantId: variantId },
     });
 
+    const documentId = randomUUID();
     const reserve = await request("POST", "/inventory/reserve", {
       productVariantId: variantId,
       quantity: 2,
-      originId: randomUUID(),
+      origin: "SALE",
+      originId: documentId,
     });
     assert.equal(reserve.statusCode, 200, reserve.body);
     assert.equal(reserve.json().data.type, "RESERVE");
@@ -293,9 +332,21 @@ describe("HTTP de estoque", () => {
     const release = await request("POST", "/inventory/release", {
       inventoryId: inventory.id,
       quantity: 2,
+      origin: "SALE",
+      originId: documentId,
     });
     assert.equal(release.statusCode, 200, release.body);
     assert.equal(release.json().data.type, "RELEASE");
+    assert.equal(release.json().data.originId, documentId);
+
+    const excess = await request("POST", "/inventory/release", {
+      inventoryId: inventory.id,
+      quantity: 1,
+      origin: "SALE",
+      originId: documentId,
+    });
+    assert.equal(excess.statusCode, 409, excess.body);
+    assert.equal(excess.json().code, "RELEASE_EXCEEDS_RESERVATION");
 
     const dispatch = await request("POST", "/inventory/dispatch", {
       productVariantId: variantId,
@@ -368,7 +419,7 @@ describe("HTTP de estoque", () => {
     boxIds.push(box.id);
     check("inventoryBox", "POST /inventory/boxes", boxRes.json());
     check(
-      "inventoryBox",
+      "inventoryBoxByCode",
       "GET /inventory/boxes/code/:code",
       (await request("GET", `/inventory/boxes/code/${encodeURIComponent(box.code)}`)).json(),
     );

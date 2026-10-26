@@ -198,8 +198,8 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     await receive.execute(receiveInput(variantId, 5));
 
     const results = await Promise.allSettled([
-      reserve.execute({ productVariantId: variantId, quantity: 4, userId }),
-      reserve.execute({ productVariantId: variantId, quantity: 4, userId }),
+      reserve.execute({ productVariantId: variantId, quantity: 4, userId, origin: StockMovementOrigin.SALE, originId: randomUUID() }),
+      reserve.execute({ productVariantId: variantId, quantity: 4, userId, origin: StockMovementOrigin.SALE, originId: randomUUID() }),
     ]);
 
     assert.equal(results.filter((r) => r.status === "fulfilled").length, 1, JSON.stringify(results.map((r) => r.status)));

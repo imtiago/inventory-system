@@ -18,7 +18,7 @@ function build() {
 test("reserve altera só reservado e registra RESERVE prev=cur", async () => {
   const s = build();
   const { inventory } = await s.addLot(10);
-  const m = await s.reserve.execute({ productVariantId: "variant-1", quantity: 4, originId: "o1", userId: "u1" });
+  const m = await s.reserve.execute({ productVariantId: "variant-1", quantity: 4, origin: StockMovementOrigin.SALE, originId: "o1", userId: "u1" });
   const inv = (await s.inventories.findById(inventory.id))!;
   assert.equal(inv.quantity, 10);
   assert.equal(inv.reservedQuantity, 4);
@@ -37,15 +37,15 @@ test("reserve acima do disponível falha sem gravar", async () => {
   const s = build();
   await s.addLot(10);
   const before = await snapshot(s);
-  await assert.rejects(() => s.reserve.execute({ productVariantId: "variant-1", quantity: 11 }));
+  await assert.rejects(() => s.reserve.execute({ productVariantId: "variant-1", quantity: 11, origin: StockMovementOrigin.SALE, originId: "o1" }));
   assert.equal(await snapshot(s), before);
 });
 
 test("release reduz reservado e registra RELEASE prev=cur", async () => {
   const s = build();
   const { inventory } = await s.addLot(10);
-  await s.reserve.execute({ productVariantId: "variant-1", quantity: 4 });
-  const m = await s.release.execute({ inventoryId: inventory.id, quantity: 3 });
+  await s.reserve.execute({ productVariantId: "variant-1", quantity: 4, origin: StockMovementOrigin.SALE, originId: "o1" });
+  const m = await s.release.execute({ inventoryId: inventory.id, quantity: 3, origin: StockMovementOrigin.SALE, originId: "o1" });
   const inv = (await s.inventories.findById(inventory.id))!;
   assert.equal(inv.reservedQuantity, 1);
   assert.equal(inv.quantity, 10);
@@ -58,8 +58,8 @@ test("release reduz reservado e registra RELEASE prev=cur", async () => {
 test("release acima do reservado falha", async () => {
   const s = build();
   const { inventory } = await s.addLot(10);
-  await s.reserve.execute({ productVariantId: "variant-1", quantity: 2 });
+  await s.reserve.execute({ productVariantId: "variant-1", quantity: 2, origin: StockMovementOrigin.SALE, originId: "o1" });
   const before = await snapshot(s);
-  await assert.rejects(() => s.release.execute({ inventoryId: inventory.id, quantity: 3 }));
+  await assert.rejects(() => s.release.execute({ inventoryId: inventory.id, quantity: 3, origin: StockMovementOrigin.SALE, originId: "o1" }));
   assert.equal(await snapshot(s), before);
 });

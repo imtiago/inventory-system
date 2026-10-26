@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useIdempotencyKey } from '@/shared/utils/idempotencyKey';
 import { queryKeys } from '@/shared/react-query/keys';
-import { addLotToBox, createInventoryBox, listInventoryBoxes, type AddLotToBoxDTO, type BoxItem } from '../services/inventoryService';
+import { addLotToBox, createInventoryBox, getInventoryBoxByCode, listInventoryBoxes, type AddLotToBoxDTO, type BoxItem } from '../services/inventoryService';
 import type { InventoryBox } from '../types';
 import { apiErrorMessage, type MutationResult } from '../utils/apiErrorMessage';
 import { invalidateInventoryQueries } from '../utils/invalidateInventoryQueries';
@@ -23,6 +23,17 @@ export function useInventoryBoxes(search: string, enabled = true) {
     isLoading: query.isLoading,
     error: query.error ? apiErrorMessage(query.error, 'Não foi possível carregar as caixas.') : null,
   };
+}
+
+/** What a box holds (GET /inventory/boxes/code/:code), for the selected box. */
+export function useInventoryBoxContents(code: string | undefined) {
+  const query = useQuery({
+    queryKey: queryKeys.inventoryBoxByCode(code ?? ''),
+    queryFn: () => getInventoryBoxByCode(code as string),
+    enabled: Boolean(code),
+  });
+
+  return { box: query.data ?? null, isLoading: query.isLoading };
 }
 
 export function useInventoryBox() {

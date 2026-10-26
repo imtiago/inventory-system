@@ -13,6 +13,37 @@ import { TransactionManager } from "@shared/application/transaction/TransactionM
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 
+const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+const formatDay = (d: Date) => {
+  const [y, m, day] = dayKey(d).split("-");
+  return `${day}/${m}/${y}`;
+};
+
+/** Entrada no mesmo lote: data informada diferente da do lote é recusada (não informada, não). */
+function assertSameLotDates(lot: InventoryLot, request: IReceiveInventoryInput): void {
+  const batch = lot.batchNumber;
+  if (
+    request.expirationDate &&
+    lot.expirationDate &&
+    dayKey(request.expirationDate) !== dayKey(lot.expirationDate)
+  ) {
+    throw new ConflictError(
+      `O lote ${batch} já existe com validade ${formatDay(lot.expirationDate)}. Use outro número de lote ou a mesma validade.`,
+      ErrorCodes.LOT_DATES_MISMATCH,
+    );
+  }
+  if (
+    request.manufacturingDate &&
+    lot.manufacturingDate &&
+    dayKey(request.manufacturingDate) !== dayKey(lot.manufacturingDate)
+  ) {
+    throw new ConflictError(
+      `O lote ${batch} já existe com fabricação ${formatDay(lot.manufacturingDate)}. Use outro número de lote ou a mesma data de fabricação.`,
+      ErrorCodes.LOT_DATES_MISMATCH,
+    );
+  }
+}
+
 export class ReceiveInventoryUseCase extends TransactionalUseCase<
   IReceiveInventoryInput,
   IReceiveInventoryOutput
@@ -60,6 +91,10 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
       );
     }
 
+    if (lot) {
+      assertSameLotDates(lot, request);
+    }
+
     const previousQuantity = inventory.quantity;
     inventory.receive({
       quantity: request.quantity,
@@ -69,7 +104,11 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     await this.inventoryRepository.update(inventory);
 
     if (lot) {
-      lot.receive(request.quantity);
+      lot.receive(request.quantity, {
+        unitCost: request.unitCost,
+        expirationDate: request.expirationDate,
+        manufacturingDate: request.manufacturingDate,
+      });
       await this.inventoryLotRepository.update(lot);
     } else {
       lot = new InventoryLot({

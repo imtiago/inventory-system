@@ -79,8 +79,8 @@ export interface IRegisterScannedProductInput {
 export interface IReleaseInventoryInput {
   inventoryId: string;
   quantity: number;
-  origin?: StockMovementOrigin;
-  originId?: string;
+  origin: StockMovementOrigin;
+  originId: string;
   notes?: string;
   userId?: string;
 }
@@ -88,8 +88,8 @@ export interface IReleaseInventoryInput {
 export interface IReserveInventoryInput {
   productVariantId: string;
   quantity: number;
-  origin?: StockMovementOrigin;
-  originId?: string;
+  origin: StockMovementOrigin;
+  originId: string;
   notes?: string;
   userId?: string;
 }

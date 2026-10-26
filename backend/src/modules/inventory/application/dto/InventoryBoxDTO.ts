@@ -8,7 +8,11 @@ export interface InventoryBoxDTO {
   updatedAt: Date;
 }
 export interface InventoryBoxStockItemDTO {
+  /** Id da alocação (InventoryBoxStock). */
+  id?: string;
   boxId: string;
+  /** Quantidade deste lote nesta caixa (o lote traz o saldo total). */
+  quantity: number;
   inventoryLot: InventoryLotDTO;
   productVariant: ProductVariantSummaryDTO;
 }

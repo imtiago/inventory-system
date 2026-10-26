@@ -64,7 +64,7 @@ test("dispatch respeita reservado", async () => {
   const s = build();
   await s.addLot(10);
   const reserve = new ReserveInventoryUseCase(s.inventories, s.movements, s.tx);
-  await reserve.execute({ productVariantId: "variant-1", quantity: 4 });
+  await reserve.execute({ productVariantId: "variant-1", quantity: 4, origin: StockMovementOrigin.SALE, originId: "o1" });
   const before = await snapshot(s);
   await assert.rejects(() => s.dispatch.execute({ ...base, quantity: 7 }));
   assert.equal(await snapshot(s), before);

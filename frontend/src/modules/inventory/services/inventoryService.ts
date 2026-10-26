@@ -1,7 +1,7 @@
 import { api } from '@/shared/services/api';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
-import type { Inventory, InventoryBox, InventoryLot, Paginated } from '../types';
+import type { Inventory, InventoryBox, InventoryBoxWithStocks, InventoryLot, Paginated } from '../types';
 
 /**
  * Inventory
@@ -111,6 +111,13 @@ export async function listInventoryBoxes(search?: string): Promise<Paginated<Inv
   });
 
   return response.data;
+}
+
+/** Box with what is in it; each stock item carries `quantity` (this lot, this box). */
+export async function getInventoryBoxByCode(code: string): Promise<InventoryBoxWithStocks> {
+  const response = await api.get<{ data: InventoryBoxWithStocks }>(`/inventory/boxes/code/${encodeURIComponent(code)}`);
+
+  return response.data.data;
 }
 
 export async function createInventoryBox(): Promise<InventoryBox> {

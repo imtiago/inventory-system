@@ -48,6 +48,18 @@ export interface InventoryBox {
   updatedAt: string;
 }
 
+/** Item de uma caixa: quanto de um lote há NESTA caixa (o lote traz o total). */
+export interface InventoryBoxStockItem {
+  id?: string;
+  boxId: string;
+  quantity: number;
+  inventoryLot: InventoryLot;
+}
+
+export interface InventoryBoxWithStocks extends InventoryBox {
+  stocks: InventoryBoxStockItem[];
+}
+
 // Legacy aliases kept for existing callers.
 export type IInventoryProductVariant = InventoryProductVariant;
 export type IInventory = Inventory;
