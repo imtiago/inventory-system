@@ -1,3 +1,5 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
+import { Prisma } from "@prisma/client";
 import { InventoryReadRepository } from "@inventory/application/contracts/InventoryReadRepository";
 import { InventoryWithExtendsDTO } from "@inventory/application/dto/InventoryDTO";
 import { InventoryBalanceDTO } from "@inventory/application/dto/InventoryBalanceDTO";
@@ -30,7 +32,7 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
   ): Promise<PaginatedResult<InventoryWithExtendsDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [data, total] = await Promise.all([
+    const [data, total] = await readTogether([
       getDb().inventory.findMany({
         ...paginationOptions,
         orderBy: {
@@ -95,52 +97,39 @@ export class PrismaInventoryReadRepository implements InventoryReadRepository {
     }));
   }
 
+  /** Totais calculados no banco (uma consulta), sem carregar os inventários em memória. */
   async getDashboard() {
-    const inventories = await getDb().inventory.findMany({
-      select: {
-        quantity: true,
-        reservedQuantity: true,
-        minimumStock: true,
-        averageCost: true,
-      },
-    });
+    const [row] = await getDb().$queryRaw<
+      {
+        totalProducts: bigint;
+        totalQuantity: bigint;
+        totalReserved: bigint;
+        lowStock: bigint;
+        outOfStock: bigint;
+        totalStockValue: Prisma.Decimal;
+      }[]
+    >`
+      SELECT
+        COUNT(*) AS "totalProducts",
+        COALESCE(SUM("quantity"), 0) AS "totalQuantity",
+        COALESCE(SUM("reservedQuantity"), 0) AS "totalReserved",
+        COUNT(*) FILTER (
+          WHERE "quantity" - "reservedQuantity" > 0 AND "quantity" - "reservedQuantity" <= "minimumStock"
+        ) AS "lowStock",
+        COUNT(*) FILTER (WHERE "quantity" - "reservedQuantity" <= 0) AS "outOfStock",
+        COALESCE(ROUND(SUM("quantity" * "averageCost"), 2), 0) AS "totalStockValue"
+      FROM "Inventory"`;
 
-    let totalQuantity = 0;
-    let totalReserved = 0;
-    let lowStock = 0;
-    let outOfStock = 0;
-    let totalStockValue = 0;
-
-    for (const inventory of inventories) {
-      totalQuantity += inventory.quantity;
-
-      totalReserved += inventory.reservedQuantity;
-
-      const available = inventory.quantity - inventory.reservedQuantity;
-
-      if (available <= 0) {
-        outOfStock++;
-      } else if (available <= inventory.minimumStock) {
-        lowStock++;
-      }
-
-      totalStockValue += inventory.quantity * Number(inventory.averageCost);
-    }
-
+    const totalQuantity = Number(row.totalQuantity);
+    const totalReserved = Number(row.totalReserved);
     return {
-      totalProducts: inventories.length,
-
+      totalProducts: Number(row.totalProducts),
       totalQuantity,
-
       totalReserved,
-
       totalAvailable: totalQuantity - totalReserved,
-
-      lowStock,
-
-      outOfStock,
-
-      totalStockValue,
+      lowStock: Number(row.lowStock),
+      outOfStock: Number(row.outOfStock),
+      totalStockValue: Number(row.totalStockValue),
     };
   }
 }

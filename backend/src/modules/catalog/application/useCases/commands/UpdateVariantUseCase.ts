@@ -18,7 +18,7 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(request: IUpdateVariantInput): Promise<IProductVariantOutput> {
+  protected async handle(request: IUpdateVariantInput): Promise<IProductVariantOutput> {
     // Trava a linha antes de ler: edições concorrentes se serializam e cada uma grava só o que mudou.
     const exists = await this.variantRepository.lockById(request.id);
     const variant = exists ? await this.variantRepository.findById(request.id) : null;

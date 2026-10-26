@@ -75,7 +75,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
       aria-labelledby={title ? titleId : undefined}
       aria-describedby={description ? descriptionId : undefined}
     >
-      <div className={`relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl border border-border bg-surface text-foreground shadow-2xl`}>
+      <div className={`relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl border border-border bg-surface text-foreground shadow-lg`}>
         {(title || description || showCloseButton) && (
           <div className="flex shrink-0 items-start justify-between border-b border-border px-6 py-4">
             <div className="pr-8">
@@ -102,7 +102,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
           </div>
         )}
 
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-6">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
           <ModalBusyContext.Provider value={setChildBusy}>{children}</ModalBusyContext.Provider>
         </div>
       </div>

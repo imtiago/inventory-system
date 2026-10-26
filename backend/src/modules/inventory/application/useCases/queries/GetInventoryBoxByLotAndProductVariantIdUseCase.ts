@@ -2,6 +2,8 @@ import { InventoryBoxReadRepository } from "../../contracts/InventoryBoxReadRepo
 interface IGetInventoryBoxByLotAndProductVariantId {
   batchNumber: string;
   productVariantId: string;
+  page?: number;
+  limit?: number;
 }
 export class GetInventoryBoxByLotAndProductVariantIdUseCase {
   constructor(private repository: InventoryBoxReadRepository) {}
@@ -9,8 +11,8 @@ export class GetInventoryBoxByLotAndProductVariantIdUseCase {
   async execute(input: IGetInventoryBoxByLotAndProductVariantId) {
     return this.repository.getByLotAndProductVariantId(
       {
-        page: 1,
-        limit: 10,
+        page: input.page ?? 1,
+        limit: input.limit ?? 10,
       },
       {
         batchNumber: input.batchNumber,

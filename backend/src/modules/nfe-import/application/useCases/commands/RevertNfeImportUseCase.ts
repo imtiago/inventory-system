@@ -1,7 +1,7 @@
 import { DomainError, ErrorCodes } from "@shared/domain/errors";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { InventoryService } from "@inventory/application/services/InventoryService";
 import { PurchaseStatus } from "@purchases/domain/enums/PurchaseStatus";
 import { PurchaseRepository } from "@purchases/domain/repositories/PurchaseRepository";

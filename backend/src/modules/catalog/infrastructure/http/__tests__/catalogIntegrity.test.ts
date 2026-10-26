@@ -51,6 +51,20 @@ describe("Catálogo: código de barras e edições concorrentes", () => {
     assert.ok(edited.json().errors.some((e: { field: string }) => e.field === "barcode"));
   });
 
+  test("nome da variante: espaços colapsados e máximo de 120 caracteres (criar e editar)", async () => {
+    const created = await call("POST", `/products/${productId}/variants`, { name: "  tx-test   nome \t duplo  " });
+    assert.equal(created.statusCode, 201, created.body);
+    createdVariantIds.push(created.json().data.id);
+    assert.equal(created.json().data.name, "tx-test nome duplo");
+
+    const long = "x".repeat(121);
+    const tooLongCreate = await call("POST", `/products/${productId}/variants`, { name: long });
+    assert.equal(tooLongCreate.statusCode, 400, tooLongCreate.body);
+    assert.ok(tooLongCreate.json().errors.some((e: { field: string }) => e.field === "name"));
+    const tooLongEdit = await call("PUT", `/variants/${variantId}`, { name: long });
+    assert.equal(tooLongEdit.statusCode, 400, tooLongEdit.body);
+  });
+
   test("barcode é aparado (trim) ao criar e editar", async () => {
     const code = bc();
     const res = await call("POST", `/products/${productId}/variants`, { name: "tx-test-trim", barcode: `  ${code}  ` });

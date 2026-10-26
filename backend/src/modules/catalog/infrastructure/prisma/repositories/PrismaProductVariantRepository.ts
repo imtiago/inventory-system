@@ -158,6 +158,10 @@ export class PrismaProductVariantRepository implements ProductVariantRepository 
     return rows.map((r) => r.id);
   }
 
+  async hasSupplierMapping(variantId: string): Promise<boolean> {
+    return (await getDb().supplierProductMapping.count({ where: { productVariantId: variantId }, take: 1 })) > 0;
+  }
+
   async deleteWithInventory(variantIds: string[]): Promise<void> {
     if (variantIds.length === 0) return;
     await getDb().inventory.deleteMany({ where: { productVariantId: { in: variantIds } } });

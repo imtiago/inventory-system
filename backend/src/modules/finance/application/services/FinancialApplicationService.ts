@@ -1,7 +1,6 @@
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
-import { toCents } from "@shared/domain/money";
 import { CreateFinancialDocumentUseCase } from "../useCases/commands/CreateFinancialDocumentUseCase";
 import { CancelSaleReceivableUseCase } from "../useCases/commands/CancelSaleReceivableUseCase";
 import { CancelPurchasePayableUseCase } from "../useCases/commands/CancelPurchasePayableUseCase";
@@ -9,7 +8,7 @@ import {
   CreatePurchasePayableInput,
   CreateSaleReceivableInput,
   FinancialService,
-} from "./FinacialService";
+} from "./FinancialService";
 
 export class FinancialApplicationService implements FinancialService {
   constructor(
@@ -25,7 +24,7 @@ export class FinancialApplicationService implements FinancialService {
       originId: input.saleId,
       partyType: FinancialPartyType.CUSTOMER,
       partyId: input.customerId,
-      parcels: input.parcels.map((p) => ({ amountCents: toCents(p.amount), dueDate: p.dueDate })),
+      parcels: input.parcels,
     });
   }
 

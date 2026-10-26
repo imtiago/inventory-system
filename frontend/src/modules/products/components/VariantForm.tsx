@@ -1,4 +1,4 @@
-import { MoneyInput } from '@/shared/components/form';
+import { MoneyInput, FieldError, fieldA11y, fieldErrorId } from '@/shared/components/form';
 import { Camera } from "lucide-react";
 import { PageHeader } from "@/shared/components/layout/PageHeader";
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
@@ -119,7 +119,7 @@ export function VariantForm({
           <label htmlFor="variant-name" className="block mb-1">Nome</label>
 
           <input
-            id="variant-name"
+            id="variant-name" {...fieldA11y("variant-name", errors.name?.message)}
             {...register("name")}
             className="
               w-full
@@ -132,7 +132,7 @@ export function VariantForm({
             "
             placeholder="Ex: Kaiak 100ml"
           />
-              {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+              <FieldError id="variant-name" message={errors.name?.message} />
         </div>
 
         {/* Código de barras */}
@@ -142,7 +142,7 @@ export function VariantForm({
 
           <div className="flex gap-3">
             <input
-              id="variant-barcode"
+              id="variant-barcode" {...fieldA11y("variant-barcode", errors.barcode?.message)}
               {...register("barcode")}
               className="
                 flex-1
@@ -173,7 +173,7 @@ export function VariantForm({
               Ler
             </button>
           </div>
-          {errors.barcode && <p className="mt-1 text-sm text-danger">{errors.barcode.message}</p>}
+          <FieldError id="variant-barcode" message={errors.barcode?.message} />
         </div>
 
         {/* Preço de venda */}
@@ -183,14 +183,15 @@ export function VariantForm({
 
           <MoneyInput
             id="variant-sale-price"
+            {...fieldA11y("variant-sale-price", errors.salePrice?.message)}
+            aria-describedby={[priceReadOnly ? "variant-sale-price-hint" : null, errors.salePrice ? fieldErrorId("variant-sale-price") : null].filter(Boolean).join(" ") || undefined}
             readOnly={priceReadOnly}
-            aria-describedby={priceReadOnly ? "variant-sale-price-hint" : undefined}
             {...register("salePrice", {
               validate: (value) => validateSalePrice(value, priceRequired),
             })}
           />
           {priceReadOnly && <p id="variant-sale-price-hint" className="mt-1 text-sm text-muted">Somente o administrador altera o preço</p>}
-          {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
+          <FieldError id="variant-sale-price" message={errors.salePrice?.message} />
         </div>
 
         {scannerOpen && (

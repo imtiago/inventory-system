@@ -1,6 +1,7 @@
 import axios from "axios";
 import { toast } from "sonner";
 
+import { queryKeys } from "@/shared/react-query/keys";
 import { queryClient } from "@/shared/react-query/queryClient";
 import { useAuthStore, type SessionUser } from "@/shared/store/auth";
 import { resolveApiBaseUrl } from "./apiBaseUrl";
@@ -35,7 +36,7 @@ function handleForbidden(url: unknown) {
   api
     .get<{ data: SessionUser }>("/users/me")
     .then((response) => {
-      queryClient.setQueryData(["auth", "me"], response.data.data);
+      queryClient.setQueryData(queryKeys.me, response.data.data);
       useAuthStore.getState().setUser(response.data.data);
     })
     .catch(() => {});

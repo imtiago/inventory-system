@@ -21,6 +21,8 @@ import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import type { ListParams, Paginated } from '@/shared/types/pagination';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
+import { LoadingState } from '@/shared/components/LoadingState';
 export interface NamedEntity {
   id: string;
   name: string;
@@ -175,10 +177,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
                 <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
-                <LoaderCircle size={20} className="animate-spin" />
-                Carregando {plural}...
-              </div>
+              <LoadingState label={`Carregando ${plural}...`} />
             ) : (
               <DataTable data={data?.data ?? []} columns={columns} getRowId={(item) => item.id} emptyMessage={`Nenhuma ${singular} encontrada`} emptyHint="Tente outra busca ou cadastre uma nova." />
             )}
@@ -269,14 +268,14 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
           Nome *
         </label>
         <input
-          id="named-entity-name"
+          id="named-entity-name" {...fieldA11y("named-entity-name", errors.name?.message)}
           type="text"
           maxLength={80}
           autoComplete="off"
           className={inputClass}
           {...register('name', { validate: (value) => value.trim().length > 0 || 'Informe o nome.' })}
         />
-        {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+        <FieldError id="named-entity-name" message={errors.name?.message} />
       </div>
 
       {errors.root?.server && (

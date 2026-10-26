@@ -4,11 +4,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { makeCatalogService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
 import { makeCustomerService } from "@customer/infrastructure/http/factories/CustomerService";
 import { makeInventoryService } from "@inventory/infrastructure/http/factories/InventoryServiceFactory";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
@@ -81,7 +82,7 @@ describe("HTTP de vendas", () => {
     const toClean = variants.splice(0);
     try {
       try {
-        await prisma.financialDocument.deleteMany({ where: { partyId: id } });
+        await deleteFinancialDocuments({ where: { partyId: id } });
       } finally {
         await prisma.sale.deleteMany({ where: { customerId: id } });
       }

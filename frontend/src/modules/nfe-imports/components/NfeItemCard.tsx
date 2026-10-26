@@ -3,11 +3,12 @@ import { useProductVariantOptions } from '@/modules/inventory/hooks/useProductVa
 import { useBrands } from '@/modules/brands/hooks/useBrands';
 import { useCategories } from '@/modules/categories/hooks/useCategories';
 import { formatCurrency } from '@/shared/utils/money';
-import { hasTooManyDecimals } from '@/modules/purchases/utils/purchaseTotals';
+import { MONEY_DECIMALS_MESSAGE, moneyTextError } from '@/shared/utils/money';
+import { FieldError, MoneyInput, QuantityInput, fieldA11y } from '@/shared/components/form';
 import { isValidSalePrice, parseUnitsPerPackage, unitsOf, type ItemDraft, type ItemMode } from '../utils/review';
 import type { INfeItem } from '../types';
 
-const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
 const MODE_LABELS: Record<ItemMode, string> = {
   link: 'Vincular a variante existente',
@@ -109,17 +110,15 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
         </Field>
 
         <Field id={`upp-${n}`} label={`Unidades por embalagem do item ${n}`}>
-          <input
+          <QuantityInput
             id={`upp-${n}`}
-            type="number"
-            min={1}
-            step={1}
+            itemName={`item ${n}`}
             value={draft.unitsPerPackage}
             disabled={disabled}
-            aria-invalid={upp === null ? 'true' : undefined}
-            onChange={(event) => onChange({ unitsPerPackage: event.target.value })}
-            className={inputClass}
+            {...fieldA11y(`upp-${n}`, upp === null)}
+            onChange={(value) => onChange({ unitsPerPackage: value })}
           />
+          <FieldError id={`upp-${n}`} message={upp === null ? 'Informe um inteiro, 1 ou mais.' : undefined} className="mt-1 text-xs text-danger" />
         </Field>
       </div>
 
@@ -129,7 +128,7 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
             <p className="text-sm">
               <span className="text-muted">Vincular a </span>
               <span className="font-medium">{draft.variant.label}</span>
-              {isSuggested && <span className="ml-2 rounded bg-info-soft px-2 py-0.5 text-xs text-info">{item.suggestion?.source === 'MAPPING' ? 'sugerido por mapeamento' : 'sugerido por código de barras'}</span>}
+              {isSuggested && <span className="ml-2 rounded-lg bg-info-soft px-2 py-0.5 text-xs text-info">{item.suggestion?.source === 'MAPPING' ? 'sugerido por mapeamento' : 'sugerido por código de barras'}</span>}
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
@@ -184,19 +183,14 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
             <input id={`barcode-${n}`} value={draft.barcode} disabled={disabled} inputMode="numeric" onChange={(event) => onChange({ barcode: event.target.value })} className={inputClass} />
           </Field>
           <Field id={`price-${n}`} label={`Preço de venda do item ${n}`}>
-            <input
+            <MoneyInput
               id={`price-${n}`}
-              type="number"
-              min={0}
-              step="0.01"
-              inputMode="decimal"
               value={draft.salePrice}
               disabled={disabled}
-              aria-invalid={draft.salePrice !== '' && !isValidSalePrice(draft.salePrice) ? 'true' : undefined}
+              {...fieldA11y(`price-${n}`, draft.salePrice !== '' && !isValidSalePrice(draft.salePrice))}
               onChange={(event) => onChange({ salePrice: event.target.value })}
-              className={inputClass}
             />
-            {hasTooManyDecimals(draft.salePrice) && <p className="mt-1 text-xs text-danger">Use no máximo 2 casas decimais.</p>}
+            <FieldError id={`price-${n}`} message={moneyTextError(draft.salePrice) === MONEY_DECIMALS_MESSAGE ? 'Use no máximo 2 casas decimais.' : undefined} className="mt-1 text-xs text-danger" />
           </Field>
         </div>
       )}

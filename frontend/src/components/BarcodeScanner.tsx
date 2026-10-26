@@ -12,7 +12,7 @@ type Camera = {
   label: string;
 };
 
-type Status = 'loading' | 'ready' | 'insecure' | 'denied' | 'no-camera' | 'error';
+type Status = 'loading' | 'ready' | 'insecure' | 'denied' | 'no-camera' | 'outdated' | 'error';
 
 type Props = {
   onDetected: (code: string) => void;
@@ -27,6 +27,7 @@ const MESSAGES: Record<Exclude<Status, 'loading' | 'ready'>, string> = {
   insecure: 'A câmera só funciona em conexão segura (HTTPS). Peça ao administrador para acessar o sistema por https://… Enquanto isso, digite o código no campo.',
   denied: 'O acesso à câmera foi negado. Para liberar a câmera, toque no cadeado ou no ícone de configurações ao lado do endereço do site, permita o uso da câmera e tente de novo.',
   'no-camera': 'Nenhuma câmera encontrada',
+  outdated: 'Nova versão disponível — recarregue a página para usar o leitor.',
   error: 'Não foi possível iniciar a câmera. Ela pode estar em uso por outro aplicativo.',
 };
 
@@ -34,8 +35,12 @@ function errorText(err: unknown) {
   return typeof err === 'string' ? err : `${(err as Error)?.name ?? ''} ${(err as Error)?.message ?? ''}`;
 }
 
+/** The chunk of the reader is gone from the server (a new deploy replaced it): only a reload fixes it. */
+const CHUNK_LOAD_FAILURE = /dynamically imported module|Importing a module script failed|Loading chunk|ChunkLoadError/i;
+
 function statusForError(err: unknown): Status {
   const text = errorText(err);
+  if (CHUNK_LOAD_FAILURE.test(text)) return 'outdated';
   if (/NotAllowed|Permission|denied/i.test(text)) return 'denied';
   if (/NotFound|DevicesNotFound/i.test(text)) return 'no-camera';
   return 'error';
@@ -257,7 +262,13 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
       <div role="alert" className="space-y-3">
         <p>{MESSAGES[status]}</p>
 
-        {status !== 'insecure' && (
+        {status === 'outdated' && (
+          <button type="button" onClick={() => window.location.reload()} className="min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 py-2 text-sm font-medium hover:bg-surface-muted">
+            Recarregar
+          </button>
+        )}
+
+        {status !== 'insecure' && status !== 'outdated' && (
           <button type="button" onClick={retry} className="min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 py-2 text-sm font-medium hover:bg-surface-muted">
             Tentar de novo
           </button>

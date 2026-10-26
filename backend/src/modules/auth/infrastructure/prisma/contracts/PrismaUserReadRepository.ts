@@ -1,9 +1,11 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { UserReadRepository } from "@auth/application/contracts/UserReadRepository";
 import { IListUsersInput, UserDTO } from "@auth/application/dto/UserDTO";
 import { UserReadMapper } from "@auth/application/mappers/UserReadMapper";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
+import { containsLiteral } from "@shared/infrastructure/database/literalSearch";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 // Nunca seleciona a senha.
@@ -21,13 +23,13 @@ export class PrismaUserReadRepository implements UserReadRepository {
     const where: Prisma.UserWhereInput = search
       ? {
           OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
+            { name: containsLiteral(search) },
+            { email: containsLiteral(search) },
           ],
         }
       : {};
 
-    const [users, total] = await Promise.all([
+    const [users, total] = await readTogether([
       getDb().user.findMany({
         where,
         select: USER_DTO_SELECT,

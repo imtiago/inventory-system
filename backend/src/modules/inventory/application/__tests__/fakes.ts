@@ -204,6 +204,10 @@ export class FakeCatalogService implements CatalogService {
     return this.variants.find((v) => v.id === id) ?? null;
   }
 
+  async getProductVariants(ids: string[]): Promise<ProductVariantDTO[]> {
+    return this.variants.filter((v) => ids.includes(v.id));
+  }
+
   async getProductVariantByBarcode(
     barcode: string,
   ): Promise<ProductVariantDTO | null> {

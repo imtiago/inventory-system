@@ -21,7 +21,7 @@ export class CreateInventoryBoxUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     request: ICreateInventoryBoxInput,
   ): Promise<IInventoryBoxOutput> {
     const boxCode = await this.numberGenerator.generate(

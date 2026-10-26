@@ -20,7 +20,7 @@ export class CreateUserUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     { email, password, name, role }: ICreateUserInput,
   ): Promise<UserDTO> {
     const normalizedEmail = normalizeEmail(email);

@@ -24,7 +24,7 @@ export class CreateVariantUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     request: ICreateVariantInput,
   ): Promise<IProductVariantOutput> {
     // Sem catalog.price, só o cadastro inicial do preço é permitido — e ele é obrigatório.

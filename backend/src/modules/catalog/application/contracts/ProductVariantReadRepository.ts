@@ -9,5 +9,7 @@ export interface ProductVariantReadRepository {
   ): Promise<PaginatedResult<ProductVariantDTO>>;
 
   getById(id: string): Promise<ProductVariantDTO | null>;
+  /** Variantes pelos ids, numa só consulta (ids inexistentes ficam de fora; ordem não garantida). */
+  getByIds(ids: string[]): Promise<ProductVariantDTO[]>;
   getByBarcode(barcode: string): Promise<ProductVariantDTO | null>;
 }

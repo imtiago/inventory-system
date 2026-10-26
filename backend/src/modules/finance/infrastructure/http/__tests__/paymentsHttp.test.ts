@@ -3,6 +3,7 @@ import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { InternalInvariantError } from "@shared/domain/errors";
 import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
@@ -86,7 +87,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
     const toClean = variants.splice(0);
     try {
       try {
-        await prisma.financialDocument.deleteMany({ where: { partyId: id } });
+        await deleteFinancialDocuments({ where: { partyId: id } });
       } finally {
         await prisma.sale.deleteMany({ where: { customerId: id } });
       }

@@ -25,7 +25,7 @@ export class AddProductToBoxUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     request: IAddProductToBoxInput,
   ): Promise<IInventoryBoxStockOutput> {
     if (request.quantity <= 0) {

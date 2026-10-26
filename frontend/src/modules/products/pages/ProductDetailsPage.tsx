@@ -25,6 +25,7 @@ import { InfoItem } from "@/shared/components/details/InfoItem";
 
 import { CrudPagination } from "@/shared/components/crud";
 import { Can } from "@/shared/auth/Can";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 export function ProductDetailsPage() {
   const [page, setPage] = useState(1);
@@ -59,7 +60,7 @@ export function ProductDetailsPage() {
   });
 
   if (isLoading || deleteProduct.isSuccess) {
-    return <div>Carregando produto...</div>;
+    return <LoadingState label="Carregando produto..." />;
   }
 
   if (isError || !product) {
@@ -165,7 +166,7 @@ export function ProductDetailsPage() {
             </button>
           </div>
         ) : variantsLoading ? (
-          <div className="p-6 text-center text-sm text-muted">Carregando variantes...</div>
+          <LoadingState label="Carregando variantes..." compact />
         ) : (
           <DataTable
             data={variants}

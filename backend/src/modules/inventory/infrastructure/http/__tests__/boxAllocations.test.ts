@@ -3,6 +3,7 @@ import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
@@ -103,7 +104,7 @@ describe("Estoque em caixas consistente com o saldo do lote", () => {
     const boxes = boxIds.splice(0);
     try {
       try {
-        await prisma.financialDocument.deleteMany({ where: { partyId: id } });
+        await deleteFinancialDocuments({ where: { partyId: id } });
       } finally {
         await prisma.sale.deleteMany({ where: { customerId: id } });
       }

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -127,7 +128,7 @@ describe("Contas a pagar (/payables)", () => {
       };
       await prisma.payment.deleteMany({ where: { parcel: { document: documents } } });
       await prisma.financialParcel.deleteMany({ where: { document: documents } });
-      await prisma.financialDocument.deleteMany({ where: documents });
+      await deleteFinancialDocuments({ where: documents });
       await prisma.purchaseItem.deleteMany({ where: { purchaseId: { in: purchaseIds } } });
       await prisma.purchase.deleteMany({ where: { id: { in: purchaseIds } } });
       await prisma.supplier.deleteMany({ where: { id: { in: Object.values(suppliers).map((s) => s.id) } } });

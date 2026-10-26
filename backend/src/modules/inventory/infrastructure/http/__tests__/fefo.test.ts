@@ -3,6 +3,7 @@ import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
@@ -73,7 +74,7 @@ describe("FEFO e lote vencido", () => {
     const toClean = variants.splice(0);
     try {
       try {
-        await prisma.financialDocument.deleteMany({ where: { partyId: customerId } });
+        await deleteFinancialDocuments({ where: { partyId: customerId } });
       } finally {
         await prisma.sale.deleteMany({ where: { customerId } });
       }

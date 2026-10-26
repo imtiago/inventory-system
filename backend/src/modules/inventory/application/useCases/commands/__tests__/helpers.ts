@@ -1,7 +1,7 @@
 import { ReceiveInventoryUseCase } from "../ReceiveInventoryUseCase";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
 import {
   FakeCatalogService,
   InMemoryInventoryBoxStockRepository,

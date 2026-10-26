@@ -15,6 +15,7 @@ export interface StoredIdempotencyRecord {
   requestHash: string;
   statusCode: number | null;
   responseBody: unknown;
+  responseHeaders: Record<string, string> | null;
 }
 
 /** Retenção padrão dos registros (spec: 24 h). */
@@ -44,7 +45,7 @@ export class PrismaIdempotencyStore {
   /** Lê o registro do escopo travando a linha (FOR UPDATE) até o fim da transação. */
   async lockExisting(scope: IdempotencyScope): Promise<StoredIdempotencyRecord | null> {
     const rows = await getDb().$queryRaw<StoredIdempotencyRecord[]>`
-      SELECT "id", "requestHash", "statusCode", "responseBody"
+      SELECT "id", "requestHash", "statusCode", "responseBody", "responseHeaders"
       FROM "IdempotencyRecord"
       WHERE "userId" = ${scope.userId} AND "method" = ${scope.method}
         AND "route" = ${scope.route} AND "key" = ${scope.key}
@@ -52,7 +53,12 @@ export class PrismaIdempotencyStore {
     return rows[0] ?? null;
   }
 
-  async saveResponse(id: string, statusCode: number, responseBody: unknown): Promise<void> {
+  async saveResponse(
+    id: string,
+    statusCode: number,
+    responseBody: unknown,
+    responseHeaders: Record<string, string> = {},
+  ): Promise<void> {
     await getDb().idempotencyRecord.update({
       where: { id },
       data: {
@@ -61,6 +67,7 @@ export class PrismaIdempotencyStore {
           responseBody === undefined || responseBody === null
             ? Prisma.DbNull
             : (responseBody as Prisma.InputJsonValue),
+        responseHeaders: Object.keys(responseHeaders).length === 0 ? Prisma.DbNull : responseHeaders,
       },
     });
   }

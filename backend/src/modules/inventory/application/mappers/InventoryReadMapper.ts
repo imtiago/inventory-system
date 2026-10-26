@@ -1,8 +1,9 @@
 import { ProductVariantSummaryDTO } from "../dto/CommonDTO";
+import type { InventoryRow, ProductVariantSummaryRow } from "./readRows";
 import { InventoryDTO, InventoryWithExtendsDTO } from "../dto/InventoryDTO";
 
 export class InventoryReadMapper {
-  static toBaseDTO(data: any, expired = 0): InventoryDTO {
+  static toBaseDTO(data: InventoryRow, expired = 0): InventoryDTO {
     return {
       id: data.id,
       productVariantId: data.productVariantId,
@@ -16,7 +17,7 @@ export class InventoryReadMapper {
     };
   }
 
-  static toProductVariantSummary(data: any): ProductVariantSummaryDTO {
+  static toProductVariantSummary(data: ProductVariantSummaryRow): ProductVariantSummaryDTO {
     return {
       id: data.id,
       code: data.code,
@@ -26,7 +27,7 @@ export class InventoryReadMapper {
     };
   }
 
-  static toDTO(data: any, expired = 0): InventoryWithExtendsDTO {
+  static toDTO(data: InventoryRow & { productVariant: ProductVariantSummaryRow }, expired = 0): InventoryWithExtendsDTO {
     return {
       ...this.toBaseDTO(data, expired),
       productVariant: this.toProductVariantSummary(data.productVariant),

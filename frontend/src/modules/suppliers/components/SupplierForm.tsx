@@ -7,6 +7,7 @@ import { isValidDocumentFormat, maskDocument, maskSupplierPhone } from '../utils
 import type { ISupplier } from '../types';
 import type { SupplierFormValues } from '../utils/diffSupplier';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
 interface Props {
   mode?: 'create' | 'edit';
   initialData?: ISupplier;
@@ -56,10 +57,9 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             Nome *
           </label>
           <input
-            id="supplier-name"
+            id="supplier-name" {...fieldA11y("supplier-name", errors.name?.message)}
             type="text"
             maxLength={120}
-            aria-invalid={errors.name ? 'true' : undefined}
             {...register('name', {
               validate: (value) => {
                 const length = value.trim().length;
@@ -68,7 +68,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             })}
             className={inputClass}
           />
-          {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+          <FieldError id="supplier-name" message={errors.name?.message} />
         </div>
 
         <div>
@@ -76,10 +76,9 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             Documento (CPF ou CNPJ) *
           </label>
           <input
-            id="supplier-document"
+            id="supplier-document" {...fieldA11y("supplier-document", errors.document?.message)}
             type="text"
             maxLength={18}
-            aria-invalid={errors.document ? 'true' : undefined}
             {...register('document', {
               validate: (value) => isValidDocumentFormat(value) || 'Informe um CPF (11 dígitos) ou CNPJ (14 caracteres, os 2 últimos numéricos).',
               onChange: (event) => {
@@ -90,7 +89,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             placeholder="00.000.000/0000-00"
             className={inputClass}
           />
-          {errors.document && <p className="mt-1 text-sm text-danger">{errors.document.message}</p>}
+          <FieldError id="supplier-document" message={errors.document?.message} />
         </div>
 
         <div>
@@ -98,15 +97,14 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             E-mail
           </label>
           <input
-            id="supplier-email"
+            id="supplier-email" {...fieldA11y("supplier-email", errors.email?.message)}
             type="email"
-            aria-invalid={errors.email ? 'true' : undefined}
             {...register('email', {
               validate: (value) => !value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) || 'Informe um e-mail válido.',
             })}
             className={inputClass}
           />
-          {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
+          <FieldError id="supplier-email" message={errors.email?.message} />
         </div>
 
         <div>
@@ -114,10 +112,9 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             Telefone
           </label>
           <input
-            id="supplier-phone"
+            id="supplier-phone" {...fieldA11y("supplier-phone", errors.phone?.message)}
             type="tel"
             maxLength={15}
-            aria-invalid={errors.phone ? 'true' : undefined}
             {...register('phone', {
               validate: (value) => {
                 const length = value.replace(/\D/g, '').length;
@@ -131,7 +128,7 @@ export function SupplierForm({ mode = 'create', initialData, onSubmit, onCancel 
             placeholder="(11) 99999-9999"
             className={inputClass}
           />
-          {errors.phone && <p className="mt-1 text-sm text-danger">{errors.phone.message}</p>}
+          <FieldError id="supplier-phone" message={errors.phone?.message} />
         </div>
       </section>
 

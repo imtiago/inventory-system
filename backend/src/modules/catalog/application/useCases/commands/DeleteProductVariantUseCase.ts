@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from "@shared/domain/errors";
+import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { IDeleteProductVariantInput } from "@catalog/application/dto/ProductVariantDTO";
@@ -36,6 +36,13 @@ export class DeleteProductVariantUseCase extends TransactionalUseCase<
       throw new ConflictError(
         "Variante possui movimentações, vendas ou compras e não pode ser excluída.",
         "VARIANT_IN_USE",
+      );
+    }
+
+    if (await this.variantRepository.hasSupplierMapping(variant.id)) {
+      throw new ConflictError(
+        "Esta variante tem código de fornecedor vinculado (importação de NF-e) e não pode ser excluída.",
+        ErrorCodes.VARIANT_HAS_SUPPLIER_MAPPING,
       );
     }
 

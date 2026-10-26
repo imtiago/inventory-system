@@ -33,7 +33,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  async handle(
+  protected async handle(
     request: IRegisterScannedProductInput,
   ): Promise<IRegisterScannedProductOutput> {
     const quantity = request.quantity ?? 1;

@@ -1,3 +1,4 @@
+import { roundCost } from "@shared/domain/money";
 import { BaseEntity } from "@shared/domain/entities/BaseEntity";
 import { InventoryLotSource } from "../enums/InventoryLotSource";
 import { BusinessRuleError, ErrorCodes } from "@shared/domain/errors";
@@ -90,7 +91,7 @@ export class InventoryLot extends BaseEntity {
 
   /**
    * Soma uma entrada ao lote. Com `unitCost`, o custo do lote vira a média
-   * ponderada pelo saldo (2 casas). Datas só são preenchidas se o lote não as tem.
+   * ponderada pelo saldo (4 casas). Datas só são preenchidas se o lote não as tem.
    */
   public receive(
     quantity: number,
@@ -104,7 +105,7 @@ export class InventoryLot extends BaseEntity {
       const total = this.props.remainingQuantity + quantity;
       const weighted =
         (this.props.remainingQuantity * this.props.unitCost + quantity * entry.unitCost) / total;
-      this.props.unitCost = Math.round(weighted * 100) / 100;
+      this.props.unitCost = roundCost(weighted);
     }
     if (!this.props.expirationDate && entry.expirationDate) {
       this.props.expirationDate = entry.expirationDate;

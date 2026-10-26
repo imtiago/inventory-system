@@ -3,6 +3,7 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { app } from "../../../../../app";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
@@ -114,7 +115,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
       const documents = { originType: "PURCHASE" as const, originId: { in: purchaseIds } };
       await prisma.payment.deleteMany({ where: { parcel: { document: documents } } });
       await prisma.financialParcel.deleteMany({ where: { document: documents } });
-      await prisma.financialDocument.deleteMany({ where: documents });
+      await deleteFinancialDocuments({ where: documents });
       await prisma.stockMovement.deleteMany({ where: { productVariantId: { in: variantIds } } });
       await prisma.inventoryLot.deleteMany({ where: { productVariantId: { in: variantIds } } });
       await prisma.purchaseItem.deleteMany({ where: { purchaseId: { in: purchaseIds } } });
@@ -223,6 +224,39 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.deepEqual(again.json(), { message: "Importação já confirmada.", code: "NFE_IMPORT_CONFIRMED" });
   });
 
+  test("nota 100% bonificação (total zero): aceita, sem parcelas e sem contas a pagar; estoque entra com custo zero", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    // Todos os valores da nota viram 0,00 e a cobrança some.
+    const zero = (xml: string) => xml.replace(/<cobr>[\s\S]*?<\/cobr>/, "").replace(/<(v[A-Za-z]+)>[\d.]+<\/\1>/g, "<$1>0.00</$1>");
+    const draft = await uploadNote(note, zero);
+    assert.equal(draft.totalAmount, 0);
+    assert.deepEqual(draft.installments, []);
+    const [a, b, c] = [await existingVariant(), await existingVariant(), await existingVariant()];
+
+    const res = await confirm(draft.id, {
+      supplier: { id: supplier.id },
+      items: [a, b, c].map((productVariantId, i) => ({ index: i + 1, link: { productVariantId, unitsPerPackage: i === 1 ? 2 : 1 } })),
+      receive: true,
+    });
+    assert.equal(res.statusCode, 201, res.body);
+    const { purchaseId } = res.json().data;
+
+    const purchase = await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } });
+    assert.equal(purchase.totalAmount.toNumber(), 0);
+    assert.equal(purchase.status, "RECEIVED");
+    assert.equal(await prisma.financialDocument.count({ where: { originType: "PURCHASE", originId: purchaseId } }), 0);
+    const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: { in: [a, b, c] } } });
+    assert.ok(lots.length >= 3);
+    assert.ok(lots.every((l) => l.unitCost.toNumber() === 0));
+    const row = await prisma.nfeImport.findUniqueOrThrow({ where: { id: draft.id } });
+    assert.equal(row.status, "CONFIRMED");
+
+    // Desfazer a nota também funciona sem contas a pagar.
+    const reverted = await call("POST", `/nfe-imports/${draft.id}/revert`, {});
+    assert.equal(reverted.statusCode, 200, reverted.body);
+  });
+
   test("caixa com 12 unidades: 2 CX → 24 unidades, custo unitário = custo/24 no pedido e no estoque", async () => {
     const note = newNote();
     const supplier = await createSupplier(note.cnpj);
@@ -242,20 +276,20 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     const { purchaseId } = res.json().data;
 
     // 24 un; unitPrice = round(241,00 / 24) = 10,04; 24 × 10,04 = 240,96 → resíduo −0,04 vai para o imposto.
-    // total = 240,96 − 11,00 + 5,00 + 12,09 = 247,05 = custo do item; unitCost = round(247,05 / 24) = 10,29.
+    // total = 240,96 − 11,00 + 5,00 + 12,09 = 247,05 = custo do item; unitCost = round4(247,05 / 24) = 10,2938.
     const items = await purchaseItems(purchaseId);
     const byVariant = (id: string) => asNumbers(items.find((i) => i.productVariantId === id)!);
-    assert.deepEqual(byVariant(box), { quantity: 24, unitPrice: 10.04, discount: 11, freight: 5, tax: 12.09, total: 247.05, unitCost: 10.29 });
+    assert.deepEqual(byVariant(box), { quantity: 24, unitPrice: 10.04, discount: 11, freight: 5, tax: 12.09, total: 247.05, unitCost: 10.2938 });
 
     const inventory = await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: box } });
     assert.equal(inventory.quantity, 24);
-    assert.equal(inventory.averageCost.toNumber(), 10.29);
+    assert.equal(inventory.averageCost.toNumber(), 10.2938);
     const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: box }, orderBy: { batchNumber: "asc" } });
     assert.deepEqual(
       lots.map((l) => [l.batchNumber, l.initialQuantity, l.unitCost.toNumber()]),
       [
-        ["L001", 12, 10.29],
-        ["L002", 12, 10.29],
+        ["L001", 12, 10.2938],
+        ["L002", 12, 10.2938],
       ],
     );
   });
@@ -292,7 +326,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     // Item 3: desconto = vDesc 0,99 + vICMSDeson deduzido 1,50.
     const rows = await purchaseItems(purchaseId);
     const byVariant = (id: string) => asNumbers(rows.find((i) => i.productVariantId === id)!);
-    assert.deepEqual(byVariant(b), { quantity: 21, unitPrice: 2, discount: 0.1, freight: 3.5, tax: 7.14, total: 52.54, unitCost: 2.5 });
+    assert.deepEqual(byVariant(b), { quantity: 21, unitPrice: 2, discount: 0.1, freight: 3.5, tax: 7.14, total: 52.54, unitCost: 2.5019 });
     assert.deepEqual(byVariant(c), { quantity: 1, unitPrice: 99.99, discount: 2.49, freight: 0, tax: 0, total: 97.5, unitCost: 97.5 });
 
     const purchase = await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } });
@@ -409,10 +443,10 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.deepEqual(
       lots.map((l) => [l.batchNumber, l.initialQuantity, l.unitCost.toNumber(), l.sourceId]),
       [
-        ["L001", 12, 10.29, first.json().data.purchaseId],
-        [`L001-${codeB}`, 6, 20.59, second.json().data.purchaseId],
-        ["L002", 12, 10.29, first.json().data.purchaseId],
-        [`L002-${codeB}`, 6, 20.59, second.json().data.purchaseId],
+        ["L001", 12, 10.2938, first.json().data.purchaseId],
+        [`L001-${codeB}`, 6, 20.5875, second.json().data.purchaseId],
+        ["L002", 12, 10.2938, first.json().data.purchaseId],
+        [`L002-${codeB}`, 6, 20.5875, second.json().data.purchaseId],
       ],
     );
     assert.equal((await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: box } })).quantity, 36);
@@ -512,7 +546,7 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     const rows = await purchaseItems(purchaseId);
     assert.equal(rows.length, 2);
     const merged = asNumbers(rows.find((i) => i.productVariantId === same)!);
-    assert.deepEqual(merged, { quantity: 25, unitPrice: 13.64, discount: 13.5, freight: 5, tax: 12.05, total: 344.55, unitCost: 13.78 });
+    assert.deepEqual(merged, { quantity: 25, unitPrice: 13.64, discount: 13.5, freight: 5, tax: 12.05, total: 344.55, unitCost: 13.782 });
     assert.equal((await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } })).totalAmount.toNumber(), 397.09);
 
     // Lotes do item 1 (12 + 12) e o restante (1 un do item 3) sem lote, todos no mesmo item do pedido.

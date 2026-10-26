@@ -155,6 +155,15 @@ describe("Entradas/saídas manuais restritas e etiquetas com limite", () => {
       assert.equal(ok.rawPayload.subarray(0, 5).toString(), "%PDF-");
     });
 
+    test("código com aspas/emoji vai para o Content-Disposition sem quebrar o cabeçalho (200, não 500)", async () => {
+      const box = await createBox();
+      const res = await labels(box.code, { productCode: 'A"B 😀', quantity: 1 });
+      assert.equal(res.statusCode, 200, res.body);
+      const header = String(res.headers["content-disposition"]);
+      assert.match(header, /^inline; filename="[A-Za-z0-9._-]+"; filename\*=UTF-8''[A-Za-z0-9._%-]+$/);
+      assert.ok(decodeURIComponent(header.split("filename*=UTF-8''")[1]).endsWith('A"B 😀.pdf'));
+    });
+
     test("use case também valida o teto (sem gerar PDF)", async () => {
       let generated = false;
       const useCase = new GenerateInventoryProductLabelsUseCase(

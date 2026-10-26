@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { DashboardReadRepository } from "../../../application/contracts/DashboardReadRepository";
 import {
@@ -65,7 +66,7 @@ interface PurchasesRow {
 export class PrismaDashboardReadRepository implements DashboardReadRepository {
   async sales(today: string): Promise<SalesSectionDTO> {
     const db = getDb();
-    const [summary, last7, top] = await Promise.all([
+    const [summary, last7, top] = await readTogether([
       db.$queryRaw<SalesSummaryRow[]>`
         SELECT
           (COUNT(*) FILTER (WHERE d = ${today}::date))::int AS today_count,
@@ -168,7 +169,7 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
 
   async inventory(today: string): Promise<InventorySectionDTO> {
     const db = getDb();
-    const [out, lots] = await Promise.all([
+    const [out, lots] = await readTogether([
       db.$queryRaw<OutOfStockRow[]>`
         SELECT v.id AS "productVariantId", p.name || ' — ' || v.name AS label,
                i.quantity, (COUNT(*) OVER())::int AS total

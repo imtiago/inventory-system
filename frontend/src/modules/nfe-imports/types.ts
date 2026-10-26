@@ -96,7 +96,8 @@ export interface IConfirmNfeItem {
 export interface IConfirmNfeDTO {
   supplier: { id: string } | { create: { name: string; email?: string; phone?: string } };
   items: IConfirmNfeItem[];
-  installments: { dueDate: string; amount: number }[];
+  /** Omitted when the order total is zero (bonificação): no installments, no payable. */
+  installments?: { dueDate: string; amount: number }[];
   receive: boolean;
 }
 

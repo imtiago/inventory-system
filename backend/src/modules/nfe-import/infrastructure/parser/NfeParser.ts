@@ -208,6 +208,20 @@ function icmsReliefOf(imposto: XmlNode | undefined, what: Where): number {
   return total;
 }
 
+const XML_DECLARATION_ENCODING = /^\s*(?:\uFEFF|\xEF\xBB\xBF)?\s*<\?xml[^>]*?\bencoding\s*=\s*["']([^"']+)["']/i;
+const UTF8_LABELS = new Set(["utf-8", "utf8"]);
+// Para o WHATWG, iso-8859-1 e latin1 são windows-1252 (superconjunto): o decoder é o mesmo.
+const LATIN_LABELS = new Set(["iso-8859-1", "iso8859-1", "latin1", "latin-1", "windows-1252", "cp1252"]);
+
+/** Decoder pelo `encoding` da declaração XML (padrão utf-8); só utf-8, iso-8859-1 e windows-1252. */
+function decoderFor(buffer: Buffer): TextDecoder {
+  const head = buffer.subarray(0, 200).toString("latin1");
+  const label = XML_DECLARATION_ENCODING.exec(head)?.[1]?.trim().toLowerCase();
+  if (label === undefined || UTF8_LABELS.has(label)) return new TextDecoder("utf-8");
+  if (LATIN_LABELS.has(label)) return new TextDecoder("windows-1252");
+  throw invalidFile();
+}
+
 export class NfeParser {
   private readonly companyCnpj: string | undefined;
 
@@ -303,9 +317,9 @@ export class NfeParser {
     if (typeof input === "string") {
       xml = input;
     } else {
-      // NF-e é UTF-8. Outra codificação (ex.: UTF-16) poderia esconder um DOCTYPE da checagem.
+      // UTF-16 (byte 0) poderia esconder um DOCTYPE da checagem: recusado.
       if (input.includes(0)) throw invalidFile();
-      xml = input.toString("utf-8");
+      xml = decoderFor(input).decode(input);
     }
     if (xml.includes("\u0000")) throw invalidFile();
     return xml.replace(/^﻿/, "");
@@ -331,8 +345,10 @@ export class NfeParser {
   private issueDate(ide: XmlNode | undefined): string {
     const dhEmi = text(ide, "dhEmi");
     const dEmi = text(ide, "dEmi");
+    // Data local declarada na nota (como no DANFE), sem converter de fuso; `businessDateOfInstant`
+    // só valida formato e calendário de `dhEmi`.
     const issueDate =
-      dhEmi !== undefined ? businessDateOfInstant(dhEmi)
+      dhEmi !== undefined ? (businessDateOfInstant(dhEmi) !== null ? dhEmi.slice(0, 10) : null)
       : dEmi !== undefined && DATE_PATTERN.test(dEmi) ? dEmi
       : null;
     if (!issueDate) throw invalidNfe("Data de emissão inválida.");

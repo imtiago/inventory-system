@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import {
   IList,
   StockMovementReadRepository,
@@ -28,7 +29,7 @@ export class PrismaStockMovementReadRepository implements StockMovementReadRepos
     if (params?.origin) {
       where.origin = params.origin as Prisma.StockMovementWhereInput["origin"];
     }
-    const [data, total] = await Promise.all([
+    const [data, total] = await readTogether([
       getDb().stockMovement.findMany({
         ...paginationOptions,
         where,

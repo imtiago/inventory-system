@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -39,7 +40,7 @@ export class PrismaNfeImportReadRepository implements NfeImportReadRepository {
     const where = status ? Prisma.sql`WHERE status = ${status}::"NfeImportStatus"` : Prisma.empty;
     const { skip, take } = buildPagination(pagination);
 
-    const [rows, total] = await Promise.all([
+    const [rows, total] = await readTogether([
       getDb().$queryRaw<SummaryRow[]>`
         SELECT id, "accessKey", status::text AS status,
                payload->>'number' AS number, payload->>'series' AS series,

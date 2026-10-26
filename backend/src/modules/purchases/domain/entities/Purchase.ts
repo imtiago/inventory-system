@@ -80,14 +80,17 @@ export class Purchase extends BaseEntity {
     this._canceledById = props.canceledById ?? null;
   }
 
-  /** Novo pedido: PENDING (origem MANUAL por padrão); total > 0 senão 422 PURCHASE_TOTAL_ZERO. */
+  /**
+   * Novo pedido: PENDING (origem MANUAL por padrão). Total > 0 senão 422 PURCHASE_TOTAL_ZERO, exceto
+   * pedido de origem XML: nota 100% bonificação (total zero) é aceita, sem contas a pagar.
+   */
   static create(props: NewPurchaseProps): Purchase {
     const purchase = new Purchase({
       ...props,
       origin: props.origin ?? PurchaseOrigin.MANUAL,
       status: PurchaseStatus.PENDING,
     });
-    if (purchase.totalAmountCents <= 0) throw purchaseTotalZero();
+    if (purchase.totalAmountCents <= 0 && purchase.origin !== PurchaseOrigin.XML) throw purchaseTotalZero();
     return purchase;
   }
 

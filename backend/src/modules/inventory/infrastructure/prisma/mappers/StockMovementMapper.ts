@@ -59,12 +59,4 @@ export class StockMovementMapper {
         : {}),
     };
   }
-
-  static toUpdatePersistence(
-    movement: StockMovement,
-  ): Prisma.StockMovementUpdateInput {
-    return {
-      notes: movement.notes,
-    };
-  }
 }

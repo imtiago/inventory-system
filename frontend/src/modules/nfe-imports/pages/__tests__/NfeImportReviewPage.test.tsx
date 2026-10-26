@@ -61,11 +61,28 @@ describe('NfeImportReviewPage', () => {
     expect(within(item(1)).getByText(/mapeamento/i)).toBeInTheDocument();
     expect(within(item(3)).getByText('Condicionador Exemplo — 200ml (CON-200)')).toBeInTheDocument();
     expect(within(item(3)).getByText(/código de barras/i)).toBeInTheDocument();
-    expect(screen.getByLabelText('Unidades por embalagem do item 1')).toHaveValue(12);
+    expect(screen.getByLabelText('Unidades por embalagem do item 1')).toHaveValue('12');
 
     expect(screen.getByLabelText('Ação do item 2')).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Confirmar importação' })).toBeDisabled();
     expect(screen.getByTestId('blocking-reason')).toHaveTextContent('Item 2');
+  });
+
+  test('campos inválidos do item apontam para a mensagem de erro (aria-describedby)', async () => {
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+
+    await userEvent.selectOptions(screen.getByLabelText('Ação do item 2'), 'createProduct');
+    await userEvent.type(screen.getByLabelText('Preço de venda do item 2'), '7,555');
+    const price = screen.getByLabelText('Preço de venda do item 2');
+    expect(price).toHaveAttribute('aria-invalid', 'true');
+    expect(price).toHaveAccessibleDescription('Use no máximo 2 casas decimais.');
+
+    const upp = screen.getByLabelText('Unidades por embalagem do item 2');
+    await userEvent.clear(upp);
+    expect(upp).toHaveAttribute('aria-invalid', 'true');
+    expect(upp.getAttribute('aria-describedby')).toBe('upp-2-error');
+    expect(upp).toHaveAccessibleDescription(/inteiro/);
   });
 
   test('fornecedor encontrado é somente leitura; sem cadastro permite editar o nome', async () => {
@@ -116,7 +133,7 @@ describe('NfeImportReviewPage', () => {
 
     const sum = screen.getByTestId('installments-sum');
     expect(sum).toHaveTextContent('R$ 397,09');
-    expect(screen.getByLabelText('Valor da parcela 3')).toHaveValue(132.37);
+    expect(screen.getByLabelText('Valor da parcela 3')).toHaveValue('132,37');
     expect(screen.getByRole('button', { name: 'Confirmar importação' })).toBeEnabled();
 
     // Até R$ 0,05 de diferença: aviso de ajuste da última parcela, confirmação liberada.
@@ -172,6 +189,28 @@ describe('NfeImportReviewPage', () => {
       ],
       receive: true,
     });
+  });
+
+  test('nota de bonificação (total zero): sem seção de parcelas, confirma sem enviar installments', async () => {
+    const zero = {
+      ...draft,
+      items: draft.items.map((i) => ({ ...i, unitCost: 0, total: 0 })),
+      totals: { total: 0, orderTotal: 0, difference: 0, installmentsTotal: 0, installmentsDifference: 0 },
+      installments: [],
+    };
+    server.use(http.get(`${API_URL}/nfe-imports/:id`, () => HttpResponse.json({ data: zero })));
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+
+    expect(screen.getByTestId('no-installments')).toHaveTextContent('Nota sem valor a pagar — nenhuma parcela será criada');
+    expect(screen.queryByText('Adicionar parcela')).not.toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Confirmar importação' });
+    expect(button).toBeEnabled();
+
+    await userEvent.click(button);
+    expect(await screen.findByText('Detalhe do pedido')).toBeInTheDocument();
+    expect(posted).not.toHaveProperty('installments');
   });
 
   test('navega para o pedido mesmo quando a revisão desmonta com a confirmação em andamento', async () => {
@@ -388,6 +427,76 @@ describe('NfeImportReviewPage', () => {
     await new Promise((r) => setTimeout(r, 100));
     expect(screen.queryByText('Detalhe do pedido')).not.toBeInTheDocument();
     expect(screen.getByText('Outra tela')).toBeInTheDocument();
+  });
+
+  test('trocar de importação com a confirmação pendente não leva ao pedido da anterior', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    server.use(
+      http.get(`${API_URL}/nfe-imports/:id`, ({ params }) => HttpResponse.json({ data: { ...draft, id: String(params.id) } })),
+      http.post(`${API_URL}/nfe-imports/:id/confirm`, async () => {
+        await gate;
+        return HttpResponse.json({ data: { importId: draft.id, purchaseId: 'pc-1' } }, { status: 201 });
+      }),
+    );
+    renderWithProviders(
+      <>
+        <Link to="/nfe-imports/outra-nota">Abrir outra nota</Link>
+        <Routes>
+          <Route path="/nfe-imports/:id" element={<NfeImportReviewPage />} />
+          <Route path="/purchases/:id" element={<div>Detalhe do pedido</div>} />
+        </Routes>
+      </>,
+      { route: `/nfe-imports/${draft.id}` },
+    );
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar importação' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Abrir outra nota' }));
+    await screen.findByTestId('nfe-item-1');
+
+    release();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByText('Detalhe do pedido')).not.toBeInTheDocument();
+    expect(screen.getByTestId('nfe-item-1')).toBeInTheDocument();
+  });
+
+  test('o erro do servidor some do item assim que ele é corrigido', async () => {
+    server.use(
+      http.post(`${API_URL}/nfe-imports/:id/confirm`, () =>
+        HttpResponse.json({ message: 'Item 3: Código de barras já cadastrado.', code: 'BARCODE_ALREADY_EXISTS' }, { status: 409 }),
+      ),
+    );
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar importação' }));
+    expect(await within(item(3)).findByText('Item 3: Código de barras já cadastrado.')).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('Ação do item 3'), 'createProduct');
+
+    expect(screen.queryByText('Item 3: Código de barras já cadastrado.')).not.toBeInTheDocument();
+  });
+
+  test('valores usam MoneyInput/QuantityInput pt-BR, sem campo type=number', async () => {
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    await prepareItem2AsNewProduct();
+
+    expect(document.querySelectorAll('input[type="number"]')).toHaveLength(0);
+
+    // "1.000,50" é milhar + decimal; a soma mostra o valor correto
+    await userEvent.clear(screen.getByLabelText('Valor da parcela 3'));
+    await userEvent.type(screen.getByLabelText('Valor da parcela 3'), '1.000,50');
+    expect(screen.getByTestId('installments-sum')).toHaveTextContent('R$ 1.265,22');
+
+    // quantidade só aceita dígitos e tem botões −/+
+    const upp = screen.getByLabelText('Unidades por embalagem do item 1');
+    await userEvent.clear(upp);
+    await userEvent.type(upp, 'a2b');
+    expect(upp).toHaveValue('2');
+    await userEvent.click(screen.getByRole('button', { name: 'Aumentar quantidade de item 1' }));
+    expect(upp).toHaveValue('3');
   });
 
   describe('desfazer importação (onda 7)', () => {

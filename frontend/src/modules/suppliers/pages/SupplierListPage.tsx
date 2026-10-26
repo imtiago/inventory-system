@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LoaderCircle, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Page } from '@/shared/components/layout/Page';
@@ -18,6 +18,7 @@ import { useDeleteSupplier } from '../hooks/useSupplierMutations';
 import { SupplierCreateModal, SupplierEditModal } from '../components/SupplierFormModals';
 import { maskDocument } from '../utils/formatDocument';
 import type { ISupplier } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 export function SupplierListPage() {
   const [page, setPage] = useState(1);
@@ -134,10 +135,7 @@ export function SupplierListPage() {
                 <p className="text-sm text-muted">Verifique sua conexão e tente novamente.</p>
               </div>
             ) : isLoading ? (
-              <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted">
-                <LoaderCircle size={20} className="animate-spin" />
-                Carregando fornecedores...
-              </div>
+              <LoadingState label="Carregando fornecedores..." />
             ) : (
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum fornecedor encontrado" emptyHint="Tente novamente ou cadastre um novo fornecedor." getRowId={(item) => item.id} />
             )}

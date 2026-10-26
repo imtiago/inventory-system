@@ -10,9 +10,9 @@ export function makeGetInventoryBoxByLotAndProductVariantController() {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    const { batchNumber, productVariantId } =
+    const { batchNumber, productVariantId, page, limit } =
       parseInput(getInventoryBoxByLotAndProductVariantSchema, request.query);
-    const boxs = await useCase.execute({ batchNumber, productVariantId });
+    const boxs = await useCase.execute({ batchNumber, productVariantId, page, limit });
 
     return reply.send(HttpResponse.paginated(boxs));
   };

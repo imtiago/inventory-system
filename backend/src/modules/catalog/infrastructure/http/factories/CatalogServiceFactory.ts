@@ -6,8 +6,7 @@ import { PrismaProductVariantRepository } from "@catalog/infrastructure/prisma/r
 import { makeCreateProductUseCase } from "./CreateProductFactory";
 import { makeCreateVariantUseCase } from "./CreateVariantFactory";
 import { GetProductVariantByBarcodeUseCase } from "@catalog/application/useCases/queries/GetProductVariantByBarcodeUseCase";
-// import { GetProductVariantByIdUseCase } from "@catalog/application/useCases/GetProductVariantByIdUseCase";
-// import { GetProductVariantByBarcodeUseCase } from "@catalog/application/useCases/GetProductVariantByBarcodeUseCase";
+import { GetProductVariantsByIdsUseCase } from "@catalog/application/useCases/queries/GetProductVariantsByIdsUseCase";
 import { GetProductVariantByIdUseCase } from "@catalog/application/useCases/queries/GetProductVariantByIdUseCase";
 import { PrismaProductVariantReadRepository } from "@catalog/infrastructure/prisma/contracts/PrismaProductVariantReadRepository";
 
@@ -22,6 +21,7 @@ export function makeCatalogService() {
   return new CatalogApplicationService(
     getProductVariant,
     getProductVariantByBarcode,
+    new GetProductVariantsByIdsUseCase(repository),
   );
 }
 

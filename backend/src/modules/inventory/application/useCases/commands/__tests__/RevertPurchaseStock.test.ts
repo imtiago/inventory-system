@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
 import { Inventory } from "@inventory/domain/entities/Inventory";
 import { InventoryLot } from "@inventory/domain/entities/InventoryLot";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";

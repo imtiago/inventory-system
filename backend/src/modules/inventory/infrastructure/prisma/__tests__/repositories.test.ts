@@ -140,23 +140,6 @@ describe("repositórios Prisma de estoque", () => {
     assert.equal(loaded?.notes, "entrada");
     assert.equal(loaded?.originId, originId);
     assert.equal(loaded?.userId, userId);
-
-    const edited = new StockMovement({
-      id: created.id,
-      inventoryId: inv.id,
-      productVariantId: variantId,
-      inventoryLotId: lot.id,
-      type: StockMovementType.IN,
-      origin: StockMovementOrigin.PURCHASE,
-      quantity: 10,
-      previousQuantity: 0,
-      currentQuantity: 10,
-      notes: "editado",
-      userId,
-      createdAt: created.createdAt,
-    });
-    await movementRepo.update(edited);
-    assert.equal((await movementRepo.findById(created.id))?.notes, "editado");
   });
 
   test("StockMovement sem userId é gravado", async () => {

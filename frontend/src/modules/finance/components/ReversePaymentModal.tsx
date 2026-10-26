@@ -9,6 +9,7 @@ import { formatCurrency } from '@/shared/utils/money';
 import { useReversePayment } from '../hooks/useReversePayment';
 import type { IFinancePayment } from '../types';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
 interface Props {
   kind: FinanceKind;
   documentId: string;
@@ -56,7 +57,7 @@ export function ReversePaymentModal({ kind, documentId, payment, onClose }: Prop
             Motivo
           </label>
           <textarea
-            id="reverse-reason"
+            id="reverse-reason" {...fieldA11y("reverse-reason", errors.reason?.message)}
             rows={3}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             {...register('reason', {
@@ -66,7 +67,7 @@ export function ReversePaymentModal({ kind, documentId, payment, onClose }: Prop
               },
             })}
           />
-          {errors.reason && <p className="mt-1 text-sm text-danger">{errors.reason.message}</p>}
+          <FieldError id="reverse-reason" message={errors.reason?.message} />
         </div>
 
         {serverError && (

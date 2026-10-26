@@ -3,6 +3,7 @@ import { after, afterEach, before, beforeEach, describe, test } from "node:test"
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../app";
 import { createTestVariant } from "../../../../test/inventoryFixtures";
@@ -116,7 +117,7 @@ describe("Idempotency-Key nas operações de dinheiro e estoque", () => {
     const toClean = variants.splice(0);
     try {
       try {
-        await prisma.financialDocument.deleteMany({ where: { partyId: id } });
+        await deleteFinancialDocuments({ where: { partyId: id } });
       } finally {
         await prisma.sale.deleteMany({ where: { customerId: id } });
       }

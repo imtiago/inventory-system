@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { ProductVariantReadRepository } from "@catalog/application/contracts/ProductVariantReadRepository";
 import { ProductVariantDTO } from "@catalog/application/dto/ProductVariantDTO";
 import { ProductVariantReadMapper } from "@catalog/application/mappers/ProductVariantReadMapper";
@@ -14,14 +15,11 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   ): Promise<PaginatedResult<ProductVariantDTO>> {
     const paginationOptions = buildPagination(pagination);
 
-    const [productsVariant, total] = await Promise.all([
+    const [productsVariant, total] = await readTogether([
       getDb().productVariant.findMany({
         ...paginationOptions,
         where: {
           productId,
-        },
-        include: {
-          product: true,
         },
         orderBy: [{ name: "asc" }, { id: "asc" }],
       }),
@@ -40,21 +38,21 @@ export class PrismaProductVariantReadRepository implements ProductVariantReadRep
   async getById(id: string): Promise<ProductVariantDTO | null> {
     const variant = await getDb().productVariant.findUnique({
       where: { id },
-      include: {
-        product: true,
-      },
     });
 
     if (!variant) return null;
 
     return ProductVariantReadMapper.toDTO(variant);
   }
+  async getByIds(ids: string[]): Promise<ProductVariantDTO[]> {
+    if (ids.length === 0) return [];
+    const variants = await getDb().productVariant.findMany({ where: { id: { in: ids } } });
+    return variants.map((variant) => ProductVariantReadMapper.toDTO(variant));
+  }
+
   async getByBarcode(barcode: string) {
     const variant = await getDb().productVariant.findUnique({
       where: { barcode },
-      include: {
-        product: true,
-      },
     });
 
     if (!variant) return null;

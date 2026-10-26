@@ -23,13 +23,12 @@ export class GetDashboardUseCase {
     const when = <T>(key: SectionKey, load: () => Promise<T>): Promise<T | undefined> =>
       allowed(key) ? load() : Promise.resolve(undefined);
 
-    const [sales, receivables, payables, inventory, purchases] = await Promise.all([
-      when("sales", () => this.repository.sales(today)),
-      when("receivables", () => this.repository.receivables(today)),
-      when("payables", () => this.repository.payables(today)),
-      when("inventory", () => this.repository.inventory(today)),
-      when("purchases", () => this.repository.purchases()),
-    ]);
+    // Em sequência: seções em paralelo ocupariam uma conexão do pool cada (até cinco por requisição).
+    const sales = await when("sales", () => this.repository.sales(today));
+    const receivables = await when("receivables", () => this.repository.receivables(today));
+    const payables = await when("payables", () => this.repository.payables(today));
+    const inventory = await when("inventory", () => this.repository.inventory(today));
+    const purchases = await when("purchases", () => this.repository.purchases());
 
     const dto: DashboardDTO = { generatedAt: now.toISOString() };
     if (sales) dto.sales = sales;

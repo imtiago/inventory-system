@@ -10,6 +10,7 @@ import { IStockMovementRepository } from "@inventory/domain/repositories/StockMo
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
+import { roundCost } from "@shared/domain/money";
 
 export interface RevertPurchaseStockInput {
   purchaseId: string;
@@ -23,7 +24,6 @@ export interface RevertPurchaseStockInput {
 /** REVERTED: tudo estornado; STOCK_USED: algum lote do pedido já teve saída (ou o saldo está reservado) — nada foi gravado. */
 export type RevertPurchaseStockResult = { status: "REVERTED"; lots: number } | { status: "STOCK_USED" };
 
-const roundCost = (value: number) => Math.round(value * 1_000_000) / 1_000_000;
 
 /**
  * Estorna a entrada de estoque de um pedido de compra (importação de NF-e desfeita), só se nada

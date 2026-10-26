@@ -14,13 +14,9 @@ export interface ProductVariantDTO {
   createdAt: Date;
 }
 
-/** Contrato HTTP da variante (spec 4B). */
-export type VariantDTO = ProductVariantDTO;
-
 export interface ICreateVariantInput {
   productId: string;
   name: string;
-  // sku: string;
   barcode?: string;
   salePrice?: number;
   /** Quem tem `catalog.price` (só ADMIN). Sem ele, o preço inicial é obrigatório. */

@@ -116,6 +116,26 @@ export function namedEntityScenarios({ Page, path, singular, plural, existsCode,
       expect(bodies).toEqual([{ name: 'Natura' }, { name: 'Boti Novo' }]);
     });
 
+    test('clique duplo em Salvar ao renomear envia um único PUT', async () => {
+      let puts = 0;
+      server.use(
+        http.put(`${url}/:id`, async ({ request, params }) => {
+          puts += 1;
+          const body = (await request.json()) as { name: string };
+          return HttpResponse.json({ data: { id: params.id, name: body.name, productsCount: 12 } });
+        }),
+      );
+      await openPage();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Editar Boticário' }));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.type(within(dialog).getByLabelText(/Nome/), ' Novo');
+      await userEvent.dblClick(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(puts).toBe(1);
+    });
+
     test('nome vazio é validado antes de enviar', async () => {
       await openPage();
       await userEvent.click(screen.getByRole('button', { name: new RegExp(`Nov[ao] ${singular}`, 'i') }));

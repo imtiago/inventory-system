@@ -11,7 +11,7 @@ import { ParcelStatus } from "@finance/domain/enums/ParcelStatus";
 import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
 import { FinancialDocumentRepository } from "@finance/domain/repositories/FinancialDocumentRepository";
 import { PaymentRepository } from "@finance/domain/repositories/PaymentRepository";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../test/InMemoryTransactionManager";
 import { FinancialDocumentDetailDTO } from "../../dto/FinancialDocumentReadDTO";
 import { RegisterPaymentUseCase } from "../commands/RegisterPaymentUseCase";
 import { ReversePaymentUseCase } from "../commands/ReversePaymentUseCase";

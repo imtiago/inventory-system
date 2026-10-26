@@ -71,6 +71,7 @@ describe('PurchaseCreatePage', () => {
     // 3 x 10,50 - 1,00 + 0,50 + 0,25 = 31,25
     expect(screen.getByTestId('item-total-v-1')).toHaveTextContent('R$ 31,25');
     expect(screen.getByTestId('purchase-total')).toHaveTextContent('R$ 31,25');
+    expect(screen.getByTestId('purchase-total-estimate')).toHaveTextContent(/estimativa/i);
 
     await userEvent.click(screen.getByLabelText('Parcelado'));
     await userEvent.selectOptions(screen.getByLabelText('Número de parcelas'), '2');
@@ -131,6 +132,7 @@ describe('PurchaseCreatePage', () => {
     await fill('Preço unitário de Camiseta Azul', '10,555');
 
     expect(screen.getByText('Use no máximo 2 casas decimais')).toBeInTheDocument();
+    expect(screen.getByLabelText('Preço unitário de Camiseta Azul')).toHaveAccessibleDescription('Use no máximo 2 casas decimais');
     expect(screen.getByRole('alert')).toHaveTextContent('2 casas decimais');
     expect(screen.getByRole('button', { name: 'Registrar pedido' })).toBeDisabled();
     expect(posted).toBeUndefined();

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -133,7 +134,7 @@ describe("Leitura de contas a receber (GET /receivables)", () => {
   after(async () => {
     try {
       try {
-        await prisma.financialDocument.deleteMany({
+        await deleteFinancialDocuments({
           where: { partyId: { in: Object.values(customers).map((c) => c.id) } },
         });
       } finally {

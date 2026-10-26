@@ -7,6 +7,7 @@ import { VariantForm, type VariantFormData } from "../components/VariantForm";
 import { useVariant } from "../hooks/useVariant";
 import type { SaveVariantDTO } from "../services/variantService";
 import { useUpdateVariant } from "../hooks/useUpdateVariant";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 export function VariantEditPage() {
   const { variantId } = useParams();
@@ -37,7 +38,7 @@ export function VariantEditPage() {
   }
 
   if (isLoading || (variant && !isError && dataUpdatedAt < openedAt)) {
-    return <div>Carregando...</div>;
+    return <LoadingState label="Carregando..." />;
   }
 
   if (isError || !variant) {

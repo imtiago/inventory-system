@@ -18,14 +18,14 @@ test("item: total = quantidade × preço − desconto + frete + imposto (centavo
   assert.equal(i.remainingQuantity, 2);
 });
 
-test("item: unitCost = round-half-up(total / quantidade) — 1000/3 → 333; 2075/2 → 1038; 5/2 → 3", () => {
-  assert.equal(item({ quantity: 3, unitPriceCents: 333, freightCents: 1 }).unitCostCents, 333);
+test("item: unitCost = round-half-up(total / quantidade) com 4 casas — 1000/3 → 3,3333; 2075/2 → 10,375; 5/2 → 0,025", () => {
+  assert.equal(item({ quantity: 3, unitPriceCents: 333, freightCents: 1 }).unitCost, 3.3333);
   assert.equal(
-    item({ quantity: 2, unitPriceCents: 1050, discountCents: 100, freightCents: 50, taxCents: 25 }).unitCostCents,
-    1038,
+    item({ quantity: 2, unitPriceCents: 1050, discountCents: 100, freightCents: 50, taxCents: 25 }).unitCost,
+    10.375,
   );
-  assert.equal(item({ quantity: 2, unitPriceCents: 2, freightCents: 1 }).unitCostCents, 3);
-  assert.equal(item({ quantity: 3, unitPriceCents: 0, freightCents: 2 }).unitCostCents, 1);
+  assert.equal(item({ quantity: 2, unitPriceCents: 2, freightCents: 1 }).unitCost, 0.025);
+  assert.equal(item({ quantity: 3, unitPriceCents: 0, freightCents: 2 }).unitCost, 0.0067);
 });
 
 test("item com total negativo → 422 INVALID_ITEM_TOTAL", () => {
@@ -45,6 +45,19 @@ test("pedido: total = Σ itens; status PENDING, origem MANUAL, sem recebimentos"
   assert.equal(p.status, PurchaseStatus.PENDING);
   assert.equal(p.origin, PurchaseOrigin.MANUAL);
   assert.equal(p.hasReceipts, false);
+});
+
+test("pedido de origem XML com total 0 (nota de bonificação) é aceito", () => {
+  const p = Purchase.create({
+    code: "PC000002",
+    supplierId: "s-1",
+    purchaseDate: "2026-10-20",
+    notes: null,
+    origin: PurchaseOrigin.XML,
+    items: [item({ unitPriceCents: 0 })],
+  });
+  assert.equal(p.totalAmountCents, 0);
+  assert.equal(p.origin, PurchaseOrigin.XML);
 });
 
 test("pedido com total 0 → 422 PURCHASE_TOTAL_ZERO", () => {

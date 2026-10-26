@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildApp } from "../../../app";
+import { buildApp, RATE_LIMIT_DEFAULTS } from "../../../app";
+import { signTestToken } from "../../../test/authFixtures";
 
 const quiet = { logger: false } as const;
 
@@ -204,4 +205,33 @@ test("rota inexistente continua exigindo token (nunca pula a auth)", async () =>
   await app.close();
   assert.equal(a.statusCode, 401);
   assert.notEqual(b.statusCode, 200);
+});
+
+test("rate limit: limites padrão são 300/min na API e 20/min em /reports", () => {
+  assert.deepEqual(RATE_LIMIT_DEFAULTS, { max: 300, reportsMax: 20 });
+});
+
+test("rate limit: a chave é o usuário do token assinado (mesmo IP, baldes separados); token inválido cai no IP", async () => {
+  const app = buildApp({ ...quiet, healthCheck: async () => {}, rateLimit: { max: 2, reportsMax: 1 } });
+  const get = (token?: string) =>
+    app.inject({
+      method: "GET",
+      url: "/products",
+      remoteAddress: "10.1.2.3",
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    });
+  const tokenA = signTestToken("user-a-rate");
+  const tokenB = signTestToken("user-b-rate");
+  const statuses = async (calls: Array<string | undefined>) => {
+    const out: number[] = [];
+    for (const t of calls) out.push((await get(t)).statusCode);
+    return out;
+  };
+  // Usuário A esgota o balde dele (401 = passou do limite e caiu na autenticação) ...
+  assert.deepEqual(await statuses([tokenA, tokenA, tokenA]), [401, 401, 429]);
+  // ... e o usuário B, no mesmo IP, tem o próprio balde.
+  assert.deepEqual(await statuses([tokenB, tokenB]), [401, 401]);
+  // Token com assinatura inválida e requisições sem token compartilham o balde do IP.
+  assert.deepEqual(await statuses(["lixo.lixo.lixo", undefined, "outro.lixo.token"]), [401, 401, 429]);
+  await app.close();
 });

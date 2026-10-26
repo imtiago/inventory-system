@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { ProductListFilters } from "@catalog/application/contracts/ProductListFilters";
 import { ProductReadRepository } from "@catalog/application/contracts/ProductReadRepository";
@@ -7,6 +8,7 @@ import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import { buildPaginatedResult } from "@shared/infrastructure/database/buildPaginatedResult";
 import { buildPagination } from "@shared/infrastructure/database/buildPagination";
+import { containsLiteral } from "@shared/infrastructure/database/literalSearch";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 
 const productReadInclude = {
@@ -19,7 +21,7 @@ function buildWhere(filters?: ProductListFilters): Prisma.ProductWhereInput {
   const and: Prisma.ProductWhereInput[] = [];
   const search = filters?.search?.trim();
   if (search) {
-    const contains = { contains: search, mode: "insensitive" as const };
+    const contains = containsLiteral(search);
     and.push({
       OR: [
         { name: contains },
@@ -40,7 +42,7 @@ export class PrismaProductReadRepository implements ProductReadRepository {
   ): Promise<PaginatedResult<ProductListItemDTO>> {
     const where = buildWhere(filters);
 
-    const [products, total] = await Promise.all([
+    const [products, total] = await readTogether([
       getDb().product.findMany({
         ...buildPagination(pagination),
         where,

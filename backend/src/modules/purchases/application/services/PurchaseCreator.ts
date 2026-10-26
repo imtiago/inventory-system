@@ -2,7 +2,7 @@ import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/err
 import { NumberGenerator } from "@shared/application/services/NumberGenerator";
 import { NumberRangeName } from "@shared/domain/enums/NumberRangeName";
 import { CatalogService } from "@catalog/application/services/CatalogService";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { Purchase } from "@purchases/domain/entities/Purchase";
 import { PurchaseItem } from "@purchases/domain/entities/PurchaseItem";
 import { PurchaseOrigin } from "@purchases/domain/enums/PurchaseOrigin";
@@ -40,9 +40,10 @@ export interface PurchaseParcel {
  * Criação de pedido de compra em duas etapas, usada pelo POST /purchases e pela
  * confirmação de NF-e. Exige a transação do chamador (tudo grava no contexto ativo).
  * - `build`: valida fornecedor (404) e variantes (404), monta os itens (422 se total
- *   do item < 0), gera o código PC###### e o agregado (422 se total = 0). Não grava.
+ *   do item < 0), gera o código PC###### e o agregado (422 se total = 0, salvo origem XML). Não grava.
  * - `save`: soma das parcelas = total do pedido (senão 422 INSTALLMENTS_TOTAL_MISMATCH),
- *   grava o pedido e cria o contas a pagar com essas parcelas.
+ *   grava o pedido e cria o contas a pagar com essas parcelas. Total zero (NF-e de bonificação):
+ *   grava o pedido sem parcelas e sem contas a pagar.
  */
 export class PurchaseCreator {
   constructor(
@@ -57,9 +58,13 @@ export class PurchaseCreator {
     const supplier = await this.suppliers.findById(input.supplierId);
     if (!supplier) throw supplierNotFound();
 
+    // Uma consulta para todas as variantes (sem N+1 dentro da transação).
+    const variants = new Map(
+      (await this.catalogService.getProductVariants(input.items.map((i) => i.productVariantId))).map((v) => [v.id, v]),
+    );
     const items: PurchaseItem[] = [];
     for (const item of input.items) {
-      const variant = await this.catalogService.getProductVariant(item.productVariantId);
+      const variant = variants.get(item.productVariantId);
       if (!variant) throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
       items.push(new PurchaseItem({ ...item, productVariantId: variant.id }));
     }
@@ -77,6 +82,16 @@ export class PurchaseCreator {
 
   async save(purchase: Purchase, parcels: PurchaseParcel[]): Promise<Purchase> {
     const parcelsTotal = parcels.reduce((sum, p) => sum + p.amountCents, 0);
+    // Pedido de total zero (nota de bonificação): sem parcelas e sem contas a pagar.
+    if (purchase.totalAmountCents === 0) {
+      if (parcels.length > 0) {
+        throw new BusinessRuleError(
+          "Pedido de valor zero não tem contas a pagar: não informe parcelas.",
+          ErrorCodes.INSTALLMENTS_TOTAL_MISMATCH,
+        );
+      }
+      return this.purchases.create(purchase);
+    }
     if (parcels.length === 0 || parcelsTotal !== purchase.totalAmountCents) {
       throw new BusinessRuleError(
         "A soma das parcelas difere do total do pedido.",

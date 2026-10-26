@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_AMOUNT } from "@shared/domain/limits";
+import { createNameSchema } from "@shared/interfaces/http/schemas/nameSchema";
 
 /** Trim; vazio/só espaços vira `fallback` (o código de barras é opcional e único). */
 export const blankTo = (fallback: null | undefined) => (value: unknown) => {
@@ -22,8 +23,7 @@ export const barcodeString = z
   .max(BARCODE_MAX_LENGTH, "O código de barras deve ter no máximo 64 caracteres.");
 
 export const createVariantSchema = z.object({
-  name: z.string({ error: "O nome é obrigatório." }).min(1, "O nome é obrigatório."),
-  // sku: z.string().min(1),
+  name: createNameSchema({ max: 120 }),
   barcode: z.preprocess((v) => (v === null ? undefined : blankTo(undefined)(v)), barcodeString.optional()),
   salePrice: salePriceSchema.optional(),
 });

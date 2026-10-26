@@ -64,7 +64,7 @@ export class PurchaseMapper {
           freight: fromCents(item.freightCents),
           tax: fromCents(item.taxCents),
           total: fromCents(item.totalCents),
-          unitCost: fromCents(item.unitCostCents),
+          unitCost: item.unitCost,
         })),
       },
     };

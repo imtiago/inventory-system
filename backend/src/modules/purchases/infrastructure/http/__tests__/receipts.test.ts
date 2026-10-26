@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
@@ -79,7 +80,7 @@ describe("Recebimento de pedidos de compra (POST /purchases/:id/receipts)", () =
       const documents = { originType: "PURCHASE" as const, originId: { in: purchaseIds } };
       await prisma.payment.deleteMany({ where: { parcel: { document: documents } } });
       await prisma.financialParcel.deleteMany({ where: { document: documents } });
-      await prisma.financialDocument.deleteMany({ where: documents });
+      await deleteFinancialDocuments({ where: documents });
       await prisma.stockMovement.deleteMany({ where: { productVariantId: { in: variantIds } } });
       await prisma.inventoryLot.deleteMany({ where: { productVariantId: { in: variantIds } } });
       await prisma.purchaseItem.deleteMany({ where: { purchaseId: { in: purchaseIds } } });
@@ -132,8 +133,8 @@ describe("Recebimento de pedidos de compra (POST /purchases/:id/receipts)", () =
     // Estoque e custo médio (fórmula de Inventory.receive: média ponderada).
     const inventory = await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: v1 } });
     assert.equal(inventory.quantity, 13);
-    const expectedAverage = (10 * 2 + 3 * 3.33) / 13;
-    assert.ok(Math.abs(inventory.averageCost.toNumber() - expectedAverage) < 1e-9, inventory.averageCost.toString());
+    const expectedAverage = (10 * 2 + 3 * 3.3325) / 13;
+    assert.ok(Math.abs(inventory.averageCost.toNumber() - expectedAverage) < 5e-5, inventory.averageCost.toString());
     assert.equal(await stockOf(v2), 0);
 
     const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: v1 } });
@@ -145,7 +146,7 @@ describe("Recebimento de pedidos de compra (POST /purchases/:id/receipts)", () =
     assert.equal(lot.batchNumber, batch);
     assert.equal(lot.initialQuantity, 3);
     assert.equal(lot.remainingQuantity, 3);
-    assert.equal(lot.unitCost.toNumber(), 3.33);
+    assert.equal(lot.unitCost.toNumber(), 3.3325);
     assert.equal(lot.manufacturingDate?.toISOString().slice(0, 10), "2026-01-15");
     assert.equal(lot.expirationDate?.toISOString().slice(0, 10), "2027-01-15");
 

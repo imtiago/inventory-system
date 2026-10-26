@@ -1,8 +1,13 @@
 import { StockMovement } from "../entities/StockMovement";
 import { StockMovementOrigin } from "../enums/StockMovementOrigin";
-import { ICrudRepository } from "@shared/domain/repositories/CrudRepository";
 
-export interface IStockMovementRepository extends ICrudRepository<StockMovement> {
+/**
+ * Kardex só de inserção: sem `update` nem `delete` no contrato (uma movimentação gravada
+ * não muda; a correção é uma nova movimentação).
+ */
+export interface IStockMovementRepository {
+  create(entity: StockMovement): Promise<StockMovement>;
+  findById(id: string): Promise<StockMovement | null>;
   findByProductVariantId(
     productVariantId: string
   ): Promise<StockMovement[]>;

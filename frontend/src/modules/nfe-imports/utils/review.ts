@@ -1,5 +1,4 @@
-import { fromCents, toCents } from '@/shared/utils/money';
-import { hasTooManyDecimals, moneyToSend, parseNumber } from '@/modules/purchases/utils/purchaseTotals';
+import { formatMoneyInput, fromCents, moneyTextError, parseMoneyToCents, toCents } from '@/shared/utils/money';
 import type { IConfirmNfeDTO, IConfirmNfeItem, INfeImport, INfeItem } from '../types';
 
 export type ItemMode = 'link' | 'createProduct' | 'createVariant';
@@ -60,9 +59,12 @@ export function initialItemDraft(item: INfeItem): ItemDraft {
 }
 
 export function initialInstallments(note: INfeImport): InstallmentDraft[] {
-  if (note.installments.length > 0) return note.installments.map((i) => ({ number: i.number, dueDate: i.dueDate, amount: fromCents(toCents(i.amount)).toFixed(2) }));
+  // Total zero (bonificação): no installments are created.
+  if (itemsTotalCents(note.items) === 0) return [];
 
-  return [{ number: null, dueDate: note.issueDate, amount: fromCents(itemsTotalCents(note.items)).toFixed(2) }];
+  if (note.installments.length > 0) return note.installments.map((i) => ({ number: i.number, dueDate: i.dueDate, amount: formatMoneyInput(fromCents(toCents(i.amount))) }));
+
+  return [{ number: null, dueDate: note.issueDate, amount: formatMoneyInput(fromCents(itemsTotalCents(note.items))) }];
 }
 
 /** The purchase total the backend checks installments against: the sum of the items' costs (not vNF). */
@@ -92,10 +94,14 @@ export function barcodeToSend(text: string, noteBarcode: string | null): string 
   return noteBarcode ? null : undefined;
 }
 
+/** Preço digitado (pt-BR) válido: preenchido, até 2 casas, não negativo. */
 export function isValidSalePrice(text: string): boolean {
-  const value = parseNumber(text);
+  return moneyTextError(text) === null;
+}
 
-  return text.trim() !== '' && !hasTooManyDecimals(text) && Number.isFinite(value) && value >= 0;
+/** Dinheiro digitado -> reais derivados dos centavos (exatamente o que a tela mostra); 0 se inválido. */
+function moneyToSend(text: string): number {
+  return fromCents(parseMoneyToCents(text) ?? 0);
 }
 
 /** First reason the item blocks the submit, in Portuguese; null when it is ready. */
@@ -126,22 +132,23 @@ export function itemProblem(item: INfeItem, draft: ItemDraft): string | null {
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function installmentsSumCents(installments: InstallmentDraft[]): number {
-  return installments.reduce((sum, row) => sum + toCents(parseNumber(row.amount) || 0), 0);
+  return installments.reduce((sum, row) => sum + (parseMoneyToCents(row.amount) ?? 0), 0);
 }
 
 /** Same limit as the backend: up to R$ 0,05 of difference, the last installment absorbs it. */
 export const INSTALLMENTS_TOLERANCE_CENTS = 5;
 
 export function installmentsProblem(installments: InstallmentDraft[], issueDate: string, totalCents: number): string | null {
+  if (totalCents === 0) return null;
   if (installments.length === 0) return 'Informe ao menos uma parcela.';
 
   for (const [position, row] of installments.entries()) {
     const label = `Parcela ${position + 1}`;
-    const value = parseNumber(row.amount);
+    const cents = parseMoneyToCents(row.amount);
 
     if (!DATE_PATTERN.test(row.dueDate)) return `${label}: informe o vencimento.`;
     if (row.dueDate < issueDate) return `${label}: o vencimento não pode ser anterior à emissão.`;
-    if (row.amount.trim() === '' || !Number.isFinite(value) || value <= 0 || hasTooManyDecimals(row.amount)) return `${label}: informe um valor maior que zero com até 2 casas decimais.`;
+    if (cents === null || cents <= 0) return `${label}: informe um valor maior que zero com até 2 casas decimais.`;
   }
 
   return Math.abs(installmentsSumCents(installments) - totalCents) <= INSTALLMENTS_TOLERANCE_CENTS
@@ -188,7 +195,7 @@ export function buildConfirmBody(args: {
       ? { id: note.supplier.match.id }
       : { create: { name: supplier.name.trim(), ...(email ? { email } : {}), ...(phone ? { phone } : {}) } },
     items: note.items.map((item, position) => itemBody(item, items[position])),
-    installments: installments.map((row) => ({ dueDate: row.dueDate, amount: moneyToSend(row.amount) })),
+    ...(itemsTotalCents(note.items) === 0 ? {} : { installments: installments.map((row) => ({ dueDate: row.dueDate, amount: moneyToSend(row.amount) })) }),
     receive,
   };
 }

@@ -16,6 +16,7 @@ import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 import { useDiscardNfeImport, useNfeImports, useUploadNfeImport } from '../hooks/useNfeImports';
 import { NFE_STATUS_LABELS, type INfeImportSummary, type NfeImportStatus } from '../types';
+import { LoadingState } from '@/shared/components/LoadingState';
 
 const STATUSES = Object.keys(NFE_STATUS_LABELS) as NfeImportStatus[];
 
@@ -186,7 +187,7 @@ export function NfeImportListPage() {
             </div>
           )}
 
-          {isLoading && !data && <p className="p-4 text-sm text-muted">Carregando importações...</p>}
+          {isLoading && !data && <LoadingState label="Carregando importações..." />}
 
           {!isError && (
             <CrudPagination

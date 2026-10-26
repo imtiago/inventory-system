@@ -1,12 +1,9 @@
 import { z } from "zod";
 import { salePriceSchema } from "./createVariantSchema";
+import { createNameSchema } from "@shared/interfaces/http/schemas/nameSchema";
 import { paginationSchema } from "@shared/interfaces/http/schemas/paginationSchema";
 
-const nameSchema = z
-  .string({ error: "O nome é obrigatório." })
-  .trim()
-  .min(3, "O nome deve ter ao menos 3 caracteres.")
-  .max(120, "O nome deve ter no máximo 120 caracteres.");
+const nameSchema = createNameSchema({ min: 3, max: 120 });
 
 /** Trim; vazio vira null; até 500 caracteres. */
 const descriptionSchema = z.preprocess(

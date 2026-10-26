@@ -14,7 +14,7 @@ export class UpdateCustomerUseCase extends TransactionalUseCase<IUpdateCustomerI
     super(transactionManager);
   }
 
-  async handle({ id, ...patch }: IUpdateCustomerInput): Promise<CustomerDTO> {
+  protected async handle({ id, ...patch }: IUpdateCustomerInput): Promise<CustomerDTO> {
     const existing = await this.customerRepo.findById(id);
     if (!existing) {
       throw new NotFoundError("Cliente não encontrado.", "CUSTOMER_NOT_FOUND");

@@ -99,6 +99,17 @@ describe('Exportar CSV', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
   });
 
+  test('contas a pagar: envia os filtros da tela, sem página nem filtros vazios', async () => {
+    const urls = trackCsv('/reports/payables.csv', 'attachment; filename="contas-a-pagar-2026-10-24.csv"');
+    server.use(http.get(`${API_URL}/payables`, () => HttpResponse.json(receivableList)));
+    renderWithProviders(<PayableListPage />, { route: '/payables?status=OPEN&supplierId=s-1&dueFrom=2026-10-01&dueTo=2026-10-31&page=3' });
+    await screen.findByText(/Contas a pagar \(\d+\)/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    await waitFor(() => expect(clicked).toEqual(['contas-a-pagar-2026-10-24.csv']));
+    expect(Object.fromEntries(urls[0].searchParams)).toEqual({ status: 'OPEN', supplierId: 's-1', dueFrom: '2026-10-01', dueTo: '2026-10-31' });
+  });
+
   test('sem Content-Disposition legível usa o nome padrão', async () => {
     trackCsv('/reports/payables.csv');
     renderWithProviders(<PayableListPage />, { route: '/payables' });

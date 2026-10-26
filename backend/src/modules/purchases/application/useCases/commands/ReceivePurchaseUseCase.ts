@@ -43,7 +43,7 @@ export class ReceivePurchaseUseCase extends TransactionalUseCase<IReceivePurchas
         purchaseItemId: item.id,
         productVariantId: item.productVariantId,
         quantity: line.quantity,
-        unitCostCents: item.unitCostCents,
+        unitCost: item.unitCost,
         batchNumber: line.batchNumber,
         manufacturingDate: toDate(line.manufacturingDate),
         expirationDate: toDate(line.expirationDate),

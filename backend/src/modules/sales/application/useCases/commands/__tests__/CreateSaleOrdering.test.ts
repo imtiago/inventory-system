@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { InMemoryTransactionManager } from "@shared/application/transaction/InMemoryTransactionManager";
+import { InMemoryTransactionManager } from "../../../../../../test/InMemoryTransactionManager";
 import { ConsumeStockRequest, InventoryService } from "@inventory/application/services/InventoryService";
 import { CustomerService } from "@customer/application/services/CustomerService";
-import { FinancialService } from "@finance/application/services/FinacialService";
+import { FinancialService } from "@finance/application/services/FinancialService";
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { Sale } from "@sales/domain/entities/Sale";
 import { FakeCatalogService, makeVariant } from "@inventory/application/__tests__/fakes";

@@ -1,14 +1,19 @@
-import { divideCentsRoundHalfUp, fromCents } from "@shared/domain/money";
+import { fromCents } from "@shared/domain/money";
 import { itemCostCents, QUANTITY_SCALE, quantityToNumber, quantityToScaled } from "@nfe-import/domain/NfeDocument";
 import { NfeImportRecord } from "../contracts/NfeImportReadRepository";
 import { NfeImportDTO } from "../dto/NfeImportDTO";
 import { NfeSuggestions } from "../services/NfeSuggestionService";
 
-/** Custo unitário em centavos: custo total / quantidade (até 4 casas), meio para cima, em inteiros. */
-export function unitCostCents(costCents: number, quantity: string): number {
-  const scaled = quantityToScaled(quantity);
+/** Custo unitário em reais com 4 casas: custo total / quantidade, meio para cima, em inteiros (BigInt). */
+export function unitCostFromNfe(costCents: number, quantity: string): number {
+  const scaled = BigInt(quantityToScaled(quantity));
   const sign = costCents < 0 ? -1 : 1;
-  return sign * divideCentsRoundHalfUp(Math.abs(costCents) * QUANTITY_SCALE, scaled);
+  // custo em 1/10000 = (centavos × 100) / (scaled / QUANTITY_SCALE)
+  const numerator = BigInt(Math.abs(costCents)) * 100n * BigInt(QUANTITY_SCALE);
+  const quotient = numerator / scaled;
+  const rest = numerator - quotient * scaled;
+  const rounded = rest * 2n >= scaled ? quotient + 1n : quotient;
+  return (sign * Number(rounded)) / 10_000;
 }
 
 export class NfeImportMapper {
@@ -43,7 +48,7 @@ export class NfeImportMapper {
           name: item.name,
           unit: item.unit,
           quantity: quantityToNumber(item.quantity),
-          unitCost: fromCents(unitCostCents(cost, item.quantity)),
+          unitCost: unitCostFromNfe(cost, item.quantity),
           total: fromCents(cost),
           composesTotal: item.composesTotal,
           lots: item.lots.map((lot) => ({

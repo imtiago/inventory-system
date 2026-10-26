@@ -29,25 +29,6 @@ export class PrismaStockMovementRepository implements IStockMovementRepository {
     return StockMovementMapper.toDomain(data);
   }
 
-  async delete(id: string): Promise<void> {
-    await getDb().stockMovement.delete({
-      where: {
-        id,
-      },
-    });
-  }
-
-  async update(entity: StockMovement): Promise<StockMovement> {
-    const updated = await getDb().stockMovement.update({
-      where: {
-        id: entity.id,
-      },
-      data: StockMovementMapper.toUpdatePersistence(entity),
-    });
-
-    return StockMovementMapper.toDomain(updated);
-  }
-
   async findByProductVariantId(
     productVariantId: string
   ): Promise<StockMovement[]> {

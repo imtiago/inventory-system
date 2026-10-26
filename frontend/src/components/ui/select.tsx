@@ -5,7 +5,7 @@ type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>;
 export const Select: React.FC<SelectProps> = ({ children, ...props }) => (
   <select
     {...props}
-    className={`rounded border border-input bg-surface px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${props.className || ""}`}
+    className={`rounded-lg border border-input bg-surface px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${props.className || ""}`}
   >
     {children}
   </select>

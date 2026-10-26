@@ -5,7 +5,7 @@ import { Modal } from '@/shared/components/Modal/Modal';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
-import { MoneyInput } from '@/shared/components/form';
+import { MoneyInput, FieldError, fieldA11y } from '@/shared/components/form';
 import { formatCurrency, formatMoneyInput, moneyTextError, parseMoneyToCents, toCents } from '@/shared/utils/money';
 
 import { useRegisterPayment } from '../hooks/useRegisterPayment';
@@ -81,7 +81,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
             Valor
           </label>
           <MoneyInput
-            id="payment-amount"
+            id="payment-amount" {...fieldA11y("payment-amount", errors.amount?.message)}
             {...register('amount', {
               validate: (value) => {
                 const problem = moneyTextError(value);
@@ -93,21 +93,21 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
               },
             })}
           />
-          {errors.amount && <p className="mt-1 text-sm text-danger">{errors.amount.message}</p>}
+          <FieldError id="payment-amount" message={errors.amount?.message} />
         </div>
 
         <div>
           <label htmlFor="payment-method" className="mb-2 block text-sm font-medium text-foreground">
             Forma de pagamento
           </label>
-          <select id="payment-method" className={inputClass} {...register('method', { required: 'Selecione a forma de pagamento.' })}>
+          <select id="payment-method" {...fieldA11y("payment-method", errors.method?.message)} className={inputClass} {...register('method', { required: 'Selecione a forma de pagamento.' })}>
             {METHODS.map((method) => (
               <option key={method} value={method}>
                 {PAYMENT_METHOD_LABELS[method]}
               </option>
             ))}
           </select>
-          {errors.method && <p className="mt-1 text-sm text-danger">{errors.method.message}</p>}
+          <FieldError id="payment-method" message={errors.method?.message} />
         </div>
 
         <div>
@@ -115,7 +115,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
             Data do pagamento
           </label>
           <input
-            id="payment-date"
+            id="payment-date" {...fieldA11y("payment-date", errors.paymentDate?.message)}
             type="date"
             max={today}
             className={inputClass}
@@ -127,15 +127,15 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
               },
             })}
           />
-          {errors.paymentDate && <p className="mt-1 text-sm text-danger">{errors.paymentDate.message}</p>}
+          <FieldError id="payment-date" message={errors.paymentDate?.message} />
         </div>
 
         <div>
           <label htmlFor="payment-reference" className="mb-2 block text-sm font-medium text-foreground">
             Referência
           </label>
-          <input id="payment-reference" type="text" className={inputClass} {...register('reference', { maxLength: { value: 100, message: 'Máximo de 100 caracteres.' } })} />
-          {errors.reference && <p className="mt-1 text-sm text-danger">{errors.reference.message}</p>}
+          <input id="payment-reference" {...fieldA11y("payment-reference", errors.reference?.message)} type="text" className={inputClass} {...register('reference', { maxLength: { value: 100, message: 'Máximo de 100 caracteres.' } })} />
+          <FieldError id="payment-reference" message={errors.reference?.message} />
         </div>
 
         {serverError && (

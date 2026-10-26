@@ -2,7 +2,7 @@ import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { PageHeader } from "@/shared/components/layout/PageHeader";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { Controller, useForm } from "react-hook-form";
-import { MoneyInput } from "@/shared/components/form";
+import { FieldError, MoneyInput, fieldA11y } from "@/shared/components/form";
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from "@/shared/utils/money";
 
 import { EntitySearchSelect } from "@/shared/components/form/EntitySearchSelect";
@@ -42,6 +42,18 @@ interface Props {
   onSubmit(data: ProductFormData): void | Promise<void>;
 
   onCancel(): void;
+}
+
+const NAME_MIN = 3;
+const NAME_MAX = 120;
+const DESCRIPTION_MAX = 500;
+
+function nameError(value: string) {
+  const length = value.trim().length;
+  if (length === 0) return "O nome é obrigatório.";
+  if (length < NAME_MIN) return `O nome deve ter ao menos ${NAME_MIN} caracteres.`;
+  if (length > NAME_MAX) return `O nome deve ter no máximo ${NAME_MAX} caracteres.`;
+  return true;
 }
 
 const FIELDS = ["name", "description", "brandId", "categoryId", "salePrice"] as const;
@@ -91,10 +103,11 @@ export function ProductForm({
 
               <input
                 id="product-name"
-                {...register("name")}
+                {...register("name", { validate: nameError })}
+                {...fieldA11y("product-name", errors.name?.message)}
                 className="w-full rounded-lg border border-input bg-surface text-foreground p-3"
               />
-              {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+              <FieldError id="product-name" message={errors.name?.message} />
             </div>
 
             <div>
@@ -102,11 +115,14 @@ export function ProductForm({
 
               <textarea
                 id="product-description"
-                {...register("description")}
+                {...register("description", {
+                  validate: (value) => (value?.trim().length ?? 0) <= DESCRIPTION_MAX || `A descrição deve ter no máximo ${DESCRIPTION_MAX} caracteres.`,
+                })}
+                {...fieldA11y("product-description", errors.description?.message)}
                 rows={4}
                 className="w-full rounded-lg border border-input bg-surface text-foreground p-3"
               />
-              {errors.description && <p className="mt-1 text-sm text-danger">{errors.description.message}</p>}
+              <FieldError id="product-description" message={errors.description?.message} />
             </div>
           </div>
         </section>
@@ -123,8 +139,9 @@ export function ProductForm({
                 {...register("salePrice", {
                   validate: (value) => (value?.trim() ? moneyTextError(value) ?? true : "Informe o preço de venda."),
                 })}
+                {...fieldA11y("product-sale-price", errors.salePrice?.message)}
               />
-              {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
+              <FieldError id="product-sale-price" message={errors.salePrice?.message} />
             </div>
           </section>
         )}
@@ -136,6 +153,7 @@ export function ProductForm({
             <Controller
               control={control}
               name="brandId"
+              rules={{ validate: (value) => Boolean(value) || "A marca é obrigatória." }}
               render={({ field, fieldState }) => (
                 <EntitySearchSelect
                   useOptions={useBrands}
@@ -152,6 +170,7 @@ export function ProductForm({
             <Controller
               control={control}
               name="categoryId"
+              rules={{ validate: (value) => Boolean(value) || "A categoria é obrigatória." }}
               render={({ field, fieldState }) => (
                 <EntitySearchSelect
                   useOptions={useCategories}

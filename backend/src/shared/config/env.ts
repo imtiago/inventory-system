@@ -108,4 +108,21 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   };
 }
 
+/**
+ * Avisos de subida fora de produção: as checagens de CORS e CNPJ só são obrigatórias com
+ * `NODE_ENV=production`; sem elas aqui, a API sobe aberta (CORS reflete a origem) e a
+ * importação de NF-e não confere o destinatário.
+ */
+export function envWarnings(source: NodeJS.ProcessEnv = process.env): string[] {
+  if (source.NODE_ENV === "production") return [];
+  const warnings: string[] = [];
+  if (!source.CORS_ORIGINS?.trim()) {
+    warnings.push("CORS_ORIGINS não definido: o CORS aceita qualquer origem (obrigatório com NODE_ENV=production).");
+  }
+  if (!source.COMPANY_CNPJ?.trim()) {
+    warnings.push("COMPANY_CNPJ não definido: a NF-e importada não terá o destinatário conferido (obrigatório com NODE_ENV=production).");
+  }
+  return warnings;
+}
+
 export const env: Env = loadEnv();

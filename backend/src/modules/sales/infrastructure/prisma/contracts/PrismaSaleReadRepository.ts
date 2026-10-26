@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { SaleListFilter, SaleReadRepository } from "@sales/application/contracts/SaleReadRepository";
 import { SaleDetailDTO, SaleListItemDTO } from "@sales/application/dto/SaleDTO";
@@ -29,7 +30,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
     const where: Prisma.SaleWhereInput = {};
     if (filter.from && filter.to) where.createdAt = await periodBounds(filter.from, filter.to);
     if (filter.status) where.status = filter.status;
-    const [sales, total] = await Promise.all([
+    const [sales, total] = await readTogether([
       getDb().sale.findMany({
         ...paginationOptions,
         where,

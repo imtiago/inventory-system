@@ -6,7 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
-import { FormAutocomplete, MoneyInput, QuantityInput } from '@/shared/components/form';
+import { FormAutocomplete, MoneyInput, QuantityInput, FieldError, fieldA11y } from '@/shared/components/form';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
 import { applyFieldErrors } from '@/shared/utils/applyFieldErrors';
@@ -35,8 +35,8 @@ type PaymentMode = 'cash' | 'installments';
 const MAX_INSTALLMENTS = 12;
 const DEFAULT_FIRST_DUE_DAYS = 30;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2';
-const cellInputClass = 'w-28 rounded-md border border-input bg-surface text-foreground py-1.5 pl-9 pr-2 text-sm';
+const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2';
+const cellInputClass = 'w-28 rounded-lg border border-input bg-surface text-foreground py-1.5 pl-9 pr-2 text-sm';
 const cardMoneyClass = 'h-11 w-full rounded-lg border border-input bg-surface text-foreground py-2 pl-10 pr-3 text-base';
 
 const MONEY_FIELDS = [
@@ -198,7 +198,7 @@ export function PurchaseCreatePage() {
     <Page width="narrow">
       <PageHeader title="Novo pedido de compra" description="Selecione o fornecedor e lance os itens." backPath="/purchases" backLabel="pedidos de compra" />
 
-          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">Fornecedor e data</h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -224,8 +224,8 @@ export function PurchaseCreatePage() {
                 <label htmlFor="purchase-date" className="mb-1 block text-sm font-medium">
                   Data do pedido
                 </label>
-                <input id="purchase-date" type="date" max={today} {...register('purchaseDate', { required: 'Informe a data do pedido.' })} className={inputClass} />
-                {errors.purchaseDate && <p className="mt-1 text-sm text-danger">{errors.purchaseDate.message}</p>}
+                <input id="purchase-date" {...fieldA11y("purchase-date", errors.purchaseDate?.message)} type="date" max={today} {...register('purchaseDate', { required: 'Informe a data do pedido.' })} className={inputClass} />
+                <FieldError id="purchase-date" message={errors.purchaseDate?.message} />
               </div>
             </div>
 
@@ -244,7 +244,7 @@ export function PurchaseCreatePage() {
             </div>
           )}
 
-          <section className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+          <section className="rounded-xl border bg-surface p-5 shadow sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Itens do pedido</h2>
               <Button type="button" variant="outline" onClick={() => setItems([])} disabled={items.length === 0 || createMutation.isPending}>
@@ -297,14 +297,15 @@ export function PurchaseCreatePage() {
                           {MONEY_FIELDS.map((field) => (
                             <td key={field.key} className="px-2 py-3">
                               <MoneyInput
+                                id={`cell-${field.key}-${item.productVariantId}`}
                                 aria-label={`${field.label} ${item.productName}`}
                                 value={item[field.key]}
                                 disabled={createMutation.isPending}
                                 onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                                aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
+                                {...fieldA11y(`cell-${field.key}-${item.productVariantId}`, moneyFieldError(item[field.key]))}
                                 className={cellInputClass}
                               />
-                              {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-danger">{moneyFieldError(item[field.key])}</p>}
+                              <FieldError id={`cell-${field.key}-${item.productVariantId}`} message={moneyFieldError(item[field.key]) ?? undefined} className="mt-1 text-xs text-danger" />
                             </td>
                           ))}
                           <td data-testid={`item-total-${item.productVariantId}`} className={`px-2 py-3 font-medium ${total !== null && total < 0 ? 'text-danger' : ''}`}>
@@ -316,7 +317,7 @@ export function PurchaseCreatePage() {
                               disabled={createMutation.isPending}
                               onClick={() => setItems((current) => current.filter((i) => i.productVariantId !== item.productVariantId))}
                               aria-label={`Remover ${item.productName}`}
-                              className="rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
+                              className="rounded-lg p-2 text-danger hover:bg-danger-soft disabled:opacity-50"
                             >
                               <Trash2 size={17} />
                             </button>
@@ -372,10 +373,10 @@ export function PurchaseCreatePage() {
                               value={item[field.key]}
                               disabled={createMutation.isPending}
                               onChange={(event) => updateItem(item.productVariantId, field.key, event.target.value)}
-                              aria-invalid={moneyFieldError(item[field.key]) ? 'true' : undefined}
+                              {...fieldA11y(`${field.key}-${item.productVariantId}`, moneyFieldError(item[field.key]))}
                               className={cardMoneyClass}
                             />
-                            {moneyFieldError(item[field.key]) && <p className="mt-1 text-xs text-danger">{moneyFieldError(item[field.key])}</p>}
+                            <FieldError id={`${field.key}-${item.productVariantId}`} message={moneyFieldError(item[field.key]) ?? undefined} className="mt-1 text-xs text-danger" />
                           </div>
                         ))}
                       </div>
@@ -403,6 +404,9 @@ export function PurchaseCreatePage() {
               <p className="text-sm text-muted">Total do pedido</p>
               <p data-testid="purchase-total" className="text-2xl font-semibold">
                 {formatCents(totalCents)}
+              </p>
+              <p data-testid="purchase-total-estimate" className="text-xs text-muted">
+                Estimativa com os valores digitados. O total final é conferido ao registrar.
               </p>
             </div>
 
@@ -446,8 +450,8 @@ export function PurchaseCreatePage() {
                     <label htmlFor="purchase-first-due" className="mb-1 block text-sm font-medium">
                       Primeiro vencimento
                     </label>
-                    <input id="purchase-first-due" type="date" min={purchaseDate || undefined} {...register('firstDueDate')} className={inputClass} />
-                    {errors.firstDueDate && <p className="mt-1 text-sm text-danger">{errors.firstDueDate.message}</p>}
+                    <input id="purchase-first-due" {...fieldA11y("purchase-first-due", errors.firstDueDate?.message)} type="date" min={purchaseDate || undefined} {...register('firstDueDate')} className={inputClass} />
+                    <FieldError id="purchase-first-due" message={errors.firstDueDate?.message} />
                   </div>
                 </div>
               )}
@@ -470,8 +474,8 @@ export function PurchaseCreatePage() {
               <label htmlFor="purchase-notes" className="mb-1 block text-sm font-medium">
                 Observações
               </label>
-              <textarea id="purchase-notes" rows={2} maxLength={500} {...register('notes')} className={inputClass} />
-              {errors.notes && <p className="mt-1 text-sm text-danger">{errors.notes.message}</p>}
+              <textarea id="purchase-notes" {...fieldA11y("purchase-notes", errors.notes?.message)} rows={2} maxLength={500} {...register('notes')} className={inputClass} />
+              <FieldError id="purchase-notes" message={errors.notes?.message} />
             </div>
 
             <div className="mt-6 flex flex-col-reverse justify-end gap-3 border-t pt-5 sm:flex-row">

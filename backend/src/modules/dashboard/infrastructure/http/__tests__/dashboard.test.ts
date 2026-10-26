@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { getDb, runInTransactionContext } from "@shared/infrastructure/prisma/transactionContext";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -28,6 +30,28 @@ const addDays = (days: number) => {
 };
 const asDate = (day: string) => new Date(`${day}T00:00:00.000Z`);
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+class Rollback extends Error {}
+
+/**
+ * Roda `work` numa transação REPEATABLE READ que no fim é desfeita. O snapshot nasce na primeira
+ * leitura e não enxerga o que outras suítes gravam em paralelo; as escritas do próprio teste, na
+ * mesma transação, aparecem. Por isso a diferença entre duas leituras é exatamente o que o teste
+ * criou (asserções com `===`, sem `>=`), e nada sobra no banco.
+ */
+async function isolated(work: () => Promise<void>): Promise<void> {
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        await runInTransactionContext(tx, work);
+        throw new Rollback();
+      },
+      { isolationLevel: "RepeatableRead", timeout: 30_000, maxWait: 10_000 },
+    );
+  } catch (error) {
+    if (!(error instanceof Rollback)) throw error;
+  }
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Dash = any;
@@ -87,7 +111,7 @@ describe("Dashboard (GET /dashboard)", () => {
     status: "OPEN" | "PARTIALLY_PAID" | "PAID" | "CANCELED",
     parcels: { amount: number; dueDate: string; paid?: number; reversedPaid?: number }[],
   ) => {
-    const doc = await prisma.financialDocument.create({
+    const doc = await getDb().financialDocument.create({
       data: {
         type,
         originType: type === "RECEIVABLE" ? "SALE" : "PURCHASE",
@@ -102,7 +126,7 @@ describe("Dashboard (GET /dashboard)", () => {
       const payments = [];
       if (p.paid) payments.push({ amount: p.paid });
       if (p.reversedPaid) payments.push({ amount: p.reversedPaid, reversedAt: new Date(), reversedById: userId });
-      await prisma.financialParcel.create({
+      await getDb().financialParcel.create({
         data: {
           financialDocumentId: doc.id,
           amount: p.amount,
@@ -132,7 +156,7 @@ describe("Dashboard (GET /dashboard)", () => {
 
   after(async () => {
     await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
-    await prisma.financialDocument.deleteMany({ where: { id: { in: docIds } } });
+    await deleteFinancialDocuments({ where: { id: { in: docIds } } });
     await prisma.purchase.deleteMany({ where: { id: { in: purchaseIds } } });
     for (const v of variants) await v.cleanup();
     await prisma.customer.deleteMany({ where: { id: customerId } });
@@ -226,57 +250,61 @@ describe("Dashboard (GET /dashboard)", () => {
     ["PAYABLE", "payables"],
   ] as const) {
     test(`${key}: open, overdue e dueNext7Days usam o restante; pago, estornado e cancelado`, async () => {
-      const before = await readWindow();
-      await createDoc(type, "OPEN", [
-        { amount: 100, dueDate: addDays(-1), paid: 30 }, // restante 70, vencida
-        { amount: 40, dueDate: addDays(-1), paid: 40 }, // paga: não conta
-        { amount: 50, dueDate: addDays(3) }, // restante 50, próximos 7 dias
-        { amount: 10, dueDate: TODAY }, // hoje: próximos 7, não vencida
-        { amount: 30, dueDate: addDays(8) }, // fora dos 7 dias
-        { amount: 200, dueDate: addDays(10), reversedPaid: 20 }, // pagamento estornado não abate
-      ]);
-      await createDoc(type, "CANCELED", [{ amount: 999, dueDate: addDays(-1) }]);
-      const after = await readWindow();
-      const b = before[key];
-      const a = after[key];
-      // open e overdue incluem parcelas reais de outras suítes (todas vencidas em 2099): >=.
-      assert.ok(round2(a.open - b.open) >= 70 + 50 + 10 + 30 + 200);
-      assert.ok(round2(a.overdue - b.overdue) >= 70);
-      assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 2);
-      assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 60);
+      await isolated(async () => {
+        const before = await readWindow();
+        await createDoc(type, "OPEN", [
+          { amount: 100, dueDate: addDays(-1), paid: 30 }, // restante 70, vencida
+          { amount: 40, dueDate: addDays(-1), paid: 40 }, // paga: não conta
+          { amount: 50, dueDate: addDays(3) }, // restante 50, próximos 7 dias
+          { amount: 10, dueDate: TODAY }, // hoje: próximos 7, não vencida
+          { amount: 30, dueDate: addDays(8) }, // fora dos 7 dias
+          { amount: 200, dueDate: addDays(10), reversedPaid: 20 }, // pagamento estornado não abate
+        ]);
+        await createDoc(type, "CANCELED", [{ amount: 999, dueDate: addDays(-1) }]);
+        const after = await readWindow();
+        const b = before[key];
+        const a = after[key];
+        assert.equal(round2(a.open - b.open), 70 + 50 + 10 + 30 + 200);
+        assert.equal(round2(a.overdue - b.overdue), 70);
+        assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 2);
+        assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 60);
+      });
     });
 
     test(`${key}: documento quitado não soma; parcial com pagamento estornado soma só o restante`, async () => {
-      const before = await readWindow();
-      // Quitado (PAID): restante 0 em todas as parcelas, inclusive vencidas e nos próximos 7 dias.
-      await createDoc(type, "PAID", [
-        { amount: 80, dueDate: addDays(-2), paid: 80 },
-        { amount: 25, dueDate: addDays(2), paid: 25 },
-      ]);
-      // Parcial: pagamento ativo abate, o estornado não.
-      await createDoc(type, "PARTIALLY_PAID", [
-        { amount: 100, dueDate: addDays(-3), paid: 10, reversedPaid: 50 }, // restante 90, vencida
-        { amount: 40, dueDate: addDays(1), reversedPaid: 40 }, // restante 40, próximos 7 dias
-        { amount: 15, dueDate: addDays(5), paid: 15 }, // quitada
-      ]);
-      const after = await readWindow();
-      const b = before[key];
-      const a = after[key];
-      assert.ok(round2(a.open - b.open) >= 130);
-      assert.ok(round2(a.overdue - b.overdue) >= 90);
-      assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 1);
-      assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 40);
+      await isolated(async () => {
+        const before = await readWindow();
+        // Quitado (PAID): restante 0 em todas as parcelas, inclusive vencidas e nos próximos 7 dias.
+        await createDoc(type, "PAID", [
+          { amount: 80, dueDate: addDays(-2), paid: 80 },
+          { amount: 25, dueDate: addDays(2), paid: 25 },
+        ]);
+        // Parcial: pagamento ativo abate, o estornado não.
+        await createDoc(type, "PARTIALLY_PAID", [
+          { amount: 100, dueDate: addDays(-3), paid: 10, reversedPaid: 50 }, // restante 90, vencida
+          { amount: 40, dueDate: addDays(1), reversedPaid: 40 }, // restante 40, próximos 7 dias
+          { amount: 15, dueDate: addDays(5), paid: 15 }, // quitada
+        ]);
+        const after = await readWindow();
+        const b = before[key];
+        const a = after[key];
+        assert.equal(round2(a.open - b.open), 130);
+        assert.equal(round2(a.overdue - b.overdue), 90);
+        assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 1);
+        assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 40);
+      });
     });
   }
 
   test("estoque: variante zerada entra; lote vencendo em 30 dias entra, vencido/fora do prazo/zerado não", async () => {
     const [v0, v1, v2, v3] = variants;
+    await isolated(async () => {
     const before = await readWindow();
 
     const mkInv = (variantId: string, quantity: number) =>
-      prisma.inventory.create({ data: { productVariantId: variantId, quantity } });
+      getDb().inventory.create({ data: { productVariantId: variantId, quantity } });
     const mkLot = (inventoryId: string, variantId: string, batch: string, remaining: number, expiry: string) =>
-      prisma.inventoryLot.create({
+      getDb().inventoryLot.create({
         data: {
           inventoryId,
           productVariantId: variantId,
@@ -300,8 +328,7 @@ describe("Dashboard (GET /dashboard)", () => {
     await mkLot(inv3.id, v3.variantId, "tx-empty", 0, addDays(5)); // zerado
 
     const after = await readWindow();
-    // Não janelado: outras suítes também criam estoques zerados.
-    assert.ok(after.inventory.outOfStockCount - before.inventory.outOfStockCount >= 1);
+    assert.equal(after.inventory.outOfStockCount - before.inventory.outOfStockCount, 1);
     assert.ok(after.inventory.outOfStock.length <= 10);
     const out = after.inventory.outOfStock.find((i: any) => i.productVariantId === v0.variantId);
     assert.ok(out, "variante zerada na lista");
@@ -325,31 +352,32 @@ describe("Dashboard (GET /dashboard)", () => {
     for (const id of ["tx-expired", "tx-far", "tx-empty"]) {
       assert.ok(!after.inventory.expiringLots.items.some((i: any) => i.batchNumber === id));
     }
+    });
   });
 
   test("compras aguardando recebimento: PENDING e PARTIALLY_RECEIVED", async () => {
-    const before = await readWindow();
-    const mk = async (status: "PENDING" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELED", total: number) => {
-      const p = await prisma.purchase.create({
-        data: {
-          code: `tx-${randomUUID()}`,
-          supplierId,
-          status,
-          origin: "MANUAL",
-          purchaseDate: asDate(TODAY),
-          totalAmount: total,
-        },
-      });
-      purchaseIds.push(p.id);
-    };
-    await mk("PENDING", 100.5);
-    await mk("PARTIALLY_RECEIVED", 20.25);
-    await mk("RECEIVED", 999);
-    await mk("CANCELED", 5);
-    const after = await readWindow();
-    // Não janelado: outras suítes criam compras pendentes.
-    assert.ok(after.purchases.awaitingReceipt.count - before.purchases.awaitingReceipt.count >= 2);
-    assert.ok(round2(after.purchases.awaitingReceipt.total - before.purchases.awaitingReceipt.total) >= 120.75);
+    await isolated(async () => {
+      const before = await readWindow();
+      const mk = async (status: "PENDING" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELED", total: number) => {
+        await getDb().purchase.create({
+          data: {
+            code: `tx-${randomUUID()}`,
+            supplierId,
+            status,
+            origin: "MANUAL",
+            purchaseDate: asDate(TODAY),
+            totalAmount: total,
+          },
+        });
+      };
+      await mk("PENDING", 100.5);
+      await mk("PARTIALLY_RECEIVED", 20.25);
+      await mk("RECEIVED", 999);
+      await mk("CANCELED", 5);
+      const after = await readWindow();
+      assert.equal(after.purchases.awaitingReceipt.count - before.purchases.awaitingReceipt.count, 2);
+      assert.equal(round2(after.purchases.awaitingReceipt.total - before.purchases.awaitingReceipt.total), 120.75);
+    });
   });
 
   test("seções por papel", async () => {
@@ -369,8 +397,24 @@ describe("Dashboard (GET /dashboard)", () => {
   });
 
   test("chaves = fixture", async () => {
-    const data = await readWindow(); // janela com dados: listas não vazias
-    const fixture = JSON.parse(readFileSync(FIXTURE, "utf8"));
-    assert.deepEqual(keyShape(data), keyShape(fixture.data));
+    // Listas não vazias: cria um estoque zerado e um lote vencendo (desfeitos no fim).
+    await isolated(async () => {
+      const inventory = await getDb().inventory.create({ data: { productVariantId: variants[0].variantId, quantity: 0 } });
+      await getDb().inventoryLot.create({
+        data: {
+          inventoryId: inventory.id,
+          productVariantId: variants[0].variantId,
+          sourceType: "MANUAL",
+          initialQuantity: 5,
+          remainingQuantity: 5,
+          unitCost: 1,
+          batchNumber: "tx-keys",
+          expirationDate: asDate(addDays(3)),
+        },
+      });
+      const data = await readWindow();
+      const fixture = JSON.parse(readFileSync(FIXTURE, "utf8"));
+      assert.deepEqual(keyShape(data), keyShape(fixture.data));
+    });
   });
 });

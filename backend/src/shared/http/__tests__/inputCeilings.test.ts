@@ -127,6 +127,25 @@ describe("Tetos de quantidade e valor (400 no campo, nunca 500)", () => {
     assert.equal(await prisma.stockMovement.count({ where: { productVariantId: variantId } }), 0);
   });
 
+  test("venda: mais de 200 itens → 400 em items, com mensagem (antes de tocar o banco)", async () => {
+    const item = () => ({ productVariantId: randomUUID(), quantity: 1 });
+    const sale = (count: number) => ({
+      customerId,
+      items: Array.from({ length: count }, item),
+      paymentTerms: { installments: 1 },
+    });
+    const res = await post("/sales", sale(201));
+    assert.equal(res.statusCode, 400, res.body);
+    const issue = (res.json().errors as { field: string; message: string }[]).find((e) => e.field === "items");
+    assert.ok(issue, res.body);
+    assert.equal(issue.message, "A venda pode ter no máximo 200 itens.");
+
+    // 200 itens passam da validação (variantes inexistentes → 404 do caso de uso, não 400).
+    const ok = await post("/sales", sale(200));
+    assert.equal(ok.statusCode, 404, ok.body);
+    assert.equal(ok.json().code, "VARIANT_NOT_FOUND");
+  });
+
   test("pagamento: valor acima de 9.999.999.999,99 → 400 no campo amount", async () => {
     for (const prefix of ["/receivables", "/payables"]) {
       await expect400(

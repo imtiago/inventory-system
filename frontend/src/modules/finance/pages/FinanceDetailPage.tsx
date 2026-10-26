@@ -15,16 +15,8 @@ import { FINANCE_KINDS, partyOf, type FinanceKind } from '../config';
 import { useFinanceDocument } from '../hooks/useFinanceDocument';
 import { PAYMENT_METHOD_LABELS, FINANCE_STATUS_LABELS, type IFinancePayment } from '../types';
 import { Can } from '@/shared/auth/Can';
-
-function formatDateTime(value: string | null) {
-  if (!value) return '—';
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return '—';
-
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
-}
+import { LoadingState } from '@/shared/components/LoadingState';
+import { formatDateTime } from '@/shared/utils/formatDateTime';
 
 export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
   const config = FINANCE_KINDS[kind];
@@ -55,7 +47,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
         }
       />
 
-      {isLoading && <p className="text-sm text-muted">Carregando {config.singular.toLowerCase()}...</p>}
+      {isLoading && <LoadingState label={`Carregando ${config.singular.toLowerCase()}...`} />}
 
       {isError && !document && (
         <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">{isNotFound ? `${config.singular} não encontrada.` : `Não foi possível carregar a ${config.singular.toLowerCase()}.`}</div>

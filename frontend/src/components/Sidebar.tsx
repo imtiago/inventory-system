@@ -71,7 +71,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     >
       <div className="shrink-0 p-6 pr-14 text-xl font-bold lg:px-6 lg:pb-3 lg:pt-5">Estoque</div>
 
-      <nav aria-label="Menu principal" className="scroll-shadow min-h-0 flex-1 overflow-y-auto px-3">
+      <nav aria-label="Menu principal" className="scroll-shadow min-h-0 flex-1 overflow-y-auto overscroll-contain px-3">
         {ungrouped.map((item) => renderItem(item, onNavigate))}
 
         {groups.map((group) => (

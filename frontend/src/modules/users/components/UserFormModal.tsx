@@ -11,6 +11,8 @@ import type { UserRole } from '@/shared/auth/permissions';
 import { useCreateUser, useUpdateUser } from '../hooks/useUserMutations';
 import { ROLES, ROLE_LABELS, type UserDTO } from '../types';
 
+import { FieldError, fieldA11y } from '@/shared/components/form';
+import { passwordBytesRule } from '@/shared/utils/password';
 type Values = { name: string; email: string; password: string; role: UserRole | ''; active: boolean };
 
 const FIELDS = ['name', 'email', 'password', 'role'] as const;
@@ -73,7 +75,7 @@ function UserForm({ user, onClose }: FormProps) {
           Nome *
         </label>
         <input
-          id="user-name"
+          id="user-name" {...fieldA11y("user-name", errors.name?.message)}
           type="text"
           maxLength={120}
           autoComplete="off"
@@ -83,7 +85,7 @@ function UserForm({ user, onClose }: FormProps) {
             validate: (value) => value.trim().length > 0 || 'O nome não pode conter apenas espaços.',
           })}
         />
-        {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
+        <FieldError id="user-name" message={errors.name?.message} />
       </div>
 
       {isEdit ? (
@@ -98,7 +100,7 @@ function UserForm({ user, onClose }: FormProps) {
               E-mail *
             </label>
             <input
-              id="user-email"
+              id="user-email" {...fieldA11y("user-email", errors.email?.message)}
               type="email"
               autoComplete="off"
               className={inputClass}
@@ -107,7 +109,7 @@ function UserForm({ user, onClose }: FormProps) {
                 pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Informe um e-mail válido.' },
               })}
             />
-            {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
+            <FieldError id="user-email" message={errors.email?.message} />
           </div>
 
           <div>
@@ -115,17 +117,17 @@ function UserForm({ user, onClose }: FormProps) {
               Senha *
             </label>
             <input
-              id="user-password"
+              id="user-password" {...fieldA11y("user-password", errors.password?.message)}
               type="password"
               autoComplete="new-password"
               className={inputClass}
               {...register('password', {
                 required: 'Informe a senha.',
                 minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres.' },
-                maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
+                validate: passwordBytesRule,
               })}
             />
-            {errors.password && <p className="mt-1 text-sm text-danger">{errors.password.message}</p>}
+            <FieldError id="user-password" message={errors.password?.message} />
           </div>
         </>
       )}
@@ -134,7 +136,7 @@ function UserForm({ user, onClose }: FormProps) {
         <label htmlFor="user-role" className="mb-1 block font-medium">
           Papel *
         </label>
-        <select id="user-role" disabled={isSelf} className={inputClass} {...register('role', { required: 'Selecione o papel.' })}>
+        <select id="user-role" {...fieldA11y("user-role", errors.role?.message)} disabled={isSelf} className={inputClass} {...register('role', { required: 'Selecione o papel.' })}>
           <option value="">Selecione...</option>
           {ROLES.map((role) => (
             <option key={role} value={role}>
@@ -142,7 +144,7 @@ function UserForm({ user, onClose }: FormProps) {
             </option>
           ))}
         </select>
-        {errors.role && <p className="mt-1 text-sm text-danger">{errors.role.message}</p>}
+        <FieldError id="user-role" message={errors.role?.message} />
       </div>
 
       {isEdit && (

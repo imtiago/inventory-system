@@ -169,6 +169,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
           aria-controls={listId}
           aria-activedescendant={open && activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined}
           aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           aria-required={required}
           autoComplete="off"
           disabled={disabled}
@@ -193,7 +194,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
 
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {value != null && !disabled && (
-            <button type="button" aria-label="Limpar seleção" onClick={clearSelection} className="rounded p-1 text-subtle hover:bg-surface-muted">
+            <button type="button" aria-label="Limpar seleção" onClick={clearSelection} className="rounded-lg p-1 text-subtle hover:bg-surface-muted">
               <X size={15} />
             </button>
           )}
@@ -212,14 +213,14 @@ export function Autocomplete<TOption, TValue extends string | number>({
               setOpen((current) => !current);
               setActiveIndex(-1);
             }}
-            className="rounded p-1 text-subtle hover:bg-surface-muted"
+            className="rounded-lg p-1 text-subtle hover:bg-surface-muted"
           >
             <ChevronDown size={17} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
           </button>
         </div>
 
         {open && !disabled && (
-          <ul id={listId} role="listbox" className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg">
+          <ul id={listId} role="listbox" className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto overscroll-contain rounded-lg border border-border bg-surface py-1 shadow-lg">
             {queryTooShort ? (
               <li className="px-3 py-4 text-sm text-muted">Digite pelo menos {minSearchLength} caracteres para pesquisar.</li>
             ) : loading ? (
@@ -258,7 +259,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
       </div>
 
       {error && (
-        <p role="alert" className="mt-1.5 text-sm text-danger">
+        <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-sm text-danger">
           {error}
         </p>
       )}

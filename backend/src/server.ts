@@ -1,4 +1,4 @@
-import { env } from "./shared/config/env";
+import { env, envWarnings } from "./shared/config/env";
 import { app } from "./app";
 import { prisma } from "./shared/prisma";
 import { installGracefulShutdown } from "./shared/http/gracefulShutdown";
@@ -12,6 +12,7 @@ installGracefulShutdown(app, { timeoutMs: 10_000, exit: (code) => process.exit(c
 
 const start = async () => {
   try {
+    for (const warning of envWarnings()) app.log.warn(warning);
     await app.listen({ port: env.PORT, host: env.HOST });
   } catch (err) {
     app.log.error(err);

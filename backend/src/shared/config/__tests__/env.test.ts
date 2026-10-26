@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadEnv } from "../env";
+import { envWarnings, loadEnv } from "../env";
 
 const base = {
   DATABASE_URL: "postgresql://u:p@localhost:5432/db",
@@ -104,4 +104,19 @@ test("COMPANY_CNPJ inválido não sobe (em qualquer ambiente)", () => {
 test("COMPANY_CNPJ é opcional fora de produção e aceita CNPJ alfanumérico", () => {
   assert.equal(loadEnv(base).COMPANY_CNPJ, undefined);
   assert.equal(loadEnv({ ...base, COMPANY_CNPJ: "12abc34501de35" }).COMPANY_CNPJ, "12ABC34501DE35");
+});
+
+test("envWarnings: fora de produção avisa quando CORS_ORIGINS e COMPANY_CNPJ faltam", () => {
+  const warnings = envWarnings(base);
+  assert.equal(warnings.length, 2);
+  assert.match(warnings[0], /CORS_ORIGINS/);
+  assert.match(warnings[1], /COMPANY_CNPJ/);
+});
+
+test("envWarnings: sem aviso quando as duas estão definidas, ou em produção (lá é erro)", () => {
+  assert.deepEqual(
+    envWarnings({ ...base, CORS_ORIGINS: "https://app.exemplo.com", COMPANY_CNPJ: "11222333000181" }),
+    [],
+  );
+  assert.deepEqual(envWarnings({ ...base, NODE_ENV: "production" }), []);
 });
