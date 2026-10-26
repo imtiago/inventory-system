@@ -35,9 +35,9 @@ Variável opcional: `VITE_API_URL`. Se definida, sempre vence. Sem ela, o `npm r
 
 ### Abrir o sistema no celular ou tablet (desenvolvimento)
 
-A câmera do navegador só funciona em conexão segura, por isso o servidor de desenvolvimento sobe em **HTTPS** com certificado autoassinado (`@vitejs/plugin-basic-ssl`, só no dev).
+No computador, `npm run dev` sobe em `http://localhost:5173`. A câmera do navegador só funciona em conexão segura, então para testar no celular use `npm run dev:https`, que sobe em **HTTPS** com certificado autoassinado (`@vitejs/plugin-basic-ssl`, só no dev).
 
-1. Suba o backend (`cd backend && npm run dev`) e o frontend (`cd frontend && npm run dev`).
+1. Suba o backend (`cd backend && npm run dev`) e o frontend (`cd frontend && npm run dev:https`).
 2. Deixe o celular na **mesma rede Wi-Fi** do computador.
 3. Descubra o IP do computador na rede (`ipconfig` no Windows, `ip addr` no Linux/macOS).
 4. No celular abra `https://<ip-do-pc>:5173`.
