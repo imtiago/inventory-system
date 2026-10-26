@@ -34,8 +34,8 @@ const roundCost = (value: number) => Math.round(value * 1_000_000) / 1_000_000;
  *
  * Condições (lidas sob as travas): cada lote com saldo = quantidade recebida, e o disponível
  * (saldo − reservado) do inventário cobre o que sai. Efeito: lote zerado (mantido como histórico),
- * saída OUT origem PURCHASE por lote, alocações removidas e custo médio recalculado pelos lotes
- * que restam (Σ saldo × custo / Σ saldo; sem estoque → 0).
+ * saída OUT origem PURCHASE por lote, alocações removidas e custo médio revertido (inverso da média
+ * móvel do recebimento; sem estoque → 0).
  */
 export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurchaseStockInput, RevertPurchaseStockResult> {
   constructor(
@@ -83,12 +83,23 @@ export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurch
         await this.inventoryLotRepository.update(lot);
       }
 
-      const remaining = await this.inventoryLotRepository.findAvailableByInventory(inventory.id);
-      const remainingQuantity = remaining.reduce((sum, lot) => sum + lot.remainingQuantity, 0);
-      const averageCost =
-        remainingQuantity === 0
-          ? 0
-          : roundCost(remaining.reduce((sum, lot) => sum + lot.remainingQuantity * lot.unitCost, 0) / remainingQuantity);
+      // Desfaz a média móvel da entrada: (média·saldo − Σ custo·qtd dos lotes) / (saldo − qtd). Só se
+      // o saldo do inventário bater com os lotes cai no recálculo pelos lotes que restam (dados
+      // desalinhados: resultado negativo/inválido).
+      const removedValue = consumed.reduce((sum, { lot, quantity: lotQuantity }) => sum + lotQuantity * lot.unitCost, 0);
+      const remainingStock = inventory.quantity - quantity;
+      let averageCost = 0;
+      if (remainingStock > 0) {
+        averageCost = roundCost((inventory.averageCost * inventory.quantity - removedValue) / remainingStock);
+        if (!Number.isFinite(averageCost) || averageCost < 0) {
+          const remaining = await this.inventoryLotRepository.findAvailableByInventory(inventory.id);
+          const remainingQuantity = remaining.reduce((sum, lot) => sum + lot.remainingQuantity, 0);
+          averageCost =
+            remainingQuantity === 0
+              ? 0
+              : roundCost(remaining.reduce((sum, lot) => sum + lot.remainingQuantity * lot.unitCost, 0) / remainingQuantity);
+        }
+      }
 
       let balance = inventory.quantity;
       inventory.revertReceipt(quantity, averageCost);

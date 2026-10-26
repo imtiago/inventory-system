@@ -71,7 +71,9 @@ export function VariantForm({
 
   // Só o administrador (catalog.price) altera o preço; os demais só informam o preço inicial (obrigatório).
   const canPrice = useCan("catalog.price");
-  const priceReadOnly = requireSalePrice && !canPrice;
+  // Variante nunca precificada (R$ 0,00): o cadastro inicial do preço é liberado a todos.
+  const neverPriced = (initialValues?.salePrice ?? 0) === 0;
+  const priceReadOnly = requireSalePrice && !canPrice && !neverPriced;
   const priceRequired = requireSalePrice || !canPrice;
 
   function handleBarcodeRead(barcode: string) {

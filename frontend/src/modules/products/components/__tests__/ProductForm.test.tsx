@@ -107,4 +107,33 @@ describe('ProductForm', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ brandId: 'b-101', categoryId: 'c-0' });
   });
+
+  describe('preço de venda inicial (cadastro)', () => {
+    const typeName = () => userEvent.type(screen.getByLabelText('Nome'), 'Perfume');
+
+    test('com withSalePrice o campo é obrigatório e envia o número', async () => {
+      const onSubmit = vi.fn();
+      renderWithProviders(<ProductForm title="Novo" description="" withSalePrice onSubmit={onSubmit} onCancel={() => {}} />);
+
+      await typeName();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
+      expect(await screen.findByText('Informe o preço de venda.')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+
+      await userEvent.type(screen.getByLabelText('Preço de venda (R$)'), '25,9');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ name: 'Perfume', salePrice: 25.9 });
+    });
+
+    test('sem withSalePrice (edição) o campo não aparece e nada é enviado', async () => {
+      const onSubmit = vi.fn();
+      renderWithProviders(<ProductForm title="Editar" description="" onSubmit={onSubmit} onCancel={() => {}} />);
+      expect(screen.queryByLabelText('Preço de venda (R$)')).not.toBeInTheDocument();
+      await typeName();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0].salePrice).toBeUndefined();
+    });
+  });
 });

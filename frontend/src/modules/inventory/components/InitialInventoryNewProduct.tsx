@@ -24,5 +24,5 @@ export function InitialInventoryNewProduct({ onCancel, onSuccess }: InitialInven
     }
   }
 
-  return <ProductForm title="" description="" onSubmit={handleSubmit} onCancel={onCancel} />;
+  return <ProductForm title="" description="" withSalePrice onSubmit={handleSubmit} onCancel={onCancel} />;
 }

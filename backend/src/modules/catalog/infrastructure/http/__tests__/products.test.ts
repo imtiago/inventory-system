@@ -67,6 +67,24 @@ describe("Produtos (/products)", () => {
     assert.ok(created.createdAt);
   });
 
+  test("VENDEDOR cria produto com preço de venda → a variante Padrão nasce precificada", async () => {
+    const brand = await data.brand();
+    const category = await data.category();
+    const res = await call("POST", "/products", { name: "tx-test-com-preco", brandId: brand.id, categoryId: category.id, salePrice: 25.9 }, vendedor.token);
+    assert.equal(res.statusCode, 201, res.body);
+    data.trackProduct(res.json().data.id);
+    const variants = await call("GET", `/products/${res.json().data.id}/variants?page=1&limit=10`);
+    assert.equal(variants.json().data[0].salePrice, 25.9);
+    assert.equal(variants.json().data[0].name, "Padrão");
+  });
+
+  test("POST /products com preço negativo → 400", async () => {
+    const brand = await data.brand();
+    const category = await data.category();
+    const res = await call("POST", "/products", { name: "tx-test-preco-neg", brandId: brand.id, categoryId: category.id, salePrice: -1 });
+    assert.equal(res.statusCode, 400, res.body);
+  });
+
   test("POST /products com marca inexistente → 404 BRAND_NOT_FOUND; descrição > 500 → 400", async () => {
     const category = await data.category();
     const res = await call("POST", "/products", {

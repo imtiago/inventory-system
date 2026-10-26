@@ -71,6 +71,11 @@ function notAccepted(message: string): BusinessRuleError {
   return new BusinessRuleError(message, ErrorCodes.NFE_NOT_ACCEPTED);
 }
 
+/** "11144477735" → "111.444.777-35". */
+function formatCpf(value: string): string {
+  return /^\d{11}$/.test(value) ? value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : value;
+}
+
 /** "11222333000181" → "11.222.333/0001-81" (CNPJ alfanumérico também; outro formato volta como veio). */
 function formatCnpj(value: string): string {
   const m = /^([0-9A-Z]{2})([0-9A-Z]{3})([0-9A-Z]{3})([0-9A-Z]{4})(\d{2})$/.exec(value);
@@ -283,6 +288,8 @@ export class NfeParser {
     if (this.companyCnpj) {
       const recipient = text(dest, "CNPJ")?.toUpperCase();
       if (recipient !== this.companyCnpj) {
+        const cpf = text(dest, "CPF");
+        if (!recipient && cpf) throw notAccepted(`A nota é destinada a outro destinatário (CPF ${formatCpf(cpf)}).`);
         throw notAccepted(`A nota é destinada a outro CNPJ (${recipient ? formatCnpj(recipient) : "não informado"}).`);
       }
     }

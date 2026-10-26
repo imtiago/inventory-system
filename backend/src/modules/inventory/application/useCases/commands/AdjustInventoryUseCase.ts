@@ -26,6 +26,8 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       "reconcileBoxAllocations"
     >,
     transactionManager: TransactionManager,
+    /** Código legível do pedido de compra (origem PURCHASE); null → usa o id curto. */
+    private readonly resolvePurchaseCode: (purchaseId: string) => Promise<string | null> = async () => null,
   ) {
     super(transactionManager);
   }
@@ -122,6 +124,18 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
     return notes ? `${notes} (reservado: ${reserved})` : `Reservado: ${reserved}`;
   }
 
+  private async documentLabel(key: string): Promise<string> {
+    const [origin, originId] = key.split("|");
+    if (!originId) return key;
+    const short = originId.slice(0, 8).toUpperCase();
+    if (origin === StockMovementOrigin.SALE) return `Venda #${short}`;
+    if (origin === StockMovementOrigin.PURCHASE) {
+      const code = await this.resolvePurchaseCode(originId);
+      return code ? `Pedido ${code}` : `${origin} ${short}`;
+    }
+    return `${origin} ${short}`;
+  }
+
   /** Documentos com reserva em aberto: Σ RESERVE − Σ RELEASE por origem + originId. */
   private async describeReservations(inventory: Inventory): Promise<string> {
     const movements = await this.stockMovementRepository.findByProductVariantId(
@@ -134,13 +148,13 @@ export class AdjustInventoryUseCase extends TransactionalUseCase<
       const sign =
         m.type === StockMovementType.RESERVE ? 1 : m.type === StockMovementType.RELEASE ? -1 : 0;
       if (sign === 0) continue;
-      const key = m.originId ? `${m.origin} ${m.originId}` : "documento não identificado";
+      const key = m.originId ? `${m.origin}|${m.originId}` : "documento não identificado";
       open.set(key, (open.get(key) ?? 0) + sign * m.quantity);
     }
     const labels: string[] = [];
     for (const [key, qty] of open) {
       if (qty <= 0) continue;
-      labels.push(`${key} (${qty})`);
+      labels.push(`${await this.documentLabel(key)} (${qty})`);
       identified += qty;
     }
     // Reserva sem movimentação correspondente (dados antigos): não some da mensagem.

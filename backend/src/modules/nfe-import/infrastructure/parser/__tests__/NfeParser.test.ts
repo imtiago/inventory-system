@@ -253,6 +253,13 @@ describe("NfeParser", () => {
       );
     });
 
+    test("destinatário pessoa física (CPF) → mensagem cita o CPF formatado", () => {
+      expectNotAccepted(
+        full.replace(/<dest>[\s\S]*?<\/dest>/, "<dest><CPF>11144477735</CPF></dest>"),
+        "A nota é destinada a outro destinatário (CPF 111.444.777-35).",
+      );
+    });
+
     test("sem COMPANY_CNPJ configurado o destinatário não é conferido", () => {
       const other = full.replace("<CNPJ>11444777000161</CNPJ>", "<CNPJ>11222333000181</CNPJ>");
       assert.equal(new NfeParser().parse(other).accessKey, FULL_KEY);

@@ -21,6 +21,7 @@ export function ProductCreatePage() {
       <ProductForm
         title="Novo Produto"
         description="Cadastre um novo produto no catálogo."
+        withSalePrice
         onSubmit={handleSubmit}
         backPath="/products"
         backLabel="produtos"

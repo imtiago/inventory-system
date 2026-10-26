@@ -601,6 +601,7 @@ describe('InitialInventoryPage (assistente)', () => {
     await user.click(screen.getByRole('button', { name: /cadastrar sem código de barras/i }));
     await user.click(screen.getByRole('button', { name: /não, é um produto novo/i }));
     const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Preço de venda (R$)'), '10');
     await user.click(within(dialog).getByRole('button', { name: 'Salvar Produto' }));
 
     expect(await within(dialog).findByText('O nome é obrigatório.')).toBeInTheDocument();

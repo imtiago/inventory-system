@@ -45,6 +45,8 @@ PGCONTAINER=api_db_1 npm run backup-db           # sem PGCONTAINER usa o pg_dump
 npm run restore-db -- <arquivo.dump> <banco-destino> [--yes]
 ```
 
+`PGCONTAINER=api_db_1` é necessário quando o `pg_dump` local é de versão anterior à do servidor (aqui: pg_dump 14 local, servidor PG 16 no container `api_db_1`); sem ele o dump falha por diferença de versão.
+
 O backup vai para `${BACKUP_DIR:-$HOME/backups/inventory}/inventory-AAAAMMDD-HHMMSS.dump` e remove dumps com mais de `RETENTION_DAYS` (padrão 14) dias. A restauração recusa o banco `inventory` (e o de `DATABASE_URL`) sem `--force` e, para eles, sempre pede confirmação digitada; para outros bancos, `--yes` dispensa a confirmação. Credenciais vêm de `DATABASE_URL` (`backend/.env`). Exemplo de cron diário às 02:00:
 
 ```

@@ -69,3 +69,35 @@ test("lote do pedido com saída → STOCK_USED sem gravar nada", async () => {
   assert.deepEqual(await uc.execute(input), { status: "STOCK_USED" });
   assert.equal(movements.all().length, 0);
 });
+
+test("estorno desfaz a média móvel (não recalcula pelos lotes): 10 a 10, 10 a 20, venda de 10, NF-e 10 a 30", async () => {
+  const inventories = new InMemoryInventoryRepository();
+  const lots = new InMemoryInventoryLotRepository();
+  const movements = new InMemoryStockMovementRepository();
+  const boxes = new InMemoryInventoryBoxStockRepository(lots);
+  // Média 15 com 10 un (a venda consumiu o lote a 10); a NF-e traz 10 un a 30 → média 22,5 com 20 un.
+  const inventory = await inventories.create(new Inventory({ productVariantId: "v-1", quantity: 20, averageCost: 22.5 }));
+  const mk = (initialQuantity: number, unitCost: number, extra = {}) =>
+    lots.create(new InventoryLot({ inventoryId: inventory.id, productVariantId: "v-1", sourceType: InventoryLotSource.MANUAL, initialQuantity, unitCost, ...extra }));
+  const a = await mk(10, 10);
+  a.consume(10);
+  await lots.update(a);
+  await mk(10, 20);
+  await mk(10, 30, { sourceType: InventoryLotSource.PURCHASE, sourceId: "p-2" });
+  const uc = new RevertPurchaseStockUseCase(inventories, lots, movements, boxes, new InMemoryTransactionManager());
+  assert.deepEqual(await uc.execute({ purchaseId: "p-2", productVariantIds: ["v-1"], notes: "n", userId: "u" }), { status: "REVERTED", lots: 1 });
+  const after = (await inventories.findByProductVariantId("v-1"))!;
+  assert.deepEqual([after.quantity, after.averageCost], [10, 15]);
+});
+
+test("estorno com saldo restante zero → custo médio 0", async () => {
+  const inventories = new InMemoryInventoryRepository();
+  const lots = new InMemoryInventoryLotRepository();
+  const boxes = new InMemoryInventoryBoxStockRepository(lots);
+  const inventory = await inventories.create(new Inventory({ productVariantId: "v-1", quantity: 4, averageCost: 9 }));
+  await lots.create(new InventoryLot({ inventoryId: inventory.id, productVariantId: "v-1", sourceType: InventoryLotSource.PURCHASE, sourceId: "p-3", initialQuantity: 4, unitCost: 9 }));
+  const uc = new RevertPurchaseStockUseCase(inventories, lots, new InMemoryStockMovementRepository(), boxes, new InMemoryTransactionManager());
+  await uc.execute({ purchaseId: "p-3", productVariantIds: ["v-1"], notes: "n", userId: "u" });
+  const after = (await inventories.findByProductVariantId("v-1"))!;
+  assert.deepEqual([after.quantity, after.averageCost], [0, 0]);
+});

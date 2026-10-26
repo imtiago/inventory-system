@@ -8,8 +8,11 @@ export function makeCreateProductController() {
   const useCase = makeCreateProductUseCase();
 
   return async function CreateProductController(request: FastifyRequest, reply: FastifyReply) {
-    const data = parseInput(createProductSchema, request.body);
-    const product = await useCase.execute(data);
+    const { salePrice, ...data } = parseInput(createProductSchema, request.body);
+    const product = await useCase.execute({
+      ...data,
+      ...(salePrice !== undefined ? { variant: { name: "Padrão", salePrice } } : {}),
+    });
     return reply.status(201).send(HttpResponse.created(product));
   };
 }

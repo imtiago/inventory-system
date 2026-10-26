@@ -2,6 +2,8 @@ import { useSingleSubmit } from "@/shared/hooks/useSingleSubmit";
 import { PageHeader } from "@/shared/components/layout/PageHeader";
 import { applySubmitError } from "@/shared/utils/applyFieldErrors";
 import { Controller, useForm } from "react-hook-form";
+import { MoneyInput } from "@/shared/components/form";
+import { formatMoneyInput, moneyTextError, parseMoneyToCents } from "@/shared/utils/money";
 
 import { EntitySearchSelect } from "@/shared/components/form/EntitySearchSelect";
 import { useBrands } from "@/modules/brands/hooks/useBrands";
@@ -13,7 +15,12 @@ export interface ProductFormData {
   description?: string;
   brandId: string;
   categoryId: string;
+  /** R$; só no cadastro (a variante Padrão nasce com este preço). */
+  salePrice?: number;
 }
+
+/** O campo guarda o texto digitado (pt-BR); a conversão para número só acontece no envio. */
+type FormValues = Omit<ProductFormData, "salePrice"> & { salePrice?: string };
 
 interface Props {
   title: string;
@@ -29,12 +36,15 @@ interface Props {
 
   initialValues?: Partial<ProductFormData>;
 
+  /** Cadastro: pede o preço de venda inicial (obrigatório), para o produto não nascer a R$ 0,00. */
+  withSalePrice?: boolean;
+
   onSubmit(data: ProductFormData): void | Promise<void>;
 
   onCancel(): void;
 }
 
-const FIELDS = ["name", "description", "brandId", "categoryId"] as const;
+const FIELDS = ["name", "description", "brandId", "categoryId", "salePrice"] as const;
 
 export function ProductForm({
   title,
@@ -44,18 +54,24 @@ export function ProductForm({
   initialBrand,
   initialCategory,
   initialValues,
+  withSalePrice = false,
   onSubmit,
   onCancel,
 }: Props) {
-  const { register, control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
-    defaultValues: initialValues,
+  const { register, control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<FormValues>({
+    defaultValues: {
+      ...initialValues,
+      salePrice: initialValues?.salePrice === undefined ? "" : formatMoneyInput(initialValues.salePrice),
+    },
   });
 
   const once = useSingleSubmit();
 
   const submit = handleSubmit(once(async (data) => {
     try {
-      await onSubmit(data);
+      const { salePrice: priceText, ...rest } = data;
+      const cents = withSalePrice && priceText?.trim() ? parseMoneyToCents(priceText) : null;
+      await onSubmit({ ...rest, ...(cents === null ? {} : { salePrice: cents / 100 }) });
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
@@ -94,6 +110,24 @@ export function ProductForm({
             </div>
           </div>
         </section>
+
+        {withSalePrice && (
+          <section>
+            <h2 className="font-semibold text-lg mb-4">Preço</h2>
+
+            <div>
+              <label htmlFor="product-sale-price" className="block mb-1">Preço de venda (R$)</label>
+
+              <MoneyInput
+                id="product-sale-price"
+                {...register("salePrice", {
+                  validate: (value) => (value?.trim() ? moneyTextError(value) ?? true : "Informe o preço de venda."),
+                })}
+              />
+              {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
+            </div>
+          </section>
+        )}
 
         <section>
           <h2 className="font-semibold text-lg mb-4">Classificação</h2>

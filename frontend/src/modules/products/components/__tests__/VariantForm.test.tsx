@@ -81,6 +81,24 @@ describe('VariantForm', () => {
       expect(onSubmit.mock.calls[0][0]).toMatchObject({ name: 'Kaiak', salePrice: 19.9 });
     });
 
+    test('edição com preço atual R$ 0,00: o preço fica editável (cadastro inicial) e é enviado', async () => {
+      loginAs('VENDEDOR');
+      const onSubmit = vi.fn();
+      renderWithProviders(
+        <VariantForm title="Editar" submitLabel="Salvar" requireSalePrice initialValues={{ name: 'Kaiak', salePrice: 0 }} onSubmit={onSubmit} onCancel={() => {}} />,
+      );
+
+      const price = screen.getByLabelText('Preço de venda (R$)');
+      expect(price).not.toHaveAttribute('readonly');
+      expect(screen.queryByText('Somente o administrador altera o preço')).not.toBeInTheDocument();
+
+      await userEvent.clear(price);
+      await userEvent.type(price, '12,5');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ salePrice: 12.5 });
+    });
+
     test('ADMIN edita o preço normalmente, sem dica', async () => {
       loginAs('ADMIN');
       renderWithProviders(

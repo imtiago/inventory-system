@@ -66,6 +66,16 @@ describe("Preço de venda: somente o administrador altera", () => {
       assert.equal(res.json().data.salePrice, 19.9);
     });
 
+    test(`${role}: PUT define o preço de variante nunca precificada (R$ 0) → 200; depois mudar → 403`, async () => {
+      const id = await makeVariant(0);
+      const first = await call(role, "PUT", `/variants/${id}`, { salePrice: 7.5 });
+      assert.equal(first.statusCode, 200, first.body);
+      assert.equal(first.json().data.salePrice, 7.5);
+      const second = await call(role, "PUT", `/variants/${id}`, { salePrice: 8 });
+      assert.equal(second.statusCode, 403, second.body);
+      assert.deepEqual(second.json(), { message: FORBIDDEN_MESSAGE, code: "FORBIDDEN" });
+    });
+
     test(`${role}: PUT só com nome → 200`, async () => {
       const id = await makeVariant(3);
       const res = await call(role, "PUT", `/variants/${id}`, { name: "so-nome" });
