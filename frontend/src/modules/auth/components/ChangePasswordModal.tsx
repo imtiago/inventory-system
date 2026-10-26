@@ -8,6 +8,7 @@ import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import { useChangeOwnPassword } from '../hooks/useChangeOwnPassword';
 
 import { FieldError, fieldA11y } from '@/shared/components/form';
+import { passwordBytesRule } from '@/shared/utils/password';
 type Values = { currentPassword: string; newPassword: string; confirm: string };
 
 const FIELDS = ['currentPassword', 'newPassword'] as const;
@@ -71,7 +72,7 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
           {...register('newPassword', {
             required: 'Informe a nova senha.',
             minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres.' },
-            maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
+            validate: passwordBytesRule,
           })}
         />
         <FieldError id="cp-new" message={errors.newPassword?.message} />

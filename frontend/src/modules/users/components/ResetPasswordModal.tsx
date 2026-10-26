@@ -10,6 +10,7 @@ import { useResetUserPassword } from '../hooks/useUserMutations';
 import type { UserDTO } from '../types';
 
 import { FieldError, fieldA11y } from '@/shared/components/form';
+import { passwordBytesRule } from '@/shared/utils/password';
 type Values = { password: string; confirm: string };
 
 const FIELDS = ['password'] as const;
@@ -59,7 +60,7 @@ function ResetPasswordForm({ user, onClose }: { user: UserDTO; onClose: () => vo
           {...register('password', {
             required: 'Informe a nova senha.',
             minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres.' },
-            maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
+            validate: passwordBytesRule,
           })}
         />
         <FieldError id="reset-password" message={errors.password?.message} />

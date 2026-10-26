@@ -12,6 +12,7 @@ import { useCreateUser, useUpdateUser } from '../hooks/useUserMutations';
 import { ROLES, ROLE_LABELS, type UserDTO } from '../types';
 
 import { FieldError, fieldA11y } from '@/shared/components/form';
+import { passwordBytesRule } from '@/shared/utils/password';
 type Values = { name: string; email: string; password: string; role: UserRole | ''; active: boolean };
 
 const FIELDS = ['name', 'email', 'password', 'role'] as const;
@@ -123,7 +124,7 @@ function UserForm({ user, onClose }: FormProps) {
               {...register('password', {
                 required: 'Informe a senha.',
                 minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres.' },
-                maxLength: { value: 72, message: 'A senha deve ter no máximo 72 caracteres.' },
+                validate: passwordBytesRule,
               })}
             />
             <FieldError id="user-password" message={errors.password?.message} />
