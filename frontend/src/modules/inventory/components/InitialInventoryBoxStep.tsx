@@ -45,10 +45,10 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-white p-6 shadow">
+      <div className="rounded-xl bg-surface p-6 shadow">
         <h2 className="text-xl font-semibold">Caixa</h2>
 
-        <div className="mt-4 space-y-1 text-sm text-gray-600">
+        <div className="mt-4 space-y-1 text-sm text-muted">
           <p>
             <strong>Lote:</strong> {lot.batchNumber ?? 'Sem lote'}
           </p>
@@ -73,13 +73,13 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
         </div>
 
         {noRoom && (
-          <div role="status" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div role="status" className="mt-4 rounded-lg border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
             Todo o saldo deste lote já está em caixas.
           </div>
         )}
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow">
+      <div className="rounded-xl bg-surface p-6 shadow">
         <label htmlFor="box-search" className="mb-1 block font-medium">
           Buscar caixa por código
         </label>
@@ -92,10 +92,10 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
             onChange={(event) => setSearch(event.target.value)}
             disabled={loading}
             placeholder="Ex.: B000001"
-            className="min-w-0 flex-1 rounded-lg border p-3"
+            className="min-w-0 flex-1 rounded-lg border border-input bg-surface text-foreground p-3"
           />
 
-          <button type="button" onClick={() => setScanning((open) => !open)} disabled={loading} className="min-h-11 rounded-lg border px-4 disabled:opacity-50">
+          <button type="button" onClick={() => setScanning((open) => !open)} disabled={loading} className="min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 disabled:opacity-50">
             Escanear caixa
           </button>
         </div>
@@ -109,21 +109,21 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
               }}
             />
 
-            <button type="button" onClick={() => setScanning(false)} className="mt-3 text-red-600">
+            <button type="button" onClick={() => setScanning(false)} className="mt-3 text-danger">
               Cancelar leitura
             </button>
           </div>
         )}
 
-        {boxesLoading && <div className="mt-4 rounded-lg bg-gray-50 p-4 text-center text-sm text-gray-500">Buscando caixas...</div>}
+        {boxesLoading && <div className="mt-4 rounded-lg bg-surface-muted p-4 text-center text-sm text-muted">Buscando caixas...</div>}
 
         {!boxesLoading && boxesError && (
-          <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
             {boxesError}
           </div>
         )}
 
-        {!boxesLoading && !boxesError && boxes.length === 0 && <p className="mt-4 text-sm text-gray-500">Nenhuma caixa encontrada. Crie uma nova caixa abaixo.</p>}
+        {!boxesLoading && !boxesError && boxes.length === 0 && <p className="mt-4 text-sm text-muted">Nenhuma caixa encontrada. Crie uma nova caixa abaixo.</p>}
 
         {!boxesLoading && boxes.length > 0 && (
           <div className="mt-4 space-y-2">
@@ -137,7 +137,7 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
                   aria-pressed={selected}
                   disabled={loading}
                   onClick={() => onSelectBox(box)}
-                  className={`w-full rounded-lg border p-3 text-left disabled:opacity-50 font-semibold transition ${selected ? 'border-black bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                  className={`w-full rounded-lg border border-input bg-surface text-foreground p-3 text-left disabled:opacity-50 font-semibold transition ${selected ? 'border-primary bg-surface-muted' : 'border-border hover:bg-surface-muted'}`}
                 >
                   {box.code}
                 </button>
@@ -146,24 +146,24 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
           </div>
         )}
 
-        <button type="button" onClick={() => void onCreateBox()} disabled={loading} className="mt-4 rounded-lg border px-5 py-3 disabled:opacity-50">
+        <button type="button" onClick={() => void onCreateBox()} disabled={loading} className="mt-4 rounded-lg border border-input bg-surface text-foreground px-5 py-3 disabled:opacity-50">
           Criar nova caixa
         </button>
       </div>
 
-      <form noValidate onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow">
+      <form noValidate onSubmit={handleSubmit} className="rounded-xl bg-surface p-6 shadow">
         {selectedBox ? (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             Caixa selecionada: <strong>{selectedBox.code}</strong>
           </p>
         ) : (
-          <p className="text-sm text-gray-500">Selecione ou crie uma caixa.</p>
+          <p className="text-sm text-muted">Selecione ou crie uma caixa.</p>
         )}
 
         {selectedBox && inBox !== null && (
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted">
             <span>Na caixa: {inBox}</span>
-            <span className="text-gray-500"> (o lote tem {lot.allocatedQuantity} em caixas no total)</span>
+            <span className="text-muted"> (o lote tem {lot.allocatedQuantity} em caixas no total)</span>
           </p>
         )}
 
@@ -174,17 +174,17 @@ export function InitialInventoryBoxStep({ lot, availableForBoxes, selectedBox, l
         <QuantityInput id="box-quantity" min={1} max={availableForBoxes} value={noRoom ? '' : String(quantity)} disabled={noRoom} onChange={(value) => setQuantity(value)} />
 
         {error && (
-          <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
             {error}
           </div>
         )}
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" onClick={onBack} disabled={loading} className="rounded-lg border px-6 py-3 disabled:opacity-50">
+          <button type="button" onClick={onBack} disabled={loading} className="rounded-lg border border-input bg-surface text-foreground px-6 py-3 disabled:opacity-50">
             Voltar
           </button>
 
-          <button type="submit" disabled={!selectedBox || noRoom || loading} className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
+          <button type="submit" disabled={!selectedBox || noRoom || loading} className="rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50">
             {loading ? 'Salvando...' : 'Adicionar à caixa'}
           </button>
         </div>

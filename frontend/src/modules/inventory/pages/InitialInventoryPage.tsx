@@ -44,7 +44,7 @@ export function InitialInventoryPage() {
       {flow.step === 'start' && (
         <>
           {flow.placementMessage && (
-            <div role="status" className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
+            <div role="status" className="rounded-xl border border-success/40 bg-success-soft p-4 text-success">
               {flow.placementMessage}
             </div>
           )}
@@ -65,15 +65,15 @@ export function InitialInventoryPage() {
             onBarcodeRead={flow.handleBarcodeRead}
           />
 
-          {flow.barcodeLoading && <div className="rounded-xl bg-white p-6 text-center shadow">Consultando produto...</div>}
+          {flow.barcodeLoading && <div className="rounded-xl bg-surface p-6 text-center shadow">Consultando produto...</div>}
 
           {flow.barcodeError && !flow.barcodeLoading && (
-            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-danger">
               {flow.barcodeError}
             </div>
           )}
 
-          <button type="button" onClick={flow.handleBackToStart} className="rounded-lg border px-6 py-3">
+          <button type="button" onClick={flow.handleBackToStart} className="rounded-lg border border-input bg-surface text-foreground px-6 py-3">
             Voltar
           </button>
         </>

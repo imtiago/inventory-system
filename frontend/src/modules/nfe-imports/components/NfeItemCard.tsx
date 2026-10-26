@@ -7,7 +7,7 @@ import { hasTooManyDecimals } from '@/modules/purchases/utils/purchaseTotals';
 import { isValidSalePrice, parseUnitsPerPackage, unitsOf, type ItemDraft, type ItemMode } from '../utils/review';
 import type { INfeItem } from '../types';
 
-const inputClass = 'w-full rounded-md border px-3 py-2 text-sm';
+const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
 const MODE_LABELS: Record<ItemMode, string> = {
   link: 'Vincular a variante existente',
@@ -27,7 +27,7 @@ interface Props {
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-medium text-gray-600">
+      <label htmlFor={id} className="mb-1 block text-xs font-medium text-muted">
         {label}
       </label>
       {children}
@@ -57,7 +57,7 @@ function VariantSelect({ item, productId, value, onChange, disabled }: { item: I
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </Field>
   );
 }
@@ -77,14 +77,14 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
           <p className="font-medium">
             {n}. {item.name}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Cód. {item.supplierCode}
             {item.barcode ? ` · ${item.barcode}` : ''} · {item.quantity} {item.unit} · custo {formatCurrency(item.total)}
           </p>
-          {item.lots.length > 0 && <p className="text-xs text-gray-500">Lotes: {item.lots.map((lot) => `${lot.batchNumber} (${lot.quantity})`).join(', ')}</p>}
+          {item.lots.length > 0 && <p className="text-xs text-muted">Lotes: {item.lots.map((lot) => `${lot.batchNumber} (${lot.quantity})`).join(', ')}</p>}
         </div>
         <div className="text-sm">
-          <span className="text-gray-500">Quantidade em unidades: </span>
+          <span className="text-muted">Quantidade em unidades: </span>
           <strong data-testid={`item-units-${n}`}>{units === null ? '—' : units}</strong>
         </div>
       </div>
@@ -127,9 +127,9 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
         <div className="mt-3 space-y-3">
           {draft.variant && (
             <p className="text-sm">
-              <span className="text-gray-500">Vincular a </span>
+              <span className="text-muted">Vincular a </span>
               <span className="font-medium">{draft.variant.label}</span>
-              {isSuggested && <span className="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{item.suggestion?.source === 'MAPPING' ? 'sugerido por mapeamento' : 'sugerido por código de barras'}</span>}
+              {isSuggested && <span className="ml-2 rounded bg-info-soft px-2 py-0.5 text-xs text-info">{item.suggestion?.source === 'MAPPING' ? 'sugerido por mapeamento' : 'sugerido por código de barras'}</span>}
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
@@ -196,18 +196,18 @@ export function NfeItemCard({ item, draft, disabled, serverError, onChange }: Pr
               onChange={(event) => onChange({ salePrice: event.target.value })}
               className={inputClass}
             />
-            {hasTooManyDecimals(draft.salePrice) && <p className="mt-1 text-xs text-red-600">Use no máximo 2 casas decimais.</p>}
+            {hasTooManyDecimals(draft.salePrice) && <p className="mt-1 text-xs text-danger">Use no máximo 2 casas decimais.</p>}
           </Field>
         </div>
       )}
 
       {upp !== null && units === null && (
-        <p role="alert" className="mt-3 text-sm text-red-600">
+        <p role="alert" className="mt-3 text-sm text-danger">
           A quantidade ({item.quantity}) x {upp} não resulta em unidades inteiras. Ajuste as unidades por embalagem.
         </p>
       )}
       {serverError && (
-        <p role="alert" className="mt-3 text-sm text-red-600">
+        <p role="alert" className="mt-3 text-sm text-danger">
           {serverError}
         </p>
       )}

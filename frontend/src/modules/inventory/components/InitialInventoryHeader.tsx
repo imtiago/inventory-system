@@ -8,7 +8,7 @@ export function InitialInventoryHeader({ title, description }: IInitialInventory
     <div>
       <h1 className="text-3xl font-bold">{title}</h1>
 
-      <p className="text-gray-500">{description}</p>
+      <p className="text-muted">{description}</p>
     </div>
   );
 }

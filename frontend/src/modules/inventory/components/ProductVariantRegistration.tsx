@@ -55,23 +55,23 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
       <div>
         <h1 className="text-3xl font-bold">Cadastrar variante</h1>
 
-        <p className="mt-1 text-gray-500">{barcode ? 'O código de barras ainda não está cadastrado.' : 'Cadastre uma nova variante para o produto.'}</p>
+        <p className="mt-1 text-muted">{barcode ? 'O código de barras ainda não está cadastrado.' : 'Cadastre uma nova variante para o produto.'}</p>
       </div>
 
-      <div className="space-y-5 rounded-xl bg-white p-6 shadow">
+      <div className="space-y-5 rounded-xl bg-surface p-6 shadow">
         {/* Produto */}
 
         <div>
-          <label className="mb-1 block text-sm text-gray-500">Produto</label>
+          <label className="mb-1 block text-sm text-muted">Produto</label>
 
-          <input value={productName} readOnly className="w-full rounded-lg border bg-gray-100 p-3" />
+          <input value={productName} readOnly className="w-full rounded-lg border border-input bg-surface-muted text-foreground p-3" />
         </div>
 
         {barcode && (
           <div>
-            <label className="mb-1 block text-sm text-gray-500">Código de barras</label>
+            <label className="mb-1 block text-sm text-muted">Código de barras</label>
 
-            <input value={barcode} readOnly className="w-full rounded-lg border bg-gray-100 p-3 font-mono" />
+            <input value={barcode} readOnly className="w-full rounded-lg border border-input bg-surface-muted text-foreground p-3 font-mono" />
           </div>
         )}
 
@@ -89,12 +89,12 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
             {...register('name', { validate: (value) => value.trim().length > 0 || 'Informe o nome da variante.' })}
             placeholder="Ex.: Kaiak 100ml"
             disabled={loading}
-            className="w-full rounded-lg border p-3 disabled:opacity-50"
+            className="w-full rounded-lg border border-input bg-surface text-foreground p-3 disabled:opacity-50"
           />
 
-          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+          {errors.name && <p className="mt-1 text-sm text-danger">{errors.name.message}</p>}
 
-          <p className="mt-2 text-sm text-gray-500">Informe a descrição da apresentação do produto.</p>
+          <p className="mt-2 text-sm text-muted">Informe a descrição da apresentação do produto.</p>
         </div>
 
         {/* Preço de venda */}
@@ -113,18 +113,18 @@ export function ProductVariantRegistration({ barcode, productId, productName, on
             })}
           />
 
-          {errors.salePrice && <p className="mt-1 text-sm text-red-600">{errors.salePrice.message}</p>}
+          {errors.salePrice && <p className="mt-1 text-sm text-danger">{errors.salePrice.message}</p>}
         </div>
       </div>
 
       {/* Ações */}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onCancel} disabled={loading} className="rounded-lg border px-6 py-3 disabled:opacity-50">
+        <button type="button" onClick={onCancel} disabled={loading} className="rounded-lg border border-input bg-surface text-foreground px-6 py-3 disabled:opacity-50">
           Voltar
         </button>
 
-        <button type="submit" disabled={loading} className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
+        <button type="submit" disabled={loading} className="rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50">
           {loading ? 'Cadastrando...' : 'Cadastrar variante'}
         </button>
       </div>

@@ -150,7 +150,7 @@ export function InventoryDetailsPage() {
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full min-w-[640px]">
               <thead>
-                <tr className="bg-muted/40 border-b">
+                <tr className="bg-surface-muted border-b">
                   <th className="px-4 py-3 text-left text-sm font-medium">Lote</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Recebido</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Restante</th>
@@ -195,12 +195,12 @@ function isLotExpired(lot: Pick<InventoryLot, 'expirationDate' | 'remainingQuant
 }
 
 function ExpiredTag() {
-  return <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">Vencido</span>;
+  return <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">Vencido</span>;
 }
 
 function StockCard({ label, value, highlight }: StockCardProps) {
   return (
-    <div className={highlight ? 'rounded-lg border border-red-300 bg-red-50 p-5 text-red-700' : 'bg-card rounded-lg border p-5'}>
+    <div className={highlight ? 'rounded-lg border border-danger/30 bg-danger-soft p-5 text-danger' : 'bg-card rounded-lg border p-5'}>
       <p className={highlight ? 'text-sm' : 'text-muted-foreground text-sm'}>{label}</p>
 
       <p className="mt-2 text-2xl font-semibold">{value}</p>

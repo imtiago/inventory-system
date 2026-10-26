@@ -27,10 +27,10 @@ function lotLabel(lot: InventoryLot) {
 export function InitialInventoryLotStep({ variant, barcode, lots, lotsLoading, lotsError, selectedLotId, selectedLot, onSelectLot, onConfirmLot, onCreateNewLot, onBack }: Props) {
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-white p-6 shadow">
+      <div className="rounded-xl bg-surface p-6 shadow">
         <h2 className="text-xl font-semibold">Selecionar lote</h2>
 
-        <div className="mt-4 space-y-1 text-sm text-gray-600">
+        <div className="mt-4 space-y-1 text-sm text-muted">
           <p>
             <strong>Variante:</strong> {variant.name}
           </p>
@@ -47,7 +47,7 @@ export function InitialInventoryLotStep({ variant, barcode, lots, lotsLoading, l
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow">
+      <div className="rounded-xl bg-surface p-6 shadow">
         <label htmlFor="inventory-lot" className="mb-2 block font-medium">
           Lote
         </label>
@@ -57,7 +57,7 @@ export function InitialInventoryLotStep({ variant, barcode, lots, lotsLoading, l
           value={selectedLotId ?? ''}
           disabled={lotsLoading}
           onChange={(event) => onSelectLot(event.target.value)}
-          className="w-full rounded-lg border p-3 disabled:bg-gray-100"
+          className="w-full rounded-lg border border-input bg-surface text-foreground p-3 disabled:bg-surface-muted"
         >
           <option value="">Selecione um lote</option>
 
@@ -68,32 +68,32 @@ export function InitialInventoryLotStep({ variant, barcode, lots, lotsLoading, l
           ))}
         </select>
 
-        {lotsLoading && <p className="mt-2 text-sm text-gray-500">Carregando lotes...</p>}
+        {lotsLoading && <p className="mt-2 text-sm text-muted">Carregando lotes...</p>}
 
         {lotsError && (
-          <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div role="alert" className="mt-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
             {lotsError}
           </div>
         )}
 
-        {!lotsLoading && !lotsError && lots.length === 0 && <p className="mt-3 text-sm text-gray-500">Nenhum lote cadastrado para esta variante.</p>}
+        {!lotsLoading && !lotsError && lots.length === 0 && <p className="mt-3 text-sm text-muted">Nenhum lote cadastrado para esta variante.</p>}
 
         {selectedLot && (
-          <p className="mt-3 text-sm text-gray-600">
+          <p className="mt-3 text-sm text-muted">
             Restante: <strong>{selectedLot.remainingQuantity}</strong> · Em caixas: <strong>{selectedLot.allocatedQuantity}</strong>
           </p>
         )}
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <button type="button" onClick={onBack} className="rounded-lg border px-5 py-3">
+          <button type="button" onClick={onBack} className="rounded-lg border border-input bg-surface text-foreground px-5 py-3">
             Voltar
           </button>
 
-          <button type="button" onClick={onCreateNewLot} className="rounded-lg border px-5 py-3">
+          <button type="button" onClick={onCreateNewLot} className="rounded-lg border border-input bg-surface text-foreground px-5 py-3">
             Criar novo lote
           </button>
 
-          <button type="button" onClick={onConfirmLot} disabled={!selectedLot} className="rounded-lg bg-black px-5 py-3 text-white disabled:opacity-50">
+          <button type="button" onClick={onConfirmLot} disabled={!selectedLot} className="rounded-lg bg-primary px-5 py-3 text-primary-foreground disabled:opacity-50">
             Confirmar lote
           </button>
         </div>

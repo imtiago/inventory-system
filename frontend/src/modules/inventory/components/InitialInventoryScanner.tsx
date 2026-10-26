@@ -27,7 +27,7 @@ export function InitialInventoryScanner({ barcode, loading, scannerOpen, onOpenS
   }
 
   return (
-    <div className="space-y-5 rounded-xl bg-white p-6 shadow">
+    <div className="space-y-5 rounded-xl bg-surface p-6 shadow">
       <form onSubmit={handleSubmit}>
         <label htmlFor="initial-inventory-barcode" className="mb-1 block">
           Código de barras
@@ -40,15 +40,15 @@ export function InitialInventoryScanner({ barcode, loading, scannerOpen, onOpenS
             onChange={(event) => setDraft(event.target.value)}
             autoComplete="off"
             disabled={loading}
-            className="min-w-0 flex-1 rounded-lg border p-3 disabled:bg-gray-50"
+            className="min-w-0 flex-1 rounded-lg border border-input bg-surface text-foreground p-3 disabled:bg-surface-muted"
             placeholder="Digite, use o leitor ou escaneie o produto"
           />
 
-          <button type="submit" disabled={loading || !value.trim()} className="min-h-11 rounded-lg bg-black px-4 text-white disabled:opacity-50">
+          <button type="submit" disabled={loading || !value.trim()} className="min-h-11 rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50">
             Buscar
           </button>
 
-          <button type="button" onClick={onOpenScanner} disabled={loading} className="min-h-11 rounded-lg bg-gray-900 px-4 text-white disabled:opacity-50">
+          <button type="button" onClick={onOpenScanner} disabled={loading} className="min-h-11 rounded-lg bg-primary px-4 text-primary-foreground disabled:opacity-50">
             📷 Ler
           </button>
         </div>
@@ -58,7 +58,7 @@ export function InitialInventoryScanner({ barcode, loading, scannerOpen, onOpenS
         <div className="rounded-lg border p-4">
           <BarcodeScanner onDetected={onBarcodeRead} />
 
-          <button type="button" onClick={onCloseScanner} className="mt-3 text-red-600">
+          <button type="button" onClick={onCloseScanner} className="mt-3 text-danger">
             Cancelar leitura
           </button>
         </div>

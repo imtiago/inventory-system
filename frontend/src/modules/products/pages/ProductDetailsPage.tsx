@@ -117,7 +117,7 @@ export function ProductDetailsPage() {
               <Can permission="catalog.write">
                 <Link
                   to={`/products/${product.id}/edit`}
-                  className="flex items-center gap-2 rounded-lg border px-4 py-2"
+                  className="flex items-center gap-2 rounded-lg border border-input bg-surface text-foreground px-4 py-2"
                 >
                   <Pencil size={18} />
                   Editar
@@ -128,7 +128,7 @@ export function ProductDetailsPage() {
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteProduct(true)}
-                  className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-red-600"
+                  className="flex items-center gap-2 rounded-lg border border-danger/30 px-4 py-2 text-danger"
                 >
                   <Trash2 size={18} />
                   Excluir
@@ -183,8 +183,8 @@ export function ProductDetailsPage() {
             <Link
               to={`/products/${product.id}/variants/new`}
               className="
-        bg-black
-        text-white
+        bg-primary
+        text-primary-foreground
         px-4
         py-2
         rounded-lg
@@ -215,13 +215,13 @@ export function ProductDetailsPage() {
             >
               {variantsError && !variantsResponse ? (
                 <div role="alert" className="flex min-h-32 flex-col items-center justify-center gap-3 p-6 text-center">
-                  <p className="font-medium text-red-600">Não foi possível carregar as variantes.</p>
-                  <button type="button" onClick={() => void refetchVariants()} className="rounded-lg border px-4 py-2 hover:bg-gray-50">
+                  <p className="font-medium text-danger">Não foi possível carregar as variantes.</p>
+                  <button type="button" onClick={() => void refetchVariants()} className="rounded-lg border border-input bg-surface text-foreground px-4 py-2 hover:bg-surface-muted">
                     Tentar novamente
                   </button>
                 </div>
               ) : variantsLoading ? (
-                <div className="p-6 text-center text-sm text-gray-500">Carregando variantes...</div>
+                <div className="p-6 text-center text-sm text-muted">Carregando variantes...</div>
               ) : (
                 <DataTable
                   data={variants}

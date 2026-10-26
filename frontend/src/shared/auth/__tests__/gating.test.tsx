@@ -56,13 +56,13 @@ describe('botões por permissão', () => {
     loginAs('VENDEDOR');
     const r = renderProducts();
     await screen.findByText('Perfume');
-    expect(document.querySelector('button.text-red-600')).toBeNull();
+    expect(document.querySelector('button.text-danger')).toBeNull();
     r.unmount();
 
     loginAs('ADMIN');
     renderProducts();
     await screen.findByText('Perfume');
-    expect(document.querySelector('button.text-red-600')).not.toBeNull();
+    expect(document.querySelector('button.text-danger')).not.toBeNull();
   });
 
   test('Cenário Inicial oculto para VENDEDOR', async () => {

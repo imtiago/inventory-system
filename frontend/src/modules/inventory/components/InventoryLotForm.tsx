@@ -65,7 +65,7 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <div className="space-y-5 rounded-xl bg-white p-6 shadow">
+      <div className="space-y-5 rounded-xl bg-surface p-6 shadow">
         {/* LOTE */}
         <div>
           <label htmlFor="batchNumber" className="mb-1 block">
@@ -78,11 +78,11 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             {...register('batchNumber', {
               required: 'Informe o lote.',
             })}
-            className="w-full rounded-lg border p-3"
+            className="w-full rounded-lg border border-input bg-surface text-foreground p-3"
             placeholder="Ex: 123456"
           />
 
-          {errors.batchNumber && <p className="mt-1 text-sm text-red-600">{errors.batchNumber.message}</p>}
+          {errors.batchNumber && <p className="mt-1 text-sm text-danger">{errors.batchNumber.message}</p>}
         </div>
 
         {/* DATA DE FABRICAÇÃO */}
@@ -91,9 +91,9 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             Data de fabricação
           </label>
 
-          <input id="manufacturingDate" type="date" {...register('manufacturingDate')} className="w-full rounded-lg border p-3" />
+          <input id="manufacturingDate" type="date" {...register('manufacturingDate')} className="w-full rounded-lg border border-input bg-surface text-foreground p-3" />
 
-          {errors.manufacturingDate && <p className="mt-1 text-sm text-red-600">{errors.manufacturingDate.message}</p>}
+          {errors.manufacturingDate && <p className="mt-1 text-sm text-danger">{errors.manufacturingDate.message}</p>}
         </div>
 
         {/* VALIDADE */}
@@ -108,10 +108,10 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             {...register('expirationDate', {
               required: 'Informe a validade.',
             })}
-            className="w-full rounded-lg border p-3"
+            className="w-full rounded-lg border border-input bg-surface text-foreground p-3"
           />
 
-          {errors.expirationDate && <p className="mt-1 text-sm text-red-600">{errors.expirationDate.message}</p>}
+          {errors.expirationDate && <p className="mt-1 text-sm text-danger">{errors.expirationDate.message}</p>}
         </div>
 
         {/* CUSTO UNITÁRIO */}
@@ -127,9 +127,9 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             })}
           />
 
-          {errors.unitCost && <p className="mt-1 text-sm text-red-600">{errors.unitCost.message}</p>}
+          {errors.unitCost && <p className="mt-1 text-sm text-danger">{errors.unitCost.message}</p>}
 
-          <p className="mt-1 text-sm text-gray-500">Informe quanto cada unidade deste lote custou.</p>
+          <p className="mt-1 text-sm text-muted">Informe quanto cada unidade deste lote custou.</p>
         </div>
 
         {/* QUANTIDADE */}
@@ -153,29 +153,29 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
             )}
           />
 
-          {errors.quantity && <p className="mt-1 text-sm text-red-600">{errors.quantity.message}</p>}
+          {errors.quantity && <p className="mt-1 text-sm text-danger">{errors.quantity.message}</p>}
         </div>
       </div>
 
       {/* ERRO */}
       {submitError && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-danger">
           {submitError}
         </div>
       )}
 
       {/* AÇÕES */}
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onCancel} disabled={submitting} className="rounded-lg border px-6 py-3 disabled:opacity-50">
+        <button type="button" onClick={onCancel} disabled={submitting} className="rounded-lg border border-input bg-surface text-foreground px-6 py-3 disabled:opacity-50">
           Cancelar
         </button>
 
-        <button type="submit" disabled={submitting} className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50">
+        <button type="submit" disabled={submitting} className="rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50">
           {submitting ? 'Salvando...' : 'Salvar lote'}
         </button>
       </div>
     {errors.root?.server && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
           {errors.root.server.message}
         </div>
       )}

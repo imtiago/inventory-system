@@ -17,7 +17,7 @@ interface Row {
 
 const REFRESH_CODES = ['PURCHASE_CANCELED', 'PURCHASE_ALREADY_RECEIVED', 'RECEIPT_EXCEEDS_REMAINING', 'CONCURRENT_UPDATE'];
 const BATCH_HINT = 'Use outro número de lote (ex.: acrescente o código do pedido).';
-const inputClass = 'w-full rounded-md border px-2 py-1.5 text-sm';
+const inputClass = 'w-full rounded-md border border-input bg-surface text-foreground px-2 py-1.5 text-sm';
 
 function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose: () => void }) {
   const pendingItems = purchase.items.filter((item) => item.remainingQuantity > 0);
@@ -98,13 +98,13 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
           const name = item.productVariant.name;
 
           return (
-            <fieldset key={item.id} className="rounded-lg border p-3">
+            <fieldset key={item.id} className="rounded-lg border border-input bg-surface text-foreground p-3">
               <legend className="px-1 text-sm font-medium">
-                {name} <span className="text-xs text-gray-500">({item.productVariant.code} · restante {item.remainingQuantity})</span>
+                {name} <span className="text-xs text-muted">({item.productVariant.code} · restante {item.remainingQuantity})</span>
               </legend>
               <div className="grid gap-3 sm:grid-cols-4">
                 <div>
-                  <label htmlFor={`rq-${item.id}`} className="mb-1 block text-xs text-gray-500">Quantidade</label>
+                  <label htmlFor={`rq-${item.id}`} className="mb-1 block text-xs text-muted">Quantidade</label>
                   <QuantityInput
                     id={`rq-${item.id}`}
                     aria-label={`Quantidade a receber de ${name}`}
@@ -117,15 +117,15 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
                   />
                 </div>
                 <div>
-                  <label htmlFor={`rb-${item.id}`} className="mb-1 block text-xs text-gray-500">Lote</label>
+                  <label htmlFor={`rb-${item.id}`} className="mb-1 block text-xs text-muted">Lote</label>
                   <input id={`rb-${item.id}`} aria-label={`Lote de ${name}`} maxLength={60} value={row.batchNumber} disabled={mutation.isPending} onChange={(event) => setField(item.id, 'batchNumber', event.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor={`rm-${item.id}`} className="mb-1 block text-xs text-gray-500">Fabricação</label>
+                  <label htmlFor={`rm-${item.id}`} className="mb-1 block text-xs text-muted">Fabricação</label>
                   <input id={`rm-${item.id}`} aria-label={`Fabricação de ${name}`} type="date" value={row.manufacturingDate} disabled={mutation.isPending} onChange={(event) => setField(item.id, 'manufacturingDate', event.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor={`re-${item.id}`} className="mb-1 block text-xs text-gray-500">Validade</label>
+                  <label htmlFor={`re-${item.id}`} className="mb-1 block text-xs text-muted">Validade</label>
                   <input id={`re-${item.id}`} aria-label={`Validade de ${name}`} type="date" value={row.expirationDate} min={row.manufacturingDate || undefined} disabled={mutation.isPending} onChange={(event) => setField(item.id, 'expirationDate', event.target.value)} className={inputClass} />
                 </div>
               </div>
@@ -135,16 +135,16 @@ function ReceiveForm({ purchase, onClose }: { purchase: IPurchaseDetail; onClose
       </div>
 
       {error && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
           {error}
         </div>
       )}
 
       <div className="flex justify-end gap-2">
-        <button type="button" className="rounded-lg border px-4 py-2 hover:bg-gray-100 disabled:opacity-50" onClick={onClose} disabled={mutation.isPending}>
+        <button type="button" className="rounded-lg border border-input bg-surface text-foreground px-4 py-2 hover:bg-surface-muted disabled:opacity-50" onClick={onClose} disabled={mutation.isPending}>
           Voltar
         </button>
-        <button type="button" className="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50" onClick={handleSubmit} disabled={mutation.isPending}>
+        <button type="button" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover disabled:opacity-50" onClick={handleSubmit} disabled={mutation.isPending}>
           {mutation.isPending ? 'Registrando...' : 'Confirmar recebimento'}
         </button>
       </div>

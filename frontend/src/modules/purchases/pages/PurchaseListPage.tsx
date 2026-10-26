@@ -20,7 +20,7 @@ import { usePurchases } from '../hooks/usePurchases';
 import { PURCHASE_STATUS_LABELS, type IPurchaseListItem, type PurchaseStatus } from '../types';
 
 const STATUSES = Object.keys(PURCHASE_STATUS_LABELS) as PurchaseStatus[];
-const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
+const inputClass = 'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 const columns: DataTableColumn<IPurchaseListItem>[] = [
   {
@@ -79,7 +79,7 @@ export function PurchaseListPage() {
         title={`Pedidos de compra (${data?.pagination.total ?? 0})`}
         actions={
           <Can permission="purchases.write">
-            <Link to="/purchases/new" className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800">
+            <Link to="/purchases/new" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover">
               <Plus size={18} />
               Novo pedido
             </Link>
@@ -90,7 +90,7 @@ export function PurchaseListPage() {
           <FilterPanel activeCount={[status, supplierId, from, to, codeSearch].filter(Boolean).length}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div>
-              <label htmlFor="purchase-status" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-status" className="mb-2 block text-sm font-medium text-foreground">
                 Status
               </label>
               <select id="purchase-status" value={status} onChange={(e) => filter(setStatus)(e.target.value as PurchaseStatus | '')} className={inputClass}>
@@ -121,21 +121,21 @@ export function PurchaseListPage() {
             />
 
             <div>
-              <label htmlFor="purchase-from" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-from" className="mb-2 block text-sm font-medium text-foreground">
                 Data de
               </label>
               <input id="purchase-from" type="date" value={from} max={to || undefined} onChange={(e) => filter(setFrom)(e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label htmlFor="purchase-to" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-to" className="mb-2 block text-sm font-medium text-foreground">
                 Data até
               </label>
               <input id="purchase-to" type="date" value={to} min={from || undefined} onChange={(e) => filter(setTo)(e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label htmlFor="purchase-search" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="purchase-search" className="mb-2 block text-sm font-medium text-foreground">
                 Buscar por código
               </label>
               <input id="purchase-search" type="search" value={codeSearch} placeholder="PC000012" onChange={(e) => filter(setCodeSearch)(e.target.value)} className={inputClass} />
@@ -144,22 +144,22 @@ export function PurchaseListPage() {
           </FilterPanel>
 
           {invalidRange && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               A data inicial deve ser anterior ou igual à final.
             </p>
           )}
 
-          {isFetching && <p className="text-sm text-gray-500">Atualizando pedidos...</p>}
+          {isFetching && <p className="text-sm text-muted">Atualizando pedidos...</p>}
 
           {isError ? (
-            <div className="rounded-lg border border-red-200 p-6 text-sm text-red-600">Não foi possível carregar os pedidos. Verifique sua conexão e tente novamente.</div>
+            <div className="rounded-lg border border-danger/30 p-6 text-sm text-danger">Não foi possível carregar os pedidos. Verifique sua conexão e tente novamente.</div>
           ) : (
             <div className="flex-1 overflow-x-auto">
               <DataTable data={data?.data ?? []} columns={columns} emptyMessage="Nenhum pedido de compra encontrado" emptyHint="Ajuste os filtros ou registre um novo pedido." getRowId={(item) => item.id} getRowHref={(item) => `/purchases/${item.id}`} />
             </div>
           )}
 
-          {isLoading && !data && <p className="text-sm text-gray-500">Carregando pedidos...</p>}
+          {isLoading && !data && <p className="text-sm text-muted">Carregando pedidos...</p>}
 
           {!isError && (
             <CrudPagination

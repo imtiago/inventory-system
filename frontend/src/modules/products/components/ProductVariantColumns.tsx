@@ -74,7 +74,7 @@ export function useProductVariantColumns({
           <Link
             to={`/variants/${variant.id}/edit`}
             aria-label={`Editar ${variant.name}`}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-blue-600 hover:text-blue-800"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary hover:text-primary-hover"
           >
             <Pencil size={18} />
           </Link>
@@ -83,7 +83,7 @@ export function useProductVariantColumns({
             <button
               onClick={() => onDelete(variant)}
               aria-label={`Excluir ${variant.name}`}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-600 hover:text-red-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:text-danger"
             >
               <Trash2 size={18} />
             </button>

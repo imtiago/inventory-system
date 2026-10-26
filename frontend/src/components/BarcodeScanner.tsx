@@ -258,7 +258,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
         <p>{MESSAGES[status]}</p>
 
         {status !== 'insecure' && (
-          <button type="button" onClick={retry} className="min-h-11 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-surface-muted">
+          <button type="button" onClick={retry} className="min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 py-2 text-sm font-medium hover:bg-surface-muted">
             Tentar de novo
           </button>
         )}
@@ -292,7 +292,7 @@ export const BarcodeScanner = ({ onDetected, stopAfterDetection = true, continuo
           type="button"
           aria-pressed={torchOn}
           onClick={() => void toggleTorch()}
-          className={`mt-3 min-h-11 rounded-lg border px-4 py-2 text-sm font-medium ${torchOn ? 'bg-warning-soft' : 'hover:bg-surface-muted'}`}
+          className={`mt-3 min-h-11 rounded-lg border border-input bg-surface text-foreground px-4 py-2 text-sm font-medium ${torchOn ? 'bg-warning-soft' : 'hover:bg-surface-muted'}`}
         >
           Lanterna
         </button>
