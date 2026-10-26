@@ -36,6 +36,7 @@ import {
 import { NFE_STATUS_LABELS, type INfeImport } from '../types';
 import type { IPurchaseDetail } from '@/modules/purchases/types';
 import { LoadingState } from '@/shared/components/LoadingState';
+import { MoneyInput } from '@/shared/components/form';
 
 const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground px-3 py-2 text-sm';
 
@@ -56,8 +57,13 @@ export function NfeImportReviewPage() {
       onScreen.current = false;
     };
   }, []);
-  const goToPurchase = (purchaseId: string) => {
-    if (onScreen.current) navigate(`/purchases/${purchaseId}`);
+  // Same page component, another importação (id in the URL changed): only the one on screen redirects.
+  const currentId = useRef(id);
+  useEffect(() => {
+    currentId.current = id;
+  }, [id]);
+  const goToPurchase = (purchaseId: string, importId: string) => {
+    if (onScreen.current && currentId.current === importId) navigate(`/purchases/${purchaseId}`);
   };
 
   return (
@@ -160,7 +166,7 @@ function RevertImport({ note, purchaseId, onError }: { note: INfeImport; purchas
   );
 }
 
-function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (purchaseId: string) => void }) {
+function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (purchaseId: string, importId: string) => void }) {
   const canReceive = useCan('purchases.receive');
   const confirm = useConfirmNfeImport(note.id);
 
@@ -188,6 +194,16 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
   const disabled = confirm.isPending;
 
   function patchItem(position: number, patch: Partial<ItemDraft>) {
+    // Corrected item: the server error (about the previous values) no longer applies.
+    const noteIndex = note.items[position]?.index;
+    if (noteIndex !== undefined) {
+      setRowErrors((current) => {
+        if (!(noteIndex in current)) return current;
+        const rest = { ...current };
+        delete rest[noteIndex];
+        return rest;
+      });
+    }
     setItems((current) => current.map((draft, i) => (i === position ? { ...draft, ...patch } : draft)));
   }
 
@@ -205,7 +221,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
     // which happens as soon as the note is re-read as CONFIRMED, so the redirect would be lost.
     confirm
       .mutateAsync(buildConfirmBody({ note, items, supplier, installments, receive: canReceive && receive }))
-      .then((result) => onConfirmed(result.purchaseId))
+      .then((result) => onConfirmed(result.purchaseId, note.id))
       .catch((error: unknown) => {
         const parsed = parseApiErrorSync(error);
 
@@ -335,7 +351,7 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
                 <label htmlFor={`amount-${position}`} className="mb-1 block text-xs font-medium text-muted">
                   Valor da parcela {position + 1}
                 </label>
-                <input id={`amount-${position}`} type="number" min={0} step="0.01" inputMode="decimal" value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} className={`${inputClass} h-10`} />
+                <MoneyInput id={`amount-${position}`} value={row.amount} disabled={disabled} onChange={(event) => patchInstallment(position, { amount: event.target.value })} wrapperClassName="w-40" />
               </div>
               <button
                 type="button"
