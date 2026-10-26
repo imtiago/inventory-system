@@ -32,14 +32,14 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 function Stat({ id, label, value, hint, to, danger }: { id: string; label: string; value: string; hint?: string; to?: string; danger?: boolean }) {
   const content = (
     <>
-      <span className="block text-sm text-gray-500">{label}</span>
-      <span className={`mt-1 block text-xl font-semibold ${danger ? 'text-red-600' : ''}`}>{value}</span>
+      <span className="block text-sm text-slate-600">{label}</span>
+      <span className={`mt-1 block break-words text-xl font-semibold tabular-nums ${danger ? 'text-red-600' : 'text-foreground'}`}>{value}</span>
       {hint && <span className="block text-xs text-gray-500">{hint}</span>}
     </>
   );
 
   return (
-    <div data-testid={id} className="rounded-lg border border-gray-100 p-3">
+    <div data-testid={id} className="min-w-0 rounded-lg border border-gray-100 p-3">
       {to ? (
         <Link to={to} className="block hover:underline">
           {content}
@@ -56,7 +56,7 @@ function FinanceCard({ title, base, data, from, to }: { title: string; base: str
 
   return (
     <Card title={title}>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 2xl:grid-cols-3">
         <Stat id={`${kind}-open`} label="Em aberto" value={formatCurrency(data.open)} to={`${base}?openOnly=true`} />
         <Stat id={`${kind}-overdue`} label="Vencido" value={formatCurrency(data.overdue)} to={`${base}?status=OVERDUE`} danger={data.overdue > 0} />
         <Stat

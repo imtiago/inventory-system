@@ -139,4 +139,15 @@ describe('DashboardPage', () => {
     renderWithProviders(<DashboardPage />);
     expect(screen.getByRole('status')).toHaveTextContent(/carregando/i);
   });
+
+  test('cartões financeiros não usam 3 colunas estreitas e valores não transbordam', async () => {
+    renderWithProviders(<DashboardPage />);
+    const rec = await screen.findByRole('region', { name: 'Contas a receber' });
+    const grid = within(rec).getByTestId('receivables-open').parentElement as HTMLElement;
+    expect(grid.className).toMatch(/lg:grid-cols-1/);
+    expect(grid.className).toMatch(/2xl:grid-cols-3/);
+    const value = within(within(rec).getByTestId('receivables-open')).getByText(/5\.230,75/);
+    expect(value).toHaveClass('tabular-nums', 'text-foreground');
+    expect(within(rec).getByTestId('receivables-open')).toHaveClass('min-w-0');
+  });
 });

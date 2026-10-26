@@ -1,124 +1,73 @@
 /* frontend/src/index.css */
-/* Fonte */
-@import "@fontsource-variable/geist";
-
-/* Tailwind base, components e utilities */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens globais */
+/* Tokens usados pelo tailwind.config.ts (o sistema de temas vem depois) */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --border: #e2e8f0;
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
   color-scheme: light;
-  --background: #fff;
-  --foreground: #6b6375;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (max-width: 1024px) {
-  :root {
+@layer base {
+  html {
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
+    line-height: 1.5;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Escala: página 24/600, seção 18/600, cartão 16/600 (classes utilitárias continuam valendo) */
+  h1 {
+    @apply text-2xl font-semibold;
+  }
+
+  h2 {
+    @apply text-lg font-semibold;
+  }
+
+  h3 {
+    @apply text-base font-semibold;
+  }
+
+  /* Valores alinhados em tabelas */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  code {
+    font-family: ui-monospace, Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 }
 
-/* Layout root */
 #root {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  margin: 0;
-}
-
-body {
-  margin: 0;
-  @apply bg-background text-foreground font-sans;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-}
-
-@media (max-width: 1024px) {
-  h1 {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-}
-
-@media (max-width: 1024px) {
-  h2 {
-    font-size: 20px;
-  }
-}
-
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
-
-html,
-body {
-  width: 100%;
-  min-height: 100%;
-  margin: 0;
-  overflow-x: hidden;
-}
-
-* {
-  box-sizing: border-box;
 }
 
 /* iOS dá zoom ao focar campos com menos de 16px */

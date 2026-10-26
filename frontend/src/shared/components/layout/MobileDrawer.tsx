@@ -1,4 +1,5 @@
 import { useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { useDialogBehavior } from "@/shared/components/Modal/useDialogBehavior";
@@ -16,7 +17,7 @@ export function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Menu" tabIndex={-1} className="fixed inset-0 z-40 flex outline-none">
       <div className="relative h-full w-64 max-w-[85vw] overscroll-contain">
         {children}
@@ -25,6 +26,7 @@ export function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
         </button>
       </div>
       <div data-testid="drawer-backdrop" onClick={onClose} className="flex-1 bg-black/50" />
-    </div>
+    </div>,
+    document.body,
   );
 }

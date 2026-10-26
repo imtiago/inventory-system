@@ -1,4 +1,5 @@
 import { type ReactNode, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { ModalBusyContext } from './useModalBusy';
 import { FOCUSABLE, useDialogBehavior } from './useDialogBehavior';
@@ -63,7 +64,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onMouseDown={handleOverlayClick}
@@ -74,7 +75,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
       aria-labelledby={title ? titleId : undefined}
       aria-describedby={description ? descriptionId : undefined}
     >
-      <div className={`relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl bg-white shadow-2xl`}>
+      <div className={`relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full ${sizeClasses[size]} flex-col overflow-hidden rounded-xl bg-white text-slate-900 shadow-2xl`}>
         {(title || description || showCloseButton) && (
           <div className="flex shrink-0 items-start justify-between border-b px-6 py-4">
             <div className="pr-8">
@@ -105,6 +106,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
           <ModalBusyContext.Provider value={setChildBusy}>{children}</ModalBusyContext.Provider>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

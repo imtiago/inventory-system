@@ -145,3 +145,25 @@ describe('confirmation inside a modal', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+describe('Modal portal', () => {
+  test('renders the dialog in document.body, outside the opener tree', async () => {
+    const { container } = render(
+      <aside className="text-white">
+        <Harness />
+      </aside>,
+    );
+    await userEvent.click(screen.getByText('Abrir'));
+    const dialog = screen.getByRole('dialog');
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.parentElement).toBe(document.body);
+  });
+
+  test('portal content keeps focus trap and Escape', async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByText('Abrir'));
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
