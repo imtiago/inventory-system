@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore, type SessionUser } from "../store/auth";
+import { queryKeys } from "@/shared/react-query/keys";
 import { api } from "@/shared/services/api";
 
 async function getAuthenticatedUser(): Promise<SessionUser> {
@@ -17,7 +18,7 @@ export function useAuth() {
 
   // Restores the session on load and revalidates (role/active) in the background.
   const userQuery = useQuery({
-    queryKey: ["auth", "me"],
+    queryKey: queryKeys.me,
     queryFn: getAuthenticatedUser,
     enabled: !!token,
     retry: false,

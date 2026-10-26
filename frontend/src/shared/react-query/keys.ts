@@ -1,6 +1,8 @@
 // src/shared/react-query/keys.ts
 
 export const queryKeys = {
+  me: ['auth', 'me'] as const,
+
   dashboard: ['dashboard'] as const,
 
   sales: ['sales'] as const,
