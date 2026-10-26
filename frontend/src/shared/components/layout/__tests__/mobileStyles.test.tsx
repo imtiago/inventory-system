@@ -50,7 +50,7 @@ describe('Page e Section', () => {
     const section = screen.getByText('x').closest('section')!;
     const page = section.parentElement!;
     for (const el of [page, section, section.lastElementChild!]) {
-      expect(el.className).not.toMatch(/(^|\s)(lg:)?(h-full|overflow-hidden)(\s|$)/);
+      expect(el.className).not.toMatch(/(^|\s)(lg:)?(h-full|overflow-hidden|overflow-clip)(\s|$)/);
     }
   });
 

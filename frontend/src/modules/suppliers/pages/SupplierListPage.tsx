@@ -71,7 +71,7 @@ export function SupplierListPage() {
                 setDeleteError(null);
                 setDeleting(item);
               }}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:text-danger/80"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-danger hover:bg-surface-muted"
               aria-label={`Excluir ${item.name}`}
             >
               <Trash2 size={18} />

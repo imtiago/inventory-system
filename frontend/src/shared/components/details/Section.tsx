@@ -25,7 +25,6 @@ export function Section({
         flex
         flex-col
         min-w-0
-        overflow-clip
         ${className}
       `}
     >

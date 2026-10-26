@@ -178,15 +178,15 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
   }
 
   return (
-    <div className="w-full overflow-x-auto lg:overflow-x-clip">
+    <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 z-10 bg-surface-muted">
+        <thead className="bg-surface-muted">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.id}
                 style={{ width: column.width }}
-                className={`whitespace-nowrap border-b border-border px-3 py-4 text-xs font-semibold uppercase tracking-wide text-muted lg:px-5 ${alignment[alignOf(column)]}`}
+                className={`whitespace-nowrap border-b border-border px-3 py-4 text-xs font-semibold uppercase tracking-wide text-muted first:rounded-tl-xl last:rounded-tr-xl lg:px-5 ${alignment[alignOf(column)]}`}
               >
                 {column.header}
               </th>

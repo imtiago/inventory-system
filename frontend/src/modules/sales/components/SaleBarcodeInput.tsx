@@ -104,7 +104,7 @@ export function SaleBarcodeInput({ loading, onSubmitBarcode }: SaleBarcodeInputP
 
           <BarcodeScanner continuous onDetected={handleBarcodeRead} />
 
-          <button type="button" onClick={() => setScannerOpen(false)} className="mt-3 text-sm text-danger hover:text-danger/80">
+          <button type="button" onClick={() => setScannerOpen(false)} className="mt-3 text-sm text-danger hover:underline">
             Terminar leitura
           </button>
         </div>

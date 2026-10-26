@@ -62,16 +62,16 @@ describe('DetailTable', () => {
   });
 });
 
-describe('DataTable: cabeçalho fixo na rolagem da página', () => {
-  test('thead é sticky e o recipiente não vira contêiner de rolagem vertical no desktop', () => {
+describe('DataTable: rolagem horizontal', () => {
+  test('o recipiente rola na horizontal em qualquer largura e o thead não é sticky', () => {
     render(
       <MemoryRouter>
         <DataTable data={rows} columns={[{ id: 'name', header: 'Produto', cell: (r) => r.name }]} />
       </MemoryRouter>,
     );
     const table = screen.getByRole('table');
-    expect(table.querySelector('thead')).toHaveClass('sticky', 'top-0');
-    // overflow-x-clip (lg+) não cria contêiner de rolagem, então o sticky acompanha a rolagem da página.
-    expect(table.parentElement).toHaveClass('lg:overflow-x-clip');
+    expect(table.querySelector('thead')).not.toHaveClass('sticky');
+    expect(table.parentElement).toHaveClass('overflow-x-auto');
+    expect(table.parentElement!.className).not.toMatch(/overflow-x-clip/);
   });
 });

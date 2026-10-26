@@ -48,7 +48,7 @@ export function useInventoryColumns(): DataTableColumn<IInventory>[] {
       numeric: true,
 
       cell: (data) => (
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-start gap-1 md:items-end">
           <span>{data.quantity}</span>
           {data.expired > 0 && <span className="text-xs font-medium text-danger">Vencido: {data.expired}</span>}
         </div>

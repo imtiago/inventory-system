@@ -61,8 +61,10 @@ const config: Config = {
       // Sem cor explícita: bordas, divisórias, anéis de foco e o recuo do anel seguem o tema.
       borderColor: { DEFAULT: token("border") },
       divideColor: { DEFAULT: token("border") },
-      ringColor: { DEFAULT: token("ring") },
-      ringOffsetColor: { DEFAULT: token("surface") },
+      // DEFAULT de ring-* vai direto para variáveis CSS globais (preflight), que não resolvem o placeholder <alpha-value>:
+      // aqui precisa ser uma cor completa, não token().
+      ringColor: { DEFAULT: "rgb(var(--ring) / 0.5)" },
+      ringOffsetColor: { DEFAULT: "rgb(var(--surface))" },
       borderRadius: {
         DEFAULT: "var(--radius)",
       },

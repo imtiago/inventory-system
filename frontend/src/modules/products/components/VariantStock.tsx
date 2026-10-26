@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/ui/badge";
 import type { InventoryBalance } from "@/modules/inventory/services/inventoryService";
 
 interface Props {
@@ -21,7 +22,7 @@ export function VariantStock({ balance, loading, error }: Props) {
   }
 
   if (!balance) {
-    return <span className="text-subtle">Sem estoque</span>;
+    return <StatusBadge status="OUT_OF_STOCK">Sem estoque</StatusBadge>;
   }
 
   return (

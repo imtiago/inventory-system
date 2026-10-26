@@ -55,7 +55,7 @@ export function UserListPage() {
           >
             <Pencil size={18} />
           </button>
-          <button type="button" onClick={() => setResetting(user)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-warning hover:text-warning/80" aria-label={`Redefinir senha de ${user.name}`}>
+          <button type="button" onClick={() => setResetting(user)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-warning hover:bg-surface-muted" aria-label={`Redefinir senha de ${user.name}`}>
             <KeyRound size={18} />
           </button>
         </div>
