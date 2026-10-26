@@ -18,6 +18,7 @@ import {
   errorItemIndex,
   initialInstallments,
   initialItemDraft,
+  INSTALLMENTS_TOLERANCE_CENTS,
   installmentsProblem,
   installmentsSumCents,
   itemProblem,
@@ -86,9 +87,12 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
 
   const totalCents = itemsTotalCents(note.items);
   const sumCents = installmentsSumCents(installments);
-  const sumMismatch = sumCents !== totalCents;
-  // vNF vs the sum of the items' costs: the note may round its total differently.
-  const noteDifferenceCents = Math.abs(toCents(note.totalAmount) - totalCents);
+  const sumDifferenceCents = sumCents - totalCents;
+  const sumMismatch = Math.abs(sumDifferenceCents) > INSTALLMENTS_TOLERANCE_CENTS;
+  const sumAdjusted = sumDifferenceCents !== 0 && !sumMismatch;
+  // vNF vs the sum of the items' costs (the note may round its total differently) and the note's duplicatas vs the order.
+  const noteDifferenceCents = Math.abs(toCents(note.totals.difference));
+  const noteInstallmentsDifferenceCents = Math.abs(toCents(note.totals.installmentsDifference));
   const unsupported = note.items.some((item) => !item.composesTotal);
   const supplierProblem = !note.supplier.match && supplier.name.trim().length < 2 ? 'Informe o nome do fornecedor.' : null;
   const reason =
@@ -159,6 +163,11 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         {noteDifferenceCents !== 0 && (
           <p data-testid="note-total-difference" className="mt-3 text-sm text-warning">
             Total do pedido difere do total da nota em {formatCents(noteDifferenceCents)} (arredondamento da nota).
+          </p>
+        )}
+        {noteInstallmentsDifferenceCents !== 0 && (
+          <p data-testid="note-installments-difference" className="mt-1 text-sm text-warning">
+            As duplicatas da nota somam {formatCurrency(note.totals.installmentsTotal)}, diferente do total do pedido ({formatCurrency(note.totals.orderTotal)}) em {formatCents(noteInstallmentsDifferenceCents)}.
           </p>
         )}
       </section>
@@ -260,7 +269,12 @@ function ReviewForm({ note, onConfirmed }: { note: INfeImport; onConfirmed: (pur
         </p>
         {sumMismatch && (
           <p data-testid="installments-mismatch" className="mt-1 text-sm text-danger">
-            A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}).
+            A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}) em mais de {formatCents(INSTALLMENTS_TOLERANCE_CENTS)}.
+          </p>
+        )}
+        {sumAdjusted && (
+          <p data-testid="installments-adjusted" className="mt-1 text-sm text-warning">
+            A soma das parcelas ({formatCents(sumCents)}) difere do total do pedido ({formatCents(totalCents)}) em {formatCents(Math.abs(sumDifferenceCents))}: a última parcela será ajustada para fechar o total.
           </p>
         )}
       </section>

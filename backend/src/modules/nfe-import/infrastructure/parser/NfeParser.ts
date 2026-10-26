@@ -3,7 +3,7 @@ import { BusinessRuleError, ErrorCodes, ValidationError } from "@shared/domain/e
 import { isValidAccessKey } from "@shared/domain/accessKey";
 import { MAX_AMOUNT_CENTS, MAX_QUANTITY } from "@shared/domain/limits";
 import { businessDateOfInstant } from "@shared/domain/businessDate";
-import { isValidCnpj, isValidCpf } from "@shared/domain/document";
+import { isValidCnpj, isValidCpf, normalizeDocument } from "@shared/domain/document";
 import {
   itemCostCents,
   type NfeDocument,
@@ -65,6 +65,24 @@ function invalidFile(): ValidationError {
 
 function invalidNfe(message: string): BusinessRuleError {
   return new BusinessRuleError(message, ErrorCodes.INVALID_NFE);
+}
+
+function notAccepted(message: string): BusinessRuleError {
+  return new BusinessRuleError(message, ErrorCodes.NFE_NOT_ACCEPTED);
+}
+
+/** "11222333000181" → "11.222.333/0001-81" (CNPJ alfanumérico também; outro formato volta como veio). */
+function formatCnpj(value: string): string {
+  const m = /^([0-9A-Z]{2})([0-9A-Z]{3})([0-9A-Z]{3})([0-9A-Z]{4})(\d{2})$/.exec(value);
+  return m ? `${m[1]}.${m[2]}.${m[3]}/${m[4]}-${m[5]}` : value;
+}
+
+/** cStat de autorização de uso: 100 (autorizada) e 150 (autorizada fora de prazo). */
+const AUTHORIZED_STATUS = new Set(["100", "150"]);
+
+export interface NfeParserOptions {
+  /** CNPJ da empresa (só dígitos/letras); definido → o destinatário da nota precisa ser este. */
+  companyCnpj?: string;
 }
 
 function isNode(value: unknown): value is XmlNode {
@@ -186,6 +204,12 @@ function icmsReliefOf(imposto: XmlNode | undefined, what: Where): number {
 }
 
 export class NfeParser {
+  private readonly companyCnpj: string | undefined;
+
+  constructor(options: NfeParserOptions = {}) {
+    this.companyCnpj = options.companyCnpj ? normalizeDocument(options.companyCnpj) : undefined;
+  }
+
   parse(input: string | Buffer): NfeDocument {
     const xml = this.decode(input);
     if (DTD_PATTERN.test(xml)) throw invalidFile();
@@ -198,7 +222,8 @@ export class NfeParser {
       throw invalidFile();
     }
 
-    const nfe = child(child(root, "nfeProc"), "NFe") ?? child(root, "NFe");
+    const proc = child(root, "nfeProc");
+    const nfe = child(proc, "NFe") ?? child(root, "NFe");
     const inf = child(nfe, "infNFe");
     if (!inf) throw invalidNfe("O arquivo não é uma NF-e.");
 
@@ -209,12 +234,19 @@ export class NfeParser {
     const accessKey = id.replace(/^NFe/, "");
     if (!isValidAccessKey(accessKey)) throw invalidNfe("Chave de acesso inválida.");
 
+    this.assertAccepted(ide, child(inf, "dest"), child(child(proc, "protNFe"), "infProt"));
+
     const dets = children(inf, "det");
     if (dets.length === 0) throw invalidNfe("A NF-e não possui itens.");
 
     const supplier = this.supplier(child(inf, "emit"));
     const issueDate = this.issueDate(ide);
     const items = dets.map((det, i) => this.item(det, i));
+    const seen = new Set<number>();
+    for (const { index } of items) {
+      if (seen.has(index)) throw invalidNfe(`NF-e com nItem repetido (${index}).`);
+      seen.add(index);
+    }
     const totals = this.totals(child(child(inf, "total"), "ICMSTot"));
 
     const composing = items.filter((item) => item.composesTotal);
@@ -237,6 +269,26 @@ export class NfeParser {
       items,
       installments,
     };
+  }
+
+  /** Só NF-e normal de compra, autorizada e destinada à empresa (422 NFE_NOT_ACCEPTED). */
+  private assertAccepted(ide: XmlNode | undefined, dest: XmlNode | undefined, infProt: XmlNode | undefined): void {
+    if (text(ide, "finNFe") !== "1") {
+      throw notAccepted("Somente NF-e normal de compra é aceita (esta é de devolução/complementar/ajuste).");
+    }
+    const tpNF = text(ide, "tpNF");
+    if (tpNF !== "1") {
+      throw notAccepted(`A nota não é uma venda do fornecedor para a empresa (tpNF=${tpNF ?? "ausente"}).`);
+    }
+    if (this.companyCnpj) {
+      const recipient = text(dest, "CNPJ")?.toUpperCase();
+      if (recipient !== this.companyCnpj) {
+        throw notAccepted(`A nota é destinada a outro CNPJ (${recipient ? formatCnpj(recipient) : "não informado"}).`);
+      }
+    }
+    if (!infProt) throw notAccepted("Nota sem protocolo de autorização.");
+    const status = text(infProt, "cStat") ?? "";
+    if (!AUTHORIZED_STATUS.has(status)) throw notAccepted(`Nota não autorizada ou cancelada (situação ${status || "ausente"}).`);
   }
 
   private decode(input: string | Buffer): string {
@@ -281,8 +333,9 @@ export class NfeParser {
   }
 
   private item(det: XmlNode, position: number): NfeItem {
-    const nItem = Number(text(det, "@_nItem") ?? position + 1);
-    const index = Number.isSafeInteger(nItem) ? nItem : position + 1;
+    const rawIndex = text(det, "@_nItem");
+    const index = rawIndex !== undefined && /^[1-9]\d{0,8}$/.test(rawIndex) ? Number(rawIndex) : undefined;
+    if (index === undefined) throw invalidNfe(`NF-e com item sem nItem válido (posição ${position + 1}).`);
     const what = `item ${index}`;
     const where: Where = { item: index };
     const prod = child(det, "prod") ?? {};
@@ -302,6 +355,12 @@ export class NfeParser {
       manufacturingDate: date(rastro, "dFab"),
       expirationDate: date(rastro, "dVal"),
     }));
+
+    for (const lot of lots) {
+      if (lot.manufacturingDate && lot.expirationDate && lot.expirationDate < lot.manufacturingDate) {
+        throw invalidNfe(`Item ${index}: validade do lote ${lot.batchNumber} anterior à fabricação.`);
+      }
+    }
 
     // Unidades por embalagem são conferidas na confirmação (qCom × unidades ≤ 1.000.000).
     const qty = quantity(prod, "qCom", what, `Item ${index}: quantidade acima do máximo permitido (1.000.000).`);

@@ -14,6 +14,8 @@ export function unitCostCents(costCents: number, quantity: string): number {
 export class NfeImportMapper {
   static toDTO(record: NfeImportRecord, suggestions: NfeSuggestions): NfeImportDTO {
     const doc = record.document;
+    const orderTotal = doc.items.reduce((sum, item) => sum + itemCostCents(item), 0);
+    const installmentsTotal = doc.installments.reduce((sum, i) => sum + i.amount, 0);
     return {
       id: record.id,
       accessKey: record.accessKey,
@@ -22,6 +24,13 @@ export class NfeImportMapper {
       series: doc.series,
       issueDate: doc.issueDate,
       totalAmount: fromCents(doc.totals.total),
+      totals: {
+        total: fromCents(doc.totals.total),
+        orderTotal: fromCents(orderTotal),
+        difference: fromCents(doc.totals.total - orderTotal),
+        installmentsTotal: fromCents(installmentsTotal),
+        installmentsDifference: fromCents(installmentsTotal === 0 ? 0 : installmentsTotal - orderTotal),
+      },
       purchaseId: record.purchaseId,
       createdAt: record.createdAt,
       supplier: { document: doc.supplier.document, name: doc.supplier.name, match: suggestions.supplier },

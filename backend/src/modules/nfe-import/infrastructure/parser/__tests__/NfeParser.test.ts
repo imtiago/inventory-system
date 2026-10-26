@@ -135,7 +135,7 @@ describe("NfeParser", () => {
     assert.equal(doc.totals.total, 40009);
   });
 
-  test("nota sem cobrança → installments []; NFe sem nfeProc, det único, emitente CPF", () => {
+  test("nota sem cobrança → installments []; det único, emitente CPF", () => {
     const doc = parser.parse(fixture("nfe-sem-cobranca.xml"));
     assert.deepEqual(doc.installments, []);
     assert.equal(doc.items.length, 1);
@@ -205,6 +205,90 @@ describe("NfeParser", () => {
     const full = fixture("nfe-completa.xml");
     assert.equal(parser.parse(full.replace("<vNF>397.09</vNF>", "<vNF>397.12</vNF>")).totals.total, 39712);
     expectInvalidNfe(full.replace("<vNF>397.09</vNF>", "<vNF>397.13</vNF>"), "Totais da nota não conferem.");
+  });
+
+  describe("aceitação: só compra autorizada destinada à empresa", () => {
+    const full = fixture("nfe-completa.xml");
+    const COMPANY = "11444777000161";
+    const withCompany = new NfeParser({ companyCnpj: COMPANY });
+    const expectNotAccepted = (xml: string, message: string, p: NfeParser = withCompany) =>
+      assert.throws(
+        () => p.parse(xml),
+        (e: unknown) => e instanceof BusinessRuleError && e.code === "NFE_NOT_ACCEPTED" && e.message === message,
+      );
+
+    test("nota normal, de saída do emitente, autorizada e para a empresa é aceita", () => {
+      assert.equal(withCompany.parse(full).accessKey, FULL_KEY);
+      assert.equal(new NfeParser({ companyCnpj: "11.444.777/0001-61" }).parse(full).accessKey, FULL_KEY);
+    });
+
+    test("finNFe diferente de 1", () => {
+      for (const fin of ["2", "3", "4"]) {
+        expectNotAccepted(
+          full.replace("<finNFe>1</finNFe>", `<finNFe>${fin}</finNFe>`),
+          "Somente NF-e normal de compra é aceita (esta é de devolução/complementar/ajuste).",
+        );
+      }
+      expectNotAccepted(
+        full.replace("<finNFe>1</finNFe>", ""),
+        "Somente NF-e normal de compra é aceita (esta é de devolução/complementar/ajuste).",
+      );
+    });
+
+    test("tpNF diferente de 1", () => {
+      expectNotAccepted(
+        full.replace("<tpNF>1</tpNF>", "<tpNF>0</tpNF>"),
+        "A nota não é uma venda do fornecedor para a empresa (tpNF=0).",
+      );
+    });
+
+    test("destinatário diferente (ou ausente) → CNPJ formatado na mensagem", () => {
+      expectNotAccepted(
+        full.replace("<CNPJ>11444777000161</CNPJ>", "<CNPJ>11222333000181</CNPJ>"),
+        "A nota é destinada a outro CNPJ (11.222.333/0001-81).",
+      );
+      expectNotAccepted(
+        full.replace(/<dest>[\s\S]*?<\/dest>/, ""),
+        "A nota é destinada a outro CNPJ (não informado).",
+      );
+    });
+
+    test("sem COMPANY_CNPJ configurado o destinatário não é conferido", () => {
+      const other = full.replace("<CNPJ>11444777000161</CNPJ>", "<CNPJ>11222333000181</CNPJ>");
+      assert.equal(new NfeParser().parse(other).accessKey, FULL_KEY);
+    });
+
+    test("sem protNFe", () => {
+      expectNotAccepted(full.replace(/<protNFe[\s\S]*?<\/protNFe>/, ""), "Nota sem protocolo de autorização.");
+    });
+
+    test("cStat fora de 100/150", () => {
+      assert.equal(withCompany.parse(full.replace("<cStat>100</cStat>", "<cStat>150</cStat>")).accessKey, FULL_KEY);
+      for (const stat of ["101", "110", "301"]) {
+        expectNotAccepted(
+          full.replace("<cStat>100</cStat>", `<cStat>${stat}</cStat>`),
+          `Nota não autorizada ou cancelada (situação ${stat}).`,
+        );
+      }
+    });
+  });
+
+  test("nItem ausente, repetido ou não inteiro → INVALID_NFE", () => {
+    const full = fixture("nfe-completa.xml");
+    expectInvalidNfe(full.replace('<det nItem="2">', '<det nItem="1">'), "NF-e com nItem repetido (1).");
+    expectInvalidNfe(full.replace('<det nItem="2">', "<det>"), "NF-e com item sem nItem válido (posição 2).");
+    expectInvalidNfe(full.replace('<det nItem="2">', '<det nItem="2.5">'), "NF-e com item sem nItem válido (posição 2).");
+    expectInvalidNfe(full.replace('<det nItem="2">', '<det nItem="0">'), "NF-e com item sem nItem válido (posição 2).");
+  });
+
+  test("lote com validade anterior à fabricação → INVALID_NFE; datas válidas são mantidas", () => {
+    const full = fixture("nfe-completa.xml");
+    expectInvalidNfe(
+      full.replace("<dVal>2027-01-10</dVal>", "<dVal>2025-12-31</dVal>"),
+      "Item 1: validade do lote L001 anterior à fabricação.",
+    );
+    const doc = parser.parse(full.replace("<dVal>2027-01-10</dVal>", "<dVal>2026-01-10</dVal>"));
+    assert.equal(doc.items[0].lots[0].expirationDate, "2026-01-10");
   });
 
   test("XML com DOCTYPE/ENTITY → INVALID_FILE_CONTENT sem expandir entidades", () => {

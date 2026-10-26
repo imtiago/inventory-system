@@ -7,6 +7,13 @@
     "series": "1",
     "issueDate": "2026-10-23",
     "totalAmount": 397.09,
+    "totals": {
+      "total": 397.09,
+      "orderTotal": 397.09,
+      "difference": 0,
+      "installmentsTotal": 397.09,
+      "installmentsDifference": 0
+    },
     "purchaseId": null,
     "createdAt": "2026-10-23T14:10:00.000Z",
     "supplier": {

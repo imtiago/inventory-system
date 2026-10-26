@@ -118,9 +118,20 @@ describe('NfeImportReviewPage', () => {
     expect(screen.getByLabelText('Valor da parcela 3')).toHaveValue(132.37);
     expect(screen.getByRole('button', { name: 'Confirmar importação' })).toBeEnabled();
 
+    // Até R$ 0,05 de diferença: aviso de ajuste da última parcela, confirmação liberada.
     await userEvent.clear(screen.getByLabelText('Valor da parcela 3'));
-    await userEvent.type(screen.getByLabelText('Valor da parcela 3'), '132.36');
-    expect(screen.getByTestId('installments-mismatch')).toHaveTextContent('397,08');
+    await userEvent.type(screen.getByLabelText('Valor da parcela 3'), '132.32');
+    expect(screen.getByTestId('installments-adjusted')).toHaveTextContent('397,04');
+    expect(screen.getByTestId('installments-adjusted')).toHaveTextContent('a última parcela será ajustada');
+    expect(screen.queryByTestId('installments-mismatch')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirmar importação' })).toBeEnabled();
+
+    // 6 centavos: bloqueia.
+    await userEvent.clear(screen.getByLabelText('Valor da parcela 3'));
+    await userEvent.type(screen.getByLabelText('Valor da parcela 3'), '132.31');
+    expect(screen.getByTestId('installments-mismatch')).toHaveTextContent('397,03');
+    expect(screen.getByTestId('installments-mismatch')).toHaveTextContent('mais de R$ 0,05');
+    expect(screen.queryByTestId('installments-adjusted')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirmar importação' })).toBeDisabled();
 
     await userEvent.clear(screen.getByLabelText('Valor da parcela 3'));
@@ -308,11 +319,24 @@ describe('NfeImportReviewPage', () => {
   });
 
   test('total da nota 0,01 acima do pedido mostra a diferença', async () => {
-    server.use(http.get(`${API_URL}/nfe-imports/:id`, () => HttpResponse.json({ data: { ...draft, totalAmount: 397.1 } })));
+    server.use(http.get(`${API_URL}/nfe-imports/:id`, () => HttpResponse.json({ data: { ...draft, totalAmount: 397.1, totals: { ...draft.totals, total: 397.1, difference: 0.01 } } })));
     renderPage();
     await screen.findByTestId('nfe-item-1');
     expect(screen.getByTestId('note-total-difference').textContent?.replace(/\s/g, ' ')).toBe(
       'Total do pedido difere do total da nota em R$ 0,01 (arredondamento da nota).',
+    );
+  });
+
+  test('duplicatas da nota que não fecham com o pedido mostram a divergência antes de confirmar', async () => {
+    server.use(
+      http.get(`${API_URL}/nfe-imports/:id`, () =>
+        HttpResponse.json({ data: { ...draft, totals: { ...draft.totals, installmentsTotal: 397.12, installmentsDifference: 0.03 } } }),
+      ),
+    );
+    renderPage();
+    await screen.findByTestId('nfe-item-1');
+    expect(screen.getByTestId('note-installments-difference').textContent?.replace(/\s/g, ' ')).toBe(
+      'As duplicatas da nota somam R$ 397,12, diferente do total do pedido (R$ 397,09) em R$ 0,03.',
     );
   });
 

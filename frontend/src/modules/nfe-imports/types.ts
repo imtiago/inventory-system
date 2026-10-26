@@ -57,6 +57,18 @@ export interface INfeImport {
   series: string;
   issueDate: string;
   totalAmount: number;
+  /**
+   * Totals check, reais: total = vNF; orderTotal = sum of the items' costs (the order total);
+   * difference = total - orderTotal; installmentsTotal = sum of the note's duplicatas (0 when none);
+   * installmentsDifference = installmentsTotal - orderTotal (0 when none).
+   */
+  totals: {
+    total: number;
+    orderTotal: number;
+    difference: number;
+    installmentsTotal: number;
+    installmentsDifference: number;
+  };
   purchaseId: string | null;
   createdAt: string;
   supplier: { document: string; name: string; match: { id: string; name: string } | null };

@@ -53,6 +53,7 @@ jobs:
         env:
           NODE_ENV: production
           CORS_ORIGINS: http://localhost:5173
+          COMPANY_CNPJ: "11444777000161"
           JWT_SECRET: ci-smoke-secret-0123456789-abcdefghijklmnop
         run: |
           node dist/server.js > server.log 2>&1 &

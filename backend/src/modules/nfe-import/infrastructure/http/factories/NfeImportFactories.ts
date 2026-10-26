@@ -1,3 +1,4 @@
+import { env } from "@shared/config/env";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { NfeSuggestionService } from "@nfe-import/application/services/NfeSuggestionService";
 import { makeCatalogService, makeCatalogWriteService } from "@catalog/infrastructure/http/factories/CatalogServiceFactory";
@@ -25,7 +26,7 @@ export const makeListNfeImportsUseCase = () => new ListNfeImportsUseCase(new Pri
 
 export const makeUploadNfeImportUseCase = () =>
   new UploadNfeImportUseCase(
-    new NfeParser(),
+    new NfeParser({ companyCnpj: env.COMPANY_CNPJ }),
     new PrismaNfeImportRepository(),
     new PrismaTransactionManager(),
     makeGetNfeImportUseCase(),

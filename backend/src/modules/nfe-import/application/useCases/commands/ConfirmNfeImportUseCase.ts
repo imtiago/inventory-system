@@ -1,4 +1,5 @@
 import {
+  BusinessRuleError,
   DomainError,
   ErrorCodes,
   ErrorDetails,
@@ -26,7 +27,7 @@ import {
   supplierDocumentMismatch,
 } from "@nfe-import/domain/errors/nfeImportErrors";
 import { NfeItemUnits, nfeItemUnits, NfePurchaseLine, toPurchaseLines } from "@nfe-import/domain/nfePurchaseLines";
-import { deliveryBatchNumber, renamedBatchNumber } from "@nfe-import/domain/nfeLotNumbers";
+import { batchNumberCandidates } from "@nfe-import/domain/nfeLotNumbers";
 import { NfeImportRepository } from "../../contracts/NfeImportRepository";
 import { NfeLotLookup } from "../../contracts/NfeLotLookup";
 import { SupplierProductMappingRepository } from "../../contracts/SupplierProductMappingRepository";
@@ -121,15 +122,8 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     }
     // Mapeamentos em ordem de supplierCode: confirmações concorrentes do mesmo fornecedor travam
     // as linhas na mesma ordem (sem deadlock).
-    for (const { item, request, productVariantId } of [...resolved].sort((a, b) =>
-      a.item.supplierCode < b.item.supplierCode ? -1 : a.item.supplierCode > b.item.supplierCode ? 1 : 0,
-    )) {
-      await this.mappings.upsert({
-        supplierId: supplier.id,
-        supplierCode: item.supplierCode,
-        productVariantId,
-        unitsPerPackage: unitsPerPackageOf(request),
-      });
+    for (const mapping of learnableMappings(resolved)) {
+      await this.mappings.upsert({ supplierId: supplier.id, ...mapping });
     }
 
     // 4. Unidades somadas por variante; total de cada item = custo da nota.
@@ -154,7 +148,7 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
     if (purchase.totalAmountCents !== costTotal) {
       throw new InternalInvariantError("Total do pedido difere do custo da nota.", InternalErrorCodes.PURCHASE_ITEM_INVALID);
     }
-    const created = await this.purchaseCreator.save(purchase, this.parcelsFor(document, purchase, input.installments));
+    const created = await this.purchaseCreator.save(purchase, reconcileParcels(this.parcelsFor(document, purchase, input.installments), purchase.totalAmountCents));
 
     // 6. Entrada no estoque.
     if (input.receive) await this.receiveAll(created, lines, input.userId);
@@ -263,21 +257,75 @@ export class ConfirmNfeImportUseCase extends TransactionalUseCase<ConfirmNfeImpo
   /**
    * Número de lote de cada lote da nota, por variante. O pedido é novo, então um lote da variante
    * com o mesmo número é de outra entrega/origem (o recebimento manual da 6A recusa com 409
-   * BATCH_ALREADY_EXISTS): aqui a entrega vira "<nLote>-<código do pedido>" ou, se também existir,
-   * entra sem lote (ver deliveryBatchNumber).
+   * BATCH_ALREADY_EXISTS): aqui a entrega vira o primeiro candidato livre de "<nLote>",
+   * "<nLote>-<código do pedido>", "<nLote>-<código do pedido>-2"... — a nota nunca perde o lote
+   * (e a validade). Mesmo nLote repetido na linha → mesmo lote.
    */
   private async deliveryBatchNumbers(purchase: Purchase, lines: NfePurchaseLine[]) {
-    const byVariant = new Map<string, Map<string, string | undefined>>();
+    const byVariant = new Map<string, Map<string, string>>();
     for (const line of lines) {
-      const candidates = line.lots.flatMap((lot) => [lot.batchNumber, renamedBatchNumber(lot.batchNumber, purchase.code)]);
-      const taken = new Set(await this.lots.findExistingBatchNumbers(line.productVariantId, [...new Set(candidates)]));
-      byVariant.set(
-        line.productVariantId,
-        new Map(line.lots.map((lot) => [lot.batchNumber, deliveryBatchNumber(lot.batchNumber, purchase.code, taken)])),
-      );
+      const assigned = new Map<string, string>();
+      const used = new Set<string>();
+      for (const lot of line.lots) {
+        if (assigned.has(lot.batchNumber)) continue;
+        let count = 8;
+        let chosen: string | undefined;
+        while (chosen === undefined) {
+          const candidates = batchNumberCandidates(lot.batchNumber, purchase.code, count);
+          const taken = new Set(await this.lots.findExistingBatchNumbers(line.productVariantId, candidates));
+          chosen = candidates.find((c) => !taken.has(c) && !used.has(c));
+          count *= 2;
+        }
+        used.add(chosen);
+        assigned.set(lot.batchNumber, chosen);
+      }
+      byVariant.set(line.productVariantId, assigned);
     }
     return byVariant;
   }
+}
+
+/** Diferença máxima (centavos) entre a soma das parcelas e o total do pedido que ainda é absorvida pela última parcela. */
+export const INSTALLMENTS_TOLERANCE_CENTS = 5;
+
+const brl = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+
+/**
+ * Parcelas da nota (ou editadas) × total do pedido, que é a soma dos itens: até R$ 0,05 de
+ * diferença a última parcela absorve; acima disso → 422 INSTALLMENTS_TOTAL_MISMATCH com os dois valores.
+ */
+export function reconcileParcels(parcels: PurchaseParcel[], totalCents: number): PurchaseParcel[] {
+  const sum = parcels.reduce((acc, p) => acc + p.amountCents, 0);
+  const diff = totalCents - sum;
+  const last = parcels[parcels.length - 1];
+  if (diff === 0 || (last && Math.abs(diff) <= INSTALLMENTS_TOLERANCE_CENTS && last.amountCents + diff > 0)) {
+    return diff === 0 ? parcels : [...parcels.slice(0, -1), { ...last, amountCents: last.amountCents + diff }];
+  }
+  throw new BusinessRuleError(
+    `A soma das parcelas (${brl(sum)}) difere do total do pedido (${brl(totalCents)}) em mais de ${brl(INSTALLMENTS_TOLERANCE_CENTS)}.`,
+    ErrorCodes.INSTALLMENTS_TOTAL_MISMATCH,
+  );
+}
+
+/**
+ * Mapeamentos (código do fornecedor → variante/embalagem) a aprender: nunca para código vazio; código
+ * repetido na nota só se todos os itens apontarem para a mesma variante e embalagem. Ordenados por
+ * código (confirmações concorrentes do mesmo fornecedor travam as linhas na mesma ordem).
+ */
+function learnableMappings(
+  resolved: { item: NfeItem; request: ConfirmItemInput; productVariantId: string }[],
+): { supplierCode: string; productVariantId: string; unitsPerPackage: number }[] {
+  const byCode = new Map<string, { productVariantId: string; unitsPerPackage: number }[]>();
+  for (const { item, request, productVariantId } of resolved) {
+    if (item.supplierCode.trim() === "") continue;
+    const list = byCode.get(item.supplierCode) ?? [];
+    list.push({ productVariantId, unitsPerPackage: unitsPerPackageOf(request) });
+    byCode.set(item.supplierCode, list);
+  }
+  return [...byCode.entries()]
+    .filter(([, list]) => list.every((m) => m.productVariantId === list[0].productVariantId && m.unitsPerPackage === list[0].unitsPerPackage))
+    .map(([supplierCode, [first]]) => ({ supplierCode, ...first }))
+    .sort((a, b) => (a.supplierCode < b.supplierCode ? -1 : a.supplierCode > b.supplierCode ? 1 : 0));
 }
 
 /**

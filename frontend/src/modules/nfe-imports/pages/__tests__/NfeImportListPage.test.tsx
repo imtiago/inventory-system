@@ -90,6 +90,15 @@ describe('NfeImportListPage', () => {
     expect(await screen.findAllByText('Envie o arquivo XML da NF-e.')).toHaveLength(1);
   });
 
+  test('422 NFE_NOT_ACCEPTED mostra o motivo da recusa da nota', async () => {
+    const message = 'A nota é destinada a outro CNPJ (11.222.333/0001-81).';
+    server.use(http.post(`${API_URL}/nfe-imports`, () => HttpResponse.json({ message, code: 'NFE_NOT_ACCEPTED' }, { status: 422 })));
+    renderPage();
+    await userEvent.upload(screen.getByLabelText('Enviar XML'), xml());
+
+    expect(await screen.findAllByText(message)).toHaveLength(1);
+  });
+
   test('descartar rascunho pede confirmação e chama DELETE', async () => {
     let deleted: string | undefined;
     server.use(

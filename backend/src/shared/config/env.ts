@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
+import { isValidCnpj, normalizeDocument } from "@shared/domain/document";
 
 export type TrustProxy = true | number | string[];
 
@@ -15,6 +16,8 @@ export type Env = {
   TRUST_PROXY: TrustProxy | undefined;
   /** Desliga o rate limit global. Ignorado em produção. */
   RATE_LIMIT_DISABLED: boolean;
+  /** CNPJ da empresa (normalizado, sem máscara): destinatário exigido nas NF-e importadas. Obrigatório em produção. */
+  COMPANY_CNPJ: string | undefined;
 };
 
 const MIN_PRODUCTION_SECRET = 32;
@@ -44,6 +47,7 @@ const schema = z.object({
   CORS_ORIGINS: z.string().optional(),
   TRUST_PROXY: z.string().optional(),
   RATE_LIMIT_DISABLED: z.string().optional(),
+  COMPANY_CNPJ: z.string().optional(),
 });
 
 function parseTrustProxy(raw: string | undefined): TrustProxy | undefined {
@@ -77,6 +81,13 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     }
   }
 
+  const companyRaw = data?.COMPANY_CNPJ?.trim() ?? "";
+  if (companyRaw !== "") {
+    if (!isValidCnpj(companyRaw)) problems.push("COMPANY_CNPJ: deve ser um CNPJ válido (numérico ou alfanumérico)");
+  } else if (isProduction) {
+    problems.push("COMPANY_CNPJ: obrigatório em produção (CNPJ da empresa, destinatário das NF-e)");
+  }
+
   if (problems.length > 0 || !data) {
     throw new Error(
       `Variáveis de ambiente inválidas:\n${problems.map((p) => `  - ${p}`).join("\n")}`,
@@ -91,6 +102,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     isProduction,
     CORS_ORIGINS: corsOrigins.length > 0 ? corsOrigins : undefined,
     TRUST_PROXY: parseTrustProxy(data.TRUST_PROXY),
+    COMPANY_CNPJ: companyRaw !== "" ? normalizeDocument(companyRaw) : undefined,
     RATE_LIMIT_DISABLED:
       !isProduction && ["1", "true"].includes((data.RATE_LIMIT_DISABLED ?? "").toLowerCase()),
   };
