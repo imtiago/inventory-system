@@ -379,6 +379,12 @@ model FinancialDocument {
 
   parcels FinancialParcel[]
 
+  // Um documento ATIVO por origem de venda/compra: índice único PARCIAL
+  // "FinancialDocument_active_origin_key" (type, originType, originId) WHERE originType IN
+  // ('SALE','PURCHASE') AND status <> 'CANCELED', criado à mão em
+  // 20261026180000_integrity_checks (o Prisma não modela índice parcial). Violação → P2002.
+  // Essa migration também cria CHECKs (estoque >= 0, reservado <= quantidade, valores/quantidades > 0),
+  // que o Prisma não modela; violação → 23514 → 409 CONSTRAINT_VIOLATION.
   @@index([type, originType, originId])
   @@index([type, partyId])
   @@index([type, status])

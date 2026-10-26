@@ -2182,9 +2182,9 @@
       "totalPages": 1
     },
     "summary": {
-      "openAmount": 146.79,
+      "openAmount": 97.34,
       "overdueAmount": 130,
-      "receivedAmount": 220.8
+      "receivedAmount": 160.25
     }
   },
   "RECEIVABLE list: narrow range openOnly": {
@@ -2446,9 +2446,9 @@
       "totalPages": 1
     },
     "summary": {
-      "openAmount": 50.99,
+      "openAmount": 0,
       "overdueAmount": 50,
-      "receivedAmount": 0.31
+      "receivedAmount": 0.3
     }
   },
   "RECEIVABLE list: party A dueTo yesterday openOnly": {
@@ -2478,7 +2478,7 @@
       "totalPages": 1
     },
     "summary": {
-      "openAmount": 50,
+      "openAmount": 0,
       "overdueAmount": 50,
       "receivedAmount": 0
     }
@@ -2563,7 +2563,7 @@
     "summary": {
       "openAmount": 126,
       "overdueAmount": 0,
-      "receivedAmount": 90.25
+      "receivedAmount": 40.25
     }
   },
   "RECEIVABLE list: party B dueFrom today openOnly": {
@@ -6831,9 +6831,9 @@
       "totalPages": 1
     },
     "summary": {
-      "openAmount": 134.45,
+      "openAmount": 85,
       "overdueAmount": 130,
-      "paidAmount": 220.8
+      "paidAmount": 160.25
     }
   },
   "PAYABLE list: narrow range openOnly": {
@@ -7107,9 +7107,9 @@
       "totalPages": 1
     },
     "summary": {
-      "openAmount": 50.99,
+      "openAmount": 0,
       "overdueAmount": 95.67,
-      "paidAmount": 0.31
+      "paidAmount": 0.3
     }
   },
   "PAYABLE list: party A dueTo yesterday openOnly": {
@@ -7158,7 +7158,7 @@
       "totalPages": 1
     },
     "summary": {
-      "openAmount": 50,
+      "openAmount": 0,
       "overdueAmount": 95.67,
       "paidAmount": 0
     }
@@ -7247,7 +7247,7 @@
     "summary": {
       "openAmount": 126,
       "overdueAmount": 0,
-      "paidAmount": 90.25
+      "paidAmount": 40.25
     }
   },
   "PAYABLE list: party B dueFrom today openOnly": {

@@ -228,6 +228,22 @@ describe("Leitura de contas a receber (GET /receivables)", () => {
     assert.deepEqual(other.json().summary, { openAmount: 22.34, overdueAmount: 0, receivedAmount: 0 });
   });
 
+  test("GET /receivables summary com dueFrom/dueTo soma só as parcelas do intervalo", async () => {
+    const a = customers.a.id;
+    // Só a parcela de +40 do título "open" (a de +10 fica fora): a vencer 100.
+    const future = await get(`/receivables?customerId=${a}&dueFrom=${addDays(30)}&dueTo=${addDays(45)}`);
+    assert.equal(future.statusCode, 200, future.body);
+    assert.deepEqual(future.json().summary, { openAmount: 100, overdueAmount: 0, receivedAmount: 0 });
+
+    // Vencidas no passado: parcela de -5 (50 vencido) e a paga de -20 (recebido 40); a cancelada não conta.
+    const past = await get(`/receivables?customerId=${a}&dueFrom=${addDays(-25)}&dueTo=${addDays(-1)}`);
+    assert.deepEqual(past.json().summary, { openAmount: 0, overdueAmount: 50, receivedAmount: 40 });
+
+    // Parcela de +10 isolada.
+    const one = await get(`/receivables?customerId=${a}&dueFrom=${addDays(10)}&dueTo=${addDays(10)}`);
+    assert.deepEqual(one.json().summary, { openAmount: 100, overdueAmount: 0, receivedAmount: 0 });
+  });
+
   test("GET /receivables query inválida → 400 VALIDATION_ERROR", async () => {
     for (const query of ["status=FOO", "dueFrom=2026-13-01", "dueTo=ontem", "customerId=abc", "limit=101"]) {
       const res = await get(`/receivables?${query}`);

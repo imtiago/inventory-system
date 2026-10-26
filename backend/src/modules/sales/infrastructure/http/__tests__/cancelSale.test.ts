@@ -323,28 +323,8 @@ describe("POST /sales/:id/cancel", () => {
     });
   }
 
-  test("cancela todos os documentos a receber da venda", async () => {
-    const v1 = await createPricedVariant(10);
-    const saleId = await createSale([{ productVariantId: v1, quantity: 1 }]);
-    const extra = await prisma.financialDocument.create({
-      data: {
-        type: "RECEIVABLE",
-        originType: "SALE",
-        originId: saleId,
-        partyId: customerId,
-        partyType: "CUSTOMER",
-        parcels: { create: [{ amount: 1, dueDate: new Date() }] },
-      },
-    });
-
-    const res = await request("POST", `/sales/${saleId}/cancel`);
-    assert.equal(res.statusCode, 200, res.body);
-    const docs = await prisma.financialDocument.findMany({ where: { originId: saleId } });
-    assert.equal(docs.length, 2);
-    assert.ok(docs.some((d) => d.id === extra.id));
-    for (const d of docs) assert.equal(d.status, "CANCELED");
-  });
-
+  // O índice único parcial (FinancialDocument_active_origin_key) impede dois documentos ATIVOS da
+  // mesma venda; só o histórico cancelado pode coexistir. Pagamento em qualquer um deles bloqueia.
   test("pagamento em qualquer documento da venda → 409 SALE_HAS_PAYMENTS", async () => {
     const v1 = await createPricedVariant(10);
     const saleId = await createSale([{ productVariantId: v1, quantity: 1 }]);
@@ -355,6 +335,7 @@ describe("POST /sales/:id/cancel", () => {
         originId: saleId,
         partyId: customerId,
         partyType: "CUSTOMER",
+        status: "CANCELED",
         parcels: {
           create: [{ amount: 1, dueDate: new Date(), payments: { create: [{ amount: 1, method: "CASH" }] } }],
         },
@@ -365,7 +346,7 @@ describe("POST /sales/:id/cancel", () => {
     assert.equal(res.statusCode, 409, res.body);
     assert.equal(res.json().code, "SALE_HAS_PAYMENTS");
     const docs = await prisma.financialDocument.findMany({ where: { originId: saleId } });
-    for (const d of docs) assert.equal(d.status, "OPEN");
+    assert.equal(docs.filter((d) => d.status === "OPEN").length, 1); // o da venda segue aberto
   });
 
   test("lockByOrigin fora de transação → InternalInvariantError", async () => {
