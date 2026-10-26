@@ -51,7 +51,6 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 - Fluxo de migration:
   1. `cd backend && PGCONTAINER=api_db_1 npm run backup-db`.
   2. Escreva o SQL à mão em `prisma/migrations/<AAAAMMDDHHMMSS>_<nome>/migration.sql` (aditivo; confira dados existentes antes de criar CHECK/UNIQUE; se violam, pare e pergunte).
-     Diff só leitura, se ajudar: `npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script` (ignore DROPs de índices/CHECKs que o Prisma não modela).
   3. `npx prisma migrate deploy` (dev) e `npm run test:db:prepare` (aplica no `inventory_test`).
   4. `npx prisma generate`.
 - Nunca reescreva migration já aplicada (checksum). Banco legado: README raiz, seção "Banco legado".
@@ -124,6 +123,6 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 - Agentes em worktree (`.claude/worktrees/`) não escrevem no `.superpowers/` da árvore principal; `.superpowers/` está em `.git/info/exclude` (não versionado).
 - `npm run dev` é HTTP; câmera no celular exige `npm run dev:https`. HSTS só em produção (senão o navegador força HTTPS no localhost).
 - No WSL o celular precisa de `netsh portproxy` (README raiz).
-- `prisma migrate diff` contra o banco lista DROPs de índices parciais/expressão: nunca aplique cego.
+- Não use `prisma migrate diff` (qualquer forma): já apagou o banco uma vez; escreva o SQL à mão olhando o `schema.prisma`.
 - Migration nova roda também em CI num banco vazio: precisa funcionar sem dados e com dados.
 - Não rode o seed (`prisma/seed.ts`, `npx prisma db seed`): grava clientes fictícios em qualquer banco.
