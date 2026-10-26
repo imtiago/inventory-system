@@ -220,7 +220,7 @@ export function Autocomplete<TOption, TValue extends string | number>({
         </div>
 
         {open && !disabled && (
-          <ul id={listId} role="listbox" className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg">
+          <ul id={listId} role="listbox" className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto overscroll-contain rounded-lg border border-border bg-surface py-1 shadow-lg">
             {queryTooShort ? (
               <li className="px-3 py-4 text-sm text-muted">Digite pelo menos {minSearchLength} caracteres para pesquisar.</li>
             ) : loading ? (

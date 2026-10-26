@@ -102,7 +102,7 @@ export function Modal({ open, onClose, children, title, description, size = 'md'
           </div>
         )}
 
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-6">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
           <ModalBusyContext.Provider value={setChildBusy}>{children}</ModalBusyContext.Provider>
         </div>
       </div>

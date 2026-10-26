@@ -62,6 +62,7 @@ export function ConfirmDialog({
           max-w-md
           max-h-[90dvh]
           overflow-y-auto
+          overscroll-contain
           bg-surface
           text-foreground
           border
