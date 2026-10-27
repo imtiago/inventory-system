@@ -4,6 +4,7 @@ import { PrismaInventoryBoxStockRepository } from "@inventory/infrastructure/pri
 import { PrismaInventoryLotRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryLotRepository";
 import { PrismaInventoryRepository } from "@inventory/infrastructure/prisma/repositories/PrismaInventoryRepository";
 import { PrismaStockMovementRepository } from "@inventory/infrastructure/prisma/repositories/PrismaStockMovementRepository";
+import { makePriceReviewService } from "@pricing/infrastructure/factories/PriceReviewFactories";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { makeDispatchInventory } from "./DispatchInventoryFactory";
 import { makeReceiveInventory } from "./ReceiveInventoryFactory";
@@ -16,6 +17,7 @@ const makeRevertPurchaseStock = () =>
     new PrismaStockMovementRepository(),
     new PrismaInventoryBoxStockRepository(),
     new PrismaTransactionManager(),
+    makePriceReviewService(),
   );
 
 export function makeInventoryService() {

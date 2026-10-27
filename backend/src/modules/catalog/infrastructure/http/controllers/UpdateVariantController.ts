@@ -23,6 +23,7 @@ export function makeUpdateVariantController() {
       id,
       ...data,
       canChangePrice: hasPermission(request.user!.role, "catalog.price"),
+      userId: request.user!.sub,
     });
     const variantRead = await useCaseGet.execute(id);
 

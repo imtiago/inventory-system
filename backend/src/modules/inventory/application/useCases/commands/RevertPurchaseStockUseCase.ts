@@ -11,6 +11,9 @@ import { TransactionManager } from "@shared/application/transaction/TransactionM
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { roundCost } from "@shared/domain/money";
+import type { PriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
+
+const NO_PRICE_REVIEW: Pick<PriceReviewTrigger, "costChanged"> = { costChanged: async () => {} };
 
 export interface RevertPurchaseStockInput {
   purchaseId: string;
@@ -44,6 +47,7 @@ export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurch
     private readonly stockMovementRepository: IStockMovementRepository,
     private readonly inventoryBoxStockRepository: Pick<IInventoryBoxStockRepository, "reconcileBoxAllocations">,
     transactionManager: TransactionManager,
+    private readonly priceReviewTrigger: Pick<PriceReviewTrigger, "costChanged"> = NO_PRICE_REVIEW,
   ) {
     super(transactionManager);
   }
@@ -73,6 +77,7 @@ export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurch
     }
 
     // Validado tudo: grava, inventário por inventário, na ordem das travas.
+    const costChanged: string[] = [];
     for (const inventory of inventories.values()) {
       const inventoryLots = lotsByInventory.get(inventory.id);
       if (!inventoryLots) continue;
@@ -102,6 +107,7 @@ export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurch
       }
 
       let balance = inventory.quantity;
+      if (averageCost !== inventory.averageCost) costChanged.push(inventory.productVariantId);
       inventory.revertReceipt(quantity, averageCost);
       await this.inventoryRepository.update(inventory);
 
@@ -128,6 +134,9 @@ export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurch
 
     // Lotes zerados: as alocações em caixas saem junto.
     await this.inventoryBoxStockRepository.reconcileBoxAllocations(lots.map((lot) => lot.id));
+
+    // Revisão de preço por último (depois de inventários → lotes → alocações), variantes em ordem crescente.
+    for (const productVariantId of costChanged) await this.priceReviewTrigger.costChanged(productVariantId);
 
     return { status: "REVERTED", lots: lots.length };
   }

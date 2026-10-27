@@ -12,6 +12,9 @@ import { IStockMovementRepository } from "@inventory/domain/repositories/StockMo
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
+import type { PriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
+
+const NO_PRICE_REVIEW: Pick<PriceReviewTrigger, "costChanged"> = { costChanged: async () => {} };
 
 const dayKey = (d: Date) => d.toISOString().slice(0, 10);
 const formatDay = (d: Date) => {
@@ -54,6 +57,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     private readonly inventoryLotRepository: IInventoryLotRepository,
     private readonly stockMovementRepository: IStockMovementRepository,
     transactionManager: TransactionManager,
+    private readonly priceReviewTrigger: Pick<PriceReviewTrigger, "costChanged"> = NO_PRICE_REVIEW,
   ) {
     super(transactionManager);
   }
@@ -96,6 +100,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     }
 
     const previousQuantity = inventory.quantity;
+    const previousAverageCost = inventory.averageCost;
     inventory.receive({
       quantity: request.quantity,
       unitCost: request.unitCost,
@@ -144,6 +149,12 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
         notes: request.notes,
       }),
     );
+
+    // Custo médio mudou → revisão de preço, na mesma transação e depois das travas de inventário/lote
+    // (a revisão é sempre a última trava; ver PriceReviewService).
+    if (inventory.averageCost !== previousAverageCost) {
+      await this.priceReviewTrigger.costChanged(request.productVariantId);
+    }
 
     return { inventory, lot };
   }

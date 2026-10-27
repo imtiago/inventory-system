@@ -174,6 +174,7 @@ model ProductVariant {
   inventoryLots  InventoryLot[]
 
   supplierProductMappings SupplierProductMapping[]
+  priceReviews            PriceReview[]
 
   @@index([productId])
 }
@@ -371,6 +372,7 @@ model User {
   nfeImportsCreated   NfeImport[]     @relation("nfeImportsCreated")
   nfeImportsConfirmed NfeImport[]     @relation("nfeImportsConfirmed")
   pricingSettingsUpdated PricingSettings[]
+  priceReviewsResolved   PriceReview[]
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -707,4 +709,38 @@ model PricingExpense {
   active     Boolean  @default(true)
   position   Int      @default(0)
   createdAt  DateTime @default(now())
+}
+
+enum PriceReviewReason {
+  COST_CHANGED
+  SETTINGS_CHANGED
+  MARGIN_CHANGED
+  MARGIN_BELOW_TARGET
+}
+
+enum PriceReviewStatus {
+  PENDING
+  APPLIED
+  DISMISSED
+}
+
+/// Preço para revisar. Só na migration (o Prisma não modela): único parcial
+/// "PriceReview_pending_variant_key" (productVariantId) WHERE status = 'PENDING' — uma pendente por
+/// variante, alvo do ON CONFLICT dos gatilhos — e CHECK de preços >= 0.
+model PriceReview {
+  id               String            @id @default(uuid())
+  productVariantId String
+  reason           PriceReviewReason
+  currentPrice     Decimal           @db.Decimal(12, 2)
+  suggestedPrice   Decimal           @db.Decimal(12, 2)
+  status           PriceReviewStatus @default(PENDING)
+  createdAt        DateTime          @default(now())
+  resolvedAt       DateTime?
+  resolvedById     String?
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  resolvedBy     User?          @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([productVariantId])
 }

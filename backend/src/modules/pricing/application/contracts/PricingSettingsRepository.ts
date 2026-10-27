@@ -23,6 +23,12 @@ export type TargetMarginLevel = "category" | "product" | "variant";
 export interface PricingSettingsRepository {
   /** Mutex das escritas que validam a soma despesas + margem (vale até o fim da transação). */
   lockSettings(): Promise<void>;
+  /**
+   * Trava compartilhada das configurações (advisory de transação, mesma chave): quem lê as configurações
+   * para gravar revisões (gatilho de custo, aplicar revisões) espera uma escrita em andamento e a impede
+   * até o próprio commit — a revisão nunca mistura custo novo com configuração velha.
+   */
+  lockSettingsShared(): Promise<void>;
   saveSettings(input: SaveSettingsInput): Promise<void>;
   listExpenses(): Promise<PricingExpenseRecord[]>;
   findExpense(id: string): Promise<PricingExpenseRecord | null>;

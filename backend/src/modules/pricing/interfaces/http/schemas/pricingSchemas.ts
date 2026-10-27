@@ -87,3 +87,23 @@ export const supplierPriceBodySchema = z.object({
 export const applyPriceBodySchema = z.object({
   source: z.enum(["SUGGESTED", "SUPPLIER"], { error: "Origem do preço inválida." }),
 });
+
+export const listPriceReviewsQuerySchema = z.object({
+  status: z.enum(["PENDING", "APPLIED", "DISMISSED"], { error: "Situação inválida." }).default("PENDING"),
+  page: z.coerce.number().int("A página deve ser um número inteiro.").positive("A página deve ser maior que zero.").default(1),
+  limit: z.coerce
+    .number()
+    .int("O limite deve ser um número inteiro.")
+    .positive("O limite deve ser maior que zero.")
+    .max(100, "O limite deve ser no máximo 100.")
+    .default(20),
+});
+
+export const applyPriceReviewsBodySchema = z.object({
+  ids: z
+    .array(z.string().uuid("Identificador inválido."), { error: "Informe as revisões." })
+    .min(1, "Selecione ao menos uma revisão.")
+    .max(100, "Selecione no máximo 100 revisões."),
+});
+
+export const priceReviewIdParamsSchema = z.object({ id: z.string().uuid("Identificador inválido.") });

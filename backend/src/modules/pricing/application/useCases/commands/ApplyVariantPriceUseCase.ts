@@ -10,7 +10,7 @@ import type { GetVariantPricingUseCase } from "@pricing/application/useCases/que
 export type ApplyPriceSource = "SUGGESTED" | "SUPPLIER";
 
 export class ApplyVariantPriceUseCase extends TransactionalUseCase<
-  { variantId: string; source: ApplyPriceSource },
+  { variantId: string; source: ApplyPriceSource; userId: string },
   VariantPricingDTO
 > {
   constructor(
@@ -22,7 +22,7 @@ export class ApplyVariantPriceUseCase extends TransactionalUseCase<
     super(transactionManager);
   }
 
-  protected async handle(input: { variantId: string; source: ApplyPriceSource }): Promise<VariantPricingDTO> {
+  protected async handle(input: { variantId: string; source: ApplyPriceSource; userId: string }): Promise<VariantPricingDTO> {
     if (!(await this.writer.lockVariant(input.variantId))) {
       throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
     }
@@ -38,7 +38,7 @@ export class ApplyVariantPriceUseCase extends TransactionalUseCase<
     }
     if (toCents(price) !== toCents(current.salePrice)) {
       await this.writer.setSalePrice(input.variantId, toCents(price));
-      await this.trigger.priceApplied(input.variantId);
+      await this.trigger.priceApplied(input.variantId, input.userId);
     }
     return this.get.execute({ variantId: input.variantId });
   }

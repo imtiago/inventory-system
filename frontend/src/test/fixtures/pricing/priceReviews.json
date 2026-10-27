@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "id": "7c2e9a41-5b3d-4f6a-9e8b-2d1c0f4a6b71",
+      "productVariantId": "3f1c2a7e-9b4d-4e21-8a6f-1c2d3e4f5a60",
+      "label": "Perfume Floral — 100ml",
+      "currentPrice": 30,
+      "suggestedPrice": 24.9,
+      "difference": -5.1,
+      "reason": "COST_CHANGED",
+      "status": "PENDING",
+      "createdAt": "2026-10-27T13:20:00.000Z"
+    },
+    {
+      "id": "8d3fab52-6c4e-4a7b-8f9c-3e2d1a5b7c82",
+      "productVariantId": "4a2d3b8f-0c5e-4f32-9b7a-2d3e4f5a6b71",
+      "label": "Hidratante Corporal — 400ml",
+      "currentPrice": 18.18,
+      "suggestedPrice": 20.9,
+      "difference": 2.72,
+      "reason": "MARGIN_BELOW_TARGET",
+      "status": "PENDING",
+      "createdAt": "2026-10-27T12:05:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 2, "totalPages": 1 }
+}

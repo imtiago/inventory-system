@@ -65,7 +65,7 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
         : variant;
 
     // VariantPriceChanged: o preço praticado mudou, a revisão de preços recalcula a margem.
-    if (changedFields.includes("salePrice")) await this.priceReviewTrigger.priceApplied(variant.id);
+    if (changedFields.includes("salePrice")) await this.priceReviewTrigger.priceApplied(variant.id, request.userId);
 
     return {
       id: data.id,

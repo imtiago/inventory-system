@@ -4,7 +4,12 @@ import { HttpResponse } from "@shared/http/response";
 import { parseInput } from "@shared/http/parseInput";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { authorize } from "../../../../../shared/middleware/authorize";
-import { NoopPriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
+import { makePriceReviewService } from "@pricing/infrastructure/factories/PriceReviewFactories";
+import { PrismaPriceReviewRepository } from "@pricing/infrastructure/prisma/PrismaPriceReviewRepository";
+import { ListPriceReviewsUseCase } from "@pricing/application/useCases/reviews/ListPriceReviewsUseCase";
+import { CountPendingPriceReviewsUseCase } from "@pricing/application/useCases/reviews/CountPendingPriceReviewsUseCase";
+import { ApplyPriceReviewsUseCase } from "@pricing/application/useCases/reviews/ApplyPriceReviewsUseCase";
+import { DismissPriceReviewUseCase } from "@pricing/application/useCases/reviews/DismissPriceReviewUseCase";
 import { GetPricingSettingsUseCase } from "@pricing/application/useCases/GetPricingSettingsUseCase";
 import { UpdatePricingSettingsUseCase } from "@pricing/application/useCases/UpdatePricingSettingsUseCase";
 import { CreatePricingExpenseUseCase } from "@pricing/application/useCases/CreatePricingExpenseUseCase";
@@ -29,14 +34,17 @@ import {
   targetMarginBodySchema,
   targetMarginParamsSchema,
   updateSettingsSchema,
+  listPriceReviewsQuerySchema,
+  applyPriceReviewsBodySchema,
+  priceReviewIdParamsSchema,
 } from "@pricing/interfaces/http/schemas/pricingSchemas";
 
 export async function pricingRoutes(app: FastifyInstance) {
   const tm = new PrismaTransactionManager();
   const repository = new PrismaPricingSettingsRepository();
   const reader = new PrismaPricingSettingsReader();
-  // A Task 5 troca o no-op pela revisão real de preços.
-  const trigger = new NoopPriceReviewTrigger();
+  const trigger = makePriceReviewService();
+  const reviews = new PrismaPriceReviewRepository();
   const price = { preHandler: [authorize("catalog.price")] };
   const manage = { preHandler: [authorize("pricing.manage")] };
 
@@ -51,6 +59,10 @@ export async function pricingRoutes(app: FastifyInstance) {
   const setSupplier = new SetSupplierSuggestedPriceUseCase(variantWriter, getVariant, tm);
   const applyPrice = new ApplyVariantPriceUseCase(variantWriter, getVariant, trigger, tm);
   const setMargin = new SetTargetMarginUseCase(repository, reader, trigger, tm);
+  const listReviews = new ListPriceReviewsUseCase(reviews, tm);
+  const countReviews = new CountPendingPriceReviewsUseCase(reviews);
+  const applyReviews = new ApplyPriceReviewsUseCase(reviews, repository, variantWriter, getVariant, tm);
+  const dismissReview = new DismissPriceReviewUseCase(reviews, tm);
 
   app.get("/settings", manage, async (_request, reply) => reply.send(HttpResponse.ok(await get.execute())));
 
@@ -112,6 +124,23 @@ export async function pricingRoutes(app: FastifyInstance) {
   app.post("/variants/:id/apply-price", price, async (request, reply) => {
     const { id } = parseInput(variantIdParamsSchema, request.params);
     const { source } = parseInput(applyPriceBodySchema, request.body);
-    return reply.send(HttpResponse.ok(await applyPrice.execute({ variantId: id, source })));
+    return reply.send(HttpResponse.ok(await applyPrice.execute({ variantId: id, source, userId: request.user!.sub })));
+  });
+
+  app.get("/reviews", price, async (request, reply) => {
+    const query = parseInput(listPriceReviewsQuerySchema, request.query);
+    return reply.send(HttpResponse.paginated(await listReviews.execute(query)));
+  });
+
+  app.get("/reviews/count", price, async (_request, reply) => reply.send(HttpResponse.ok(await countReviews.execute())));
+
+  app.post("/reviews/apply", price, async (request, reply) => {
+    const { ids } = parseInput(applyPriceReviewsBodySchema, request.body);
+    return reply.send(HttpResponse.ok(await applyReviews.execute({ ids, userId: request.user!.sub })));
+  });
+
+  app.post("/reviews/:id/dismiss", price, async (request, reply) => {
+    const { id } = parseInput(priceReviewIdParamsSchema, request.params);
+    return reply.send(HttpResponse.ok(await dismissReview.execute({ id, userId: request.user!.sub })));
   });
 }

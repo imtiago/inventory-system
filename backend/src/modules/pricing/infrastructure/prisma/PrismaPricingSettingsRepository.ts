@@ -16,6 +16,10 @@ export class PrismaPricingSettingsRepository implements PricingSettingsRepositor
     await getDb().$executeRaw`SELECT pg_advisory_xact_lock(hashtext('pricing_settings'))`;
   }
 
+  async lockSettingsShared(): Promise<void> {
+    await getDb().$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtext('pricing_settings'))`;
+  }
+
   async saveSettings(input: SaveSettingsInput): Promise<void> {
     const data = {
       defaultMarginBps: input.defaultMarginBps,
