@@ -152,6 +152,25 @@ describe("Configurações de preço, despesas e margens", () => {
     assert.equal((await admin("PUT", `/pricing/expenses/${randomUUID()}`, { name: "x", percent: 1 })).statusCode, 404);
   });
 
+  test("despesa também é validada contra a maior margem de categoria/produto/variante (não só a padrão)", async () => {
+    await admin("PUT", "/pricing/settings", settingsBody({ defaultMarginPercent: 10 }));
+    try {
+      assert.equal((await admin("PUT", `/pricing/target-margins/variant/${variantId}`, { targetMarginPercent: 50 })).statusCode, 200);
+      const ok = await admin("POST", "/pricing/expenses", { name: "Média", percent: 40 });
+      assert.equal(ok.statusCode, 201, ok.body);
+      // 40 + 10 = 50 passa; 40 + 10 + margem 50 da variante = 100 → recusado
+      const bad = await admin("POST", "/pricing/expenses", { name: "Extra", percent: 10 });
+      assert.equal(bad.statusCode, 422, bad.body);
+      assert.equal(bad.json().code, "PRICING_PERCENT_SUM_TOO_HIGH");
+      const upd = await admin("PUT", `/pricing/expenses/${ok.json().data.id}`, { name: "Média", percent: 50, active: true });
+      assert.equal(upd.statusCode, 422, upd.body);
+      const small = await admin("PUT", `/pricing/expenses/${ok.json().data.id}`, { name: "Média", percent: 45, active: true });
+      assert.equal(small.statusCode, 200, small.body);
+    } finally {
+      await prisma.productVariant.update({ where: { id: variantId }, data: { targetMarginBps: null } });
+    }
+  });
+
   test("criar despesa sem linha de configuração não marca como configurado", async () => {
     const e = await admin("POST", "/pricing/expenses", { name: "Aluguel", percent: 5 });
     assert.equal(e.statusCode, 201, e.body);

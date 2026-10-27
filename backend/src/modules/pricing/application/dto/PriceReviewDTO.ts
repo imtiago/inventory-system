@@ -22,8 +22,10 @@ export interface PriceReviewCountDTO {
 export interface ApplyPriceReviewsResultDTO {
   /** Revisões aplicadas (preço = sugerido recalculado agora). */
   applied: string[];
-  /** Já resolvidas ou sem sugestão possível agora (continuam como estavam). */
+  /** Já resolvidas, sem sugestão possível agora ou que sumiram (continuam como estavam). */
   skipped: string[];
+  /** Os mesmos ids de `skipped`, com o motivo. */
+  skippedDetails: { id: string; reason: "NOT_PENDING" | "NO_SUGGESTION" | "NOT_FOUND" }[];
 }
 
 export function toPriceReviewDTO(r: PriceReviewListItem): PriceReviewDTO {

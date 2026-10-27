@@ -31,7 +31,7 @@ export class UpdatePricingExpenseUseCase extends TransactionalUseCase<
     if (input.active) {
       const s = await this.reader.get();
       const others = s.expensesBps - (current.active ? current.percentBps : 0);
-      assertPercentSum(others + input.percentBps, s.defaultMarginBps);
+      assertPercentSum(others + input.percentBps, Math.max(s.defaultMarginBps, await this.repository.maxLevelMarginBps()));
     }
     await this.repository.updateExpense(input.id, {
       name: input.name,

@@ -30,7 +30,7 @@ export class UpdatePricingSettingsUseCase extends TransactionalUseCase<UpdatePri
   protected async handle(input: UpdatePricingSettingsInput): Promise<PricingSettingsDTO> {
     await this.repository.lockSettings();
     const current = await this.reader.get();
-    assertPercentSum(current.expensesBps, input.defaultMarginBps);
+    assertPercentSum(current.expensesBps, Math.max(input.defaultMarginBps, await this.repository.maxLevelMarginBps()));
     await this.repository.saveSettings({
       defaultMarginBps: input.defaultMarginBps,
       roundingStrategy: input.roundingStrategy,

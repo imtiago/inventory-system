@@ -1,3 +1,4 @@
+import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import type {
   PricingExpenseRecord,
@@ -58,6 +59,13 @@ export class PrismaPricingSettingsRepository implements PricingSettingsRepositor
 
   async deleteExpense(id: string): Promise<void> {
     await getDb().pricingExpense.delete({ where: { id } });
+  }
+
+  async maxLevelMarginBps(): Promise<number> {
+    const db = getDb();
+    const args = { _max: { targetMarginBps: true } } as const;
+    const [c, p, v] = await readTogether([db.category.aggregate(args), db.product.aggregate(args), db.productVariant.aggregate(args)]);
+    return Math.max(c._max.targetMarginBps ?? 0, p._max.targetMarginBps ?? 0, v._max.targetMarginBps ?? 0);
   }
 
   async setTargetMargin(level: TargetMarginLevel, id: string, bps: number | null): Promise<boolean> {

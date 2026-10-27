@@ -27,7 +27,7 @@ export class CreatePricingExpenseUseCase extends TransactionalUseCase<PricingExp
     await this.repository.lockSettings();
     if (input.active) {
       const s = await this.reader.get();
-      assertPercentSum(s.expensesBps + input.percentBps, s.defaultMarginBps);
+      assertPercentSum(s.expensesBps + input.percentBps, Math.max(s.defaultMarginBps, await this.repository.maxLevelMarginBps()));
     }
     const created = await this.repository.createExpense(input);
     await this.trigger.settingsChanged({ kind: "ALL" });

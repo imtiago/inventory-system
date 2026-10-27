@@ -61,7 +61,7 @@ export async function pricingRoutes(app: FastifyInstance) {
   const setMargin = new SetTargetMarginUseCase(repository, reader, trigger, tm);
   const listReviews = new ListPriceReviewsUseCase(reviews, tm);
   const countReviews = new CountPendingPriceReviewsUseCase(reviews);
-  const applyReviews = new ApplyPriceReviewsUseCase(reviews, repository, variantWriter, getVariant, tm);
+  const applyReviews = new ApplyPriceReviewsUseCase(reviews, repository, variantWriter, variantReader, reader, new PrismaTargetMarginReader(), tm);
   const dismissReview = new DismissPriceReviewUseCase(reviews, tm);
 
   app.get("/settings", manage, async (_request, reply) => reply.send(HttpResponse.ok(await get.execute())));

@@ -96,4 +96,6 @@ export interface PriceReview {
 export interface ApplyReviewsResult {
   applied: string[];
   skipped: string[];
+  /** Os mesmos ids de `skipped`, com o motivo. */
+  skippedDetails: { id: string; reason: 'NOT_PENDING' | 'NO_SUGGESTION' | 'NOT_FOUND' }[];
 }

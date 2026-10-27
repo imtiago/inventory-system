@@ -56,7 +56,7 @@ export function PriceReviewListPage() {
     try {
       const { applied, skipped } = await applyReviews.mutateAsync(ids);
       if (applied.length > 0) notify.success(`${plural(applied.length, 'preço aplicado', 'preços aplicados')}.`);
-      if (skipped.length > 0) notify.warning(`${plural(skipped.length, 'item ignorado', 'itens ignorados')}: já resolvido ou sem preço sugerido agora.`);
+      if (skipped.length > 0) notify.warning(`${plural(skipped.length, 'item ignorado', 'itens ignorados')}: já resolvido, removido da lista ou sem preço sugerido agora.`);
       setSelected(new Set());
     } catch {
       // A mutation já mostrou o erro.

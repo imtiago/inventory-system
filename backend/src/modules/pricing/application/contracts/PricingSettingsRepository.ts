@@ -38,6 +38,8 @@ export interface PricingSettingsRepository {
     input: { name: string; percentBps: Bps; active: boolean; position?: number },
   ): Promise<void>;
   deleteExpense(id: string): Promise<void>;
+  /** Maior margem-alvo gravada em categoria, produto ou variante (0 se nenhuma): entra na soma 100%. */
+  maxLevelMarginBps(): Promise<Bps>;
   /** false se o registro do nível não existe. */
   setTargetMargin(level: TargetMarginLevel, id: string, bps: Bps | null): Promise<boolean>;
 }

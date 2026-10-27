@@ -457,6 +457,7 @@ describe("Preços para revisar (/pricing/reviews e gatilhos)", () => {
     assert.deepEqual(res.json().data.skipped, []);
     // keyShape trata [] como forma vazia: compara as chaves (as duas listas são de ids).
     assert.deepEqual(Object.keys(res.json().data).sort(), Object.keys((loadFixture("priceReviewApply") as any).data).sort());
+    assert.deepEqual(res.json().data.skippedDetails, []);
 
     const rows = await prisma.productVariant.findMany({ where: { id: { in: [a, b] } } });
     assert.equal(Number(rows.find((r) => r.id === a)!.salePrice), 24.9);
@@ -468,14 +469,57 @@ describe("Preços para revisar (/pricing/reviews e gatilhos)", () => {
       assert.ok(r.resolvedAt);
     }
 
-    // Já aplicada → ignorada; id inexistente → 404; corpo inválido → 400.
+    // Já aplicada → ignorada (com motivo); corpo inválido → 400.
     const again = await admin("POST", "/pricing/reviews/apply", { ids: [ids[0]] });
-    assert.deepEqual(again.json().data, { applied: [], skipped: [ids[0]] });
-    const missing = await admin("POST", "/pricing/reviews/apply", { ids: [randomUUID()] });
-    assert.equal(missing.statusCode, 404, missing.body);
-    assert.equal(missing.json().code, "PRICE_REVIEW_NOT_FOUND");
+    assert.deepEqual(again.json().data, {
+      applied: [],
+      skipped: [ids[0]],
+      skippedDetails: [{ id: ids[0], reason: "NOT_PENDING" }],
+    });
     for (const body of [{ ids: [] }, { ids: ["x"] }, { ids: Array.from({ length: 101 }, () => randomUUID()) }, {}]) {
       assert.equal((await admin("POST", "/pricing/reviews/apply", body)).statusCode, 400);
+    }
+  });
+
+  test("aplicar em lote: id que sumiu (apagado por gatilho) vai para skipped com motivo, sem 404; o resto é aplicado", async () => {
+    const a = await freshVariant(30);
+    const b = await freshVariant(30);
+    await receive(a, 1, 12);
+    await receive(b, 1, 12);
+    const idA = (await pendingOf(a))[0].id;
+    const idB = (await pendingOf(b))[0].id;
+    await prisma.priceReview.delete({ where: { id: idB } }); // gatilho concorrente apagou a pendente
+    const unknown = randomUUID();
+
+    const res = await admin("POST", "/pricing/reviews/apply", { ids: [idA, idB, unknown] });
+    assert.equal(res.statusCode, 200, res.body);
+    assert.deepEqual(res.json().data.applied, [idA]);
+    assert.deepEqual([...res.json().data.skipped].sort(), [idB, unknown].sort());
+    assert.deepEqual(
+      [...res.json().data.skippedDetails].sort((x: any, y: any) => (x.id < y.id ? -1 : 1)),
+      [idB, unknown].sort().map((id) => ({ id, reason: "NOT_FOUND" })),
+    );
+    assert.equal(Number((await prisma.productVariant.findUniqueOrThrow({ where: { id: a } })).salePrice), 24.9);
+
+    // Todos desconhecidos: 200 com tudo em skipped.
+    const none = await admin("POST", "/pricing/reviews/apply", { ids: [unknown] });
+    assert.equal(none.statusCode, 200, none.body);
+    assert.deepEqual(none.json().data.applied, []);
+    assert.deepEqual(none.json().data.skipped, [unknown]);
+  });
+
+  test("aplicar em lote não lê as taxas de cartão: JSON de taxas inválido não derruba o lote", async () => {
+    const v = await freshVariant(30);
+    await receive(v, 1, 12);
+    const id = (await pendingOf(v))[0].id;
+    const before = (await prisma.pricingSettings.findUniqueOrThrow({ where: { id: "default" } })).cardFees;
+    await prisma.pricingSettings.update({ where: { id: "default" }, data: { cardFees: { broken: true } } });
+    try {
+      const res = await admin("POST", "/pricing/reviews/apply", { ids: [id] });
+      assert.equal(res.statusCode, 200, res.body);
+      assert.deepEqual(res.json().data.applied, [id]);
+    } finally {
+      await prisma.pricingSettings.update({ where: { id: "default" }, data: { cardFees: before as any } });
     }
   });
 
