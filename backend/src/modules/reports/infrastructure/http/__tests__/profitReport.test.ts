@@ -98,7 +98,7 @@ describe("GET /reports/profit", () => {
   });
 
   test("view=period: venda antiga (custo NULL) tem itemsWithoutCost 1 e custo 0; cancelada não entra", async () => {
-    const bps = (await new PrismaPricingSettingsReader().get()).expensesBps;
+    const bps = (await new PrismaPricingSettingsReader().getMarginSettings()).expensesBps;
     const { rows, totals } = await profit("view=period");
     assert.deepEqual(rows.map((r) => r.key), [D1, D2]);
     const [d1, d2] = rows;
@@ -111,7 +111,7 @@ describe("GET /reports/profit", () => {
     assert.equal(totals.revenue, 55.5);
     assert.equal(totals.cost, 9.33);
     assert.equal(totals.itemsWithoutCost, 1);
-    const afterBps = (await new PrismaPricingSettingsReader().get()).expensesBps;
+    const afterBps = (await new PrismaPricingSettingsReader().getMarginSettings()).expensesBps;
     if (bps === afterBps) {
       const expenses = (rev: number) => applyBps(toCents(rev), bps) / 100;
       assert.equal(d1.estimatedExpenses, expenses(25.5));
