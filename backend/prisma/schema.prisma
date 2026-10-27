@@ -336,6 +336,8 @@ model Sale {
 
   cancelRequests SaleCancelRequest[]
 
+  financing SaleFinancing?
+
   @@index([status, createdAt])
 
   @@index([customerId])
@@ -419,6 +421,7 @@ model User {
   creditSettingsEnabled  CreditSettings[]    @relation("creditSettingsEnabled")
   creditSettingsUpdated  CreditSettings[]    @relation("creditSettingsUpdated")
   creditLimitChanges     CreditLimitChange[]
+  saleFinancingOverrides SaleFinancing[]     @relation("saleFinancingOverrides")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -812,6 +815,36 @@ model SaleCancelRequest {
   decidedBy   User? @relation("saleCancelDecided", fields: [decidedById], references: [id], onDelete: SetNull)
 
   @@index([status, requestedAt])
+}
+
+/// Plano do crediário gravado na venda (snapshot). CHECKs na migration 20261029100400_sale_financing.
+model SaleFinancing {
+  saleId            String         @id
+  /// Itens (preço à vista).
+  cashPrice         Decimal        @db.Decimal(12, 2)
+  downPayment       Decimal        @db.Decimal(12, 2)
+  /// Forma de pagamento da entrada; null sem entrada.
+  downPaymentMethod PaymentMethod?
+  financedAmount    Decimal        @db.Decimal(12, 2)
+  installments      Int
+  /// 0 até as parcelas sem acréscimo; senão a taxa mensal (Tabela Price).
+  monthlyRateBps    Int
+  /// Σ parcelas − financiado.
+  surchargeAmount   Decimal        @db.Decimal(12, 2)
+  /// Entrada + Σ parcelas (total a prazo).
+  totalAmount       Decimal        @db.Decimal(12, 2)
+  dueDay            Int?
+  firstDueDate      DateTime       @db.Date
+  overrideById      String?
+  overrideReason    String?        @db.VarChar(200)
+  /// "LIMIT" | "OVERDUE"
+  overrideKinds     String[]       @default([])
+  createdAt         DateTime       @default(now())
+
+  sale       Sale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  overrideBy User? @relation("saleFinancingOverrides", fields: [overrideById], references: [id], onDelete: SetNull)
+
+  @@index([overrideById])
 }
 
 enum CreditProfileCode {

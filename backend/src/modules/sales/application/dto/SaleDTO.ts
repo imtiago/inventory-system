@@ -17,6 +17,27 @@ export interface SaleReceivableDTO {
   parcels: SaleReceivableParcelDTO[];
 }
 
+/** Plano do crediário gravado na venda (snapshot). */
+export interface SaleFinancingDTO {
+  /** Itens (preço à vista). */
+  cashPrice: number;
+  downPayment: number;
+  /** null sem entrada. */
+  downPaymentMethod: string | null;
+  financedAmount: number;
+  installments: number;
+  /** 0 até as parcelas sem acréscimo. */
+  monthlyRatePercent: number;
+  surchargeAmount: number;
+  /** Entrada + parcelas (total a prazo). */
+  totalAmount: number;
+  dueDay: number | null;
+  /** "YYYY-MM-DD" */
+  firstDueDate: string;
+  /** Exceção autorizada (limite/atraso); approver null se o usuário foi apagado. */
+  override: { approver: { id: string; name: string } | null; reason: string; kinds: string[] } | null;
+}
+
 export interface SaleDetailDTO {
   id: string;
   status: string;
@@ -35,6 +56,8 @@ export interface SaleDetailDTO {
   seller: { id: string; name: string } | null;
   items: SaleItemDTO[];
   receivable: SaleReceivableDTO | null;
+  /** Só no crediário. */
+  financing: SaleFinancingDTO | null;
   /** Pedido de cancelamento em aberto, se houver. */
   pendingCancelRequest: SaleCancelRequestDTO | null;
   /** Último pedido de cancelamento já decidido (aprovado ou recusado, com o motivo), se houver. */
@@ -60,6 +83,8 @@ export interface ICreateSaleInput {
   customerId: string;
   /** Usuário autenticado (request.user.sub). */
   sellerId: string;
+  /** IP do pedido (limite de tentativas da autorização de exceção no crediário). */
+  ip?: string;
   items: {
     productVariantId: string;
     quantity: number;
@@ -107,7 +132,32 @@ export interface SaleSimulationConditionDTO {
   margin?: { amount: number; percent: number } | null;
 }
 
+export interface SaleSimulationCrediarioOptionDTO {
+  installments: number;
+  downPayment: number;
+  installmentAmount: number;
+  lastInstallmentAmount: number;
+  /** Entrada + parcelas. */
+  total: number;
+  /** Σ parcelas − financiado. */
+  surcharge: number;
+  /** Acréscimo ÷ financiado. */
+  surchargePercent: number;
+  /** Só para quem tem `reports.profit`; null se algum item não tem custo registrado. */
+  margin?: { amount: number; percent: number } | null;
+}
+
+export interface SaleSimulationCrediarioDTO {
+  allowed: boolean;
+  blockedReason: "DISABLED" | "SUSPENDED" | "OVERDUE" | "LIMIT" | null;
+  available: number;
+  minDownPayment: number;
+  maxInstallments: number;
+  options: SaleSimulationCrediarioOptionDTO[];
+}
+
 export interface SaleSimulationDTO {
   itemsTotal: number;
   conditions: SaleSimulationConditionDTO[];
+  crediario?: SaleSimulationCrediarioDTO;
 }

@@ -1,0 +1,97 @@
+{
+  "data": {
+    "id": "5e8a1c3f-7b2d-4c9e-a1f3-6d8b2e4c7a91",
+    "status": "COMPLETED",
+    "totalAmount": 316.97,
+    "paymentCondition": "CREDIARIO",
+    "cardInstallments": null,
+    "cardFeePassedOn": false,
+    "surchargeAmount": 16.97,
+    "downPayment": 90,
+    "createdAt": "2026-10-22T14:32:10.000Z",
+    "customer": {
+      "id": "6a1e9d3c-2b7f-4c8a-9e5d-1f3b7a9c2e64",
+      "name": "Maria Oliveira"
+    },
+    "seller": {
+      "id": "e2c4a6b8-1d3f-4a5c-8e7f-9b1d3f5a7c90",
+      "name": "João Vendedor"
+    },
+    "items": [
+      {
+        "id": "4c8e1a3f-6b2d-4e9a-8c1f-3a5e7b9d1f22",
+        "productVariant": {
+          "id": "a3d9e2f1-7c4b-4e8a-b5d6-1f2e3c4d5a60",
+          "name": "Camiseta Básica Azul M",
+          "code": "CAM-BAS-AZ-M",
+          "barcode": "7891234567895"
+        },
+        "quantity": 1,
+        "unitPrice": 300,
+        "totalPrice": 300
+      }
+    ],
+    "receivable": {
+      "id": "8f2b4d6a-1c3e-4a5b-9d7f-2e4a6c8b1d03",
+      "status": "PARTIALLY_PAID",
+      "parcels": [
+        {
+          "id": "a1b2c3d4-0001-4e5f-8a9b-1c2d3e4f5a61",
+          "amount": 90,
+          "dueDate": "2026-10-27",
+          "paidAmount": 90,
+          "remainingAmount": 0,
+          "status": "PAID"
+        },
+        {
+          "id": "a1b2c3d4-0002-4e5f-8a9b-1c2d3e4f5a62",
+          "amount": 75.66,
+          "dueDate": "2026-11-26",
+          "paidAmount": 0,
+          "remainingAmount": 75.66,
+          "status": "OPEN"
+        },
+        {
+          "id": "a1b2c3d4-0003-4e5f-8a9b-1c2d3e4f5a63",
+          "amount": 75.66,
+          "dueDate": "2026-12-26",
+          "paidAmount": 0,
+          "remainingAmount": 75.66,
+          "status": "OPEN"
+        },
+        {
+          "id": "a1b2c3d4-0004-4e5f-8a9b-1c2d3e4f5a64",
+          "amount": 75.65,
+          "dueDate": "2027-01-26",
+          "paidAmount": 0,
+          "remainingAmount": 75.65,
+          "status": "OPEN"
+        }
+      ]
+    },
+    "financing": {
+      "cashPrice": 300,
+      "downPayment": 90,
+      "downPaymentMethod": "PIX",
+      "financedAmount": 210,
+      "installments": 3,
+      "monthlyRatePercent": 3.99,
+      "surchargeAmount": 16.97,
+      "totalAmount": 316.97,
+      "dueDay": null,
+      "firstDueDate": "2026-11-26",
+      "override": {
+        "approver": {
+          "id": "c7e9a1b3-5d2f-4e8a-9b6c-3f1d5a7e9c24",
+          "name": "Ana Aprovadora"
+        },
+        "reason": "Cliente antigo, pagou ontem",
+        "kinds": [
+          "OVERDUE"
+        ]
+      }
+    },
+    "pendingCancelRequest": null,
+    "latestDecidedCancelRequest": null
+  }
+}

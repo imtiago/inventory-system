@@ -55,7 +55,19 @@ const paymentTermsSchema = z.object(
 export const PAYMENT_CONDITIONS = ["CASH", "PIX", "DEBIT_CARD", "CREDIT_CARD", "CREDIARIO"] as const;
 export type PaymentConditionInput = (typeof PAYMENT_CONDITIONS)[number];
 
-/** Crediário (regras e gravação na Task 8). */
+const dueDaySchema = z
+  .number({ error: "Dia de vencimento inválido." })
+  .int("Dia de vencimento inválido.")
+  .min(1, "O dia de vencimento deve ser de 1 a 28.")
+  .max(28, "O dia de vencimento deve ser de 1 a 28.");
+
+const downPaymentSchema = z
+  .number({ error: "Informe a entrada." })
+  .min(0, "A entrada não pode ser negativa.")
+  .max(MAX_AMOUNT, "A entrada excede o máximo permitido.")
+  .refine(hasAtMostTwoDecimals, "O valor deve ter no máximo 2 casas decimais.");
+
+/** Crediário: plano escolhido (regras, limite e gravação em CrediarioCheckoutService). */
 const crediarioSchema = z.object(
   {
     installments: z
@@ -63,25 +75,20 @@ const crediarioSchema = z.object(
       .int("O número de parcelas deve ser inteiro.")
       .min(1, "O número de parcelas deve ser no mínimo 1.")
       .max(24, "O número de parcelas deve ser no máximo 24."),
-    downPayment: z
-      .number({ error: "Informe a entrada." })
-      .min(0, "A entrada não pode ser negativa.")
-      .max(MAX_AMOUNT, "A entrada excede o máximo permitido.")
-      .refine(hasAtMostTwoDecimals, "O valor deve ter no máximo 2 casas decimais."),
+    downPayment: downPaymentSchema,
     downPaymentMethod: z
       .enum(["CASH", "PIX", "DEBIT_CARD", "CREDIT_CARD"], { error: "Forma de pagamento da entrada inválida." })
       .optional(),
-    dueDay: z
-      .number({ error: "Dia de vencimento inválido." })
-      .int("Dia de vencimento inválido.")
-      .min(1, "O dia de vencimento deve ser de 1 a 28.")
-      .max(28, "O dia de vencimento deve ser de 1 a 28.")
-      .optional(),
+    dueDay: dueDaySchema.optional(),
   },
   { error: "Informe o plano do crediário." },
-);
+).superRefine((plan, ctx) => {
+  if (plan.downPayment > 0 && !plan.downPaymentMethod) {
+    ctx.addIssue({ code: "custom", message: "Informe a forma de pagamento da entrada.", path: ["downPaymentMethod"] });
+  }
+});
 
-/** Autorização de exceção por um aprovador de crédito (Task 8). */
+/** Autorização de exceção (limite/atraso) por um aprovador de crédito, com a própria senha. */
 const overrideSchema = z.object(
   {
     approverEmail: z.string({ error: "Informe o e-mail do aprovador." }).trim().email("E-mail inválido.").max(254),
@@ -188,6 +195,9 @@ export type CreateSaleBody = z.output<typeof createSaleSchema>;
 export const simulateSaleSchema = z.object({
   customerId: z.string({ error: "Informe o cliente." }).uuid("Cliente inválido."),
   items: saleItemsSchema,
+  /** Entrada do crediário (reais); ausente/menor = mínima do perfil. */
+  downPayment: downPaymentSchema.optional(),
+  dueDay: dueDaySchema.optional(),
 });
 
 export type SimulateSaleBody = z.output<typeof simulateSaleSchema>;

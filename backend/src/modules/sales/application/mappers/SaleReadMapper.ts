@@ -2,7 +2,7 @@ import { fromCents, toCents } from "@shared/domain/money";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { parcelStatus, remainingCents, toDateOnly } from "@finance/domain/services/receivableStatus";
 import { SaleCancelRequestDTO } from "../dto/SaleCancelRequestDTO";
-import { SaleDetailDTO, SaleListItemDTO, SaleReceivableDTO } from "../dto/SaleDTO";
+import { SaleDetailDTO, SaleFinancingDTO, SaleListItemDTO, SaleReceivableDTO } from "../dto/SaleDTO";
 
 /** Valor monetário vindo da persistência (Decimal do Prisma, string ou number). */
 type Money = number | string | { toString(): string };
@@ -29,6 +29,7 @@ export interface SaleDetailRow extends SaleBaseRow {
   cardFeePassedOn: boolean;
   surchargeAmount: Money;
   downPayment: Money;
+  financing?: SaleFinancingRow | null;
   items: {
     id: string;
     productVariantId: string;
@@ -39,6 +40,22 @@ export interface SaleDetailRow extends SaleBaseRow {
     unitPrice: Money;
     productVariant: { code: string };
   }[];
+}
+
+export interface SaleFinancingRow {
+  cashPrice: Money;
+  downPayment: Money;
+  downPaymentMethod: string | null;
+  financedAmount: Money;
+  installments: number;
+  monthlyRateBps: number;
+  surchargeAmount: Money;
+  totalAmount: Money;
+  dueDay: number | null;
+  firstDueDate: Date;
+  overrideReason: string | null;
+  overrideKinds: string[];
+  overrideBy: PersonRow | null;
 }
 
 export interface SaleReceivableRow {
@@ -104,8 +121,32 @@ export class SaleReadMapper {
         };
       }),
       receivable: receivable ? SaleReadMapper.toReceivableDTO(receivable, now) : null,
+      financing: row.financing ? SaleReadMapper.toFinancingDTO(row.financing) : null,
       pendingCancelRequest,
       latestDecidedCancelRequest,
+    };
+  }
+
+  private static toFinancingDTO(f: SaleFinancingRow): SaleFinancingDTO {
+    return {
+      cashPrice: fromCents(cents(f.cashPrice)),
+      downPayment: fromCents(cents(f.downPayment)),
+      downPaymentMethod: f.downPaymentMethod,
+      financedAmount: fromCents(cents(f.financedAmount)),
+      installments: f.installments,
+      monthlyRatePercent: f.monthlyRateBps / 100,
+      surchargeAmount: fromCents(cents(f.surchargeAmount)),
+      totalAmount: fromCents(cents(f.totalAmount)),
+      dueDay: f.dueDay,
+      firstDueDate: toDateOnly(f.firstDueDate),
+      override:
+        f.overrideReason !== null
+          ? {
+              approver: f.overrideBy ? { id: f.overrideBy.id, name: f.overrideBy.name } : null,
+              reason: f.overrideReason,
+              kinds: f.overrideKinds,
+            }
+          : null,
     };
   }
 

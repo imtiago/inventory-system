@@ -94,3 +94,6 @@ export const loginAttemptLimiter = new LoginAttemptLimiter();
 
 /** Instância separada para a senha atual em PUT /users/me/password (chave `pwd:<userId>`). */
 export const passwordChangeAttemptLimiter = new LoginAttemptLimiter();
+
+/** Instância separada para a autorização de exceção no crediário (chaves `override:…`, mesmas cotas do login). */
+export const creditOverrideAttemptLimiter = new LoginAttemptLimiter();

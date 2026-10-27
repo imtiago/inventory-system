@@ -43,7 +43,7 @@ export interface ISalePaymentTerms {
   firstDueDate?: string;
 }
 
-/** Condição escolhida no fechamento (crediário: regras na Task 8 do crediário). */
+/** Condição escolhida no fechamento. */
 export type SalePaymentCondition = 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'CREDIARIO';
 
 export interface ISalePaymentInput {
@@ -79,9 +79,58 @@ export interface ISaleSimulationCondition {
   margin?: { amount: number; percent: number } | null;
 }
 
+/** Uma opção do crediário (1..máximo); `margin` só para quem vê lucro. */
+export interface ISaleSimulationCrediarioOption {
+  installments: number;
+  downPayment: number;
+  installmentAmount: number;
+  lastInstallmentAmount: number;
+  /** Entrada + parcelas. */
+  total: number;
+  /** Acréscimo em R$ (Σ parcelas − financiado) e em % do financiado. */
+  surcharge: number;
+  surchargePercent: number;
+  margin?: { amount: number; percent: number } | null;
+}
+
+export type CrediarioBlockedReason = 'DISABLED' | 'SUSPENDED' | 'OVERDUE' | 'LIMIT';
+
+export interface ISaleSimulationCrediario {
+  allowed: boolean;
+  blockedReason: CrediarioBlockedReason | null;
+  available: number;
+  minDownPayment: number;
+  maxInstallments: number;
+  options: ISaleSimulationCrediarioOption[];
+}
+
 export interface ISaleSimulation {
   itemsTotal: number;
   conditions: ISaleSimulationCondition[];
+  crediario?: ISaleSimulationCrediario;
+}
+
+/** Pedido de simulação: entrada (reais) e dia de vencimento do crediário são opcionais. */
+export interface ISaleSimulationRequest extends ICreateSaleBase {
+  downPayment?: number;
+  dueDay?: number;
+}
+
+/** Plano do crediário gravado na venda (snapshot). */
+export interface ISaleFinancing {
+  cashPrice: number;
+  downPayment: number;
+  downPaymentMethod: 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD' | null;
+  financedAmount: number;
+  installments: number;
+  monthlyRatePercent: number;
+  surchargeAmount: number;
+  totalAmount: number;
+  dueDay: number | null;
+  /** Date-only "YYYY-MM-DD". */
+  firstDueDate: string;
+  /** Exceção autorizada na venda (limite/atraso). */
+  override: { approver: { id: string; name: string } | null; reason: string; kinds: ('LIMIT' | 'OVERDUE')[] } | null;
 }
 
 export interface ISaleParcel {
@@ -116,6 +165,8 @@ export interface ISaleDetail {
     totalPrice: number;
   }[];
   receivable: { id: string; status: string; parcels: ISaleParcel[] } | null;
+  /** Só no crediário. */
+  financing: ISaleFinancing | null;
   pendingCancelRequest: ISaleCancelRequest | null;
   /** Último pedido de cancelamento já decidido (aprovado ou recusado, com o motivo). */
   latestDecidedCancelRequest: ISaleCancelRequest | null;

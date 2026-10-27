@@ -23,6 +23,18 @@ export interface CreatePaidSaleReceivableInput {
   today: string;
 }
 
+export interface CreateCrediarioReceivableInput {
+  saleId: string;
+  customerId: string;
+  userId: string;
+  /** Data de negócio "YYYY-MM-DD". */
+  today: string;
+  /** Entrada paga no fechamento (`atCheckout`); null = sem entrada. */
+  downPayment: { amountCents: number; method: PaymentMethod } | null;
+  /** Parcelas do plano (centavos; vencimento "YYYY-MM-DD"). */
+  parcels: { amountCents: number; dueDate: string }[];
+}
+
 export interface CancelSaleReceivableInput {
   saleId: string;
   /** Quem cancela (autor do estorno dos pagamentos do fechamento). */
@@ -45,6 +57,11 @@ export interface FinancialService {
    * na mesma transação (documento PAID).
    */
   createPaidSaleReceivable(input: CreatePaidSaleReceivableInput): Promise<void>;
+  /**
+   * Venda no crediário: entrada (se houver) como parcela vencendo hoje paga `atCheckout`
+   * + parcelas do plano, na mesma transação.
+   */
+  createCrediarioReceivable(input: CreateCrediarioReceivableInput): Promise<void>;
   /**
    * Cancela o documento a receber da venda. Pagamento de parcela (não `atCheckout`)
    * → ConflictError SALE_HAS_PAYMENTS; pagamento do fechamento fora da janela →

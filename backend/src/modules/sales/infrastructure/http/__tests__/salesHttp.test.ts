@@ -286,6 +286,7 @@ describe("HTTP de vendas", () => {
         throw new Error("financeiro indisponível");
       },
       createPaidSaleReceivable: async () => {},
+      createCrediarioReceivable: async () => {},
       cancelSaleReceivable: async () => {},
       createPurchasePayable: async () => {},
       cancelPurchasePayable: async () => {},
@@ -298,6 +299,7 @@ describe("HTTP de vendas", () => {
       makeInventoryService(),
       failingFinance,
       new PrismaPricingSettingsReader(),
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
     );
 
     await assert.rejects(

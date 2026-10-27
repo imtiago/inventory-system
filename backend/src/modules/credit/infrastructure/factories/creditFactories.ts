@@ -5,6 +5,12 @@ import { PrismaCustomerCreditRepository } from "@credit/infrastructure/prisma/Pr
 import { PrismaCreditLimitChangeRepository } from "@credit/infrastructure/prisma/PrismaCreditLimitChangeRepository";
 import { PrismaCreditProfileRepository } from "@credit/infrastructure/prisma/PrismaCreditProfileRepository";
 import { PrismaCreditExposureReader } from "@credit/infrastructure/prisma/PrismaCreditExposureReader";
+import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
+import { CrediarioCheckoutService } from "@credit/application/services/CrediarioCheckoutService";
+import { CreditOverrideAuthorizer } from "@credit/application/services/CreditOverrideAuthorizer";
+import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/PrismaUserRepository";
+import { BcryptPasswordHasher } from "@auth/infrastructure/security/BcryptPasswordHasher";
+import { creditOverrideAttemptLimiter } from "@auth/infrastructure/security/LoginAttemptLimiter";
 
 export function makeCustomerCreditService(): CustomerCreditService {
   return new CustomerCreditService(
@@ -27,6 +33,17 @@ export function makeUpdateCustomerCreditUseCase(): UpdateCustomerCreditUseCase {
   return new UpdateCustomerCreditUseCase(
     makeCustomerCreditService(),
     makeGetCustomerCreditUseCase(),
+    new PrismaTransactionManager(),
+  );
+}
+
+export function makeCrediarioCheckoutService(): CrediarioCheckoutService {
+  return new CrediarioCheckoutService(
+    new PrismaCreditSettingsRepository(),
+    new PrismaCustomerCreditRepository(),
+    new PrismaCreditProfileRepository(),
+    new PrismaCreditExposureReader(),
+    new CreditOverrideAuthorizer(new PrismaUserRepository(), new BcryptPasswordHasher(), creditOverrideAttemptLimiter),
     new PrismaTransactionManager(),
   );
 }

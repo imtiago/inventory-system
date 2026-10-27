@@ -9,13 +9,23 @@ import { saleMargin } from "@pricing/domain/pricingMath";
 import { checkoutCharge } from "@sales/domain/services/checkoutCharge";
 import { IMMEDIATE_PAYMENT_CONDITIONS, PaymentCondition } from "@sales/domain/enums/PaymentCondition";
 import { SaleCostReader } from "@sales/application/contracts/SaleCostReader";
-import { SaleSimulationConditionDTO, SaleSimulationDTO } from "@sales/application/dto/SaleDTO";
+import {
+  SaleSimulationConditionDTO,
+  SaleSimulationCrediarioDTO,
+  SaleSimulationDTO,
+} from "@sales/application/dto/SaleDTO";
+import type { CrediarioCheckoutService } from "@credit/application/services/CrediarioCheckoutService";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 
 export interface ISimulateSaleInput {
   customerId: string;
   items: { productVariantId: string; quantity: number }[];
   /** Quem pode ver lucro (`reports.profit`) recebe `margin` em cada condição. */
   includeMargin: boolean;
+  /** Entrada do crediário em reais (ausente ou menor = mínima do perfil). */
+  downPayment?: number;
+  /** Dia de vencimento do crediário (1..28); validado, não muda os valores. */
+  dueDay?: number;
 }
 
 type Option = { condition: (typeof IMMEDIATE_PAYMENT_CONDITIONS)[number]; cardInstallments: number | null; passCardFee: boolean };
@@ -34,8 +44,9 @@ const OPTIONS: Option[] = [
 ];
 
 /**
- * Simula o valor da venda em cada condição imediata (crediário: Task 8). Não grava nada
- * nem trava estoque. Margem = cobrado − taxa do cartão − custo médio atual − despesas.
+ * Simula o valor da venda em cada condição imediata e as opções do crediário (1..máximo, com a
+ * situação do cliente). Não grava nada nem trava. Margem = cobrado − taxa do cartão − custo médio
+ * atual − despesas (crediário: cobrado = entrada + parcelas, sem taxa).
  */
 export class SimulateSaleUseCase implements UseCase<ISimulateSaleInput, SaleSimulationDTO> {
   constructor(
@@ -43,6 +54,7 @@ export class SimulateSaleUseCase implements UseCase<ISimulateSaleInput, SaleSimu
     private readonly catalogService: CatalogService,
     private readonly pricingSettings: Pick<PricingSettingsReader, "get">,
     private readonly costs: SaleCostReader,
+    private readonly crediario: Pick<CrediarioCheckoutService, "quote">,
   ) {}
 
   async execute(input: ISimulateSaleInput): Promise<SaleSimulationDTO> {
@@ -101,6 +113,34 @@ export class SimulateSaleUseCase implements UseCase<ISimulateSaleInput, SaleSimu
       return dto;
     });
 
-    return { itemsTotal: fromCents(itemsTotalCents), conditions };
+    const marginOf = (chargedCents: number, cardFeeBps: number) => {
+      const margin = saleMargin({ lines: costLines, chargedCents, expensesBps: settings.expensesBps, cardFeeBps });
+      return margin.missingCost ? null : { amount: fromCents(margin.marginCents), percent: margin.marginBps / 100 };
+    };
+    const quote = await this.crediario.quote({
+      customerId: input.customerId,
+      itemsTotalCents,
+      downPaymentCents: input.downPayment === undefined ? undefined : toCents(input.downPayment),
+      today: todayInBusinessTz(),
+    });
+    const crediario: SaleSimulationCrediarioDTO = {
+      allowed: quote.allowed,
+      blockedReason: quote.blockedReason,
+      available: fromCents(quote.availableCents),
+      minDownPayment: fromCents(quote.minDownPaymentCents),
+      maxInstallments: quote.maxInstallments,
+      options: quote.options.map((o) => ({
+        installments: o.installments,
+        downPayment: fromCents(o.downPaymentCents),
+        installmentAmount: fromCents(o.installmentCents),
+        lastInstallmentAmount: fromCents(o.lastInstallmentCents),
+        total: fromCents(o.totalCents),
+        surcharge: fromCents(o.surchargeCents),
+        surchargePercent: o.surchargeBps / 100,
+        ...(input.includeMargin ? { margin: marginOf(o.totalCents, 0) } : {}),
+      })),
+    };
+
+    return { itemsTotal: fromCents(itemsTotalCents), conditions, crediario };
   }
 }

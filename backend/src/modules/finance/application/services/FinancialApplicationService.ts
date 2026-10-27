@@ -5,8 +5,10 @@ import { CreateFinancialDocumentUseCase } from "../useCases/commands/CreateFinan
 import { CancelSaleReceivableUseCase } from "../useCases/commands/CancelSaleReceivableUseCase";
 import { CancelPurchasePayableUseCase } from "../useCases/commands/CancelPurchasePayableUseCase";
 import { CreatePaidSaleReceivableUseCase } from "../useCases/commands/CreatePaidSaleReceivableUseCase";
+import { CreateCrediarioReceivableUseCase } from "../useCases/commands/CreateCrediarioReceivableUseCase";
 import {
   CancelSaleReceivableInput,
+  CreateCrediarioReceivableInput,
   CreatePaidSaleReceivableInput,
   CreatePurchasePayableInput,
   CreateSaleReceivableInput,
@@ -19,6 +21,7 @@ export class FinancialApplicationService implements FinancialService {
     private readonly cancelSaleReceivableUseCase: Pick<CancelSaleReceivableUseCase, "execute">,
     private readonly cancelPurchasePayableUseCase: Pick<CancelPurchasePayableUseCase, "execute">,
     private readonly createPaidSaleReceivableUseCase: Pick<CreatePaidSaleReceivableUseCase, "execute">,
+    private readonly createCrediarioReceivableUseCase: Pick<CreateCrediarioReceivableUseCase, "execute">,
   ) {}
 
   async createSaleReceivable(input: CreateSaleReceivableInput): Promise<void> {
@@ -34,6 +37,10 @@ export class FinancialApplicationService implements FinancialService {
 
   async createPaidSaleReceivable(input: CreatePaidSaleReceivableInput): Promise<void> {
     await this.createPaidSaleReceivableUseCase.execute(input);
+  }
+
+  async createCrediarioReceivable(input: CreateCrediarioReceivableInput): Promise<void> {
+    await this.createCrediarioReceivableUseCase.execute(input);
   }
 
   async cancelSaleReceivable(input: CancelSaleReceivableInput): Promise<void> {

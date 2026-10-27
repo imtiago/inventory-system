@@ -53,6 +53,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       include: {
         customer: personSelect,
         seller: personSelect,
+        financing: { include: { overrideBy: personSelect } },
         items: {
           include: { productVariant: { select: { code: true } } },
           orderBy: { id: "asc" },

@@ -82,6 +82,41 @@
           "percent": 34.08
         }
       }
-    ]
+    ],
+    "crediario": {
+      "allowed": true,
+      "blockedReason": null,
+      "available": 300,
+      "minDownPayment": 47.91,
+      "maxInstallments": 2,
+      "options": [
+        {
+          "installments": 1,
+          "downPayment": 47.91,
+          "installmentAmount": 111.79,
+          "lastInstallmentAmount": 111.79,
+          "total": 159.7,
+          "surcharge": 0,
+          "surchargePercent": 0,
+          "margin": {
+            "amount": 62.4,
+            "percent": 39.07
+          }
+        },
+        {
+          "installments": 2,
+          "downPayment": 47.91,
+          "installmentAmount": 55.9,
+          "lastInstallmentAmount": 55.89,
+          "total": 159.7,
+          "surcharge": 0,
+          "surchargePercent": 0,
+          "margin": {
+            "amount": 62.4,
+            "percent": 39.07
+          }
+        }
+      ]
+    }
   }
 }

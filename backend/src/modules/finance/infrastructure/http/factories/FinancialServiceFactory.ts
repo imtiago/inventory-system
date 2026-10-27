@@ -3,6 +3,7 @@ import { CancelPurchasePayableUseCase } from "@finance/application/useCases/comm
 import { CancelSaleReceivableUseCase } from "@finance/application/useCases/commands/CancelSaleReceivableUseCase";
 import { CreateFinancialDocumentUseCase } from "@finance/application/useCases/commands/CreateFinancialDocumentUseCase";
 import { CreatePaidSaleReceivableUseCase } from "@finance/application/useCases/commands/CreatePaidSaleReceivableUseCase";
+import { CreateCrediarioReceivableUseCase } from "@finance/application/useCases/commands/CreateCrediarioReceivableUseCase";
 import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
 import { PrismaFinancialParcelRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialParcelRepository";
 import { PrismaPaymentRepository } from "@finance/infrastructure/prisma/repositories/PrismaPaymentRepository";
@@ -19,5 +20,6 @@ export function makeFinancialService() {
     new CancelSaleReceivableUseCase(documents, payments, transactionManager),
     new CancelPurchasePayableUseCase(documents, transactionManager),
     new CreatePaidSaleReceivableUseCase(documents, parcels, payments, transactionManager),
+    new CreateCrediarioReceivableUseCase(documents, parcels, payments, transactionManager),
   );
 }

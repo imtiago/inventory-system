@@ -220,7 +220,7 @@ describe("fechamento da venda: dinheiro, PIX, débito e crédito", () => {
     assert.equal(sale.cardFeeBps, 0);
   });
 
-  test("validação do pagamento: cartão de crédito exige parcelas 1..12; parcelas só no crédito; crediário ainda não disponível", async () => {
+  test("validação do pagamento: cartão de crédito exige parcelas 1..12; parcelas só no crédito", async () => {
     const variantId = await createVariant(10);
     for (const payment of [
       { condition: "CREDIT_CARD" },
@@ -233,9 +233,7 @@ describe("fechamento da venda: dinheiro, PIX, débito e crédito", () => {
       const res = await sell(seller, variantId, payment);
       assert.equal(res.statusCode, 400, `${JSON.stringify(payment)} → ${res.body}`);
     }
-    const crediario = await sell(seller, variantId, { condition: "CREDIARIO", crediario: { installments: 2, downPayment: 0 } });
-    assert.equal(crediario.statusCode, 422, crediario.body);
-    assert.equal(crediario.json().code, "CREDIARIO_DISABLED");
+    // Crediário (ligado/desligado é global): checkoutCrediario.test.ts, sob acquireCreditTestLock().
     assert.equal(await qty(variantId), 10);
   });
 

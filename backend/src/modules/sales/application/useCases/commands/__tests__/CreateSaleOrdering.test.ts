@@ -27,6 +27,7 @@ function build(variantIds: string[]) {
   const financialService: FinancialService = {
     createSaleReceivable: async () => {},
     createPaidSaleReceivable: async () => {},
+    createCrediarioReceivable: async () => {},
     cancelSaleReceivable: async () => {},
     createPurchasePayable: async () => {},
     cancelPurchasePayable: async () => {},
@@ -39,6 +40,7 @@ function build(variantIds: string[]) {
     inventoryService,
     financialService,
     { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
   );
   return { uc, calls };
 }
@@ -114,6 +116,7 @@ test("total em centavos menor que o nº de parcelas → 422 INSTALLMENTS_EXCEED_
     inventoryService,
     financialService,
     { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
   );
 
   await assert.rejects(

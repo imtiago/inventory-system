@@ -283,6 +283,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     const financialService: FinancialService = {
       createSaleReceivable: async () => {},
       createPaidSaleReceivable: async () => {},
+      createCrediarioReceivable: async () => {},
       cancelSaleReceivable: async () => {},
       createPurchasePayable: async () => {},
       cancelPurchasePayable: async () => {},
@@ -295,6 +296,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       inventoryService,
       financialService,
       { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
     );
   }
 

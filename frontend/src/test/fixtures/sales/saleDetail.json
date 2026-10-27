@@ -73,6 +73,7 @@
         }
       ]
     },
+    "financing": null,
     "pendingCancelRequest": null,
     "latestDecidedCancelRequest": null
   }

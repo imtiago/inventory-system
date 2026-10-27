@@ -3,6 +3,7 @@ import { makeCustomerService } from "@customer/infrastructure/http/factories/Cus
 import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { SimulateSaleUseCase } from "@sales/application/useCases/queries/SimulateSaleUseCase";
 import { PrismaSaleCostReader } from "@sales/infrastructure/prisma/contracts/PrismaSaleCostReader";
+import { makeCrediarioCheckoutService } from "@credit/infrastructure/factories/creditFactories";
 
 export function makeSimulateSaleUseCase() {
   return new SimulateSaleUseCase(
@@ -10,5 +11,6 @@ export function makeSimulateSaleUseCase() {
     makeCatalogService(),
     new PrismaPricingSettingsReader(),
     new PrismaSaleCostReader(),
+    makeCrediarioCheckoutService(),
   );
 }
