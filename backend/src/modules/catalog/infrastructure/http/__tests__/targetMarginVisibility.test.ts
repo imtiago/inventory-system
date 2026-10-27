@@ -13,6 +13,8 @@ describe("Margem-alvo nos DTOs do catálogo", () => {
   const data = createCatalogTestData();
   let admin: TestUser;
   let vendedor: TestUser;
+  let estoquista: TestUser;
+  let barcode: string;
   let categoryId: string;
   let productId: string;
   let variantId: string;
@@ -24,6 +26,7 @@ describe("Margem-alvo nos DTOs do catálogo", () => {
   before(async () => {
     admin = await createTestUser({ role: "ADMIN" });
     vendedor = await createTestUser({ role: "VENDEDOR" });
+    estoquista = await createTestUser({ role: "ESTOQUISTA" });
     const brand = await data.brand();
     const category = await data.category();
     categoryId = category.id;
@@ -33,7 +36,8 @@ describe("Margem-alvo nos DTOs do catálogo", () => {
     unsetVariantId = (await data.variant(productId)).id;
     await prisma.category.update({ where: { id: categoryId }, data: { targetMarginBps: 3550 } });
     await prisma.product.update({ where: { id: productId }, data: { targetMarginBps: 2000 } });
-    await prisma.productVariant.update({ where: { id: variantId }, data: { targetMarginBps: 4125 } });
+    barcode = `7${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(0, 13);
+    await prisma.productVariant.update({ where: { id: variantId }, data: { targetMarginBps: 4125, barcode } });
   });
 
   after(async () => {
@@ -42,6 +46,7 @@ describe("Margem-alvo nos DTOs do catálogo", () => {
     } finally {
       await admin.cleanup();
       await vendedor.cleanup();
+      await estoquista.cleanup();
       await app.close();
       await prisma.$disconnect();
     }
@@ -88,5 +93,20 @@ describe("Margem-alvo nos DTOs do catálogo", () => {
     assert.equal("targetMarginBps" in v.json().data, false);
     const vl = await call(`/products/${productId}/variants`, vendedor);
     assert.equal(vl.json().data.some((x: object) => "targetMarginPercent" in x || "targetMarginBps" in x), false);
+  });
+
+  test("código de barras do estoque: só ADMIN recebe a margem; VENDEDOR/ESTOQUISTA nunca", async () => {
+    const url = `/inventory/product-variant/barcode/${barcode}`;
+    const a = await call(url, admin);
+    assert.equal(a.statusCode, 200);
+    assert.equal(a.json().data.targetMarginPercent, 41.25);
+    assert.equal("targetMarginBps" in a.json().data, false);
+    for (const user of [vendedor, estoquista]) {
+      const r = await call(url, user);
+      assert.equal(r.statusCode, 200);
+      assert.equal(r.json().data.id, variantId);
+      assert.equal("targetMarginBps" in r.json().data, false);
+      assert.equal("targetMarginPercent" in r.json().data, false);
+    }
   });
 });

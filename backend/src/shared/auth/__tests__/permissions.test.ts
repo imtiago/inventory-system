@@ -6,6 +6,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
 import { createTestUser, TestUser } from "../../../test/authFixtures";
 import { hasPermission, Permission, PERMISSIONS, ROLE_PERMISSIONS } from "../permissions";
+import { canSeeStockCost } from "../costVisibility";
 import { withIdempotencyKey } from "../../../test/idempotency";
 
 app.log.level = "silent";
@@ -145,6 +146,14 @@ describe("hasPermission (matriz)", () => {
     }
     assert.deepEqual([...PERMISSIONS].sort(), Object.keys(MATRIX).sort());
     assert.deepEqual(Object.keys(ROLE_PERMISSIONS).sort(), [...ROLES].sort());
+  });
+
+  test("custo do estoque: ADMIN e ESTOQUISTA veem; VENDEDOR e papéis desconhecidos não", () => {
+    assert.deepEqual(
+      ROLES.filter((r) => canSeeStockCost(r)),
+      ["ADMIN", "ESTOQUISTA"],
+    );
+    for (const odd of [undefined, "", "admin", "constructor"]) assert.equal(canSeeStockCost(odd), false, String(odd));
   });
 
   test("papel desconhecido não tem permissão", () => {

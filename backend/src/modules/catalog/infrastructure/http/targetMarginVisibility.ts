@@ -6,22 +6,28 @@ type Json = Record<string, unknown>;
 const isObject = (v: unknown): v is Json => v !== null && typeof v === "object" && !Array.isArray(v);
 
 function present(item: unknown, canSee: boolean): unknown {
-  if (!isObject(item) || !("targetMarginBps" in item)) return item;
-  const { targetMarginBps, ...rest } = item;
-  if (!canSee) return rest;
-  return { ...rest, targetMarginPercent: typeof targetMarginBps === "number" ? bpsToPercent(targetMarginBps) : null };
+  if (Array.isArray(item)) return item.map((i) => present(i, canSee));
+  if (!isObject(item) || item instanceof Date) return item;
+  const out: Json = {};
+  for (const [key, value] of Object.entries(item)) {
+    if (key === "targetMarginBps") {
+      if (canSee) out.targetMarginPercent = typeof value === "number" ? bpsToPercent(value) : null;
+    } else {
+      out[key] = present(value, canSee);
+    }
+  }
+  return out;
 }
 
 /**
- * Os DTOs de catálogo carregam `targetMarginBps` (interno). Na saída, quem tem
- * `pricing.manage` recebe `targetMarginPercent` (número ou null); os demais papéis
- * não recebem a chave. Vale para todas as rotas do plugin onde é registrado.
+ * Os DTOs de catálogo carregam `targetMarginBps` (interno). Registrado uma vez na instância raiz:
+ * vale para TODAS as rotas, então nenhuma rota esquece. Quem tem `pricing.manage` recebe
+ * `targetMarginPercent` (número ou null); os demais papéis não recebem a chave, em qualquer profundidade.
  */
 export function hideTargetMarginFromNonAdmins(app: FastifyInstance): void {
   app.addHook("preSerialization", async (request, _reply, payload) => {
     if (!isObject(payload) || !("data" in payload)) return payload;
     const canSee = !!request.user && hasPermission(request.user.role, "pricing.manage");
-    const { data } = payload;
-    return { ...payload, data: Array.isArray(data) ? data.map((d) => present(d, canSee)) : present(data, canSee) };
+    return { ...payload, data: present(payload.data, canSee) };
   });
 }

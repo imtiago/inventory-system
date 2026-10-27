@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { hideTargetMarginFromNonAdmins } from "../targetMarginVisibility";
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeCreateProductController } from "../controllers/CreateProductController";
 import { makeListProductsController } from "../controllers/ListProductsController";
@@ -10,7 +9,6 @@ import { makeUpdateProductController } from "../controllers/UpdateProductControl
 import { makeDeleteProductController } from "../controllers/DeleteProductController";
 
 export async function productRoutes(app: FastifyInstance) {
-  hideTargetMarginFromNonAdmins(app);
   app.post(
     "/",
     { preHandler: [authorize("catalog.write")] },

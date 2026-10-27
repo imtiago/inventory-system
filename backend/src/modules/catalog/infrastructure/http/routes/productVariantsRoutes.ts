@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { hideTargetMarginFromNonAdmins } from "../targetMarginVisibility";
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeGetProductVariantController } from "../controllers/GetProductVariantController";
 import { makeUpdateVariantController } from "../controllers/UpdateVariantController";
@@ -7,7 +6,6 @@ import { makeDeleteProductVariantController } from "../controllers/DeleteProduct
 import { makeGetProductVariantByBarcodeController } from "../controllers/GetProductVariantByBarcodeController";
 
 export async function productVariantsRoutes(app: FastifyInstance) {
-  hideTargetMarginFromNonAdmins(app);
   app.get(
     "/:id",
     { preHandler: [authorize("catalog.read")] },

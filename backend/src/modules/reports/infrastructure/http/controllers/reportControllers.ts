@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { canSeeStockCost } from "@shared/auth/costVisibility";
 import { parseInput } from "@shared/http/parseInput";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import {
@@ -90,17 +91,22 @@ export function makeSaleItemsReportController() {
 }
 
 export function makeStockReportController() {
-  return async function StockReportController(_req: FastifyRequest, reply: FastifyReply) {
+  return async function StockReportController(req: FastifyRequest, reply: FastifyReply) {
+    const withCost = canSeeStockCost(req.user?.role);
     const rows = await repo().stock(maxExportRows());
+    const headers = ["Produto", "Variante", "Código", "Código de barras", "Quantidade", "Reservado", "Disponível"];
     return send(
       reply,
       "estoque",
-      ["Produto", "Variante", "Código", "Código de barras", "Quantidade", "Reservado", "Disponível", "Custo médio", "Valor em estoque"],
-      rows.map((r) => [
-        r.productName, r.variantName, r.code, r.barcode,
-        csvQty(r.quantity), csvQty(r.reserved), csvQty(r.quantity - r.reserved),
-        csvMoney(r.averageCost), csvMoney(r.stockValue),
-      ]),
+      withCost ? [...headers, "Custo médio", "Valor em estoque"] : headers,
+      rows.map((r) => {
+        const base: CsvCell[] = [
+          r.productName, r.variantName, r.code, r.barcode,
+          csvQty(r.quantity), csvQty(r.reserved), csvQty(r.quantity - r.reserved),
+        ];
+        // VENDEDOR: colunas de custo omitidas (não em branco).
+        return withCost ? [...base, csvMoney(r.averageCost), csvMoney(r.stockValue)] : base;
+      }),
     );
   };
 }

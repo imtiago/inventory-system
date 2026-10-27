@@ -57,6 +57,28 @@ describe('InventoryDetailsPage', () => {
     expect(within(card).getByText('Custo').nextSibling).toHaveTextContent(/R\$\s?18,50/);
   });
 
+  test.each([375, 1280])('sem custo na resposta (VENDEDOR, %ipx): esconde custo médio e coluna/linha de custo, sem NaN/undefined', async (width) => {
+    setViewport(width);
+    const inv: Record<string, unknown> = { ...inventory.data };
+    delete inv.averageCost;
+    const lots = inventoryLotList.data.map((l) => {
+      const lot: Record<string, unknown> = { ...l };
+      delete lot.unitCost;
+      return lot;
+    });
+    server.use(
+      http.get(`${API_URL}/inventory/:id`, () => HttpResponse.json({ data: inv })),
+      http.get(`${API_URL}/inventory/variants/:variantId/lots`, () => HttpResponse.json({ ...inventoryLotList, data: lots })),
+    );
+    const { container } = renderPage();
+    await screen.findByText('L2026-10-A');
+    expect(screen.queryByText('Custo médio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Custo')).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Custo' })).not.toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/NaN|undefined|R\$/);
+    expect(screen.getByText('Saldo').nextSibling).toHaveTextContent('42');
+  });
+
   test('validade 2026-12-31T00:00:00.000Z aparece como 31/12/2026', async () => {
     const lot = { ...inventoryLotList.data[0], expirationDate: '2026-12-31T00:00:00.000Z' };
     server.use(
