@@ -12,7 +12,7 @@ Leia antes de qualquer tarefa. Histórico completo e pendências: `docs/HISTORIC
 - `backend/`: Node 22, Fastify 5, Prisma 6, PostgreSQL 16, Zod, testes `node:test` via `tsx`, build `tsup`.
   - `src/modules/<m>/{domain,application,infrastructure,interfaces}`; módulos: auth, catalog, customer, dashboard, finance, inventory, nfe-import, purchases, reports, sales.
   - `src/shared/`: transação, erros, idempotência, permissões, http (errorHandler, parseInput, csv), config/env, helpers de domínio (money, businessDate, document, limits).
-  - Aliases (`backend/tsconfig.json`): `@shared/*`, `@auth/*`, `@catalog/*`, `@customer/*`, `@inventory/*`, `@finance/*`, `@purchases/*`, `@sales/*`, `@nfe-import/*` (`@receivables/*`/`@payables/*` existem mas apontam para pastas inexistentes).
+  - Aliases (`backend/tsconfig.json`): `@shared/*`, `@auth/*`, `@catalog/*`, `@customer/*`, `@inventory/*`, `@finance/*`, `@purchases/*`, `@sales/*`, `@nfe-import/*`, `@pricing/*`, `@credit/*` (`@receivables/*`/`@payables/*` existem mas apontam para pastas inexistentes).
   - Rotas em `infrastructure/http/routes`, schemas Zod em `interfaces/http/schemas`, registradas em `src/app.ts`.
 - `frontend/`: React 19, Vite, TanStack Query, Zustand, Tailwind, Vitest + MSW + jsdom. Alias `@/*` → `src/*`.
   - `src/modules/<m>/{pages,components,hooks,services,...}`; módulos: auth, brands, categories, customers, dashboard, finance, inventory, nfe-imports, payables, products, purchases, receivables, sales, suppliers, users.
