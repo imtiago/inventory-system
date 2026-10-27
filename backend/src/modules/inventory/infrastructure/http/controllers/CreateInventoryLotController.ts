@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
 import { parseInput } from "@shared/http/parseInput";
 import { createInventoryLotSchema } from "@inventory/interfaces/http/schemas/createInventoryLotSchema";
+import { applyEntryExtraCost } from "./entryExtraCost";
 import { makeGetInventoryLotById } from "../factories/GetInventoryLotByIdFactory";
 import { makeReceiveInventory } from "../factories/ReceiveInventoryFactory";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
@@ -18,10 +19,12 @@ export function makeCreateInventoryLotController() {
   ) {
     const data = parseInput(createInventoryLotSchema, request.body);
 
+    const { unitCost, acquisitionExtraCost } = applyEntryExtraCost(data);
     const { lot } = await receiveInventory.execute({
       productVariantId: data.productVariantId,
       quantity: data.quantity,
-      unitCost: data.unitCost,
+      unitCost,
+      acquisitionExtraCost,
       batchNumber: data.batchNumber,
       expirationDate: data.expirationDate,
       manufacturingDate: data.manufacturingDate,

@@ -10,6 +10,9 @@ import { countBatchNumber } from "@inventory/domain/services/countLot";
 import { ReceiveInventoryUseCase } from "./ReceiveInventoryUseCase";
 import { AddProductToBoxUseCase } from "./AddProductToBoxUseCase";
 import { BusinessRuleError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
+import type { PriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
+
+const NO_PRICE_REVIEW: Pick<PriceReviewTrigger, "beforeCostChange"> = { beforeCostChange: async () => {} };
 
 export interface IRegisterScannedProductOutput {
   boxId: string;
@@ -29,6 +32,7 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     private readonly inventoryRepository: IInventoryRepository,
     private readonly inventoryBoxRepository: IInventoryBoxRepository,
     transactionManager: TransactionManager,
+    private readonly priceReviewTrigger: Pick<PriceReviewTrigger, "beforeCostChange"> = NO_PRICE_REVIEW,
   ) {
     super(transactionManager);
   }
@@ -56,6 +60,9 @@ export class RegisterScannedProductUseCase extends TransactionalUseCase<
     if (!box) {
       throw new NotFoundError("Caixa não encontrada.", ErrorCodes.BOX_NOT_FOUND);
     }
+
+    // A entrada pode mudar o custo médio: trava compartilhada das configurações de preço antes do inventário.
+    await this.priceReviewTrigger.beforeCostChange();
 
     // Trava a variante antes de ler o custo médio padrão (a trava é reentrante
     // na transação do receive), para o custo não ficar defasado por concorrência.

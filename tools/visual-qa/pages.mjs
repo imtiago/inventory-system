@@ -10,6 +10,8 @@ export const PAGES = [
   ['customers', '/customers'], ['customer-detail', '/customers/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'],
   ['suppliers', '/suppliers'], ['purchases', '/purchases'], ['purchase-new', '/purchases/new'], ['purchase-detail', '/purchases/x1'],
   ['nfe', '/nfe-imports'], ['nfe-review', '/nfe-imports/x1'],
-  ['receivables', '/receivables'], ['receivable-detail', '/receivables/x1'], ['payables', '/payables'], ['payable-detail', '/payables/x1'],
+  ['receivables', '/receivables'], ['receivable-detail', '/receivables/x1'], ['payables', '/payables'], ['profit-report', '/reports/profit'], ['payable-detail', '/payables/x1'],
   ['users', '/users'],
+  ['pricing-settings', '/settings/pricing'],
+  ['variant-edit', '/variants/5b3e4c9a-1d6f-4a43-8c8b-3e4f5a6b7c82/edit'], ['price-reviews', '/catalog/price-reviews'],
 ];

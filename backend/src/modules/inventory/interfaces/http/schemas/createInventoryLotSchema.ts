@@ -21,6 +21,14 @@ export const createInventoryLotSchema = z.object({
     .number()
     .nonnegative("O custo unitário não pode ser negativo.")
     .max(MAX_UNIT_VALUE, "O custo unitário excede o máximo permitido."),
+
+  /** Frete/despesas da entrada inteira (total em R$, ≤ 2 casas); entra no custo unitário do lote. */
+  extraCost: z
+    .number()
+    .nonnegative("A despesa da entrada não pode ser negativa.")
+    .max(MAX_UNIT_VALUE, "A despesa da entrada excede o máximo permitido.")
+    .refine((v) => Number.isInteger(Number((v * 100).toPrecision(15))), "A despesa da entrada deve ter no máximo 2 casas decimais.")
+    .optional(),
 });
 
 export type CreateInventoryLotInput = z.infer<typeof createInventoryLotSchema>;

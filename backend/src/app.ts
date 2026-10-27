@@ -23,6 +23,9 @@ import { payableRoutes, receivableRoutes } from "@finance/infrastructure/http/ro
 import { dashboardRoutes } from "./modules/dashboard/infrastructure/http/routes/dashboardRoutes";
 import { reportRoutes } from "./modules/reports/infrastructure/http/routes/reportRoutes";
 import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/productVariantsRoutes";
+import { hideTargetMarginFromNonAdmins } from "@catalog/infrastructure/http/targetMarginVisibility";
+import { hideCostFromNonStockRoles } from "@shared/http/costVisibility";
+import { pricingRoutes } from "@pricing/infrastructure/http/routes/pricingRoutes";
 
 export type BuildAppOptions = {
   logger?: FastifyServerOptions["logger"];
@@ -69,6 +72,10 @@ export function buildApp(options: BuildAppOptions = {}) {
   });
 
   registerErrorHandling(app);
+  // Defesa única: a margem-alvo interna (bps) nunca sai de nenhuma rota para quem não tem `pricing.manage`.
+  hideTargetMarginFromNonAdmins(app);
+  // Custo do estoque só para quem dá entrada (ADMIN, ESTOQUISTA); VENDEDOR nunca recebe os campos.
+  hideCostFromNonStockRoles(app);
   // HSTS e upgrade-insecure-requests só em produção: em desenvolvimento o navegador guardaria a regra para "localhost"
   // e passaria a forçar HTTPS em qualquer porta local.
   app.register(helmet, env.isProduction ? {} : { hsts: false, contentSecurityPolicy: { useDefaults: true, directives: { upgradeInsecureRequests: null } } });
@@ -144,6 +151,7 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(nfeImportRoutes, { prefix: "/nfe-imports" });
   app.register(dashboardRoutes, { prefix: "/dashboard" });
   app.register(reportRoutes, { prefix: "/reports" });
+  app.register(pricingRoutes, { prefix: "/pricing" });
 
   return app;
 }

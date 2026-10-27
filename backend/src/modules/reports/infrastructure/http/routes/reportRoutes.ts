@@ -3,6 +3,8 @@ import { authorize } from "@shared/middleware/authorize";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import {
   makeFinanceReportController,
+  makeProfitCsvController,
+  makeProfitReportController,
   makeSaleItemsReportController,
   makeSalesReportController,
   makeStockReportController,
@@ -23,4 +25,7 @@ export async function reportRoutes(app: FastifyInstance) {
     { preHandler: [authorize("payables.read")] },
     makeFinanceReportController(FinancialType.PAYABLE),
   );
+  // Lucro (custo registrado na venda): só ADMIN.
+  app.get("/profit", { preHandler: [authorize("reports.profit")] }, makeProfitReportController());
+  app.get("/profit.csv", { preHandler: [authorize("reports.profit")] }, makeProfitCsvController());
 }

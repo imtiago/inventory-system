@@ -10,3 +10,5 @@ export { MoneyInput } from './MoneyInput';
 export type { MoneyInputProps } from './MoneyInput';
 export { QuantityInput } from './QuantityInput';
 export type { QuantityInputProps } from './QuantityInput';
+export { PercentInput } from './PercentInput';
+export type { PercentInputProps } from './PercentInput';

@@ -117,6 +117,11 @@ export function PurchaseDetailPage() {
                 ]}
               />
             </div>
+            {purchase.extraCosts > 0 && (
+              <p data-testid="purchase-extra-costs" className="border-t border-border px-4 py-3 text-right text-sm tabular-nums text-muted sm:px-6">
+                Frete e outras despesas da compra: {formatCurrency(purchase.extraCosts)}
+              </p>
+            )}
             <p className="border-t border-border bg-surface-muted px-4 py-3 text-right text-lg font-semibold tabular-nums sm:px-6">Total: {formatCurrency(purchase.totalAmount)}</p>
           </Section>
 

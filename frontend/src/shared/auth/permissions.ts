@@ -24,6 +24,8 @@ export const PERMISSIONS = [
   "payables.read",
   "payables.pay",
   "payables.reverse",
+  "pricing.manage",
+  "reports.profit",
   "self",
 ] as const;
 

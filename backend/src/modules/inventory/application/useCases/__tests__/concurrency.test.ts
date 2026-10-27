@@ -328,8 +328,9 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       let calls = 0;
       return {
         async consumeStock(req) {
-          await real.consumeStock(req);
+          const result = await real.consumeStock(req);
           if (calls++ === 0) await sleep(300);
+          return result;
         },
         returnSaleStock: (req) => real.returnSaleStock(req),
         receivePurchaseStock: (req) => real.receivePurchaseStock(req),

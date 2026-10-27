@@ -26,6 +26,8 @@ export class InventoryLotMapper {
 
       unitCost: Number(prisma.unitCost),
 
+      acquisitionExtraCost: Number(prisma.acquisitionExtraCost),
+
       batchNumber: prisma.batchNumber,
 
       manufacturingDate: prisma.manufacturingDate,
@@ -51,6 +53,8 @@ export class InventoryLotMapper {
       remainingQuantity: inventoryLot.remainingQuantity,
 
       unitCost: inventoryLot.unitCost,
+
+      acquisitionExtraCost: inventoryLot.acquisitionExtraCost,
 
       batchNumber: inventoryLot.batchNumber,
 
@@ -95,6 +99,8 @@ export class InventoryLotMapper {
       remainingQuantity: inventoryLot.remainingQuantity,
 
       unitCost: inventoryLot.unitCost,
+
+      acquisitionExtraCost: inventoryLot.acquisitionExtraCost,
 
       batchNumber: inventoryLot.batchNumber,
 

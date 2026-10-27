@@ -5,6 +5,8 @@ export const queryKeys = {
 
   dashboard: ['dashboard'] as const,
 
+  profitReport: (params: object) => ['reports', 'profit', params] as const,
+
   sales: ['sales'] as const,
 
   receivables: ['receivables'] as const,
@@ -30,6 +32,17 @@ export const queryKeys = {
   brands: ['brands'] as const,
 
   categories: ['categories'] as const,
+
+  pricingSettings: ['pricing', 'settings'] as const,
+
+  priceReviews: ['pricing', 'reviews'] as const,
+
+  priceReviewList: (params: object) => ['pricing', 'reviews', 'list', params] as const,
+
+  priceReviewCount: ['pricing', 'reviews', 'count'] as const,
+
+  variantPricing: (id: string) => ['pricing', 'variants', id] as const,
+
 
   inventory: ['inventory'] as const,
 

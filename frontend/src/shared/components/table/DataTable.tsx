@@ -171,7 +171,7 @@ function Card<T>({ row, columns, href }: { row: T; columns: DataTableColumn<T>[]
   );
 }
 
-export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage, emptyHint }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage, emptyHint, ariaLabelledBy }: DataTableProps<T>) {
   const isTabletUp = useBreakpoint('md');
 
   if (!isTabletUp) {
@@ -184,7 +184,7 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
     }
 
     return (
-      <ul className="flex flex-col gap-3 p-3">
+      <ul aria-labelledby={ariaLabelledBy} className="flex flex-col gap-3 p-3">
         {data.map((row, index) => (
           <Card key={getRowId ? getRowId(row) : index} row={row} columns={columns} href={getRowHref?.(row)} />
         ))}
@@ -194,7 +194,7 @@ export function DataTable<T>({ data, columns, getRowId, getRowHref, emptyMessage
 
   return (
     <div className="w-full overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
+      <table aria-labelledby={ariaLabelledBy} className="w-full border-collapse text-sm">
         <thead className="bg-surface-muted">
           <tr>
             {columns.map((column) => (

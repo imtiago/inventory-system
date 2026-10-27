@@ -21,7 +21,8 @@ export interface Inventory {
   /** Quantity in expired lots. */
   expired: number;
   minimumStock: number;
-  averageCost: number;
+  /** Ausente para VENDEDOR (sem permissão de ver custo). */
+  averageCost?: number;
   createdAt: string;
   productVariant: InventoryProductVariant;
 }
@@ -34,7 +35,8 @@ export interface InventoryLot {
   initialQuantity: number;
   remainingQuantity: number;
   allocatedQuantity: number;
-  unitCost: number;
+  /** Ausente para VENDEDOR. */
+  unitCost?: number;
   sourceType: string;
   manufacturingDate: string | null;
   expirationDate: string | null;

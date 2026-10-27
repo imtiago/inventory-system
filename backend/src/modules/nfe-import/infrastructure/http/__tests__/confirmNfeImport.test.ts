@@ -821,4 +821,36 @@ describe("Confirmação de importação de NF-e (POST /nfe-imports/:id/confirm)"
     assert.equal(same.statusCode, 201, same.body);
     assert.deepEqual(await mappingsOf(sameSupplier), [["A-001", v1, 2], ["C-003", v3, 1]]);
   });
+
+  test("custo de aquisição: custo médio igual ao de antes; acquisitionExtraCost do lote = (frete + imposto) / unidades do item", async () => {
+    const note = newNote();
+    const supplier = await createSupplier(note.cnpj);
+    const draft = await uploadNote(note);
+    const [box, bulk, unit] = [await existingVariant(), await existingVariant(), await existingVariant()];
+
+    const res = await confirm(draft.id, {
+      supplier: { id: supplier.id },
+      items: [
+        { index: 1, link: { productVariantId: box, unitsPerPackage: 12 } },
+        { index: 2, link: { productVariantId: bulk, unitsPerPackage: 2 } },
+        { index: 3, link: { productVariantId: unit } },
+      ],
+      receive: true,
+    });
+    assert.equal(res.statusCode, 201, res.body);
+
+    // Item 1: 24 un, frete 5,00 + imposto 12,09 = 17,09 → 17,09 / 24 = 0,7121 por unidade; custo médio segue 10,2938.
+    const inventory = await prisma.inventory.findUniqueOrThrow({ where: { productVariantId: box } });
+    assert.equal(inventory.averageCost.toNumber(), 10.2938);
+    const lots = await prisma.inventoryLot.findMany({ where: { productVariantId: box }, orderBy: { batchNumber: "asc" } });
+    assert.deepEqual(lots.map((l) => [l.unitCost.toNumber(), l.acquisitionExtraCost.toNumber()]), [
+      [10.2938, 0.7121],
+      [10.2938, 0.7121],
+    ]);
+    // Item 2: 21 un, frete 3,50 + imposto 7,14 = 10,64 → 0,5067. Item 3 sem frete/imposto → 0.
+    const bulkLot = await prisma.inventoryLot.findFirstOrThrow({ where: { productVariantId: bulk } });
+    assert.equal(bulkLot.acquisitionExtraCost.toNumber(), 0.5067);
+    const unitLot = await prisma.inventoryLot.findFirstOrThrow({ where: { productVariantId: unit } });
+    assert.equal(unitLot.acquisitionExtraCost.toNumber(), 0);
+  });
 });

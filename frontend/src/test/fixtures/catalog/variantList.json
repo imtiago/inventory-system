@@ -7,7 +7,8 @@
       "name": "Padrão",
       "barcode": "7891234567890",
       "salePrice": 129.9,
-      "createdAt": "2026-10-23T12:00:00.000Z"
+      "createdAt": "2026-10-23T12:00:00.000Z",
+      "targetMarginPercent": 20
     },
     {
       "id": "6c4f5d0b-2e7a-4b54-9d9c-4f5a6b7c8d93",
@@ -16,8 +17,14 @@
       "name": "Refil",
       "barcode": null,
       "salePrice": 99.5,
-      "createdAt": "2026-10-23T12:05:00.000Z"
+      "createdAt": "2026-10-23T12:05:00.000Z",
+      "targetMarginPercent": null
     }
   ],
-  "pagination": { "page": 1, "limit": 10, "total": 2, "totalPages": 1 }
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "totalPages": 1
+  }
 }

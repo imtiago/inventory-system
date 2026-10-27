@@ -21,6 +21,8 @@ export function InventoryDetailsPage() {
 
   const { lots, pagination, isLoading: isLoadingLots, error: lotsError } = useInventoryLots(inventory?.productVariantId, { limit: 100 });
   const isLotsError = Boolean(lotsError);
+  // VENDEDOR não recebe custo: a coluna some em vez de mostrar valor vazio.
+  const showLotCost = lots.some((lot) => lot.unitCost !== undefined);
 
   if (isLoadingInventory) {
     return (
@@ -75,7 +77,7 @@ export function InventoryDetailsPage() {
 
           <StockCard label="Disponível" value={inventory.availableQuantity} />
 
-          <StockCard label="Custo médio" value={formatCurrency(inventory.averageCost)} />
+          {inventory.averageCost !== undefined && <StockCard label="Custo médio" value={formatCurrency(inventory.averageCost)} />}
 
           {inventory.expired > 0 && <StockCard label="Vencido" value={`Vencido: ${inventory.expired}`} highlight />}
         </div>
@@ -122,10 +124,12 @@ export function InventoryDetailsPage() {
                     <dt className="text-muted text-xs uppercase tracking-wide">Em caixas</dt>
                     <dd>{lot.allocatedQuantity}</dd>
                   </div>
-                  <div>
-                    <dt className="text-muted text-xs uppercase tracking-wide">Custo</dt>
-                    <dd>{formatCurrency(lot.unitCost)}</dd>
-                  </div>
+                  {lot.unitCost !== undefined && (
+                    <div>
+                      <dt className="text-muted text-xs uppercase tracking-wide">Custo</dt>
+                      <dd>{formatCurrency(lot.unitCost)}</dd>
+                    </div>
+                  )}
                 </dl>
               </li>
             ))}
@@ -139,7 +143,7 @@ export function InventoryDetailsPage() {
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted">Recebido</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted">Restante</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted">Em caixas</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted">Custo</th>
+                  {showLotCost && <th className="px-4 py-3 text-left text-sm font-medium text-muted">Custo</th>}
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted">Validade</th>
                 </tr>
               </thead>
@@ -154,7 +158,7 @@ export function InventoryDetailsPage() {
                     <td className="px-4 py-3 text-sm tabular-nums">{lot.initialQuantity}</td>
                     <td className="px-4 py-3 text-sm tabular-nums">{lot.remainingQuantity}</td>
                     <td className="px-4 py-3 text-sm tabular-nums">{lot.allocatedQuantity}</td>
-                    <td className="px-4 py-3 text-sm tabular-nums">{formatCurrency(lot.unitCost)}</td>
+                    {showLotCost && <td className="px-4 py-3 text-sm tabular-nums">{formatCurrency(lot.unitCost ?? 0)}</td>}
                     <td className="text-muted px-4 py-3 text-sm">{formatDateOnly(lot.expirationDate)}</td>
                   </tr>
                 ))}

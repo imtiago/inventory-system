@@ -150,4 +150,58 @@ describe('DashboardPage', () => {
     expect(value).toHaveClass('tabular-nums', 'text-foreground');
     expect(within(rec).getByTestId('receivables-open')).toHaveClass('min-w-0');
   });
+
+  test('ADMIN vê os cartões de lucro e margem do mês', async () => {
+    renderWithProviders(<DashboardPage />);
+    const card = await screen.findByRole('region', { name: 'Lucro do mês' });
+    expect(within(card).getByTestId('profit-month')).toHaveTextContent(/2\.410,80/);
+    expect(within(card).getByTestId('profit-margin')).toHaveTextContent(/27,60%/);
+    expect(within(card).getByRole('link', { name: /Ver relatório/ })).toHaveAttribute('href', '/reports/profit');
+  });
+
+  test('lucro do mês: avisa quantas vendas estão sem custo registrado, e some quando zero', async () => {
+    serve({ ...fixture.data, profit: { month: { ...fixture.data.profit.month, itemsWithoutCost: 3 } } });
+    const { unmount } = renderWithProviders(<DashboardPage />);
+    const card = await screen.findByRole('region', { name: 'Lucro do mês' });
+    expect(within(card).getByRole('status')).toHaveTextContent('3 vendas sem custo registrado');
+    unmount();
+
+    serve({ ...fixture.data, profit: { month: { ...fixture.data.profit.month, itemsWithoutCost: 1 } } });
+    const second = renderWithProviders(<DashboardPage />);
+    expect(within(await screen.findByRole('region', { name: 'Lucro do mês' })).getByRole('status')).toHaveTextContent('1 venda sem custo registrado');
+    second.unmount();
+
+    serve(fixture.data);
+    renderWithProviders(<DashboardPage />);
+    const zero = await screen.findByRole('region', { name: 'Lucro do mês' });
+    expect(within(zero).queryByText(/sem custo registrado/)).not.toBeInTheDocument();
+  });
+
+  test('VENDEDOR não vê cartões de lucro', async () => {
+    const { profit: _p, pricing: _q, payables: _y, purchases: _c, ...rest } = fixture.data;
+    void _p; void _q; void _y; void _c;
+    serve(rest);
+    renderWithProviders(<DashboardPage />);
+    expect(await screen.findByRole('region', { name: 'Vendas' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Lucro do mês' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('profit-margin')).not.toBeInTheDocument();
+  });
+
+  test('ADMIN vê o cartão "Preços para revisar" com o total e o link da lista', async () => {
+    renderWithProviders(<DashboardPage />);
+
+    const card = await screen.findByRole('region', { name: 'Preços para revisar' });
+    expect(card).toHaveTextContent('3 preços');
+    expect(within(card).getByRole('link', { name: /Revisar preços/ })).toHaveAttribute('href', '/catalog/price-reviews');
+  });
+
+  test('sem a seção pricing (não ADMIN) não há cartão', async () => {
+    const { pricing: _p, ...rest } = fixture.data;
+    void _p;
+    serve(rest);
+    renderWithProviders(<DashboardPage />);
+
+    await screen.findByRole('region', { name: 'Vendas' });
+    expect(screen.queryByRole('region', { name: 'Preços para revisar' })).not.toBeInTheDocument();
+  });
 });

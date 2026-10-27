@@ -15,6 +15,7 @@ export function CategoryListPage() {
       create={createCategory}
       update={updateCategory}
       remove={deleteCategory}
+      withTargetMargin
     />
   );
 }

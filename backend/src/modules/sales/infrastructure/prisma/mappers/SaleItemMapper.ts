@@ -1,5 +1,6 @@
 import { SaleItem as PrismaSaleItem, Prisma } from "@prisma/client";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
+import { toCost4 } from "@shared/domain/cost4";
 import { fromCents, toCents } from "@shared/domain/money";
 
 export class SaleItemMapper {
@@ -13,6 +14,7 @@ export class SaleItemMapper {
       barcode: prisma.barcode,
       quantity: prisma.quantity,
       unitPriceCents: toCents(Number(prisma.unitPrice)),
+      unitCost4: prisma.unitCost === null ? null : toCost4(Number(prisma.unitCost)),
     });
   }
 
@@ -28,6 +30,7 @@ export class SaleItemMapper {
       barcode: item.barcode,
       quantity: item.quantity,
       unitPrice: fromCents(item.unitPriceCents),
+      unitCost: item.unitCost4 === null ? null : item.unitCost4 / 10_000,
     };
   }
 }

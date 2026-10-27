@@ -5,6 +5,9 @@ import { Controller, useForm } from "react-hook-form";
 import { FieldError, MoneyInput, fieldA11y } from "@/shared/components/form";
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from "@/shared/utils/money";
 
+import { useCan } from "@/shared/auth/useCan";
+import { TargetMarginField } from "@/modules/pricing/components/TargetMarginField";
+import { marginBpsToText, marginChange, validateTargetMargin } from "@/modules/pricing/utils/targetMargin";
 import { EntitySearchSelect } from "@/shared/components/form/EntitySearchSelect";
 import { useBrands } from "@/modules/brands/hooks/useBrands";
 import { useCategories } from "@/modules/categories/hooks/useCategories";
@@ -17,10 +20,12 @@ export interface ProductFormData {
   categoryId: string;
   /** R$; só no cadastro (a variante Padrão nasce com este preço). */
   salePrice?: number;
+  /** Margem desejada em bps; só com `pricing.manage`. Ausente = não mexeu; null = removida. */
+  targetMarginBps?: number | null;
 }
 
 /** O campo guarda o texto digitado (pt-BR); a conversão para número só acontece no envio. */
-type FormValues = Omit<ProductFormData, "salePrice"> & { salePrice?: string };
+type FormValues = Omit<ProductFormData, "salePrice" | "targetMarginBps"> & { salePrice?: string; targetMargin?: string };
 
 interface Props {
   title: string;
@@ -70,10 +75,13 @@ export function ProductForm({
   onSubmit,
   onCancel,
 }: Props) {
-  const { register, control, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const canMargin = useCan("pricing.manage");
+  const { targetMarginBps: initialMargin, ...initialRest } = initialValues ?? {};
+  const { register, control, handleSubmit, setError, formState: { errors, isSubmitting, dirtyFields } } = useForm<FormValues>({
     defaultValues: {
-      ...initialValues,
+      ...initialRest,
       salePrice: initialValues?.salePrice === undefined ? "" : formatMoneyInput(initialValues.salePrice),
+      targetMargin: marginBpsToText(initialMargin),
     },
   });
 
@@ -81,9 +89,9 @@ export function ProductForm({
 
   const submit = handleSubmit(once(async (data) => {
     try {
-      const { salePrice: priceText, ...rest } = data;
+      const { salePrice: priceText, targetMargin, ...rest } = data;
       const cents = withSalePrice && priceText?.trim() ? parseMoneyToCents(priceText) : null;
-      await onSubmit({ ...rest, ...(cents === null ? {} : { salePrice: cents / 100 }) });
+      await onSubmit({ ...rest, ...(cents === null ? {} : { salePrice: cents / 100 }), ...marginChange(canMargin, Boolean(dirtyFields.targetMargin), targetMargin) });
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
@@ -143,6 +151,14 @@ export function ProductForm({
               />
               <FieldError id="product-sale-price" message={errors.salePrice?.message} />
             </div>
+          </section>
+        )}
+
+        {canMargin && (
+          <section>
+            <h2 className="font-semibold text-lg mb-4">Margem</h2>
+
+            <TargetMarginField id="product-target-margin" error={errors.targetMargin?.message} {...register("targetMargin", { validate: validateTargetMargin })} />
           </section>
         )}
 

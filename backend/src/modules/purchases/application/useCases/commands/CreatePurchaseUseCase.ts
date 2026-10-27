@@ -41,6 +41,7 @@ export class CreatePurchaseUseCase extends TransactionalUseCase<ICreatePurchaseI
       supplierId: request.supplierId,
       purchaseDate,
       notes: request.notes,
+      extraCostsCents: request.extraCostsCents,
       items: request.items,
     });
 

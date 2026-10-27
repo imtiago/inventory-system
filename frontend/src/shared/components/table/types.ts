@@ -45,4 +45,7 @@ export interface DataTableProps<T> {
   className?: string;
 
   stickyHeader?: boolean;
+
+  /** Id do título que nomeia a tabela (ou a lista de cartões) para leitores de tela. */
+  ariaLabelledBy?: string;
 }

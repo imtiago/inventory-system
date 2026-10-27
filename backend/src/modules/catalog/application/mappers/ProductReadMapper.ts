@@ -6,6 +6,7 @@ interface ProductReadRow {
   name: string;
   description: string | null;
   createdAt: Date;
+  targetMarginBps?: number | null;
   brand: { id: string; name: string };
   category: { id: string; name: string };
   _count: { variants: number };
@@ -22,6 +23,7 @@ export class ProductReadMapper {
       category: { id: data.category.id, name: data.category.name },
       variantsCount: data._count.variants,
       createdAt: data.createdAt,
+      ...(data.targetMarginBps !== undefined && { targetMarginBps: data.targetMarginBps }),
     };
   }
 }

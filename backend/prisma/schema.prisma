@@ -128,6 +128,8 @@ model Category {
   name      String
   createdAt DateTime  @default(now()) // ✅ adicionar
   products  Product[]
+  /// Margem-alvo da categoria em bps (CHECK 0..9999 só na migration); null = herda.
+  targetMarginBps Int?
 }
 
 model Product {
@@ -137,6 +139,7 @@ model Product {
   description String?
   brandId     String
   categoryId  String
+  targetMarginBps Int?
 
   brand    Brand    @relation(fields: [brandId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
@@ -157,6 +160,9 @@ model ProductVariant {
   productId String
 
   salePrice Decimal @default(0) @db.Decimal(12, 2)
+  targetMarginBps Int?
+  supplierSuggestedPrice          Decimal? @db.Decimal(12, 2) // CHECK > 0 só na migration
+  supplierSuggestedPriceUpdatedAt DateTime?
 
   product Product @relation(fields: [productId], references: [id])
 
@@ -168,6 +174,7 @@ model ProductVariant {
   inventoryLots  InventoryLot[]
 
   supplierProductMappings SupplierProductMapping[]
+  priceReviews            PriceReview[]
 
   @@index([productId])
 }
@@ -192,6 +199,9 @@ model InventoryLot {
   remainingQuantity Int
 
   unitCost Decimal @db.Decimal(14, 4)
+
+  // Parte do unitCost que veio de frete/despesas/impostos (por unidade). CHECK >= 0 só na migration.
+  acquisitionExtraCost Decimal @default(0) @db.Decimal(14, 4)
 
   batchNumber String?
 
@@ -321,6 +331,9 @@ model SaleItem {
 
   unitPrice Decimal @db.Decimal(12, 2)
 
+  // Custo médio da variante no momento da venda; NULL em vendas anteriores ao registro.
+  unitCost Decimal? @db.Decimal(14, 4)
+
   sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
@@ -361,6 +374,8 @@ model User {
   purchasesCanceled   Purchase[]      @relation("purchasesCanceled")
   nfeImportsCreated   NfeImport[]     @relation("nfeImportsCreated")
   nfeImportsConfirmed NfeImport[]     @relation("nfeImportsConfirmed")
+  pricingSettingsUpdated PricingSettings[]
+  priceReviewsResolved   PriceReview[]
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -486,6 +501,9 @@ model Purchase {
   purchaseDate DateTime @db.Date
 
   totalAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  // Frete/despesas do pedido, já rateados nos itens (informativo). CHECK >= 0 só na migration.
+  extraCosts Decimal @default(0) @db.Decimal(12, 2)
 
   notes String?
 
@@ -664,4 +682,68 @@ model IdempotencyRecord {
 
   @@unique([userId, method, route, key])
   @@index([createdAt])
+}
+
+enum RoundingStrategy {
+  STORE_TABLE
+  END_90
+  END_99
+  INTEGER
+  NONE
+}
+
+/// Linha única (id = 'default', CHECK na migration), criada sob demanda.
+model PricingSettings {
+  id                String           @id
+  defaultMarginBps  Int
+  roundingStrategy  RoundingStrategy @default(STORE_TABLE)
+  alertThresholdBps Int              @default(200)
+  /// { debitBps: number, creditBps: { "1": number, … "12": number } }
+  cardFees          Json
+  updatedAt         DateTime         @default(now())
+  updatedById       String?
+  updatedBy         User?            @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+model PricingExpense {
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(80)
+  percentBps Int
+  active     Boolean  @default(true)
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+enum PriceReviewReason {
+  COST_CHANGED
+  SETTINGS_CHANGED
+  MARGIN_CHANGED
+  MARGIN_BELOW_TARGET
+}
+
+enum PriceReviewStatus {
+  PENDING
+  APPLIED
+  DISMISSED
+}
+
+/// Preço para revisar. Só na migration (o Prisma não modela): único parcial
+/// "PriceReview_pending_variant_key" (productVariantId) WHERE status = 'PENDING' — uma pendente por
+/// variante, alvo do ON CONFLICT dos gatilhos — e CHECK de preços >= 0.
+model PriceReview {
+  id               String            @id @default(uuid())
+  productVariantId String
+  reason           PriceReviewReason
+  currentPrice     Decimal           @db.Decimal(12, 2)
+  suggestedPrice   Decimal           @db.Decimal(12, 2)
+  status           PriceReviewStatus @default(PENDING)
+  createdAt        DateTime          @default(now())
+  resolvedAt       DateTime?
+  resolvedById     String?
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  resolvedBy     User?          @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([productVariantId])
 }

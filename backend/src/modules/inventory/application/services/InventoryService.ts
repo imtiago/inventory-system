@@ -21,6 +21,8 @@ export interface ReceivePurchaseStockRequest {
   quantity: number;
   /** Custo unitário do item do pedido, em reais com 4 casas. */
   unitCost: number;
+  /** Parte do `unitCost` que veio de frete/impostos, por unidade (4 casas). */
+  acquisitionExtraCost?: number;
   batchNumber?: string;
   manufacturingDate?: Date;
   expirationDate?: Date;
@@ -38,7 +40,8 @@ export interface RevertPurchaseStockRequest {
 }
 
 export interface InventoryService {
-  consumeStock(request: ConsumeStockRequest): Promise<void>;
+  /** Baixa o estoque (FEFO) e devolve o custo médio da variante lido sob a trava (consumir não muda a média). */
+  consumeStock(request: ConsumeStockRequest): Promise<{ averageCost: number }>;
   /** Devolve aos lotes de origem tudo o que a venda consumiu. Exige transação do chamador para atomicidade. */
   returnSaleStock(request: ReturnSaleStockRequest): Promise<void>;
   /**

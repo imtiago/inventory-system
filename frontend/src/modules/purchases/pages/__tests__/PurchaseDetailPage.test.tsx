@@ -237,3 +237,17 @@ describe('PurchaseDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).not.toBeInTheDocument();
   });
 });
+
+describe('PurchaseDetailPage: frete e outras despesas', () => {
+  test('mostra o valor do pedido quando maior que zero e esconde quando zero', async () => {
+    server.use(http.get(`${API_URL}/purchases/:id`, () => HttpResponse.json({ data: { ...purchaseDetail.data, extraCosts: 12.5 } })));
+    const { unmount } = renderPage();
+    expect(await screen.findByTestId('purchase-extra-costs')).toHaveTextContent(/Frete e outras despesas da compra: R\$\s?12,50/);
+    unmount();
+
+    server.use(http.get(`${API_URL}/purchases/:id`, () => HttpResponse.json(purchaseDetail)));
+    renderPage();
+    await screen.findByText('PC000012');
+    expect(screen.queryByTestId('purchase-extra-costs')).not.toBeInTheDocument();
+  });
+});

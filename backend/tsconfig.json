@@ -19,6 +19,7 @@
       "@purchases/*": ["modules/purchases/*"],
       "@sales/*": ["modules/sales/*"],
       "@nfe-import/*": ["modules/nfe-import/*"],
+      "@pricing/*": ["modules/pricing/*"],
       "@shared/*": ["shared/*"]
     }
   }

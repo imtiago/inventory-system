@@ -29,6 +29,37 @@ describe('Lote: custo em dinheiro e quantidade com ±', () => {
   });
 });
 
+describe('Lote: frete/despesas da entrada', () => {
+  async function fillBase() {
+    await userEvent.type(screen.getByLabelText('Lote'), 'L-1');
+    await userEvent.type(screen.getByLabelText('Validade'), '2030-01-31');
+    await userEvent.type(screen.getByLabelText('Custo unitário'), '10');
+  }
+
+  test('"12,50" no campo opcional chega como extraCost 12.5', async () => {
+    const onSubmit = vi.fn();
+    renderWithProviders(<InventoryLotForm onSubmit={onSubmit} onCancel={() => {}} />);
+    await fillBase();
+    await userEvent.type(screen.getByLabelText('Frete/despesas desta entrada (R$)'), '12,50');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar lote' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ unitCost: 10, extraCost: 12.5 });
+  });
+
+  test('em branco não envia extraCost; valor inválido bloqueia', async () => {
+    const onSubmit = vi.fn();
+    renderWithProviders(<InventoryLotForm onSubmit={onSubmit} onCancel={() => {}} />);
+    await fillBase();
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar lote' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0].extraCost).toBeUndefined();
+    await userEvent.type(screen.getByLabelText('Frete/despesas desta entrada (R$)'), '1.23,4');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar lote' }));
+    expect(await screen.findByText('Valor inválido')).toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Variante: preço em dinheiro', () => {
   test('"12,50" vira 12.5', async () => {
     const onSubmit = vi.fn();

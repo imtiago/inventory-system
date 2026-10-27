@@ -9,17 +9,22 @@ import { listWithProductsCount } from "../brandCategorySql";
 
 export class PrismaCategoryReadRepository implements CategoryReadRepository {
   async list(pagination: PaginationRequest, filters?: NameSearchFilters): Promise<PaginatedResult<CategoryDTO>> {
-    const result = await listWithProductsCount("category", pagination, filters?.search);
+    const result = await listWithProductsCount("category", pagination, filters?.search, true);
     return { ...result, data: result.data.map(CategoryReadMapper.toDTO) };
   }
 
   async getById(id: string): Promise<CategoryDTO | null> {
     const category = await getDb().category.findUnique({
       where: { id },
-      select: { id: true, name: true, _count: { select: { products: true } } },
+      select: { id: true, name: true, targetMarginBps: true, _count: { select: { products: true } } },
     });
     return category
-      ? CategoryReadMapper.toDTO({ id: category.id, name: category.name, productsCount: category._count.products })
+      ? CategoryReadMapper.toDTO({
+          id: category.id,
+          name: category.name,
+          productsCount: category._count.products,
+          targetMarginBps: category.targetMarginBps,
+        })
       : null;
   }
 }

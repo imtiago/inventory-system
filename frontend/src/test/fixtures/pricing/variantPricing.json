@@ -1,0 +1,19 @@
+{
+  "data": {
+    "variantId": "3f1c2a7e-9b4d-4e21-8a6f-1c2d3e4f5a60",
+    "averageCost": 10,
+    "expensesPercent": 20,
+    "expensesAmount": 4.18,
+    "targetMarginPercent": 30,
+    "targetMarginSource": "CATEGORY",
+    "suggestedPrice": 20.9,
+    "salePrice": 20.9,
+    "realMargin": { "amount": 6.72, "percent": 32.15 },
+    "supplierSuggestedPrice": 25,
+    "supplierSuggestedPriceUpdatedAt": "2026-10-26T12:00:00.000Z",
+    "supplierMargin": { "amount": 10, "percent": 40 },
+    "simulations": [
+      { "condition": "CASH", "installments": 1, "passOn": false, "price": 20.9, "margin": { "amount": 6.72, "percent": 32.15 } }
+    ]
+  }
+}

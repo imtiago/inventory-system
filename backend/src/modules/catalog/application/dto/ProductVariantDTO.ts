@@ -12,6 +12,9 @@ export interface ProductVariantDTO {
   salePrice: number;
 
   createdAt: Date;
+
+  /** Interno: a camada HTTP troca por `targetMarginPercent` (só `pricing.manage`) e remove. */
+  targetMarginBps?: number | null;
 }
 
 export interface ICreateVariantInput {
@@ -43,4 +46,6 @@ export interface IUpdateVariantInput {
   salePrice?: number;
   /** Quem tem `catalog.price` (só ADMIN). Sem ele, só é aceito o preço igual ao atual. */
   canChangePrice: boolean;
+  /** Quem editou (resolve a revisão de preço pendente quando o preço muda). */
+  userId: string;
 }

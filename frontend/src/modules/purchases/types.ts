@@ -64,6 +64,8 @@ export interface IPurchaseDetail {
   purchaseDate: string;
   notes: string | null;
   totalAmount: number;
+  /** Frete e outras despesas do pedido inteiro (R$); já rateadas nos itens. */
+  extraCosts: number;
   createdAt: string;
   items: IPurchaseItem[];
   payable: { id: string; status: string; displayStatus: string; parcels: IPurchaseParcel[] } | null;
@@ -73,6 +75,8 @@ export interface ICreatePurchaseDTO {
   supplierId: string;
   purchaseDate: string;
   notes?: string;
+  /** Frete e outras despesas do pedido inteiro (R$); omitido quando zero. */
+  extraCosts?: number;
   items: {
     productVariantId: string;
     quantity: number;

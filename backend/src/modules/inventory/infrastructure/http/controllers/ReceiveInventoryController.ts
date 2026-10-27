@@ -1,3 +1,4 @@
+import { applyEntryExtraCost } from "./entryExtraCost";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
 import { parseInput } from "@shared/http/parseInput";
@@ -17,10 +18,13 @@ export function makeReceiveInventoryController() {
   ) {
     const data = parseInput(receiveInventorySchema, request.body);
 
+    const { unitCost, acquisitionExtraCost } = applyEntryExtraCost(data);
+
     const { inventory } = await useCase.execute({
       productVariantId: data.productVariantId,
       quantity: data.quantity,
-      unitCost: data.unitCost,
+      unitCost,
+      acquisitionExtraCost,
       batchNumber: data.batchNumber,
       expirationDate: data.expirationDate,
       manufacturingDate: data.manufacturingDate,

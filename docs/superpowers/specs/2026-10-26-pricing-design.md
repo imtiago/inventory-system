@@ -92,6 +92,8 @@ Para cada variante a lista mostra o preço atual, o sugerido, a diferença e o m
 
 Também há um contador no menu e no dashboard.
 
+**Regra de entrada (decisão do plano, Task 5):** com a configuração salva, a cada gatilho calcula-se o sugerido (custo médio atual) e a margem real ao preço praticado. Margem real < margem desejada − limite de alerta → motivo `MARGIN_BELOW_TARGET` (vence os demais); senão, sugerido ≠ preço → motivo do gatilho (`COST_CHANGED`, `SETTINGS_CHANGED` para configuração/despesas, `MARGIN_CHANGED` para margem de categoria/produto/variante); senão a variante sai da lista (pendente antiga é removida). Sem custo ou sem configuração → nada. Uma pendente por variante (índice único parcial). "Aplicar" usa o sugerido recalculado na hora; editar o preço da variante resolve a pendente como aplicada; "manter" vale até o próximo gatilho.
+
 ## 5. Lucro
 - **Custo na venda:** cada `SaleItem` passa a gravar `unitCost`, o custo médio da variante no momento da venda. Assim o lucro de vendas passadas não muda quando o custo mudar.
   - Vendas antigas ficam sem custo e aparecem como "custo não registrado".

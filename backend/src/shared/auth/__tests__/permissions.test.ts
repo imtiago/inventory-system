@@ -6,6 +6,7 @@ import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
 import { createTestUser, TestUser } from "../../../test/authFixtures";
 import { hasPermission, Permission, PERMISSIONS, ROLE_PERMISSIONS } from "../permissions";
+import { canSeeStockCost } from "../costVisibility";
 import { withIdempotencyKey } from "../../../test/idempotency";
 
 app.log.level = "silent";
@@ -37,6 +38,8 @@ const MATRIX: Record<Permission, Role[]> = {
   "payables.read": ["ADMIN"],
   "payables.pay": ["ADMIN"],
   "payables.reverse": ["ADMIN"],
+  "pricing.manage": ["ADMIN"],
+  "reports.profit": ["ADMIN"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -99,6 +102,8 @@ const ROUTES: Record<Permission, RouteProbe> = {
     payload: {},
     allowed: 400,
   },
+  "pricing.manage": { method: "GET", url: "/pricing/settings", allowed: 200 },
+  "reports.profit": { method: "GET", url: "/reports/profit?from=2095-01-01&to=2095-01-02", allowed: 200 },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
@@ -141,6 +146,14 @@ describe("hasPermission (matriz)", () => {
     }
     assert.deepEqual([...PERMISSIONS].sort(), Object.keys(MATRIX).sort());
     assert.deepEqual(Object.keys(ROLE_PERMISSIONS).sort(), [...ROLES].sort());
+  });
+
+  test("custo do estoque: ADMIN e ESTOQUISTA veem; VENDEDOR e papéis desconhecidos não", () => {
+    assert.deepEqual(
+      ROLES.filter((r) => canSeeStockCost(r)),
+      ["ADMIN", "ESTOQUISTA"],
+    );
+    for (const odd of [undefined, "", "admin", "constructor"]) assert.equal(canSeeStockCost(odd), false, String(odd));
   });
 
   test("papel desconhecido não tem permissão", () => {

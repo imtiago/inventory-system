@@ -1,6 +1,7 @@
 import { useModalBusy } from '@/shared/components/Modal/useModalBusy';
 import { ProductForm, type ProductFormData } from '@/modules/products/components/ProductForm';
 import { parseApiErrorSync } from '@/shared/services/parseApiError';
+import { useApplyTargetMargin } from '@/modules/pricing/hooks/usePricingMutations';
 import { useCreateProduct } from '@/modules/products/hooks/useCreateProduct';
 
 interface InitialInventoryNewProductProps {
@@ -10,12 +11,14 @@ interface InitialInventoryNewProductProps {
 
 export function InitialInventoryNewProduct({ onCancel, onSuccess }: InitialInventoryNewProductProps) {
   const createProduct = useCreateProduct();
+  const applyMargin = useApplyTargetMargin();
   useModalBusy(createProduct.isPending);
 
   async function handleSubmit(data: ProductFormData) {
     try {
       const product = await createProduct.mutateAsync(data);
 
+      await applyMargin('product', product.id, data.targetMarginBps);
       onSuccess(product);
     } catch (error) {
       // useCreateProduct already notifies the error; keep the form open.
