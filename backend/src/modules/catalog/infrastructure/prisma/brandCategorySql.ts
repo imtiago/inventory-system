@@ -19,7 +19,7 @@ const TABLES = {
 
 export type NamedCatalogTable = keyof typeof TABLES;
 
-export type NamedRow = { id: string; name: string; productsCount: number };
+export type NamedRow = { id: string; name: string; productsCount: number; targetMarginBps?: number | null };
 
 export function assertInTransaction(what: string): void {
   if (!hasActiveTransaction()) {
@@ -58,16 +58,18 @@ export async function listWithProductsCount(
   kind: NamedCatalogTable,
   pagination: PaginationRequest,
   search?: string,
+  withTargetMargin = false,
 ): Promise<PaginatedResult<NamedRow>> {
   const { table, fk } = TABLES[kind];
   const term = search?.trim();
   // strpos em vez de LIKE: % e _ na busca são literais, sem escape.
   const where = term ? Prisma.sql`WHERE strpos(lower(t.name), lower(${term})) > 0` : Prisma.empty;
   const { skip, take } = buildPagination(pagination);
+  const margin = withTargetMargin ? Prisma.sql`, t."targetMarginBps"` : Prisma.empty;
 
   const [rows, totals] = await readTogether([
     getDb().$queryRaw<NamedRow[]>`
-      SELECT t.id, t.name,
+      SELECT t.id, t.name${margin},
              (SELECT count(*) FROM "Product" p WHERE p.${fk} = t.id)::int AS "productsCount"
       FROM ${table} t
       ${where}

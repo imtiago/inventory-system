@@ -11,6 +11,7 @@ export class ProductVariantReadMapper {
       productId: data.productId,
       salePrice: Number(data.salePrice),
       createdAt: data.createdAt,
+      targetMarginBps: data.targetMarginBps,
     };
   }
 }

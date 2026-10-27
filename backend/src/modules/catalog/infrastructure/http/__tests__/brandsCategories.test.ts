@@ -17,7 +17,7 @@ import { createCatalogTestData } from "./catalogTestData";
 app.log.level = "silent";
 
 const FIXTURES_DIR = new URL("../../../../../../../frontend/src/test/fixtures/catalog/", import.meta.url);
-const brandListFixture = JSON.parse(readFileSync(new URL("brandList.json", FIXTURES_DIR), "utf8"));
+const loadFixture = (name: string) => JSON.parse(readFileSync(new URL(`${name}.json`, FIXTURES_DIR), "utf8"));
 
 type Data = ReturnType<typeof createCatalogTestData>;
 
@@ -26,6 +26,9 @@ const entities = [
   {
     label: "Marcas (/brands)",
     path: "/brands",
+    fixture: "brandList",
+    /** Chaves a mais na resposta do ADMIN (margem-alvo só em categorias). */
+    adminExtra: {} as Record<string, unknown>,
     code: "BRAND",
     messages: {
       exists: "Já existe uma marca com esse nome.",
@@ -42,6 +45,8 @@ const entities = [
   {
     label: "Categorias (/categories)",
     path: "/categories",
+    fixture: "categoryList",
+    adminExtra: { targetMarginPercent: null } as Record<string, unknown>,
     code: "CATEGORY",
     messages: {
       exists: "Já existe uma categoria com esse nome.",
@@ -109,7 +114,7 @@ for (const e of entities) {
       await e.withProduct(data, created.id);
       const get = await call("GET", `${e.path}/${created.id}`);
       assert.equal(get.statusCode, 200);
-      assert.deepEqual(get.json(), { data: { id: created.id, name: `${t} X`, productsCount: 1 } });
+      assert.deepEqual(get.json(), { data: { id: created.id, name: `${t} X`, productsCount: 1, ...e.adminExtra } });
 
       const missing = await call("GET", `${e.path}/${randomUUID()}`);
       assert.equal(missing.statusCode, 404);
@@ -175,7 +180,7 @@ for (const e of entities) {
 
       const renamed = await call("PUT", `${e.path}/${a.id}`, { name: ` ${newName}   Novo ` });
       assert.equal(renamed.statusCode, 200, renamed.body);
-      assert.deepEqual(renamed.json(), { data: { id: a.id, name: `${newName} Novo`, productsCount: 0 } });
+      assert.deepEqual(renamed.json(), { data: { id: a.id, name: `${newName} Novo`, productsCount: 0, ...e.adminExtra } });
 
       const sameUpper = await call("PUT", `${e.path}/${a.id}`, { name: `${newName} NOVO`.toUpperCase() });
       assert.equal(sameUpper.statusCode, 200, sameUpper.body);
@@ -233,7 +238,7 @@ for (const e of entities) {
           [`tx-test-${u}-b`, 1],
         ],
       );
-      assert.deepEqual(keyShape(body1), keyShape(brandListFixture));
+      assert.deepEqual(keyShape(body1), keyShape(loadFixture(e.fixture)));
 
       const page2 = await call("GET", `${e.path}?search=${encodeURIComponent(`${u}-c`)}&page=1`);
       assert.deepEqual(page2.json().data.map((x: { name: string }) => x.name), [`tx-test-${u}-C`]);

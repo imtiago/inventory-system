@@ -12,6 +12,9 @@ export interface ProductVariantDTO {
   salePrice: number;
 
   createdAt: Date;
+
+  /** Interno: a camada HTTP troca por `targetMarginPercent` (só `pricing.manage`) e remove. */
+  targetMarginBps?: number | null;
 }
 
 export interface ICreateVariantInput {

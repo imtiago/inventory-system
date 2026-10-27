@@ -7,6 +7,8 @@ export interface ProductDetailDTO {
   category: { id: string; name: string };
   variantsCount: number;
   createdAt: Date;
+  /** Interno: a camada HTTP troca por `targetMarginPercent` (só `pricing.manage`) e remove. */
+  targetMarginBps?: number | null;
 }
 
 export type ProductListItemDTO = ProductDetailDTO;
