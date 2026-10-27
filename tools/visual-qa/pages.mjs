@@ -12,4 +12,5 @@ export const PAGES = [
   ['nfe', '/nfe-imports'], ['nfe-review', '/nfe-imports/x1'],
   ['receivables', '/receivables'], ['receivable-detail', '/receivables/x1'], ['payables', '/payables'], ['payable-detail', '/payables/x1'],
   ['users', '/users'],
+  ['pricing-settings', '/settings/pricing'],
 ];

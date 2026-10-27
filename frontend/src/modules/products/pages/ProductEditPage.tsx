@@ -6,6 +6,7 @@ import { handleMutationError } from "@/shared/utils/mutation";
 import { notify } from "@/shared/utils/notify";
 
 
+import { useApplyTargetMargin } from "@/modules/pricing/hooks/usePricingMutations";
 import { ProductForm, type ProductFormData } from "../components/ProductForm";
 import { useProduct } from "../hooks/useProduct";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
@@ -18,6 +19,7 @@ export function ProductEditPage() {
 
   const { data: product, isLoading, isError } = useProduct(id);
   const updateProduct = useUpdateProduct({ silentError: true });
+  const applyMargin = useApplyTargetMargin();
 
   if (isLoading) return <LoadingState label="Carregando produto..." />;
   if (isError || !product) return <p>Produto não encontrado</p>;
@@ -38,13 +40,13 @@ export function ProductEditPage() {
     if (data.brandId !== initialValues.brandId) changes.brandId = data.brandId;
     if (data.categoryId !== initialValues.categoryId) changes.categoryId = data.categoryId;
 
-    if (Object.keys(changes).length === 0) {
+    if (Object.keys(changes).length === 0 && data.targetMarginBps === undefined) {
       notify.info("Nenhuma alteração para salvar.");
       return;
     }
 
     try {
-      await updateProduct.mutateAsync({ id, input: changes });
+      if (Object.keys(changes).length > 0) await updateProduct.mutateAsync({ id, input: changes });
     } catch (error) {
       // Field errors are shown inline by the form; anything else becomes a toast.
       if (Object.keys(parseApiErrorSync(error).fieldErrors).length > 0) throw error;
@@ -52,6 +54,8 @@ export function ProductEditPage() {
       handleMutationError(error, "Erro ao atualizar produto.");
       return;
     }
+
+    await applyMargin("product", id, data.targetMarginBps);
 
     navigate(`/products/${id}`);
   }

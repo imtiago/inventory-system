@@ -30,7 +30,10 @@ export async function getProductById(id: string): Promise<Product> {
 }
 
 export async function createProduct(data: ProductFormData): Promise<Product> {
-  const response = await api.post<{ data: Product }>("/products", data);
+  // A margem desejada vai pela rota de margens (useApplyTargetMargin), nunca no corpo do produto.
+  const body = { ...data };
+  delete body.targetMarginBps;
+  const response = await api.post<{ data: Product }>("/products", body);
 
   return response.data.data;
 }

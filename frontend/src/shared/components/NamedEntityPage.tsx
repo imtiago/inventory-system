@@ -22,6 +22,10 @@ import { applySubmitError } from '@/shared/utils/applyFieldErrors';
 import type { ListParams, Paginated } from '@/shared/types/pagination';
 
 import { FieldError, fieldA11y } from '@/shared/components/form';
+import { useApplyTargetMargin } from '@/modules/pricing/hooks/usePricingMutations';
+import { TargetMarginField } from '@/modules/pricing/components/TargetMarginField';
+import { marginChange, validateTargetMargin } from '@/modules/pricing/utils/targetMargin';
+import { useCan } from '@/shared/auth/useCan';
 import { LoadingState } from '@/shared/components/LoadingState';
 export interface NamedEntity {
   id: string;
@@ -40,13 +44,16 @@ interface Props<T extends NamedEntity> {
   create: (input: { name: string }) => Promise<T>;
   update: (id: string, input: { name: string }) => Promise<T>;
   remove: (id: string) => Promise<void>;
+  /** Mostra "Margem desejada (%)" no formulário (só com `pricing.manage`), gravada pela rota de margens. */
+  withTargetMargin?: boolean;
 }
 
 const PAGE_SIZE = 10;
 const inputClass = 'w-full rounded-lg border border-input bg-surface p-3 text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
 
 /** Generic list + create/rename modal + delete confirmation for brand-like entities (name + productsCount). */
-export function NamedEntityPage<T extends NamedEntity>({ singular, plural, queryKey, existsCode, list, create, update, remove }: Props<T>) {
+export function NamedEntityPage<T extends NamedEntity>({ singular, plural, queryKey, existsCode, list, create, update, remove, withTargetMargin = false }: Props<T>) {
+  const applyMargin = useApplyTargetMargin();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -208,9 +215,16 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
           initialName={editing?.name ?? ''}
           existsCode={existsCode}
           onCancel={closeForm}
-          onSubmit={async (name) => {
-            if (editing) await updateMutation.mutateAsync({ id: editing.id, name });
-            else await createMutation.mutateAsync({ name });
+          withTargetMargin={withTargetMargin}
+          onSubmit={async (name, marginBps) => {
+            let id: string;
+            if (editing) {
+              await updateMutation.mutateAsync({ id: editing.id, name });
+              id = editing.id;
+            } else {
+              id = (await createMutation.mutateAsync({ name })).id;
+            }
+            await applyMargin('category', id, marginBps);
             closeForm();
           }}
         />
@@ -235,24 +249,26 @@ function capitalize(value: string) {
 interface NameFormProps {
   initialName: string;
   existsCode: string;
-  onSubmit: (name: string) => Promise<void>;
+  withTargetMargin: boolean;
+  onSubmit: (name: string, marginBps?: number | null) => Promise<void>;
   onCancel: () => void;
 }
 
-function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps) {
+function NameForm({ initialName, existsCode, withTargetMargin, onSubmit, onCancel }: NameFormProps) {
+  const canMargin = useCan('pricing.manage') && withTargetMargin;
   const {
     register,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting },
-  } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
+    formState: { errors, isSubmitting, dirtyFields },
+  } = useForm<{ name: string; targetMargin: string }>({ defaultValues: { name: initialName, targetMargin: '' } });
 
   const once = useSingleSubmit();
   useModalBusy(isSubmitting);
 
-  const submit = handleSubmit(once(async ({ name }) => {
+  const submit = handleSubmit(once(async ({ name, targetMargin }) => {
     try {
-      await onSubmit(name.trim());
+      await onSubmit(name.trim(), marginChange(canMargin, Boolean(dirtyFields.targetMargin), targetMargin).targetMarginBps);
     } catch (error) {
       if (applySubmitError(setError, error, ['name'])) return;
 
@@ -277,6 +293,8 @@ function NameForm({ initialName, existsCode, onSubmit, onCancel }: NameFormProps
         />
         <FieldError id="named-entity-name" message={errors.name?.message} />
       </div>
+
+      {canMargin && <TargetMarginField id="named-entity-margin" error={errors.targetMargin?.message} {...register('targetMargin', { validate: validateTargetMargin })} />}
 
       {errors.root?.server && (
         <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">

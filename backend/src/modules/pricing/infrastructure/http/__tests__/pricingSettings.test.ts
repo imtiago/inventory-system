@@ -8,9 +8,14 @@ import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { acquirePricingTestLock } from "../../../../../test/pricingTestLock";
+import { readFileSync } from "node:fs";
+import { keyShape } from "../../../../../test/keyShape";
 import { PrismaTargetMarginReader } from "@pricing/infrastructure/prisma/PrismaTargetMarginReader";
 
 app.log.level = "silent";
+
+const FIXTURES_DIR = new URL("../../../../../../../frontend/src/test/fixtures/pricing/", import.meta.url);
+const loadFixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`${name}.json`, FIXTURES_DIR), "utf8"));
 
 const SUM_MESSAGE = "Despesas e margem somam 100% ou mais";
 const credit = (v: Record<string, number> = {}) => {
@@ -225,5 +230,15 @@ describe("Configurações de preço, despesas e margens", () => {
     ]);
     const codes = results.map((r) => r.statusCode).sort();
     assert.deepEqual(codes, [201, 422], results.map((r) => r.body).join(" | "));
+  });
+
+  test("forma dos DTOs = fixtures pricingSettings, pricingExpense e targetMargin (keyShape)", async () => {
+    await admin("PUT", "/pricing/settings", settingsBody());
+    const created = await admin("POST", "/pricing/expenses", { name: "Aluguel", percent: 7.5 });
+    const settings = await admin("GET", "/pricing/settings");
+    assert.deepEqual(keyShape(settings.json()), keyShape(loadFixture("pricingSettings")));
+    assert.deepEqual(keyShape(created.json()), keyShape(loadFixture("pricingExpense")));
+    const margin = await admin("PUT", `/pricing/target-margins/category/${categoryId}`, { targetMarginPercent: 35 });
+    assert.deepEqual(keyShape(margin.json()), keyShape(loadFixture("targetMargin")));
   });
 });

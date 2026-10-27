@@ -31,6 +31,14 @@ export const queryKeys = {
 
   categories: ['categories'] as const,
 
+  pricingSettings: ['pricing', 'settings'] as const,
+
+  priceReviews: ['pricing', 'reviews'] as const,
+
+  variantPricing: (id: string) => ['pricing', 'variants', id] as const,
+
+  profitReport: (params: object) => ['reports', 'profit', params] as const,
+
   inventory: ['inventory'] as const,
 
   inventoryById: (id: string) => ['inventory', id] as const,

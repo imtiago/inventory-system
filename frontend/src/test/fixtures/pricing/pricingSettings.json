@@ -1,0 +1,16 @@
+{
+  "data": {
+    "configured": true,
+    "defaultMarginPercent": 30,
+    "roundingStrategy": "END_90",
+    "alertThresholdPercent": 2,
+    "cardFees": {
+      "debitPercent": 1.99,
+      "creditPercent": { "1": 3.49, "2": 4.5, "3": 5.5, "4": 6.5, "5": 7.5, "6": 8.5, "7": 9.5, "8": 10.5, "9": 11.5, "10": 12, "11": 12.5, "12": 12.9 }
+    },
+    "expenses": [
+      { "id": "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f", "name": "Aluguel", "percent": 7.5, "active": true, "position": 0 }
+    ],
+    "expensesTotalPercent": 7.5
+  }
+}

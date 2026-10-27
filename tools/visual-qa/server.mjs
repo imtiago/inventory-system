@@ -78,6 +78,7 @@ function route(method, url) {
   if (s[0] === 'receivables') return j('finance/receivableDetail.json');
   if (p === '/payables') return grow(j('finance/payableList.json'));
   if (s[0] === 'payables') return j('finance/payableDetail.json');
+  if (p === '/pricing/settings') return j('pricing/pricingSettings.json');
   if (p === '/users') return grow(j('users/userList.json'), 5);
   if (s[0] === 'users') return j('users/user.json');
   return null;

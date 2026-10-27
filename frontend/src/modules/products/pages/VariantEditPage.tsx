@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Page } from "@/shared/components/layout/Page";
 import { VariantForm, type VariantFormData } from "../components/VariantForm";
 
+import { useApplyTargetMargin } from "@/modules/pricing/hooks/usePricingMutations";
 import { useVariant } from "../hooks/useVariant";
 import type { SaveVariantDTO } from "../services/variantService";
 import { useUpdateVariant } from "../hooks/useUpdateVariant";
@@ -21,18 +22,22 @@ export function VariantEditPage() {
   const { data: variant, isLoading, isError, dataUpdatedAt } = useVariant(variantId!);
 
   const updateVariant = useUpdateVariant(variantId!, variant?.productId ?? "");
+  const applyMargin = useApplyTargetMargin();
 
   async function handleSubmit(data: VariantFormData) {
     if (!variant) return;
 
     // Só os campos alterados: reenviar o formulário inteiro reverteria edições concorrentes
     // de outros usuários nos campos que esta pessoa nem tocou (e o preço exige permissão).
+    const { targetMarginBps } = data;
     const changes: Partial<SaveVariantDTO> = {};
     if (data.name !== variant.name) changes.name = data.name;
     if ((data.barcode ?? null) !== (variant.barcode ?? null)) changes.barcode = data.barcode ?? null;
     if (data.salePrice !== undefined && data.salePrice !== variant.salePrice) changes.salePrice = data.salePrice;
 
     if (Object.keys(changes).length > 0) await updateVariant.mutateAsync(changes);
+
+    await applyMargin("variant", variant.id, targetMarginBps);
 
     navigate(`/products/${variant.productId}`);
   }

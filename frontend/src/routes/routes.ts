@@ -11,6 +11,7 @@ import { dashboardRoutes } from "@/modules/dashboard/routes";
 import { usersRoutes } from "@/modules/users/routes";
 import { brandRoutes } from "@/modules/brands/routes";
 import { categoryRoutes } from "@/modules/categories/routes";
+import { pricingRoutes } from "@/modules/pricing/routes";
 import { customersRoutes } from "@/modules/customers/config/routes";
 
 /** Authenticated routes; order defines the menu order. New modules (e.g. /users) just add their config here. */
@@ -27,5 +28,6 @@ export const allRoutes: AppRoute[] = [
   ...nfeImportRoutes,
   ...receivablesRoutes,
   ...payablesRoutes,
+  ...pricingRoutes,
   ...usersRoutes,
 ];

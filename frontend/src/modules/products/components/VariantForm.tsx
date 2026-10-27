@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { useCan } from "@/shared/auth/useCan";
 import { useState } from "react";
 
+import { TargetMarginField } from "@/modules/pricing/components/TargetMarginField";
+import { marginBpsToText, marginChange, validateTargetMargin } from "@/modules/pricing/utils/targetMargin";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 export interface VariantFormData {
@@ -16,6 +18,8 @@ export interface VariantFormData {
   barcode?: string | null;
   /** R$; vazio = não informado (backend assume 0 na criação). */
   salePrice?: number;
+  /** Margem desejada em bps; só com `pricing.manage`. Ausente = não mexeu; null = removida. */
+  targetMarginBps?: number | null;
 }
 
 interface Props {
@@ -43,6 +47,7 @@ interface FormValues {
   name: string;
   barcode?: string | null;
   salePrice: string;
+  targetMargin?: string;
 }
 
 function validateSalePrice(text: string, required: boolean) {
@@ -61,10 +66,13 @@ export function VariantForm({
   onCancel,
   requireSalePrice = false,
 }: Props) {
-  const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const canMargin = useCan("pricing.manage");
+  const { targetMarginBps: initialMargin, ...initialRest } = initialValues ?? {};
+  const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting, dirtyFields } } = useForm<FormValues>({
     defaultValues: {
-      ...initialValues,
+      ...initialRest,
       salePrice: initialValues?.salePrice === undefined ? "" : formatMoneyInput(initialValues.salePrice),
+      targetMargin: marginBpsToText(initialMargin),
     },
   });
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -88,7 +96,9 @@ export function VariantForm({
     try {
       const cents = data.salePrice.trim() === "" ? null : parseMoneyToCents(data.salePrice);
 
-      await onSubmit({ ...data, salePrice: cents === null ? undefined : cents / 100, barcode: data.barcode?.trim() || null });
+      const { targetMargin, ...fields } = data;
+
+      await onSubmit({ ...fields, salePrice: cents === null ? undefined : cents / 100, barcode: data.barcode?.trim() || null, ...marginChange(canMargin, Boolean(dirtyFields.targetMargin), targetMargin) });
     } catch (error) {
       if (!applySubmitError(setError, error, FIELDS)) throw error;
     }
@@ -193,6 +203,8 @@ export function VariantForm({
           {priceReadOnly && <p id="variant-sale-price-hint" className="mt-1 text-sm text-muted">Somente o administrador altera o preço</p>}
           <FieldError id="variant-sale-price" message={errors.salePrice?.message} />
         </div>
+
+        <TargetMarginField id="variant-target-margin" error={errors.targetMargin?.message} {...register("targetMargin", { validate: validateTargetMargin })} />
 
         {scannerOpen && (
           <div
