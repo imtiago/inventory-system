@@ -24,13 +24,15 @@ import type { ListParams, Paginated } from '@/shared/types/pagination';
 import { FieldError, fieldA11y } from '@/shared/components/form';
 import { useApplyTargetMargin } from '@/modules/pricing/hooks/usePricingMutations';
 import { TargetMarginField } from '@/modules/pricing/components/TargetMarginField';
-import { marginChange, validateTargetMargin } from '@/modules/pricing/utils/targetMargin';
+import { marginBpsToText, marginChange, percentToBps, validateTargetMargin } from '@/modules/pricing/utils/targetMargin';
 import { useCan } from '@/shared/auth/useCan';
 import { LoadingState } from '@/shared/components/LoadingState';
 export interface NamedEntity {
   id: string;
   name: string;
   productsCount?: number;
+  /** Margem-alvo salva (só com `pricing.manage`); pré-preenche o campo ao editar. */
+  targetMarginPercent?: number | null;
 }
 
 interface Props<T extends NamedEntity> {
@@ -213,6 +215,7 @@ export function NamedEntityPage<T extends NamedEntity>({ singular, plural, query
         <NameForm
           key={editing?.id ?? 'new'}
           initialName={editing?.name ?? ''}
+          initialMarginPercent={editing?.targetMarginPercent}
           existsCode={existsCode}
           onCancel={closeForm}
           withTargetMargin={withTargetMargin}
@@ -248,20 +251,21 @@ function capitalize(value: string) {
 
 interface NameFormProps {
   initialName: string;
+  initialMarginPercent?: number | null;
   existsCode: string;
   withTargetMargin: boolean;
   onSubmit: (name: string, marginBps?: number | null) => Promise<void>;
   onCancel: () => void;
 }
 
-function NameForm({ initialName, existsCode, withTargetMargin, onSubmit, onCancel }: NameFormProps) {
+function NameForm({ initialName, initialMarginPercent, existsCode, withTargetMargin, onSubmit, onCancel }: NameFormProps) {
   const canMargin = useCan('pricing.manage') && withTargetMargin;
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting, dirtyFields },
-  } = useForm<{ name: string; targetMargin: string }>({ defaultValues: { name: initialName, targetMargin: '' } });
+  } = useForm<{ name: string; targetMargin: string }>({ defaultValues: { name: initialName, targetMargin: marginBpsToText(percentToBps(initialMarginPercent)) } });
 
   const once = useSingleSubmit();
   useModalBusy(isSubmitting);

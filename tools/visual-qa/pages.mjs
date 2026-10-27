@@ -13,4 +13,5 @@ export const PAGES = [
   ['receivables', '/receivables'], ['receivable-detail', '/receivables/x1'], ['payables', '/payables'], ['profit-report', '/reports/profit'], ['payable-detail', '/payables/x1'],
   ['users', '/users'],
   ['pricing-settings', '/settings/pricing'],
+  ['variant-edit', '/variants/5b3e4c9a-1d6f-4a43-8c8b-3e4f5a6b7c82/edit'], ['price-reviews', '/catalog/price-reviews'],
 ];

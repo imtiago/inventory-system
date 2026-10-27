@@ -38,3 +38,62 @@ export interface SettingsFormValues {
   debit: string;
   credit: string[];
 }
+
+export type TargetMarginSource = 'VARIANT' | 'PRODUCT' | 'CATEGORY' | 'STORE';
+
+export interface PriceMargin {
+  /** R$ por unidade. */
+  amount: number;
+  /** Percentual (ex.: 32.15). */
+  percent: number;
+}
+
+export interface PaymentSimulation {
+  condition: 'CASH' | 'DEBIT' | 'CREDIT';
+  installments: number;
+  /** true = a taxa do cartão é repassada ao cliente (preço cobrado maior). */
+  passOn: boolean;
+  price: number;
+  margin: PriceMargin;
+}
+
+/** Matches backend VariantPricingDTO. */
+export interface VariantPricing {
+  variantId: string;
+  /** Até 4 casas. */
+  averageCost: number;
+  expensesPercent: number;
+  expensesAmount: number;
+  targetMarginPercent: number;
+  targetMarginSource: TargetMarginSource;
+  suggestedPrice: number | null;
+  salePrice: number;
+  realMargin: PriceMargin;
+  supplierSuggestedPrice: number | null;
+  supplierSuggestedPriceUpdatedAt: string | null;
+  supplierMargin: PriceMargin | null;
+  simulations: PaymentSimulation[];
+}
+
+export type ApplyPriceSource = 'SUGGESTED' | 'SUPPLIER';
+
+export type PriceReviewReason = 'COST_CHANGED' | 'SETTINGS_CHANGED' | 'MARGIN_CHANGED' | 'MARGIN_BELOW_TARGET';
+
+/** Matches backend PriceReviewDTO. */
+export interface PriceReview {
+  id: string;
+  productVariantId: string;
+  label: string;
+  currentPrice: number;
+  suggestedPrice: number;
+  /** sugerido − atual (negativo = baixar). */
+  difference: number;
+  reason: PriceReviewReason;
+  status: 'PENDING' | 'APPLIED' | 'DISMISSED';
+  createdAt: string;
+}
+
+export interface ApplyReviewsResult {
+  applied: string[];
+  skipped: string[];
+}

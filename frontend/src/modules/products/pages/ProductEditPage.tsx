@@ -6,6 +6,7 @@ import { handleMutationError } from "@/shared/utils/mutation";
 import { notify } from "@/shared/utils/notify";
 
 
+import { percentToBps } from "@/modules/pricing/utils/targetMargin";
 import { useApplyTargetMargin } from "@/modules/pricing/hooks/usePricingMutations";
 import { ProductForm, type ProductFormData } from "../components/ProductForm";
 import { useProduct } from "../hooks/useProduct";
@@ -29,6 +30,7 @@ export function ProductEditPage() {
     description: product.description ?? "",
     brandId: product.brand.id,
     categoryId: product.category.id,
+    targetMarginBps: percentToBps(product.targetMarginPercent),
   };
 
   async function handleSubmit(data: ProductFormData) {

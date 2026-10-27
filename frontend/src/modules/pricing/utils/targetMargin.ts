@@ -2,6 +2,11 @@ import { formatPercentInput, parsePercentToBps, percentTextError } from '@/share
 
 export const TARGET_MARGIN_LABEL = 'Margem desejada (%)';
 
+/** Percentual da API (35.5) -> bps (3550); ausente/null = sem margem. */
+export function percentToBps(percent: number | null | undefined): number | null {
+  return percent === null || percent === undefined ? null : Math.round(percent * 100);
+}
+
 /** Texto salvo (bps) -> texto do campo. */
 export function marginBpsToText(bps: number | null | undefined): string {
   return bps === null || bps === undefined ? '' : formatPercentInput(bps / 100);

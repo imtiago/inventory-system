@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/test/server';
+import { API_URL } from '@/test/handlers/inventory';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -84,5 +87,31 @@ describe('Sidebar', () => {
     expect(useAuthStore.getState().token).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();
     expect(localStorage.getItem('token')).toBeNull();
+  });
+});
+
+describe('Sidebar: Preços para revisar', () => {
+  test('ADMIN vê o contador com o número pendente', async () => {
+    renderSidebar('ADMIN');
+    const link = await screen.findByRole('link', { name: /Preços para revisar/ });
+    expect(link).toHaveAttribute('href', '/catalog/price-reviews');
+    expect(await within(link).findByLabelText('2 pendentes')).toHaveTextContent('2');
+  });
+
+  test('sem pendentes não mostra o contador', async () => {
+    server.use(http.get(`${API_URL}/pricing/reviews/count`, () => HttpResponse.json({ data: { pending: 0 } })));
+    renderSidebar('ADMIN');
+    const link = await screen.findByRole('link', { name: /Preços para revisar/ });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(within(link).queryByText('0')).not.toBeInTheDocument();
+  });
+
+  test('VENDEDOR não vê o item nem consulta o contador', async () => {
+    const calls: string[] = [];
+    server.use(http.get(`${API_URL}/pricing/reviews/count`, ({ request }) => { calls.push(request.url); return HttpResponse.json({ data: { pending: 5 } }); }));
+    renderSidebar('VENDEDOR');
+    expect(screen.queryByText('Preços para revisar')).not.toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toEqual([]);
   });
 });

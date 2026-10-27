@@ -30,6 +30,22 @@ function grow(list, n = 8) {
 const me = { data: { id: 'u-admin', name: 'Tiago Oliveira', email: 'tiago@example.com', role: 'ADMIN' } };
 const categories = { data: [{ id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', name: 'Perfumes', productsCount: 8 }, { id: 'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f80', name: 'Maquiagens', productsCount: 15 }, { id: 'c1', name: 'Cuidados com a pele', productsCount: 0 }], pagination: { page: 1, limit: 10, total: 3, totalPages: 1 } };
 
+/** A fixture traz uma simulação só (contrato); a tela precisa das 27 linhas (à vista, débito e crédito 1x-12x). */
+function pricingWithSimulations() {
+  const base = j('pricing/variantPricing.json').data;
+  const price = base.salePrice;
+  const sims = [base.simulations[0]];
+  const card = (condition, n, fee) => {
+    const absorbed = price * (1 - fee);
+    sims.push({ condition, installments: n, passOn: false, price, margin: { amount: Number((base.realMargin.amount - price * fee).toFixed(2)), percent: Number((base.realMargin.percent - fee * 100).toFixed(2)) } });
+    sims.push({ condition, installments: n, passOn: true, price: Number((price / (1 - fee)).toFixed(2)), margin: base.realMargin });
+    void absorbed;
+  };
+  card('DEBIT', 1, 0.0199);
+  for (let n = 1; n <= 12; n++) card('CREDIT', n, 0.0299 + n * 0.0035);
+  return { ...base, simulations: sims };
+}
+
 function route(method, url) {
   const u = new URL(url, 'http://x');
   const p = u.pathname.replace(/^\/api/, '');
@@ -80,6 +96,9 @@ function route(method, url) {
   if (p === '/payables') return grow(j('finance/payableList.json'));
   if (s[0] === 'payables') return j('finance/payableDetail.json');
   if (p === '/pricing/settings') return j('pricing/pricingSettings.json');
+  if (p === '/pricing/reviews/count') return j('pricing/priceReviewCount.json');
+  if (p === '/pricing/reviews') return j('pricing/priceReviews.json');
+  if (s[0] === 'pricing' && s[1] === 'variants' && s[2]) return { data: pricingWithSimulations() };
   if (p === '/users') return grow(j('users/userList.json'), 5);
   if (s[0] === 'users') return j('users/user.json');
   return null;

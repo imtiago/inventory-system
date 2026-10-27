@@ -104,7 +104,7 @@ export function DashboardPage() {
 
   const from = businessDay(data.generatedAt);
   const to = businessDay(data.generatedAt, 7);
-  const { sales, receivables, payables, inventory, purchases, profit } = data;
+  const { sales, receivables, payables, inventory, purchases, profit, pricing } = data;
 
   return (
     <Page>
@@ -152,6 +152,21 @@ export function DashboardPage() {
             </div>
             <Link to="/reports/profit" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">
               Ver relatório
+            </Link>
+          </Card>
+        )}
+
+        {pricing && (
+          <Card title="Preços para revisar">
+            <Stat
+              id="pricing-pending"
+              label="Aguardando revisão"
+              value={pluralize(pricing.pendingReviews, 'preço', 'preços')}
+              hint={pricing.pendingReviews === 0 ? 'Nada pendente' : 'Custo ou margem mudou'}
+              danger={false}
+            />
+            <Link to="/catalog/price-reviews" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">
+              Revisar preços
             </Link>
           </Card>
         )}

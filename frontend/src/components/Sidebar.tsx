@@ -9,6 +9,21 @@ import { ChangePasswordModal } from "@/modules/auth/components/ChangePasswordMod
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { allRoutes } from "@/routes/routes";
 import type { AppRoute } from "@/routes/types";
+import { usePriceReviewCount } from "@/modules/pricing/hooks/usePriceReviews";
+
+const PRICE_REVIEWS_PATH = "/catalog/price-reviews";
+
+/** Pendentes de revisão de preço; o hook só consulta quem tem `catalog.price`. */
+function PriceReviewBadge() {
+  const { data } = usePriceReviewCount();
+  if (!data) return null;
+
+  return (
+    <span aria-label={`${data} ${data === 1 ? "pendente" : "pendentes"}`} className="ml-auto min-w-6 rounded-full bg-warning-soft px-2 py-0.5 text-center text-xs font-semibold tabular-nums text-warning">
+      {data > 99 ? "99+" : data}
+    </span>
+  );
+}
 
 function renderItem(item: AppRoute, onNavigate?: () => void) {
   const Icon = item.icon;
@@ -35,6 +50,8 @@ function renderItem(item: AppRoute, onNavigate?: () => void) {
       <Icon size={20} />
 
       <span>{item.label}</span>
+
+      {item.path === PRICE_REVIEWS_PATH && <PriceReviewBadge />}
     </NavLink>
   );
 }

@@ -14,6 +14,8 @@ export interface Product {
   category: Category;
   variantsCount: number;
   createdAt?: string;
+  /** Only for callers with `pricing.manage`; null = not set. */
+  targetMarginPercent?: number | null;
 }
 
 /** Matches backend VariantDTO. */
@@ -25,6 +27,8 @@ export interface ProductVariant {
   barcode: string | null;
   salePrice: number;
   createdAt?: string;
+  /** Only for callers with `pricing.manage`; null = not set. */
+  targetMarginPercent?: number | null;
 }
 
 export type ProductListResponse = Paginated<Product>;

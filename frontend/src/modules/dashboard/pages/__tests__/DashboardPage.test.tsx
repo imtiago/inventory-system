@@ -168,4 +168,22 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('region', { name: 'Lucro do mês' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('profit-margin')).not.toBeInTheDocument();
   });
+
+  test('ADMIN vê o cartão "Preços para revisar" com o total e o link da lista', async () => {
+    renderWithProviders(<DashboardPage />);
+
+    const card = await screen.findByRole('region', { name: 'Preços para revisar' });
+    expect(card).toHaveTextContent('3 preços');
+    expect(within(card).getByRole('link', { name: /Revisar preços/ })).toHaveAttribute('href', '/catalog/price-reviews');
+  });
+
+  test('sem a seção pricing (não ADMIN) não há cartão', async () => {
+    const { pricing: _p, ...rest } = fixture.data;
+    void _p;
+    serve(rest);
+    renderWithProviders(<DashboardPage />);
+
+    await screen.findByRole('region', { name: 'Vendas' });
+    expect(screen.queryByRole('region', { name: 'Preços para revisar' })).not.toBeInTheDocument();
+  });
 });

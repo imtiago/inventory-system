@@ -10,6 +10,9 @@ import { server } from '@/test/server';
 import { CategoryListPage } from '@/modules/categories/pages/CategoryListPage';
 import { ProductForm } from '@/modules/products/components/ProductForm';
 import { VariantForm } from '@/modules/products/components/VariantForm';
+import { ProductEditPage } from '@/modules/products/pages/ProductEditPage';
+import { VariantEditPage } from '@/modules/products/pages/VariantEditPage';
+import { Route, Routes } from 'react-router-dom';
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
@@ -134,5 +137,40 @@ describe('Margem desejada nos formulários', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Nova categoria/i }));
     await screen.findByLabelText(/Nome/);
     expect(screen.queryByLabelText(LABEL)).not.toBeInTheDocument();
+  });
+
+  describe('edição pré-preenche a margem salva (targetMarginPercent da API)', () => {
+    it('Categoria: abre o modal de edição com a margem', async () => {
+      server.use(
+        http.get(`${API_URL}/categories`, () =>
+          HttpResponse.json({ data: [{ id: 'c1', name: 'Perfumes', productsCount: 1, targetMarginPercent: 35.5 }], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } }),
+        ),
+      );
+      renderWithProviders(<CategoryListPage />);
+
+      await userEvent.click((await screen.findAllByRole('button', { name: /Editar/i }))[0]);
+      expect(await screen.findByLabelText(LABEL)).toHaveValue('35,50');
+    });
+
+    it('Produto: ProductEditPage', async () => {
+      server.use(
+        http.get(`${API_URL}/products/:id`, () =>
+          HttpResponse.json({ data: { id: 'p1', code: 'P1', name: 'Perfume', description: null, brand: { id: 'b-0', name: 'Marca' }, category: { id: 'c-0', name: 'Categoria' }, variantsCount: 1, targetMarginPercent: 20 } }),
+        ),
+        http.get(`${API_URL}/brands`, () => HttpResponse.json(emptyPage)),
+        http.get(`${API_URL}/categories`, () => HttpResponse.json(emptyPage)),
+      );
+      renderWithProviders(<Routes><Route path="/products/:id/edit" element={<ProductEditPage />} /></Routes>, { route: '/products/p1/edit' });
+
+      expect(await screen.findByLabelText(LABEL)).toHaveValue('20,00');
+    });
+
+    it('Variante: VariantEditPage (null deixa vazio)', async () => {
+      const variant = { id: 'v-1', name: 'Kaiak', code: 'K1', barcode: null, productId: 'p-1', salePrice: 25, targetMarginPercent: 41.25 };
+      server.use(http.get(`${API_URL}/variants/v-1`, () => HttpResponse.json({ data: variant })));
+      renderWithProviders(<Routes><Route path="/variants/:variantId/edit" element={<VariantEditPage />} /></Routes>, { route: '/variants/v-1/edit' });
+
+      expect(await screen.findByLabelText(LABEL)).toHaveValue('41,25');
+    });
   });
 });

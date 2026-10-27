@@ -37,6 +37,10 @@ export const queryKeys = {
 
   priceReviews: ['pricing', 'reviews'] as const,
 
+  priceReviewList: (params: object) => ['pricing', 'reviews', 'list', params] as const,
+
+  priceReviewCount: ['pricing', 'reviews', 'count'] as const,
+
   variantPricing: (id: string) => ['pricing', 'variants', id] as const,
 
 
