@@ -14,8 +14,8 @@ import { loginAs } from '@/test/auth';
 import { useAuthStore } from '@/shared/store/auth';
 import type { UserRole } from '@/shared/auth/permissions';
 
-function renderSidebar(role: UserRole, client = createTestQueryClient()) {
-  loginAs(role);
+function renderSidebar(role: UserRole, client = createTestQueryClient(), extra: { canApproveCredit?: boolean } = {}) {
+  loginAs(role, extra);
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
@@ -111,6 +111,34 @@ describe('Sidebar: Pedidos de cancelamento', () => {
     server.use(http.get(`${API_URL}/sales/cancel-requests/count`, ({ request }) => { calls.push(request.url); return HttpResponse.json({ data: { pending: 5 } }); }));
     renderSidebar('VENDEDOR');
     expect(screen.queryByText('Pedidos de cancelamento')).not.toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toEqual([]);
+  });
+});
+
+describe('Sidebar: Pedidos de crédito', () => {
+  test('ADMIN vê o item com o contador no nome acessível', async () => {
+    renderSidebar('ADMIN');
+    const link = await screen.findByRole('link', { name: /Pedidos de crédito/ });
+    expect(link).toHaveAttribute('href', '/credit/requests');
+    await waitFor(() => expect(screen.getByRole('link', { name: /^Pedidos de crédito\s*2 pendentes$/ })).toBe(link));
+  });
+
+  test('VENDEDOR marcado (canApproveCredit) vê o item e o contador', async () => {
+    renderSidebar('VENDEDOR', createTestQueryClient(), { canApproveCredit: true });
+    const link = await screen.findByRole('link', { name: /Pedidos de crédito/ });
+    await waitFor(() => expect(screen.getByRole('link', { name: /^Pedidos de crédito\s*2 pendentes$/ })).toBe(link));
+    expect(screen.queryByText('Pedidos de cancelamento')).not.toBeInTheDocument();
+  });
+
+  test('VENDEDOR sem a marca e ESTOQUISTA não veem o item nem consultam o contador', async () => {
+    const calls: string[] = [];
+    server.use(http.get(`${API_URL}/credit/limit-requests/count`, ({ request }) => { calls.push(request.url); return HttpResponse.json({ data: { pending: 5 } }); }));
+    renderSidebar('VENDEDOR');
+    expect(screen.queryByText('Pedidos de crédito')).not.toBeInTheDocument();
+    cleanup();
+    renderSidebar('ESTOQUISTA');
+    expect(screen.queryByText('Pedidos de crédito')).not.toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 50));
     expect(calls).toEqual([]);
   });

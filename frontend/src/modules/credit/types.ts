@@ -107,3 +107,38 @@ export interface UpdateCustomerCreditInput {
   status?: CreditStatus;
   reason: string;
 }
+
+export type CreditRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface CreditLimitRequest {
+  id: string;
+  customer: UserRef;
+  currentLimit: number;
+  requestedLimit: number;
+  approvedLimit: number | null;
+  reason: string;
+  status: CreditRequestStatus;
+  autoApproved: boolean;
+  requestedBy: UserRef | null;
+  requestedAt: string;
+  decidedBy: UserRef | null;
+  decidedAt: string | null;
+  decisionReason: string | null;
+}
+
+export interface CreditLimitRequestsResponse {
+  data: CreditLimitRequest[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface CreateLimitRequestInput {
+  customerId: string;
+  requestedLimit: number;
+  reason: string;
+}
+
+export interface ApproveLimitRequestInput {
+  id: string;
+  approvedLimit?: number;
+  reason?: string;
+}

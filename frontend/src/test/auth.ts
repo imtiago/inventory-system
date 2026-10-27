@@ -3,14 +3,14 @@ import { useAuthStore, type SessionUser } from '@/shared/store/auth';
 import type { UserRole } from '@/shared/auth/permissions';
 import { API_URL } from './handlers/inventory';
 
-export function makeUser(role: UserRole): SessionUser {
-  return { id: `user-${role}`, name: `Usuário ${role}`, email: `${role.toLowerCase()}@example.com`, role };
+export function makeUser(role: UserRole, extra: Partial<SessionUser> = {}): SessionUser {
+  return { id: `user-${role}`, name: `Usuário ${role}`, email: `${role.toLowerCase()}@example.com`, role, ...extra };
 }
 
 /** Starts an authenticated session in the store (token encodes the role for the /users/me handler). */
-export function loginAs(role: UserRole) {
+export function loginAs(role: UserRole, extra: Partial<SessionUser> = {}) {
   localStorage.setItem('token', `token-${role}`);
-  useAuthStore.setState({ token: `token-${role}`, user: makeUser(role), sessionExpired: false });
+  useAuthStore.setState({ token: `token-${role}`, user: makeUser(role, extra), sessionExpired: false });
 }
 
 export function resetSession() {

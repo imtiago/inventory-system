@@ -54,6 +54,12 @@ export const queryKeys = {
 
   creditProfiles: ['credit', 'profiles'] as const,
 
+  creditRequests: ['credit', 'requests'] as const,
+
+  creditRequestList: (params: object) => ['credit', 'requests', 'list', params] as const,
+
+  creditRequestCount: ['credit', 'requests', 'count'] as const,
+
   customerCredit: (id: string) => ['customers', id, 'credit'] as const,
 
   inventory: ['inventory'] as const,

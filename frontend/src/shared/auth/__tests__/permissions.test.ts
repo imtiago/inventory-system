@@ -51,6 +51,12 @@ describe('can', () => {
     expect(can({ role: 'VENDEDOR', canApproveCredit: true }, 'credit.manage')).toBe(false);
   });
 
+  test('credit.request: VENDEDOR e ADMIN; ESTOQUISTA não', () => {
+    expect(can('VENDEDOR', 'credit.request')).toBe(true);
+    expect(can('ADMIN', 'credit.request')).toBe(true);
+    expect(can('ESTOQUISTA', 'credit.request')).toBe(false);
+  });
+
   test('marca não vale para papel desconhecido nem para sujeito nulo', () => {
     expect(can({ role: '__proto__', canApproveCredit: true }, 'credit.approve')).toBe(false);
     expect(can(null, 'credit.approve')).toBe(false);

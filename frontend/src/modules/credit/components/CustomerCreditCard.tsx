@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, TrendingUp } from 'lucide-react';
 
 import { Can } from '@/shared/auth/Can';
 import { StatusBadge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { formatDateTime } from '@/shared/utils/formatDateTime';
 import { useCustomerCredit } from '../hooks/useCredit';
 import { CREDIT_PROFILE_NAMES, CREDIT_SOURCE_LABELS, CREDIT_STATUS_LABELS, type CreditHistoryEntry } from '../types';
 import { CustomerCreditEditModal } from './CustomerCreditEditModal';
+import { RequestLimitModal } from './RequestLimitModal';
 
 function changesOf(entry: CreditHistoryEntry): string[] {
   const lines: string[] = [];
@@ -28,6 +29,7 @@ function changesOf(entry: CreditHistoryEntry): string[] {
 export function CustomerCreditCard({ customerId }: { customerId: string }) {
   const { data: credit, isLoading, isError } = useCustomerCredit(customerId);
   const [editing, setEditing] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   return (
     <Section
@@ -35,12 +37,20 @@ export function CustomerCreditCard({ customerId }: { customerId: string }) {
       description="Perfil, limite e histórico de mudanças no crediário"
       actions={
         credit && (
-          <Can permission="credit.manage">
-            <Button type="button" className="shrink-0 border border-input bg-surface text-foreground hover:bg-surface-muted" onClick={() => setEditing(true)}>
-              <Pencil size={16} className="mr-2" aria-hidden="true" />
-              Ajustar
-            </Button>
-          </Can>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+            <Can permission="credit.request">
+              <Button type="button" className="shrink-0 border border-input bg-surface text-foreground hover:bg-surface-muted" onClick={() => setRequesting(true)}>
+                <TrendingUp size={16} className="mr-2" aria-hidden="true" />
+                Pedir aumento de limite
+              </Button>
+            </Can>
+            <Can permission="credit.manage">
+              <Button type="button" className="shrink-0 border border-input bg-surface text-foreground hover:bg-surface-muted" onClick={() => setEditing(true)}>
+                <Pencil size={16} className="mr-2" aria-hidden="true" />
+                Ajustar
+              </Button>
+            </Can>
+          </div>
         )
       }
     >
@@ -89,6 +99,7 @@ export function CustomerCreditCard({ customerId }: { customerId: string }) {
             )}
           </div>
 
+          <RequestLimitModal customerId={customerId} currentLimit={credit.limit} open={requesting} onClose={() => setRequesting(false)} />
           <CustomerCreditEditModal customerId={customerId} credit={editing ? credit : null} onClose={() => setEditing(false)} />
         </>
       )}

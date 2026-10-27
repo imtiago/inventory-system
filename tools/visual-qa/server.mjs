@@ -90,6 +90,8 @@ function route(method, url) {
     if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
     return detail;
   }
+  if (p === '/credit/limit-requests/count') return j('credit/creditLimitRequestCount.json');
+  if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
   if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
   if (p === '/credit/settings') return j('credit/creditSettings.json');
   if (p === '/credit/profiles') return j('credit/creditProfiles.json');
