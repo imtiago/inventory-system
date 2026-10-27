@@ -14,7 +14,8 @@ import { TransactionalUseCase } from "@shared/application/useCases/Transactional
 import { ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import type { PriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
 
-const NO_PRICE_REVIEW: Pick<PriceReviewTrigger, "costChanged"> = { costChanged: async () => {} };
+type CostTrigger = Pick<PriceReviewTrigger, "beforeCostChange" | "costChanged">;
+const NO_PRICE_REVIEW: CostTrigger = { beforeCostChange: async () => {}, costChanged: async () => {} };
 
 const dayKey = (d: Date) => d.toISOString().slice(0, 10);
 const formatDay = (d: Date) => {
@@ -57,7 +58,7 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     private readonly inventoryLotRepository: IInventoryLotRepository,
     private readonly stockMovementRepository: IStockMovementRepository,
     transactionManager: TransactionManager,
-    private readonly priceReviewTrigger: Pick<PriceReviewTrigger, "costChanged"> = NO_PRICE_REVIEW,
+    private readonly priceReviewTrigger: CostTrigger = NO_PRICE_REVIEW,
   ) {
     super(transactionManager);
   }
@@ -71,6 +72,9 @@ export class ReceiveInventoryUseCase extends TransactionalUseCase<
     if (!variant) {
       throw new NotFoundError("Variante não encontrada.", ErrorCodes.VARIANT_NOT_FOUND);
     }
+
+    // Trava compartilhada das configurações de preço ANTES de qualquer trava de estoque (ver PriceReviewService).
+    await this.priceReviewTrigger.beforeCostChange();
 
     // Trava a linha da variante (criando o inventário vazio se faltar) antes de
     // qualquer leitura usada em cálculo; a variante já foi validada acima.

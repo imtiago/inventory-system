@@ -82,9 +82,19 @@ describe("Preços para revisar (/pricing/reviews e gatilhos)", () => {
     await prisma.pricingExpense.deleteMany({});
     await prisma.pricingSettings.deleteMany({});
     await prisma.category.update({ where: { id: categoryId }, data: { targetMarginBps: null } });
-    assert.equal((await admin("PUT", "/pricing/settings", settingsBody())).statusCode, 200);
-    assert.equal((await admin("POST", "/pricing/expenses", { name: "Despesas", percent: 20 })).statusCode, 201);
-    assert.equal((await admin("PUT", `/pricing/target-margins/category/${categoryId}`, { targetMarginPercent: 30 })).statusCode, 200);
+    // Escritas de configuração esperam as transações de estoque de outros arquivos de teste (trava compartilhada);
+    // sob carga a espera pode virar 409 CONCURRENT_UPDATE (timeout/deadlock): repete.
+    const retry409 = async (call: () => ReturnType<typeof admin>, expected: number) => {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const res = await call();
+        if (res.statusCode !== 409) return assert.equal(res.statusCode, expected);
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      assert.fail("configuração de preço continuou em 409 após 5 tentativas");
+    };
+    await retry409(() => admin("PUT", "/pricing/settings", settingsBody()), 200);
+    await retry409(() => admin("POST", "/pricing/expenses", { name: "Despesas", percent: 20 }), 201);
+    await retry409(() => admin("PUT", `/pricing/target-margins/category/${categoryId}`, { targetMarginPercent: 30 }), 200);
   });
 
   after(async () => {
@@ -260,6 +270,175 @@ describe("Preços para revisar (/pricing/reviews e gatilhos)", () => {
       const results = await Promise.all([receive(v, 2, 12), receive(v, 3, 15)]);
       for (const res of results) assert.equal(res.statusCode, 200, res.body);
       assert.equal((await pendingOf(v)).length, 1);
+    }
+  });
+
+  test("taxas de cartão inválidas no banco não derrubam a entrada de estoque (revisão não usa taxas) → 200, revisão gravada", async () => {
+    const v = await freshVariant(30);
+    await prisma.pricingSettings.update({ where: { id: "default" }, data: { cardFees: { debitBps: "x" } } });
+    const res = await receive(v, 3, 12);
+    assert.equal(res.statusCode, 200, res.body);
+    assert.equal((await pendingOf(v))[0]?.reason, "COST_CHANGED");
+  });
+
+  test("estresse: compras cruzadas, entradas manuais e escritas de configuração/despesa em paralelo → todas concluem, nenhum 409/500", async () => {
+    const vs = (await Promise.all(Array.from({ length: 6 }, () => freshVariant(30)))).sort();
+    const expense = (await admin("GET", "/pricing/expenses")).json().data[0] as { id: string };
+    for (let round = 0; round < 2; round++) {
+      const purchases = [];
+      for (let k = 0; k < 4; k++) {
+        const ids = [vs[k], vs[k + 1], vs[k + 2]];
+        const res = await admin("POST", "/purchases", {
+          supplierId: supplierIds[0],
+          items: ids.map((productVariantId, i) => ({ productVariantId, quantity: 1, unitPrice: 10 + round + i })),
+          paymentTerms: { installments: 1 },
+        });
+        assert.equal(res.statusCode, 201, res.body);
+        purchaseIds.push(res.json().data.id);
+        purchases.push(res.json().data as { id: string; items: { id: string }[] });
+      }
+      const results = await Promise.all([
+        ...purchases.map((p) =>
+          admin("POST", `/purchases/${p.id}/receipts`, { items: p.items.map((i) => ({ purchaseItemId: i.id, quantity: 1 })) }),
+        ),
+        ...vs.map((v, i) => receive(v, 1, 11 + i)),
+        admin("PUT", "/pricing/settings", settingsBody({ alertThresholdPercent: 3 + round })),
+        admin("PUT", `/pricing/expenses/${expense.id}`, { name: "Despesas", percent: 20 - round, active: true }),
+        admin("PUT", `/pricing/target-margins/category/${categoryId}`, { targetMarginPercent: 30 + round }),
+      ]);
+      const bad = results.filter((r) => r.statusCode >= 300);
+      assert.deepEqual(bad.map((r) => `${r.statusCode} ${r.body}`), []);
+      for (const v of vs) assert.ok((await pendingOf(v)).length <= 1);
+    }
+  });
+
+  test("configuração recalculando tudo × exclusão simultânea de variante → 200 (variante excluída fica fora, sem violar FK)", async () => {
+    const v = await freshVariant(30, { quantity: 1, averageCost: 12 });
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let deleterPid!: number;
+    let deleted!: () => void;
+    const isDeleted = new Promise<void>((r) => (deleted = r));
+    // D exclui a variante e segura o commit; a configuração lê a variante como candidata (D ainda não confirmou)
+    // e só grava a revisão depois do commit de D.
+    const deleter = prisma.$transaction(
+      async (db) => {
+        await db.inventory.deleteMany({ where: { productVariantId: v } });
+        await db.productVariant.delete({ where: { id: v } });
+        deleterPid = (await db.$queryRaw<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`)[0].pid;
+        deleted();
+        await held;
+      },
+      { timeout: 20_000 },
+    );
+    try {
+      await isDeleted;
+      const x = admin("PUT", "/pricing/settings", settingsBody({ alertThresholdPercent: 4 }));
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        const [{ n }] = await prisma.$queryRaw<{ n: bigint }[]>`
+          SELECT count(*) AS n FROM pg_stat_activity WHERE ${deleterPid}::int = ANY(pg_blocking_pids(pid))`;
+        if (Number(n) > 0) break;
+        if (Date.now() > deadline) assert.fail("configuração não chegou a esperar a exclusão da variante");
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      release();
+      await deleter;
+      const res = await x;
+      assert.equal(res.statusCode, 200, res.body);
+      assert.equal((await reviewsOf(v)).length, 0);
+    } finally {
+      release();
+      await deleter.catch(() => {});
+    }
+  });
+
+  test("configuração salva enquanto recebimentos cruzados esperam travas de inventário → todos concluem (sem deadlock, nenhum 409/500)", async () => {
+    // Ciclo que existia: compra A (s0,s1,s2) segura inventário s0 + trava compartilhada e espera s1;
+    // a escrita de configuração X entra na fila da exclusiva; compra B (s2) trava o inventário s2 e pede a
+    // compartilhada (fila atrás de X); A pega s1 e espera s2 de B → A→B→X→A (40P01).
+    // Com a compartilhada pedida antes de qualquer trava de inventário, B espera sem segurar nada.
+    const s = [await freshVariant(30), await freshVariant(30), await freshVariant(30)].sort();
+    for (const v of s) await prisma.inventory.create({ data: { productVariantId: v, quantity: 0, averageCost: 0 } });
+    const newPurchase = async (ids: string[]) => {
+      const res = await admin("POST", "/purchases", {
+        supplierId: supplierIds[0],
+        items: ids.map((productVariantId) => ({ productVariantId, quantity: 2, unitPrice: 12 })),
+        paymentTerms: { installments: 1 },
+      });
+      assert.equal(res.statusCode, 201, res.body);
+      purchaseIds.push(res.json().data.id);
+      return res.json().data as { id: string; items: { id: string }[] };
+    };
+    const receiveAll = (p: { id: string; items: { id: string }[] }) =>
+      admin("POST", `/purchases/${p.id}/receipts`, { items: p.items.map((i) => ({ purchaseItemId: i.id, quantity: 2 })) });
+    const pa = await newPurchase(s);
+    const pb = await newPurchase([s[2]]);
+
+    const settingsKey = Number(BigInt.asUintN(32, BigInt((await prisma.$queryRaw<{ k: number }[]>`SELECT hashtext('pricing_settings') AS k`)[0].k)));
+    const waiters = async (mode: "ExclusiveLock" | "ShareLock") =>
+      Number(
+        (
+          await prisma.$queryRaw<{ n: bigint }[]>`
+            SELECT count(*) AS n FROM pg_locks
+            WHERE locktype = 'advisory' AND NOT granted AND mode = ${mode} AND objid::bigint = ${settingsKey}`
+        )[0].n,
+      );
+    const until = async (label: string, check: () => Promise<boolean>) => {
+      const deadline = Date.now() + 5000;
+      while (!(await check())) {
+        if (Date.now() > deadline) assert.fail(`tempo esgotado esperando: ${label}`);
+        await new Promise((r) => setTimeout(r, 20));
+      }
+    };
+
+    // H segura o inventário s1 (como uma venda em andamento).
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let holderPid!: number;
+    let locked!: () => void;
+    const isLocked = new Promise<void>((r) => (locked = r));
+    const holder = prisma.$transaction(
+      async (db) => {
+        await db.$queryRaw`SELECT id FROM "Inventory" WHERE "productVariantId" = ${s[1]} FOR UPDATE`;
+        holderPid = (await db.$queryRaw<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`)[0].pid;
+        locked();
+        await held;
+      },
+      { timeout: 20_000 },
+    );
+    try {
+      await isLocked;
+      const a = receiveAll(pa);
+      await until("compra A bloqueada pelo inventário s1", async () =>
+        Number(
+          (
+            await prisma.$queryRaw<{ n: bigint }[]>`
+              SELECT count(*) AS n FROM pg_stat_activity WHERE ${holderPid}::int = ANY(pg_blocking_pids(pid))`
+          )[0].n,
+        ) > 0,
+      );
+      const x = admin("PUT", "/pricing/settings", settingsBody({ alertThresholdPercent: 3 }));
+      await until("configuração na fila da trava exclusiva", async () => (await waiters("ExclusiveLock")) > 0);
+      const sharedBefore = await waiters("ShareLock");
+      const b = receiveAll(pb);
+      await until("compra B na fila da trava compartilhada", async () => (await waiters("ShareLock")) > sharedBefore);
+      // B espera a compartilhada SEM segurar o inventário s2 (antes segurava: ciclo resolvido só pelo detector
+      // de deadlock do Postgres após deadlock_timeout, ou 40P01).
+      await prisma.$transaction((db) => db.$queryRaw`SELECT id FROM "Inventory" WHERE "productVariantId" = ${s[2]} FOR UPDATE NOWAIT`);
+      release();
+      await holder;
+      const [ra, rb, rx] = await Promise.all([a, b, x]);
+      assert.deepEqual(
+        [ra.statusCode, rb.statusCode, rx.statusCode],
+        [201, 201, 200],
+        [ra.body, rb.body, rx.body].join(" | "),
+      );
+      const stock = await prisma.inventory.findMany({ where: { productVariantId: { in: s } }, orderBy: { productVariantId: "asc" } });
+      assert.deepEqual(stock.map((i) => i.quantity), [2, 2, 4]);
+    } finally {
+      release();
+      await holder.catch(() => {});
     }
   });
 

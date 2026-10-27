@@ -13,7 +13,8 @@ import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/error
 import { roundCost } from "@shared/domain/money";
 import type { PriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
 
-const NO_PRICE_REVIEW: Pick<PriceReviewTrigger, "costChanged"> = { costChanged: async () => {} };
+type CostTrigger = Pick<PriceReviewTrigger, "beforeCostChange" | "costChanged">;
+const NO_PRICE_REVIEW: CostTrigger = { beforeCostChange: async () => {}, costChanged: async () => {} };
 
 export interface RevertPurchaseStockInput {
   purchaseId: string;
@@ -47,13 +48,15 @@ export class RevertPurchaseStockUseCase extends TransactionalUseCase<RevertPurch
     private readonly stockMovementRepository: IStockMovementRepository,
     private readonly inventoryBoxStockRepository: Pick<IInventoryBoxStockRepository, "reconcileBoxAllocations">,
     transactionManager: TransactionManager,
-    private readonly priceReviewTrigger: Pick<PriceReviewTrigger, "costChanged"> = NO_PRICE_REVIEW,
+    private readonly priceReviewTrigger: CostTrigger = NO_PRICE_REVIEW,
   ) {
     super(transactionManager);
   }
 
   protected async handle(input: RevertPurchaseStockInput): Promise<RevertPurchaseStockResult> {
     const variantIds = [...new Set(input.productVariantIds)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    // Trava compartilhada das configurações de preço ANTES dos inventários (ver PriceReviewService).
+    await this.priceReviewTrigger.beforeCostChange();
     const inventories = new Map<string, Inventory>();
     for (const productVariantId of variantIds) {
       const inventory = await this.inventoryRepository.lockExistingByProductVariantId(productVariantId);

@@ -70,6 +70,8 @@ export class PrismaPriceReviewRepository implements PriceReviewRepository {
     const sorted = [...rows].sort((a, b) => (a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0));
     // ON CONFLICT no único parcial: duas entradas simultâneas da mesma variante → uma só PENDING
     // (a segunda espera a primeira e atualiza a linha), nunca P2002.
+    // FOR KEY SHARE da variante: variante excluída depois da leitura dos candidatos (configuração recalculando
+    // tudo × exclusão de variante) sai do INSERT em vez de violar a FK (23503 → 409 RESOURCE_IN_USE).
     await getDb().$executeRaw`
       INSERT INTO "PriceReview" ("id", "productVariantId", "reason", "currentPrice", "suggestedPrice", "status", "createdAt")
       SELECT gen_random_uuid()::text, u.vid, u.reason::"PriceReviewReason", u.cur, u.sug, 'PENDING', now() AT TIME ZONE 'UTC'
@@ -79,7 +81,9 @@ export class PrismaPriceReviewRepository implements PriceReviewRepository {
         ${sorted.map((r) => centsText(r.currentPriceCents))}::numeric[],
         ${sorted.map((r) => centsText(r.suggestedPriceCents))}::numeric[]
       ) AS u(vid, reason, cur, sug)
+      JOIN "ProductVariant" v ON v.id = u.vid
       ORDER BY u.vid
+      FOR KEY SHARE OF v
       ON CONFLICT ("productVariantId") WHERE "status" = 'PENDING'
       DO UPDATE SET "reason" = EXCLUDED."reason", "currentPrice" = EXCLUDED."currentPrice",
                     "suggestedPrice" = EXCLUDED."suggestedPrice", "createdAt" = EXCLUDED."createdAt"`;

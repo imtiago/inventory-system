@@ -9,8 +9,10 @@ import type { PriceReviewTrigger, ReviewScope } from "@pricing/application/contr
  * Gatilhos da revisão de preços (rodam na transação de quem chama).
  *
  * Travas (sem ciclo):
- * - custo (estoque): inventário/lotes/alocações do caso de uso → trava COMPARTILHADA das configurações →
- *   revisões (ON CONFLICT, variante crescente). Revisões são sempre as últimas.
+ * - custo (estoque): trava COMPARTILHADA das configurações (beforeCostChange, ANTES da primeira trava de
+ *   inventário) → inventário/lotes/alocações do caso de uso → revisões (ON CONFLICT, variante crescente).
+ *   Quem espera a compartilhada (atrás de uma escrita de configuração na fila) não segura linha de estoque,
+ *   então nunca bloqueia quem já a tem. Revisões são sempre as últimas.
  * - configuração (settingsChanged): o caso de uso já segura a trava EXCLUSIVA das configurações (lockSettings)
  *   e não trava inventário; recalcula o escopo inteiro em duas instruções (upsert em ordem crescente de
  *   variante, delete das que deixaram de valer). Enquanto ela roda nenhuma entrada de estoque grava revisão
@@ -25,7 +27,12 @@ export class PriceReviewService implements PriceReviewTrigger {
     private readonly settingsLock: Pick<PricingSettingsRepository, "lockSettingsShared">,
   ) {}
 
+  async beforeCostChange(): Promise<void> {
+    await this.settingsLock.lockSettingsShared();
+  }
+
   async costChanged(variantId: string): Promise<void> {
+    // Reentrante: o caminho de estoque já a pegou em beforeCostChange (aqui só garante para quem não pegou).
     await this.settingsLock.lockSettingsShared();
     await this.evaluate({ kind: "VARIANT", id: variantId }, "COST_CHANGED");
   }
@@ -39,7 +46,7 @@ export class PriceReviewService implements PriceReviewTrigger {
   }
 
   private async evaluate(scope: ReviewScope, triggerReason: Exclude<PriceReviewReason, "MARGIN_BELOW_TARGET">) {
-    const s = await this.settings.get();
+    const s = await this.settings.getMarginSettings();
     if (!s.configured) return;
     const writes: PendingReviewWrite[] = [];
     const clears: string[] = [];

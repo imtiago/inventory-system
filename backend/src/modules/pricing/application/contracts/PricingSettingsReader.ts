@@ -13,6 +13,11 @@ export interface PricingSettingsSnapshot {
   expensesBps: Bps;
 }
 
+/** Configuração sem as taxas de cartão: margens, arredondamento e despesas (revisão de preço, dashboard, relatórios). */
+export type PricingMarginSettings = Omit<PricingSettingsSnapshot, "cardFees">;
+
 export interface PricingSettingsReader {
   get(): Promise<PricingSettingsSnapshot>;
+  /** Não lê as taxas de cartão: JSON de taxas inválido não derruba quem não usa taxas (ex.: entrada de estoque). */
+  getMarginSettings(): Promise<PricingMarginSettings>;
 }

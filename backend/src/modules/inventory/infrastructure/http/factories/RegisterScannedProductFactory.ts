@@ -18,13 +18,14 @@ export function makeRegisterScannedProductFactory() {
   const inventoryBoxStockRepository = new PrismaInventoryBoxStockRepository();
   const transactionManager = new PrismaTransactionManager();
 
+  const priceReviewTrigger = makePriceReviewService();
   const receiveInventory = new ReceiveInventoryUseCase(
     catalogService,
     inventoryRepository,
     inventoryLotRepository,
     new PrismaStockMovementRepository(),
     transactionManager,
-    makePriceReviewService(),
+    priceReviewTrigger,
   );
   const addProductToBox = new AddProductToBoxUseCase(
     inventoryBoxRepository,
@@ -41,5 +42,6 @@ export function makeRegisterScannedProductFactory() {
     inventoryRepository,
     inventoryBoxRepository,
     transactionManager,
+    priceReviewTrigger,
   );
 }

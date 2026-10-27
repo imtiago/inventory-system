@@ -135,7 +135,7 @@ export function makeFinanceReportController(type: FinancialType) {
 async function loadProfit(query: unknown, limit: number) {
   const q = parseInput(profitReportQuerySchema, query);
   const rows = await new PrismaProfitReportRepository().aggregate(q.from, q.to, q.view, q.sellerId ?? null, limit);
-  const { expensesBps } = await new PrismaPricingSettingsReader().get();
+  const { expensesBps } = await new PrismaPricingSettingsReader().getMarginSettings();
   return { view: q.view, ...buildProfit(rows, expensesBps) };
 }
 

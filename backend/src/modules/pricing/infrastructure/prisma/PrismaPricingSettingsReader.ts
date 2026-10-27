@@ -1,10 +1,23 @@
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { readTogether } from "@shared/infrastructure/database/readTogether";
-import type { PricingSettingsReader, PricingSettingsSnapshot } from "@pricing/application/contracts/PricingSettingsReader";
+import type {
+  PricingMarginSettings,
+  PricingSettingsReader,
+  PricingSettingsSnapshot,
+} from "@pricing/application/contracts/PricingSettingsReader";
 import { parseStoredCardFees, ZERO_CARD_FEES } from "./cardFeesJson";
 
 export class PrismaPricingSettingsReader implements PricingSettingsReader {
   async get(): Promise<PricingSettingsSnapshot> {
+    const { settings, cardFeesJson } = await this.read();
+    return { ...settings, cardFees: settings.configured ? parseStoredCardFees(cardFeesJson) : ZERO_CARD_FEES };
+  }
+
+  async getMarginSettings(): Promise<PricingMarginSettings> {
+    return (await this.read()).settings;
+  }
+
+  private async read(): Promise<{ settings: PricingMarginSettings; cardFeesJson: unknown }> {
     const db = getDb();
     const [row, sum] = await readTogether([
       db.pricingSettings.findUnique({ where: { id: "default" } }),
@@ -13,21 +26,25 @@ export class PrismaPricingSettingsReader implements PricingSettingsReader {
     const expensesBps = sum._sum.percentBps ?? 0;
     if (!row) {
       return {
-        configured: false,
-        defaultMarginBps: 0,
-        roundingStrategy: "STORE_TABLE",
-        alertThresholdBps: 200,
-        cardFees: ZERO_CARD_FEES,
-        expensesBps,
+        settings: {
+          configured: false,
+          defaultMarginBps: 0,
+          roundingStrategy: "STORE_TABLE",
+          alertThresholdBps: 200,
+          expensesBps,
+        },
+        cardFeesJson: null,
       };
     }
     return {
-      configured: true,
-      defaultMarginBps: row.defaultMarginBps,
-      roundingStrategy: row.roundingStrategy,
-      alertThresholdBps: row.alertThresholdBps,
-      cardFees: parseStoredCardFees(row.cardFees),
-      expensesBps,
+      settings: {
+        configured: true,
+        defaultMarginBps: row.defaultMarginBps,
+        roundingStrategy: row.roundingStrategy,
+        alertThresholdBps: row.alertThresholdBps,
+        expensesBps,
+      },
+      cardFeesJson: row.cardFees,
     };
   }
 }
