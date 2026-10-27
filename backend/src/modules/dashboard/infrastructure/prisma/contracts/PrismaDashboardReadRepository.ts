@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { PrismaPriceReviewRepository } from "@pricing/infrastructure/prisma/PrismaPriceReviewRepository";
 import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { buildProfit } from "../../../../reports/application/profit";
 import { PrismaProfitReportRepository } from "../../../../reports/infrastructure/prisma/PrismaProfitReportRepository";
@@ -10,6 +11,7 @@ import {
   FinancialSectionDTO,
   InventorySectionDTO,
   OutOfStockItemDTO,
+  PricingSectionDTO,
   ProfitSectionDTO,
   PurchasesSectionDTO,
   SalesSectionDTO,
@@ -68,6 +70,11 @@ interface PurchasesRow {
 }
 
 export class PrismaDashboardReadRepository implements DashboardReadRepository {
+  /** Mesma contagem de GET /pricing/reviews/count. */
+  async pricing(): Promise<PricingSectionDTO> {
+    return { pendingReviews: await new PrismaPriceReviewRepository().countPending() };
+  }
+
   /** Mesmo cálculo do relatório de lucro (período = dia 1 do mês até hoje, totais). */
   async profit(today: string): Promise<ProfitSectionDTO> {
     const raw = await new PrismaProfitReportRepository().aggregate(`${today.slice(0, 7)}-01`, today, "period", null, 40);

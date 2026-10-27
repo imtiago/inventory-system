@@ -57,6 +57,11 @@ export interface ProfitSectionDTO {
   month: { revenue: number; profit: number; marginPercent: number | null };
 }
 
+/** Revisões de preço pendentes; só com `catalog.price`. */
+export interface PricingSectionDTO {
+  pendingReviews: number;
+}
+
 export interface DashboardDTO {
   generatedAt: string;
   sales?: SalesSectionDTO;
@@ -65,4 +70,5 @@ export interface DashboardDTO {
   inventory?: InventorySectionDTO;
   purchases?: PurchasesSectionDTO;
   profit?: ProfitSectionDTO;
+  pricing?: PricingSectionDTO;
 }

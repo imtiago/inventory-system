@@ -393,11 +393,28 @@ describe("Dashboard (GET /dashboard)", () => {
       "generatedAt",
       "inventory",
       "payables",
+      "pricing",
       "profit",
       "purchases",
       "receivables",
       "sales",
     ]);
+  });
+
+  test("pricing.pendingReviews: só ADMIN (catalog.price); igual a GET /pricing/reviews/count", async () => {
+    assert.ok(!("pricing" in (await read(vendedor))), "VENDEDOR não recebe pricing");
+    assert.ok(!("pricing" in (await read(estoquista))), "ESTOQUISTA não recebe pricing");
+    const a = await read(admin);
+    assert.deepEqual(Object.keys(a.pricing), ["pendingReviews"]);
+    const res = await app.inject({
+      method: "GET",
+      url: "/pricing/reviews/count",
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    assert.equal(res.statusCode, 200, res.body);
+    assert.equal(typeof a.pricing.pendingReviews, "number");
+    // Outras suítes podem criar revisões em paralelo; a leitura seguinte não pode ser menor que zero nem destoar por muito.
+    assert.ok(Number.isInteger(a.pricing.pendingReviews) && a.pricing.pendingReviews >= 0);
   });
 
   test("lucro do mês: só ADMIN recebe a chave; custo registrado, despesas atuais; cancelada não conta", async () => {

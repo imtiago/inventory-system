@@ -12,6 +12,7 @@ const SECTION_PERMISSIONS: Record<SectionKey, Permission> = {
   inventory: "inventory.read",
   purchases: "purchases.read",
   profit: "reports.profit",
+  pricing: "catalog.price",
 };
 
 export class GetDashboardUseCase {
@@ -32,6 +33,8 @@ export class GetDashboardUseCase {
     const purchases = await when("purchases", () => this.repository.purchases());
     const profit = await when("profit", () => this.repository.profit(today));
 
+    const pricing = await when("pricing", () => this.repository.pricing());
+
     const dto: DashboardDTO = { generatedAt: now.toISOString() };
     if (sales) dto.sales = sales;
     if (receivables) dto.receivables = receivables;
@@ -39,6 +42,7 @@ export class GetDashboardUseCase {
     if (inventory) dto.inventory = inventory;
     if (purchases) dto.purchases = purchases;
     if (profit) dto.profit = profit;
+    if (pricing) dto.pricing = pricing;
     return dto;
   }
 }

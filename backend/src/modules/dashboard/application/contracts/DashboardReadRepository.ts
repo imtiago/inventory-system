@@ -1,6 +1,7 @@
 import {
   FinancialSectionDTO,
   InventorySectionDTO,
+  PricingSectionDTO,
   ProfitSectionDTO,
   PurchasesSectionDTO,
   SalesSectionDTO,
@@ -14,4 +15,5 @@ export interface DashboardReadRepository {
   inventory(today: string): Promise<InventorySectionDTO>;
   purchases(): Promise<PurchasesSectionDTO>;
   profit(today: string): Promise<ProfitSectionDTO>;
+  pricing(): Promise<PricingSectionDTO>;
 }

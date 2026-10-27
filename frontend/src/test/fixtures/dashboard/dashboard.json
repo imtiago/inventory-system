@@ -57,6 +57,7 @@
     "purchases": {
       "awaitingReceipt": { "count": 3, "total": 4520.3 }
     },
+    "pricing": { "pendingReviews": 3 },
     "profit": {
       "month": { "revenue": 8734.5, "profit": 2410.8, "marginPercent": 27.6 }
     }
