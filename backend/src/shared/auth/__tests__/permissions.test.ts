@@ -43,6 +43,7 @@ const MATRIX: Record<Permission, Role[]> = {
   "reports.profit": ["ADMIN"],
   "credit.approve": ["ADMIN"],
   "credit.manage": ["ADMIN"],
+  "credit.request": ["ADMIN", "VENDEDOR"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -110,6 +111,7 @@ const ROUTES: Record<Permission, RouteProbe> = {
   "reports.profit": { method: "GET", url: "/reports/profit?from=2095-01-01&to=2095-01-02", allowed: 200 },
   "credit.approve": { method: "GET", url: "/credit/approvers/me", allowed: 200 },
   "credit.manage": { method: "GET", url: "/credit/settings", allowed: 200 },
+  "credit.request": { method: "POST", url: "/credit/limit-requests", payload: {}, allowed: 400 },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
@@ -142,6 +144,11 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["customers.read", { method: "GET", url: `/customers/${missing}/credit`, allowed: 404 }],
   // Simulação do fechamento (só leitura): corpo inválido → 400.
   ["sales.create", { method: "POST", url: "/sales/simulate", payload: {}, allowed: 400 }],
+  // Pedidos de aumento: listar/decidir só quem aprova (id inexistente → 404; corpo inválido → 400).
+  ["credit.approve", { method: "GET", url: "/credit/limit-requests?limit=1", allowed: 200 }],
+  ["credit.approve", { method: "GET", url: "/credit/limit-requests/count", allowed: 200 }],
+  ["credit.approve", { method: "POST", url: `/credit/limit-requests/${missing}/approve`, payload: {}, allowed: 404 }],
+  ["credit.approve", { method: "POST", url: `/credit/limit-requests/${missing}/reject`, payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/settings", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/profiles/NEW", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],

@@ -393,6 +393,7 @@ model Customer {
   creditStatus      CreditStatus      @default(ACTIVE)
   creditProfile     CreditProfile     @relation(fields: [creditProfileCode], references: [code], onDelete: Restrict)
   creditChanges     CreditLimitChange[]
+  creditLimitRequests CreditLimitRequest[]
 }
 
 model User {
@@ -422,6 +423,8 @@ model User {
   creditSettingsUpdated  CreditSettings[]    @relation("creditSettingsUpdated")
   creditLimitChanges     CreditLimitChange[]
   saleFinancingOverrides SaleFinancing[]     @relation("saleFinancingOverrides")
+  creditLimitRequested   CreditLimitRequest[] @relation("creditLimitRequested")
+  creditLimitDecided     CreditLimitRequest[] @relation("creditLimitDecided")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -913,4 +916,29 @@ model CreditLimitChange {
   changedBy User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
 
   @@index([customerId, createdAt])
+}
+
+/// Pedido de aumento de limite. Um PENDING por cliente (único parcial na migration 20261029100500). Trava: o pedido
+/// (`FOR UPDATE`) vem antes da ficha do cliente. `autoApproved`: nasce APPROVED sem decisor.
+model CreditLimitRequest {
+  id             String                @id @default(uuid())
+  customerId     String
+  currentLimit   Decimal               @db.Decimal(12, 2)
+  requestedLimit Decimal               @db.Decimal(12, 2)
+  approvedLimit  Decimal?              @db.Decimal(12, 2)
+  reason         String                @db.VarChar(300)
+  status         ApprovalRequestStatus @default(PENDING)
+  autoApproved   Boolean               @default(false)
+  requestedById  String?
+  requestedAt    DateTime              @default(now())
+  decidedById    String?
+  decidedAt      DateTime?
+  decisionReason String?               @db.VarChar(300)
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  requestedBy User?    @relation("creditLimitRequested", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy   User?    @relation("creditLimitDecided", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
+  @@index([customerId, requestedAt])
 }

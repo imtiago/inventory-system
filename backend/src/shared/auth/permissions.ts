@@ -29,6 +29,7 @@ export const PERMISSIONS = [
   "reports.profit",
   "credit.approve",
   "credit.manage",
+  "credit.request",
   "self",
 ] as const;
 
@@ -47,6 +48,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "inventory.read",
     "finance.read",
     "finance.pay",
+    "credit.request",
     "self",
   ],
   [UserRole.ESTOQUISTA]: [

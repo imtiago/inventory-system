@@ -1,6 +1,14 @@
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
 import { CustomerCreditService } from "@credit/application/services/CustomerCreditService";
 import { GetCustomerCreditUseCase, UpdateCustomerCreditUseCase } from "@credit/application/useCases/CustomerCreditUseCases";
+import {
+  ApproveCreditLimitRequestUseCase,
+  ListCreditLimitRequestsUseCase,
+  RejectCreditLimitRequestUseCase,
+  RequestCreditLimitUseCase,
+} from "@credit/application/useCases/CreditLimitRequestUseCases";
+import { PrismaCreditLimitRequestRepository } from "@credit/infrastructure/prisma/PrismaCreditLimitRequestRepository";
+import { PrismaCreditHistoryReader } from "@credit/infrastructure/prisma/PrismaCreditHistoryReader";
 import { PrismaCustomerCreditRepository } from "@credit/infrastructure/prisma/PrismaCustomerCreditRepository";
 import { PrismaCreditLimitChangeRepository } from "@credit/infrastructure/prisma/PrismaCreditLimitChangeRepository";
 import { PrismaCreditProfileRepository } from "@credit/infrastructure/prisma/PrismaCreditProfileRepository";
@@ -46,4 +54,32 @@ export function makeCrediarioCheckoutService(): CrediarioCheckoutService {
     new CreditOverrideAuthorizer(new PrismaUserRepository(), new BcryptPasswordHasher(), creditOverrideAttemptLimiter),
     new PrismaTransactionManager(),
   );
+}
+
+export function makeRequestCreditLimitUseCase(): RequestCreditLimitUseCase {
+  const settings = new PrismaCreditSettingsRepository();
+  return new RequestCreditLimitUseCase(
+    new PrismaCustomerCreditRepository(),
+    new PrismaCreditLimitRequestRepository(),
+    new PrismaCreditHistoryReader(settings),
+    settings,
+    makeCustomerCreditService(),
+    new PrismaTransactionManager(),
+  );
+}
+
+export function makeApproveCreditLimitRequestUseCase(): ApproveCreditLimitRequestUseCase {
+  return new ApproveCreditLimitRequestUseCase(
+    new PrismaCreditLimitRequestRepository(),
+    makeCustomerCreditService(),
+    new PrismaTransactionManager(),
+  );
+}
+
+export function makeRejectCreditLimitRequestUseCase(): RejectCreditLimitRequestUseCase {
+  return new RejectCreditLimitRequestUseCase(new PrismaCreditLimitRequestRepository(), new PrismaTransactionManager());
+}
+
+export function makeListCreditLimitRequestsUseCase(): ListCreditLimitRequestsUseCase {
+  return new ListCreditLimitRequestsUseCase(new PrismaCreditLimitRequestRepository());
 }

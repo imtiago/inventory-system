@@ -199,3 +199,35 @@ export const updateCustomerCreditSchema = z
     message: "Informe o perfil, o limite ou a situação.",
     path: ["profileCode"],
   });
+
+// ---------------------------------------------------------------------------------------------
+// Pedidos de aumento de limite
+// ---------------------------------------------------------------------------------------------
+
+const requestReason = (max: number) =>
+  z
+    .string({ error: "Informe o motivo." })
+    .trim()
+    .min(3, "O motivo deve ter ao menos 3 caracteres.")
+    .max(max, `O motivo deve ter no máximo ${max} caracteres.`);
+
+const positiveMoney = (label: string) => money(label).refine((v) => v > 0, "O valor deve ser maior que zero.");
+
+export const createLimitRequestSchema = z.object({
+  customerId: z.string({ error: "Informe o cliente." }).uuid("Cliente inválido."),
+  requestedLimit: positiveMoney("o limite pedido"),
+  reason: requestReason(300),
+});
+
+export const limitRequestParamsSchema = z.object({ id: z.string().uuid("Pedido inválido.") });
+
+export const approveLimitRequestSchema = z.object({
+  approvedLimit: positiveMoney("o limite aprovado").optional(),
+  reason: requestReason(200).optional(),
+});
+
+export const rejectLimitRequestSchema = z.object({ reason: requestReason(300) });
+
+export const limitRequestsQuerySchema = z.object({
+  status: z.enum(["PENDING", "APPROVED", "REJECTED"], { error: "Status inválido." }).optional(),
+});

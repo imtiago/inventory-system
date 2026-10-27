@@ -11,6 +11,14 @@ import { PrismaCreditActivationChecks } from "@credit/infrastructure/prisma/Pris
 import { GetCreditSettingsUseCase } from "@credit/application/useCases/GetCreditSettingsUseCase";
 import { UpdateCreditSettingsUseCase } from "@credit/application/useCases/UpdateCreditSettingsUseCase";
 import { ListCreditProfilesUseCase, UpdateCreditProfileUseCase } from "@credit/application/useCases/CreditProfileUseCases";
+import { idempotent } from "@shared/http/idempotency/idempotent";
+import {
+  makeApproveCreditLimitRequestController,
+  makeCountCreditLimitRequestsController,
+  makeListCreditLimitRequestsController,
+  makeRejectCreditLimitRequestController,
+  makeRequestCreditLimitController,
+} from "@credit/infrastructure/http/controllers/creditLimitRequestControllers";
 import {
   creditProfileParamsSchema,
   updateCreditProfileSchema,
@@ -70,4 +78,12 @@ export async function creditRoutes(app: FastifyInstance) {
   app.get("/approvers/me", { preHandler: [authorize("credit.approve")] }, async (_request, reply) =>
     reply.send(HttpResponse.ok({ canApprove: true })),
   );
+
+  // Pedidos de aumento de limite: qualquer vendedor pede; quem tem `credit.approve` lista e decide.
+  const approve = { preHandler: [authorize("credit.approve")] };
+  app.post("/limit-requests", { preHandler: [authorize("credit.request")] }, idempotent(makeRequestCreditLimitController()));
+  app.get("/limit-requests", approve, makeListCreditLimitRequestsController());
+  app.get("/limit-requests/count", approve, makeCountCreditLimitRequestsController());
+  app.post("/limit-requests/:id/approve", approve, idempotent(makeApproveCreditLimitRequestController()));
+  app.post("/limit-requests/:id/reject", approve, makeRejectCreditLimitRequestController());
 }
