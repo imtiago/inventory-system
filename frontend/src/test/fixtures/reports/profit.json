@@ -1,0 +1,26 @@
+{
+  "data": {
+    "rows": [
+      {
+        "key": "2026-10-23",
+        "label": "23/10/2026",
+        "revenue": 1250.5,
+        "cost": 700.25,
+        "estimatedExpenses": 125.05,
+        "profit": 425.2,
+        "marginPercent": 34,
+        "itemsWithoutCost": 2
+      }
+    ],
+    "totals": {
+      "key": "total",
+      "label": "Total",
+      "revenue": 1250.5,
+      "cost": 700.25,
+      "estimatedExpenses": 125.05,
+      "profit": 425.2,
+      "marginPercent": 34,
+      "itemsWithoutCost": 2
+    }
+  }
+}

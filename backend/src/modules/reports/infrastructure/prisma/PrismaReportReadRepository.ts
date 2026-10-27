@@ -36,10 +36,10 @@ export interface StockReportRow {
 
 const TZ = "America/Sao_Paulo";
 // Dia de negócio (BRT) de um instante gravado em UTC (timestamp sem fuso).
-const SALE_DAY = Prisma.sql`to_char((s."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`;
+export const SALE_DAY = Prisma.sql`to_char((s."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`;
 
 /** Intervalo de dias de negócio [from, to] como limites UTC (sargável em createdAt). */
-const salePeriod = (from: string, to: string) => Prisma.sql`
+export const salePeriod = (from: string, to: string) => Prisma.sql`
   s."createdAt" >= ((${from}::date)::timestamp AT TIME ZONE ${TZ}) AT TIME ZONE 'UTC'
   AND s."createdAt" < (((${to}::date + 1))::timestamp AT TIME ZONE ${TZ}) AT TIME ZONE 'UTC'`;
 

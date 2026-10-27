@@ -14,6 +14,7 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { makeExportFinancialParcelsUseCase } from "@finance/infrastructure/http/factories/FinancialDocumentReadFactory";
 import { parseListQuery } from "@finance/infrastructure/http/controllers/ListFinancialDocumentsController";
 import {
+  csvCents,
   csvDate,
   csvHeaders,
   csvMoney,
@@ -22,6 +23,10 @@ import {
   toCsv,
 } from "@shared/http/csv";
 import { PrismaReportReadRepository } from "../../prisma/PrismaReportReadRepository";
+import { PrismaProfitReportRepository } from "../../prisma/PrismaProfitReportRepository";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
+import { buildProfit } from "../../../application/profit";
+import { profitReportQuerySchema, ProfitView } from "../../../interfaces/http/schemas/profitReportSchema";
 
 const DEFAULT_MAX_ROWS = 50_000;
 
@@ -122,6 +127,49 @@ export function makeFinanceReportController(type: FinancialType) {
         csvMoney(p.remainingAmount.toFixed(2)),
         PARCEL_STATUS_LABEL[p.status] ?? p.status,
       ]),
+    );
+  };
+}
+
+/** Lê o relatório de lucro (linhas + totais) com as despesas estimadas atuais. */
+async function loadProfit(query: unknown, limit: number) {
+  const q = parseInput(profitReportQuerySchema, query);
+  const rows = await new PrismaProfitReportRepository().aggregate(q.from, q.to, q.view, q.sellerId ?? null, limit);
+  const { expensesBps } = await new PrismaPricingSettingsReader().get();
+  return { view: q.view, ...buildProfit(rows, expensesBps) };
+}
+
+export function makeProfitReportController() {
+  return async function ProfitReportController(req: FastifyRequest, reply: FastifyReply) {
+    const { rows, totals } = await loadProfit(req.query, maxExportRows());
+    return reply.status(200).send({ data: { rows, totals } });
+  };
+}
+
+const PROFIT_VIEW_HEADER: Record<ProfitView, string> = {
+  period: "Dia",
+  sale: "Venda",
+  variant: "Produto",
+  category: "Categoria",
+};
+
+export function makeProfitCsvController() {
+  return async function ProfitCsvController(req: FastifyRequest, reply: FastifyReply) {
+    const { view, rows, totals } = await loadProfit(req.query, maxExportRows());
+    const line = (r: (typeof rows)[number]): CsvCell[] => [
+      r.label,
+      csvCents(Math.round(r.revenue * 100)),
+      csvCents(Math.round(r.cost * 100)),
+      csvCents(Math.round(r.estimatedExpenses * 100)),
+      csvCents(Math.round(r.profit * 100)),
+      r.marginPercent === null ? "" : csvQty(r.marginPercent.toFixed(2)),
+      r.itemsWithoutCost,
+    ];
+    return send(
+      reply,
+      "lucro",
+      [PROFIT_VIEW_HEADER[view], "Receita", "Custo", "Despesas estimadas", "Lucro", "Margem (%)", "Custo não registrado"],
+      [...rows.map(line), line(totals)],
     );
   };
 }

@@ -1,3 +1,4 @@
+import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/errors";
 import { InventoryLotSource } from "@inventory/domain/enums/InventoryLotSource";
 import { StockMovementOrigin } from "@inventory/domain/enums/StockMovementOrigin";
 import { DispatchInventoryUseCase } from "../useCases/commands/DispatchInventoryUseCase";
@@ -24,14 +25,20 @@ export class InventoryApplicationService implements InventoryService {
     return (await this.revertPurchaseStockUseCase.execute(request)).status;
   }
 
-  async consumeStock(request: ConsumeStockRequest): Promise<void> {
-    await this.dispatchInventoryUseCase.execute({
+  async consumeStock(request: ConsumeStockRequest): Promise<{ averageCost: number }> {
+    const movements = await this.dispatchInventoryUseCase.execute({
       productVariantId: request.productVariantId,
       quantity: request.quantity,
       origin: StockMovementOrigin.SALE,
       originReferenceId: request.originId,
       userId: request.userId,
     });
+    // Quantidade > 0 gera ao menos uma movimentação; todas carregam a média sob a trava.
+    const first = movements[0];
+    if (!first || first.averageCost == null) {
+      throw new InternalInvariantError("A baixa de estoque não gerou movimentação.", InternalErrorCodes.INVENTORY_LOTS_INCONSISTENT);
+    }
+    return { averageCost: first.averageCost };
   }
 
   async returnSaleStock(request: ReturnSaleStockRequest): Promise<void> {

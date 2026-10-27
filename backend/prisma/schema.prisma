@@ -331,6 +331,9 @@ model SaleItem {
 
   unitPrice Decimal @db.Decimal(12, 2)
 
+  // Custo médio da variante no momento da venda; NULL em vendas anteriores ao registro.
+  unitCost Decimal? @db.Decimal(14, 4)
+
   sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])

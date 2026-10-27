@@ -1,12 +1,16 @@
 import { Prisma } from "@prisma/client";
 import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
+import { buildProfit } from "../../../../reports/application/profit";
+import { PrismaProfitReportRepository } from "../../../../reports/infrastructure/prisma/PrismaProfitReportRepository";
 import { DashboardReadRepository } from "../../../application/contracts/DashboardReadRepository";
 import {
   ExpiringLotDTO,
   FinancialSectionDTO,
   InventorySectionDTO,
   OutOfStockItemDTO,
+  ProfitSectionDTO,
   PurchasesSectionDTO,
   SalesSectionDTO,
   TopVariantDTO,
@@ -64,6 +68,14 @@ interface PurchasesRow {
 }
 
 export class PrismaDashboardReadRepository implements DashboardReadRepository {
+  /** Mesmo cálculo do relatório de lucro (período = dia 1 do mês até hoje, totais). */
+  async profit(today: string): Promise<ProfitSectionDTO> {
+    const raw = await new PrismaProfitReportRepository().aggregate(`${today.slice(0, 7)}-01`, today, "period", null, 40);
+    const { expensesBps } = await new PrismaPricingSettingsReader().get();
+    const { totals } = buildProfit(raw, expensesBps);
+    return { month: { revenue: totals.revenue, profit: totals.profit, marginPercent: totals.marginPercent } };
+  }
+
   async sales(today: string): Promise<SalesSectionDTO> {
     const db = getDb();
     const [summary, last7, top] = await readTogether([

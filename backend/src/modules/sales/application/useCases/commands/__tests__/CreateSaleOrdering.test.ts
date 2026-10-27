@@ -14,6 +14,7 @@ function build(variantIds: string[]) {
   const inventoryService: InventoryService = {
     consumeStock: async (req) => {
       calls.push(req);
+      return { averageCost: 0 };
     },
     returnSaleStock: async () => {},
     receivePurchaseStock: async () => {},
@@ -94,6 +95,7 @@ test("total em centavos menor que o nº de parcelas → 422 INSTALLMENTS_EXCEED_
   const inventoryService = {
     consumeStock: async (req: ConsumeStockRequest) => {
       calls.push(req);
+      return { averageCost: 0 };
     },
   } as unknown as InventoryService;
   let receivables = 0;

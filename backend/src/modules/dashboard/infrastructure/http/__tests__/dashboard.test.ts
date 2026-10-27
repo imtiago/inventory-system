@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { prisma } from "@shared/prisma";
+import { applyBps } from "@shared/domain/percent";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { getDb, runInTransactionContext } from "@shared/infrastructure/prisma/transactionContext";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
@@ -84,7 +86,7 @@ describe("Dashboard (GET /dashboard)", () => {
   const createSale = async (
     status: "COMPLETED" | "CANCELED",
     createdAt: Date,
-    items: { variantId: string; quantity: number; unitPrice: number }[],
+    items: { variantId: string; quantity: number; unitPrice: number; unitCost?: number | null }[],
   ) => {
     const total = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const sale = await prisma.sale.create({
@@ -99,6 +101,7 @@ describe("Dashboard (GET /dashboard)", () => {
             productName: "tx-test",
             quantity: i.quantity,
             unitPrice: i.unitPrice,
+            unitCost: i.unitCost ?? null,
           })),
         },
       },
@@ -390,10 +393,46 @@ describe("Dashboard (GET /dashboard)", () => {
       "generatedAt",
       "inventory",
       "payables",
+      "profit",
       "purchases",
       "receivables",
       "sales",
     ]);
+  });
+
+  test("lucro do mês: só ADMIN recebe a chave; custo registrado, despesas atuais; cancelada não conta", async () => {
+    const v = await read(vendedor);
+    assert.ok(!("profit" in v), "VENDEDOR não recebe profit");
+    assert.ok(!("profit" in (await read(estoquista))));
+
+    const bps = (await new PrismaPricingSettingsReader().get()).expensesBps;
+    const before = await readWindow();
+    await createSale("COMPLETED", new Date(`${TODAY}T12:00:00-03:00`), [
+      { variantId: variants[0].variantId, quantity: 2, unitPrice: 10, unitCost: 3 },
+    ]);
+    await createSale("CANCELED", new Date(`${TODAY}T12:00:00-03:00`), [
+      { variantId: variants[0].variantId, quantity: 9, unitPrice: 10, unitCost: 1 },
+    ]);
+    const after = await readWindow();
+    assert.deepEqual(Object.keys(after.profit.month).sort(), ["marginPercent", "profit", "revenue"]);
+    assert.equal(round2(after.profit.month.revenue - before.profit.month.revenue), 20);
+    const afterBps = (await new PrismaPricingSettingsReader().get()).expensesBps;
+    if (bps === afterBps) {
+      // O mês soma os dias: só o dia de hoje mudou (receita 20,00, custo 6,00).
+      const expenses = (total: number) => applyBps(Math.round(total * 100), bps) / 100;
+      const todayBefore = before.sales.last7Days[6].total;
+      const todayAfter = after.sales.last7Days[6].total;
+      assert.equal(
+        round2(after.profit.month.profit - before.profit.month.profit),
+        round2(20 - 6 - (expenses(todayAfter) - expenses(todayBefore))),
+      );
+    }
+    if (after.profit.month.revenue > 0) {
+      assert.equal(
+        after.profit.month.marginPercent,
+        Math.round((after.profit.month.profit / after.profit.month.revenue) * 10_000) / 100,
+      );
+    }
   });
 
   test("chaves = fixture", async () => {

@@ -38,6 +38,7 @@ const MATRIX: Record<Permission, Role[]> = {
   "payables.pay": ["ADMIN"],
   "payables.reverse": ["ADMIN"],
   "pricing.manage": ["ADMIN"],
+  "reports.profit": ["ADMIN"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -101,6 +102,7 @@ const ROUTES: Record<Permission, RouteProbe> = {
     allowed: 400,
   },
   "pricing.manage": { method: "GET", url: "/pricing/settings", allowed: 200 },
+  "reports.profit": { method: "GET", url: "/reports/profit?from=2095-01-01&to=2095-01-02", allowed: 200 },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 

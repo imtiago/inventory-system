@@ -7,6 +7,7 @@ import {
   ValidationError,
 } from "@shared/domain/errors";
 import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
+import { toCost4 } from "@shared/domain/cost4";
 import { toCents } from "@shared/domain/money";
 import { MAX_AMOUNT_CENTS } from "@shared/domain/limits";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
@@ -126,12 +127,17 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
     );
     for (const item of itemsInLockOrder) {
       try {
-        await this.inventoryService.consumeStock({
+        const { averageCost } = await this.inventoryService.consumeStock({
           productVariantId: item.productVariantId,
           quantity: item.quantity,
           originId: sale.id,
           userId: request.sellerId,
         });
+        // Consumir não muda a média: todos os itens da mesma variante recebem o mesmo custo.
+        const cost4 = toCost4(averageCost);
+        for (const saleItem of saleItems) {
+          if (saleItem.variantId === item.productVariantId) saleItem.recordUnitCost4(cost4);
+        }
       } catch (error) {
         const name = saleItems.find((i) => i.variantId === item.productVariantId)?.variantName;
         throw name ? describeStockShortage(error, name) : error;

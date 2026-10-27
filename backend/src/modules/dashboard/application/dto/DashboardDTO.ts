@@ -52,6 +52,11 @@ export interface PurchasesSectionDTO {
   awaitingReceipt: CountTotalDTO;
 }
 
+/** Lucro do mês (receita − custo registrado − despesas estimadas); só com `reports.profit`. */
+export interface ProfitSectionDTO {
+  month: { revenue: number; profit: number; marginPercent: number | null };
+}
+
 export interface DashboardDTO {
   generatedAt: string;
   sales?: SalesSectionDTO;
@@ -59,4 +64,5 @@ export interface DashboardDTO {
   payables?: FinancialSectionDTO;
   inventory?: InventorySectionDTO;
   purchases?: PurchasesSectionDTO;
+  profit?: ProfitSectionDTO;
 }

@@ -40,7 +40,8 @@ export interface RevertPurchaseStockRequest {
 }
 
 export interface InventoryService {
-  consumeStock(request: ConsumeStockRequest): Promise<void>;
+  /** Baixa o estoque (FEFO) e devolve o custo médio da variante lido sob a trava (consumir não muda a média). */
+  consumeStock(request: ConsumeStockRequest): Promise<{ averageCost: number }>;
   /** Devolve aos lotes de origem tudo o que a venda consumiu. Exige transação do chamador para atomicidade. */
   returnSaleStock(request: ReturnSaleStockRequest): Promise<void>;
   /**
