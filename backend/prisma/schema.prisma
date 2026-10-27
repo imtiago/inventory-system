@@ -161,6 +161,8 @@ model ProductVariant {
 
   salePrice Decimal @default(0) @db.Decimal(12, 2)
   targetMarginBps Int?
+  supplierSuggestedPrice          Decimal? @db.Decimal(12, 2) // CHECK > 0 só na migration
+  supplierSuggestedPriceUpdatedAt DateTime?
 
   product Product @relation(fields: [productId], references: [id])
 

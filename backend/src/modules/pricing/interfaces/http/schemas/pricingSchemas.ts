@@ -69,3 +69,21 @@ export const targetMarginParamsSchema = z.object({
 export const targetMarginBodySchema = z.object({
   targetMarginPercent: z.union([percentField, z.null()]),
 });
+
+export const variantIdParamsSchema = z.object({ id: z.string().uuid("Identificador inválido.") });
+
+export const supplierPriceBodySchema = z.object({
+  supplierSuggestedPrice: z.union([
+    z
+      .number({ error: "Informe um valor." })
+      .refine((v) => Number.isFinite(v) && v > 0, "O preço da revista deve ser maior que zero.")
+      .refine((v) => v <= 9_999_999, "Valor muito alto.")
+      .refine((v) => Math.abs(Number((v * 100).toPrecision(15)) - Math.round(v * 100)) <= 1e-9, "Use no máximo 2 casas decimais.")
+      .transform((v) => toCents(v)),
+    z.null(),
+  ]),
+});
+
+export const applyPriceBodySchema = z.object({
+  source: z.enum(["SUGGESTED", "SUPPLIER"], { error: "Origem do preço inválida." }),
+});

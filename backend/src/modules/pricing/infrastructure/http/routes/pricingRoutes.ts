@@ -11,10 +11,19 @@ import { CreatePricingExpenseUseCase } from "@pricing/application/useCases/Creat
 import { UpdatePricingExpenseUseCase } from "@pricing/application/useCases/UpdatePricingExpenseUseCase";
 import { DeletePricingExpenseUseCase } from "@pricing/application/useCases/DeletePricingExpenseUseCase";
 import { SetTargetMarginUseCase } from "@pricing/application/useCases/SetTargetMarginUseCase";
+import { GetVariantPricingUseCase } from "@pricing/application/useCases/queries/GetVariantPricingUseCase";
+import { SetSupplierSuggestedPriceUseCase } from "@pricing/application/useCases/commands/SetSupplierSuggestedPriceUseCase";
+import { ApplyVariantPriceUseCase } from "@pricing/application/useCases/commands/ApplyVariantPriceUseCase";
+import { PrismaVariantPricingReader } from "@pricing/infrastructure/prisma/PrismaVariantPricingReader";
+import { PrismaVariantPricingWriter } from "@pricing/infrastructure/prisma/PrismaVariantPricingWriter";
+import { PrismaTargetMarginReader } from "@pricing/infrastructure/prisma/PrismaTargetMarginReader";
 import { toExpenseDTO } from "@pricing/application/dto/PricingSettingsDTO";
 import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { PrismaPricingSettingsRepository } from "@pricing/infrastructure/prisma/PrismaPricingSettingsRepository";
 import {
+  applyPriceBodySchema,
+  supplierPriceBodySchema,
+  variantIdParamsSchema,
   expenseBodySchema,
   expenseIdParamsSchema,
   targetMarginBodySchema,
@@ -28,6 +37,7 @@ export async function pricingRoutes(app: FastifyInstance) {
   const reader = new PrismaPricingSettingsReader();
   // A Task 5 troca o no-op pela revisão real de preços.
   const trigger = new NoopPriceReviewTrigger();
+  const price = { preHandler: [authorize("catalog.price")] };
   const manage = { preHandler: [authorize("pricing.manage")] };
 
   const get = new GetPricingSettingsUseCase(reader, repository, tm);
@@ -35,6 +45,11 @@ export async function pricingRoutes(app: FastifyInstance) {
   const createExpense = new CreatePricingExpenseUseCase(repository, reader, trigger, tm);
   const updateExpense = new UpdatePricingExpenseUseCase(repository, reader, trigger, tm);
   const deleteExpense = new DeletePricingExpenseUseCase(repository, trigger, tm);
+  const variantReader = new PrismaVariantPricingReader();
+  const variantWriter = new PrismaVariantPricingWriter();
+  const getVariant = new GetVariantPricingUseCase(variantReader, reader, new PrismaTargetMarginReader(), tm);
+  const setSupplier = new SetSupplierSuggestedPriceUseCase(variantWriter, getVariant, tm);
+  const applyPrice = new ApplyVariantPriceUseCase(variantWriter, getVariant, trigger, tm);
   const setMargin = new SetTargetMarginUseCase(repository, reader, trigger, tm);
 
   app.get("/settings", manage, async (_request, reply) => reply.send(HttpResponse.ok(await get.execute())));
@@ -81,5 +96,22 @@ export async function pricingRoutes(app: FastifyInstance) {
     const { targetMarginPercent } = parseInput(targetMarginBodySchema, request.body);
     const { marginBps } = await setMargin.execute({ level, id, marginBps: targetMarginPercent });
     return reply.send(HttpResponse.ok({ level, id, targetMarginPercent: marginBps === null ? null : bpsToPercent(marginBps) }));
+  });
+
+  app.get("/variants/:id", price, async (request, reply) => {
+    const { id } = parseInput(variantIdParamsSchema, request.params);
+    return reply.send(HttpResponse.ok(await getVariant.execute({ variantId: id })));
+  });
+
+  app.put("/variants/:id/supplier-price", price, async (request, reply) => {
+    const { id } = parseInput(variantIdParamsSchema, request.params);
+    const body = parseInput(supplierPriceBodySchema, request.body);
+    return reply.send(HttpResponse.ok(await setSupplier.execute({ variantId: id, priceCents: body.supplierSuggestedPrice })));
+  });
+
+  app.post("/variants/:id/apply-price", price, async (request, reply) => {
+    const { id } = parseInput(variantIdParamsSchema, request.params);
+    const { source } = parseInput(applyPriceBodySchema, request.body);
+    return reply.send(HttpResponse.ok(await applyPrice.execute({ variantId: id, source })));
   });
 }

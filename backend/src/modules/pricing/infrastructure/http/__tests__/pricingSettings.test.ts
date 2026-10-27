@@ -7,6 +7,7 @@ import { app } from "../../../../../app";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
+import { acquirePricingTestLock } from "../../../../../test/pricingTestLock";
 import { PrismaTargetMarginReader } from "@pricing/infrastructure/prisma/PrismaTargetMarginReader";
 
 app.log.level = "silent";
@@ -43,7 +44,10 @@ describe("Configurações de preço, despesas e margens", () => {
     await prisma.pricingSettings.deleteMany({});
   }
 
+  let releaseLock: () => Promise<void>;
+
   before(async () => {
+    releaseLock = await acquirePricingTestLock();
     for (const role of ["ADMIN", "VENDEDOR"] as const) users[role] = await createTestUser({ role });
     ({ variantId, cleanup: cleanupVariant } = await createTestVariant());
     const v = await prisma.productVariant.findUniqueOrThrow({
@@ -62,6 +66,7 @@ describe("Configurações de preço, despesas e margens", () => {
       await cleanupVariant();
       for (const u of Object.values(users)) await u?.cleanup();
     } finally {
+      await releaseLock?.();
       await app.close();
       await prisma.$disconnect();
     }

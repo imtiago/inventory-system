@@ -1,5 +1,6 @@
 import { ConflictError, ForbiddenError, NotFoundError } from "@shared/domain/errors";
 import { ProductVariantRepository, VariantUpdatableField } from "@catalog/domain/repositories/ProductVariantRepository";
+import type { PriceReviewTrigger } from "@pricing/application/contracts/PriceReviewTrigger";
 import { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import {
@@ -13,6 +14,7 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
 > {
   constructor(
     private variantRepository: ProductVariantRepository,
+    private priceReviewTrigger: PriceReviewTrigger,
     transactionManager: TransactionManager,
   ) {
     super(transactionManager);
@@ -61,6 +63,9 @@ export class UpdateVariantUseCase extends TransactionalUseCase<
       changedFields.length > 0
         ? await this.variantRepository.updateFields(variant, changedFields)
         : variant;
+
+    // VariantPriceChanged: o preço praticado mudou, a revisão de preços recalcula a margem.
+    if (changedFields.includes("salePrice")) await this.priceReviewTrigger.priceApplied(variant.id);
 
     return {
       id: data.id,
