@@ -42,6 +42,7 @@ const MATRIX: Record<Permission, Role[]> = {
   "pricing.manage": ["ADMIN"],
   "reports.profit": ["ADMIN"],
   "credit.approve": ["ADMIN"],
+  "credit.manage": ["ADMIN"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -108,6 +109,7 @@ const ROUTES: Record<Permission, RouteProbe> = {
   "pricing.manage": { method: "GET", url: "/pricing/settings", allowed: 200 },
   "reports.profit": { method: "GET", url: "/reports/profit?from=2095-01-01&to=2095-01-02", allowed: 200 },
   "credit.approve": { method: "GET", url: "/credit/approvers/me", allowed: 200 },
+  "credit.manage": { method: "GET", url: "/credit/settings", allowed: 200 },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
@@ -135,6 +137,12 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["inventory.write", { method: "POST", url: `/inventory/boxes/${missing}/items/remove`, payload: {}, allowed: 400 }],
   ["finance.read", { method: "GET", url: `/reports/receivables.csv?customerId=${missing}`, allowed: 200 }],
   ["payables.read", { method: "GET", url: `/reports/payables.csv?supplierId=${missing}`, allowed: 200 }],
+  // Crédito (crediário): perfis e ficha para quem vê clientes; ajustes só credit.manage (corpo inválido → 400).
+  ["customers.read", { method: "GET", url: "/credit/profiles", allowed: 200 }],
+  ["customers.read", { method: "GET", url: `/customers/${missing}/credit`, allowed: 404 }],
+  ["credit.manage", { method: "PUT", url: "/credit/settings", payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "PUT", url: "/credit/profiles/NEW", payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],
 ];
 
 describe("hasPermission (matriz)", () => {

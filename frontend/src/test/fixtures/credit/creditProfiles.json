@@ -1,0 +1,8 @@
+{
+  "data": [
+    { "code": "NEW", "name": "Novo", "initialLimit": 300, "minDownPaymentPercent": 30, "maxInstallments": 3, "position": 0 },
+    { "code": "REGULAR", "name": "Regular", "initialLimit": 800, "minDownPaymentPercent": 15, "maxInstallments": 5, "position": 1 },
+    { "code": "GOOD", "name": "Bom", "initialLimit": 2000, "minDownPaymentPercent": 0, "maxInstallments": 8, "position": 2 },
+    { "code": "EXCELLENT", "name": "Excelente", "initialLimit": 5000, "minDownPaymentPercent": 0, "maxInstallments": 10, "position": 3 }
+  ]
+}

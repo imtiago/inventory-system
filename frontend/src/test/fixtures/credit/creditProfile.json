@@ -1,0 +1,3 @@
+{
+  "data": { "code": "NEW", "name": "Novo", "initialLimit": 350, "minDownPaymentPercent": 25, "maxInstallments": 4, "position": 0 }
+}

@@ -15,8 +15,16 @@ function mapUniqueDocument(error: unknown): never {
 
 export class PrismaCustomerRepository implements CustomerRepository {
   async create(customer: Customer): Promise<Customer> {
+    // Cliente novo nasce no perfil Novo com o limite inicial atual dele (editável em /credit/profiles).
+    const profile = await getDb().creditProfile.findUnique({ where: { code: "NEW" }, select: { initialLimit: true } });
     const created = await getDb()
-      .customer.create({ data: CustomerMapper.toCreatePersistence(customer) })
+      .customer.create({
+        data: {
+          ...CustomerMapper.toCreatePersistence(customer),
+          creditProfileCode: "NEW",
+          ...(profile ? { creditLimit: profile.initialLimit } : {}),
+        },
+      })
       .catch(mapUniqueDocument);
 
     return CustomerMapper.toDomain(created);

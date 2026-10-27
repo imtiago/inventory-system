@@ -1,0 +1,47 @@
+{
+  "data": {
+    "crediarioEnabled": false,
+    "enabledAt": null,
+    "enabledBy": null,
+    "updatedAt": "2026-10-29T10:02:00.000Z",
+    "updatedBy": null,
+    "rules": {
+      "bands": [
+        { "upTo": 150, "maxInstallments": 2 },
+        { "upTo": 300, "maxInstallments": 3 },
+        { "upTo": 600, "maxInstallments": 5 },
+        { "upTo": 1000, "maxInstallments": 8 },
+        { "upTo": null, "maxInstallments": 10 }
+      ],
+      "minInstallment": 30,
+      "interestFreeInstallments": 2,
+      "monthlyRatePercent": 3.99,
+      "defaultDueDay": null,
+      "overdueBlockDays": 10,
+      "finePercent": 2,
+      "monthlyInterestPercent": 1,
+      "graceDays": 3,
+      "autoApproval": {
+        "profiles": ["GOOD", "EXCELLENT"],
+        "maxDaysLate": 5,
+        "minPaidInstallments": 6,
+        "maxIncreasePercent": 50
+      },
+      "review": {
+        "weights": {
+          "paidOnTime": 10,
+          "relationshipMonth": 2,
+          "relationshipMonthsCap": 24,
+          "per100Paid": 1,
+          "per100PaidCap": 50,
+          "dayLate": -1,
+          "paidLate30": -15,
+          "renegotiation": -20
+        },
+        "promoteAt": { "NEW": 40, "REGULAR": 80, "GOOD": 150 },
+        "demoteIfDaysLateOver": 30,
+        "suspendIfOverdueOver": 60
+      }
+    }
+  }
+}

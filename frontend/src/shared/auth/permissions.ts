@@ -28,6 +28,7 @@ export const PERMISSIONS = [
   "pricing.manage",
   "reports.profit",
   "credit.approve",
+  "credit.manage",
   "self",
 ] as const;
 
