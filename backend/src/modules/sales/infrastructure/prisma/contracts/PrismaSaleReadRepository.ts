@@ -83,12 +83,19 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       orderBy: { createdAt: "asc" },
     });
 
-    const pending = await getDb().saleCancelRequest.findFirst({
-      where: { saleId: id, status: "PENDING" },
-      select: { id: true },
-    });
-    const pendingCancelRequest = pending ? await new PrismaSaleCancelRequestRepository().findDtoById(pending.id) : null;
+    const requests = new PrismaSaleCancelRequestRepository();
+    const [pending, decided] = await readTogether([
+      getDb().saleCancelRequest.findFirst({ where: { saleId: id, status: "PENDING" }, select: { id: true } }),
+      // Último decidido (aprovado ou recusado): o vendedor vê "pedido recusado: <motivo>".
+      getDb().saleCancelRequest.findFirst({
+        where: { saleId: id, status: { not: "PENDING" } },
+        select: { id: true },
+        orderBy: [{ decidedAt: { sort: "desc", nulls: "last" } }, { requestedAt: "desc" }, { id: "desc" }],
+      }),
+    ]);
+    const pendingCancelRequest = pending ? await requests.findDtoById(pending.id) : null;
+    const latestDecidedCancelRequest = decided ? await requests.findDtoById(decided.id) : null;
 
-    return SaleReadMapper.toDetailDTO(sale, receivable, new Date(), pendingCancelRequest);
+    return SaleReadMapper.toDetailDTO(sale, receivable, new Date(), pendingCancelRequest, latestDecidedCancelRequest);
   }
 }

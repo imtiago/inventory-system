@@ -276,4 +276,33 @@ describe("pedidos de cancelamento de venda", () => {
     const after = await call(admin, "GET", `/sales/${saleId}`);
     assert.equal(after.json().data.pendingCancelRequest, null);
   });
+
+  test("detalhe da venda traz o último pedido decidido (recusado, com o motivo) para o vendedor", async () => {
+    const saleId = await createSale(await createVariant());
+    const empty = await call(seller, "GET", `/sales/${saleId}`);
+    assert.equal(empty.json().data.latestDecidedCancelRequest, null);
+
+    const first = (await requestCancel(seller, saleId, "Cliente desistiu")).json().data;
+    const rejected = await call(admin, "POST", `/sales/cancel-requests/${first.id}/reject`, { reason: "Venda correta" });
+    assert.equal(rejected.statusCode, 200, rejected.body);
+
+    const detail = (await call(seller, "GET", `/sales/${saleId}`)).json().data;
+    assert.equal(detail.pendingCancelRequest, null);
+    assert.equal(detail.latestDecidedCancelRequest.id, first.id);
+    assert.equal(detail.latestDecidedCancelRequest.status, "REJECTED");
+    assert.equal(detail.latestDecidedCancelRequest.decisionReason, "Venda correta");
+    assert.deepEqual(detail.latestDecidedCancelRequest.decidedBy, { id: admin.id, name: admin.name });
+
+    // Novo pedido pendente: o recusado continua visível ao lado do pendente.
+    const second = (await requestCancel(seller, saleId, "Insistiu")).json().data;
+    const both = (await call(seller, "GET", `/sales/${saleId}`)).json().data;
+    assert.equal(both.pendingCancelRequest.id, second.id);
+    assert.equal(both.latestDecidedCancelRequest.id, first.id);
+
+    // Recusado de novo: o mais recente vence.
+    await call(admin, "POST", `/sales/cancel-requests/${second.id}/reject`, { reason: "Ainda correta" });
+    const latest = (await call(seller, "GET", `/sales/${saleId}`)).json().data;
+    assert.equal(latest.latestDecidedCancelRequest.id, second.id);
+    assert.equal(latest.latestDecidedCancelRequest.decisionReason, "Ainda correta");
+  });
 });

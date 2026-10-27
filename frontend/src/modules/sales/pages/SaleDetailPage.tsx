@@ -146,6 +146,19 @@ export function SaleDetailPage() {
         </div>
       )}
 
+      {sale && sale.status !== 'CANCELED' && sale.latestDecidedCancelRequest?.status === 'REJECTED' && (
+        <div data-testid="cancel-request-rejected" className="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
+          <p className="whitespace-normal break-words font-medium">
+            {`Pedido de cancelamento recusado: ${sale.latestDecidedCancelRequest.decisionReason ?? '—'}`}
+          </p>
+          {sale.latestDecidedCancelRequest.decidedAt && (
+            <p className="mt-1">
+              {`${sale.latestDecidedCancelRequest.decidedBy ? `Por ${sale.latestDecidedCancelRequest.decidedBy.name} em ` : 'Em '}${formatDateTime(sale.latestDecidedCancelRequest.decidedAt)}`}
+            </p>
+          )}
+        </div>
+      )}
+
       {sale && (
         <>
           <Section title="Resumo">

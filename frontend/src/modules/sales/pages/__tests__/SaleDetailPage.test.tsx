@@ -281,6 +281,38 @@ describe('SaleDetailPage: pedido de cancelamento', () => {
     expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument();
   });
 
+  test('pedido recusado aparece com o motivo da recusa; o vendedor pode pedir de novo', async () => {
+    loginAs('VENDEDOR');
+    const rejected = {
+      ...pending,
+      status: 'REJECTED',
+      decidedBy: { id: 'a1', name: 'Ana Admin' },
+      decidedAt: '2026-10-26T15:00:00.000Z',
+      decisionReason: 'Venda correta',
+    };
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ data: { ...saleDetail.data, latestDecidedCancelRequest: rejected } })));
+    renderDetail();
+
+    const notice = await screen.findByTestId('cancel-request-rejected');
+    expect(notice).toHaveTextContent('Pedido de cancelamento recusado: Venda correta');
+    expect(notice).toHaveTextContent('Ana Admin');
+    expect(screen.getByRole('button', { name: 'Pedir cancelamento' })).toBeInTheDocument();
+  });
+
+  test('pedido aprovado (venda cancelada) não mostra aviso de recusa', async () => {
+    loginAs('VENDEDOR');
+    const approved = { ...pending, status: 'APPROVED', decidedAt: '2026-10-26T15:00:00.000Z' };
+    server.use(
+      http.get(`${API_URL}/sales/:id`, () =>
+        HttpResponse.json({ data: { ...saleDetail.data, status: 'CANCELED', latestDecidedCancelRequest: approved } }),
+      ),
+    );
+    renderDetail();
+
+    expect(await screen.findByText('Cancelada')).toBeInTheDocument();
+    expect(screen.queryByTestId('cancel-request-rejected')).not.toBeInTheDocument();
+  });
+
   test('ADMIN mantém "Cancelar venda" e não vê "Pedir cancelamento"', async () => {
     renderDetail();
 
