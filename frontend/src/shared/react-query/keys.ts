@@ -39,7 +39,6 @@ export const queryKeys = {
 
   variantPricing: (id: string) => ['pricing', 'variants', id] as const,
 
-  profitReport: (params: object) => ['reports', 'profit', params] as const,
 
   inventory: ['inventory'] as const,
 
