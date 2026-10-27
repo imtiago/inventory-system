@@ -47,7 +47,12 @@ jobs:
       - run: npx prisma generate
       - run: npm run test:db:prepare
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test 2>&1 | tee test.log
+      - name: Mostrar testes que falharam (anotações públicas)
+        if: failure()
+        run: |
+          grep -E "^\s*not ok" test.log | head -10 | sed 's/^\s*//' | while read -r line; do echo "::error title=Teste falhou::${line}"; done
+          grep -E "error:|PRICING|Error:|expected|actual" test.log | head -10 | while read -r line; do echo "::error title=Detalhe::${line}"; done
       - run: npm run build
       - name: Smoke test (GET /health)
         env:
