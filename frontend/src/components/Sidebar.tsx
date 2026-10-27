@@ -19,8 +19,9 @@ function PriceReviewBadge() {
   if (!data) return null;
 
   return (
-    <span aria-label={`${data} ${data === 1 ? "pendente" : "pendentes"}`} className="ml-auto min-w-6 rounded-full bg-warning-soft px-2 py-0.5 text-center text-xs font-semibold tabular-nums text-warning">
-      {data > 99 ? "99+" : data}
+    <span className="ml-auto min-w-6 rounded-full bg-warning-soft px-2 py-0.5 text-center text-xs font-semibold tabular-nums text-warning">
+      <span aria-hidden="true">{data > 99 ? "99+" : data}</span>
+      <span className="sr-only">{` ${data} ${data === 1 ? "pendente" : "pendentes"}`}</span>
     </span>
   );
 }

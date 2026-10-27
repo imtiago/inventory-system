@@ -84,7 +84,8 @@ export function ProfitReportPage() {
 
   const header = VIEWS.find((v) => v.value === view)!.header;
   const columns = useMemo(() => makeColumns(header), [header]);
-  const tableRows = useMemo(() => (data ? [...data.rows, data.totals] : []), [data]);
+  // Totais só quando há linhas: período vazio mostra o estado vazio, não "Total R$ 0,00".
+  const tableRows = useMemo(() => (data && data.rows.length > 0 ? [...data.rows, data.totals] : []), [data]);
   const totals = data?.totals;
 
   return (

@@ -45,6 +45,15 @@ describe('ProfitReportPage', () => {
     expect(screen.queryByText(/sem custo registrado/)).not.toBeInTheDocument();
   });
 
+  test('período sem vendas: estado vazio e nenhuma linha de totais', async () => {
+    const zero = { ...fixture.data.totals, revenue: 0, cost: 0, estimatedExpenses: 0, profit: 0, itemsWithoutCost: 0, marginPercent: null };
+    serveProfit({ data: { rows: [], totals: zero } });
+    renderWithProviders(<ProfitReportPage />);
+
+    expect(await screen.findByText('Nenhuma venda no período')).toBeInTheDocument();
+    expect(screen.queryByText('Total')).not.toBeInTheDocument();
+  });
+
   test('troca de visão envia view e refaz a consulta', async () => {
     serveProfit();
     const user = userEvent.setup();

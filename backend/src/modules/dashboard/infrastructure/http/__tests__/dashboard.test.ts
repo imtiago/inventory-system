@@ -431,7 +431,11 @@ describe("Dashboard (GET /dashboard)", () => {
       { variantId: variants[0].variantId, quantity: 9, unitPrice: 10, unitCost: 1 },
     ]);
     const after = await readWindow();
-    assert.deepEqual(Object.keys(after.profit.month).sort(), ["marginPercent", "profit", "revenue"]);
+    assert.deepEqual(Object.keys(after.profit.month).sort(), ["itemsWithoutCost", "marginPercent", "profit", "revenue"]);
+    assert.equal(after.profit.month.itemsWithoutCost, before.profit.month.itemsWithoutCost);
+    // Venda concluída com item sem custo registrado (unitCost NULL) entra na contagem do aviso.
+    await createSale("COMPLETED", new Date(`${TODAY}T12:00:00-03:00`), [{ variantId: variants[0].variantId, quantity: 1, unitPrice: 5 }]);
+    assert.equal((await readWindow()).profit.month.itemsWithoutCost, before.profit.month.itemsWithoutCost + 1);
     assert.equal(round2(after.profit.month.revenue - before.profit.month.revenue), 20);
     const afterBps = (await new PrismaPricingSettingsReader().get()).expensesBps;
     if (bps === afterBps) {

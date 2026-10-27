@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
@@ -95,7 +95,9 @@ describe('Sidebar: Preços para revisar', () => {
     renderSidebar('ADMIN');
     const link = await screen.findByRole('link', { name: /Preços para revisar/ });
     expect(link).toHaveAttribute('href', '/catalog/price-reviews');
-    expect(await within(link).findByLabelText('2 pendentes')).toHaveTextContent('2');
+    // O número visual é aria-hidden; o nome acessível do link inclui o texto oculto "2 pendentes".
+    await waitFor(() => expect(screen.getByRole('link', { name: /^Preços para revisar\s*2 pendentes$/ })).toBe(link));
+    expect(within(link).getByText('2 pendentes')).toHaveClass('sr-only');
   });
 
   test('sem pendentes não mostra o contador', async () => {

@@ -29,6 +29,6 @@ export interface IDashboard {
     };
   };
   purchases?: { awaitingReceipt: { count: number; total: number } };
-  profit?: { month: { revenue: number; profit: number; marginPercent: number | null } };
+  profit?: { month: { revenue: number; profit: number; marginPercent: number | null; itemsWithoutCost: number } };
   pricing?: { pendingReviews: number };
 }

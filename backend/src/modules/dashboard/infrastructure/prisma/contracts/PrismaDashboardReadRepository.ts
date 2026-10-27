@@ -80,7 +80,7 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
     const raw = await new PrismaProfitReportRepository().aggregate(`${today.slice(0, 7)}-01`, today, "period", null, 40);
     const { expensesBps } = await new PrismaPricingSettingsReader().getMarginSettings();
     const { totals } = buildProfit(raw, expensesBps);
-    return { month: { revenue: totals.revenue, profit: totals.profit, marginPercent: totals.marginPercent } };
+    return { month: { revenue: totals.revenue, profit: totals.profit, marginPercent: totals.marginPercent, itemsWithoutCost: totals.itemsWithoutCost } };
   }
 
   async sales(today: string): Promise<SalesSectionDTO> {

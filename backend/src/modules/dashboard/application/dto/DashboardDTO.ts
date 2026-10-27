@@ -54,7 +54,13 @@ export interface PurchasesSectionDTO {
 
 /** Lucro do mês (receita − custo registrado − despesas estimadas); só com `reports.profit`. */
 export interface ProfitSectionDTO {
-  month: { revenue: number; profit: number; marginPercent: number | null };
+  month: {
+    revenue: number;
+    profit: number;
+    marginPercent: number | null;
+    /** Itens vendidos sem custo registrado (entram com custo 0: lucro e margem ficam otimistas). */
+    itemsWithoutCost: number;
+  };
 }
 
 /** Revisões de preço pendentes; só com `catalog.price`. */

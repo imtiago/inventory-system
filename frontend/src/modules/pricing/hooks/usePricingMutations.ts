@@ -6,7 +6,9 @@ import { createExpense, deleteExpense, savePricingSettings, setTargetMargin, upd
 import type { SaveExpenseInput, SaveSettingsInput, TargetMarginLevel } from '../types';
 
 // Configuração, despesas e margens mudam o preço sugerido: a lista de revisão e a composição de cada variante.
-const PRICING_KEYS = [queryKeys.pricingSettings, queryKeys.priceReviews, ['pricing', 'variants']] as const;
+// O lucro estimado (relatório e cartão do painel) também usa as despesas e o custo: invalida junto.
+const PROFIT_KEYS = [['reports', 'profit'], queryKeys.dashboard] as const;
+const PRICING_KEYS = [queryKeys.pricingSettings, queryKeys.priceReviews, ['pricing', 'variants'], ...PROFIT_KEYS] as const;
 
 export function useSavePricingSettings() {
   return useCrudMutation({
@@ -47,7 +49,7 @@ export function useDeleteExpense() {
 export function useSetTargetMargin() {
   return useCrudMutation({
     mutationFn: ({ level, id, percent }: { level: TargetMarginLevel; id: string; percent: number | null }) => setTargetMargin(level, id, percent),
-    invalidateKeys: [queryKeys.priceReviews, ['pricing', 'variants']],
+    invalidateKeys: [queryKeys.priceReviews, ['pricing', 'variants'], ...PROFIT_KEYS],
     silentError: true,
   });
 }

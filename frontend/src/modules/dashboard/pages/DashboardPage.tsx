@@ -150,6 +150,11 @@ export function DashboardPage() {
               <Stat id="profit-month" label="Lucro" value={formatCurrency(profit.month.profit)} hint={`Receita ${formatCurrency(profit.month.revenue)}`} danger={profit.month.profit < 0} />
               <Stat id="profit-margin" label="Margem média" value={formatPercent(profit.month.marginPercent)} />
             </div>
+            {profit.month.itemsWithoutCost > 0 && (
+              <p role="status" className="mt-3 rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
+                {pluralize(profit.month.itemsWithoutCost, 'venda sem custo registrado', 'vendas sem custo registrado')}: o lucro pode estar acima do real.
+              </p>
+            )}
             <Link to="/reports/profit" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">
               Ver relatório
             </Link>
