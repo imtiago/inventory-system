@@ -100,7 +100,7 @@ describe("authenticate (JWT estrito + sessão verificada no banco)", () => {
         headers: { authorization: `Bearer ${signTestToken(vendedor.id, "ADMIN")}` },
       } as unknown as FastifyRequest;
       await authenticate(request);
-      assert.deepEqual(request.user, { sub: vendedor.id, role: "VENDEDOR" });
+      assert.deepEqual(request.user, { sub: vendedor.id, role: "VENDEDOR", canApproveCredit: false });
 
       // Hoje GET /users não permite ESTOQUISTA: a claim "admin" não deve contornar isso.
       const res = await app.inject({

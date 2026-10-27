@@ -7,6 +7,7 @@ export interface UserDTO {
   email: string;
   role: UserRole;
   active: boolean;
+  canApproveCredit: boolean;
   createdAt: Date;
 }
 
@@ -22,6 +23,7 @@ export interface IAuthUser {
   name: string;
   email: string;
   role: UserRole;
+  canApproveCredit: boolean;
 }
 
 export interface IAuthResult {
@@ -34,6 +36,7 @@ export interface ICreateUserInput {
   email: string;
   password: string;
   role?: UserRole;
+  canApproveCredit?: boolean;
 }
 
 export interface IListUsersInput {
@@ -50,6 +53,7 @@ export interface IUpdateUserInput {
   name?: string;
   role?: UserRole;
   active?: boolean;
+  canApproveCredit?: boolean;
 }
 
 export interface IResetUserPasswordInput {

@@ -26,4 +26,5 @@ export const createUserSchema = z.object({
     .email("E-mail inválido."),
   password: passwordSchema,
   role: userRoleSchema,
+  canApproveCredit: z.boolean({ error: "Informe verdadeiro ou falso." }).optional(),
 });

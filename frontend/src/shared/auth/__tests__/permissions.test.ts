@@ -32,4 +32,21 @@ describe('can', () => {
     expect(can('toString', 'self')).toBe(false);
     expect(can('__proto__', 'self')).toBe(false);
   });
+
+  test('credit.approve: papel ADMIN ou marca por usuário', () => {
+    expect(can({ role: 'VENDEDOR', canApproveCredit: true }, 'credit.approve')).toBe(true);
+    expect(can({ role: 'VENDEDOR', canApproveCredit: false }, 'credit.approve')).toBe(false);
+    expect(can({ role: 'VENDEDOR' }, 'credit.approve')).toBe(false);
+    expect(can({ role: 'ADMIN', canApproveCredit: false }, 'credit.approve')).toBe(true);
+    expect(can('ADMIN', 'credit.approve')).toBe(true);
+    expect(can('VENDEDOR', 'credit.approve')).toBe(false);
+    expect(can({ role: 'ESTOQUISTA', canApproveCredit: true }, 'users.manage')).toBe(false);
+    expect(can({ role: 'ESTOQUISTA', canApproveCredit: true }, 'catalog.price')).toBe(false);
+  });
+
+  test('marca não vale para papel desconhecido nem para sujeito nulo', () => {
+    expect(can({ role: '__proto__', canApproveCredit: true }, 'credit.approve')).toBe(false);
+    expect(can(null, 'credit.approve')).toBe(false);
+    expect(can(undefined, 'credit.approve')).toBe(false);
+  });
 });

@@ -8,6 +8,7 @@ type UserRow = {
   email: string;
   role: string;
   active: boolean;
+  canApproveCredit: boolean;
   createdAt: Date;
 };
 
@@ -20,6 +21,7 @@ export class UserReadMapper {
       email: data.email,
       role: UserRole[data.role as keyof typeof UserRole],
       active: data.active,
+      canApproveCredit: data.canApproveCredit,
       createdAt: data.createdAt,
     };
   }
@@ -31,6 +33,7 @@ export class UserReadMapper {
       email: user.email,
       role: user.role,
       active: user.active,
+      canApproveCredit: user.canApproveCredit,
       createdAt: user.createdAt,
     };
   }

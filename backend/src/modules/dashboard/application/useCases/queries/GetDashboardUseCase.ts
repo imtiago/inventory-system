@@ -1,4 +1,4 @@
-import { hasPermission, Permission } from "@shared/auth/permissions";
+import { hasUserPermission, Permission, PermissionSubject } from "@shared/auth/permissions";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { DashboardReadRepository } from "../../contracts/DashboardReadRepository";
 import { DashboardDTO } from "../../dto/DashboardDTO";
@@ -18,10 +18,10 @@ const SECTION_PERMISSIONS: Record<SectionKey, Permission> = {
 export class GetDashboardUseCase {
   constructor(private readonly repository: DashboardReadRepository) {}
 
-  /** Só calcula as seções permitidas ao papel; `now` injetável para testes. */
-  async execute(role: string, now: Date = new Date()): Promise<DashboardDTO> {
+  /** Só calcula as seções permitidas ao usuário; `now` injetável para testes. */
+  async execute(subject: PermissionSubject, now: Date = new Date()): Promise<DashboardDTO> {
     const today = todayInBusinessTz(now);
-    const allowed = (key: SectionKey) => hasPermission(role, SECTION_PERMISSIONS[key]);
+    const allowed = (key: SectionKey) => hasUserPermission(subject, SECTION_PERMISSIONS[key]);
     const when = <T>(key: SectionKey, load: () => Promise<T>): Promise<T | undefined> =>
       allowed(key) ? load() : Promise.resolve(undefined);
 

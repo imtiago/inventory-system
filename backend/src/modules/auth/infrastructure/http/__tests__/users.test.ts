@@ -23,7 +23,7 @@ const newEmail = () => {
   generatedEmails.push(email);
   return email;
 };
-const USER_DTO_KEYS = ["active", "createdAt", "email", "id", "name", "role"];
+const USER_DTO_KEYS = ["active", "canApproveCredit", "createdAt", "email", "id", "name", "role"];
 
 describe("Gestão de usuários (/users)", () => {
   let admin: TestUser;
@@ -149,6 +149,7 @@ describe("Gestão de usuários (/users)", () => {
       email: estoquista.email,
       role: "ESTOQUISTA",
       active: true,
+      canApproveCredit: false,
       createdAt: res.json().data.createdAt,
     });
 

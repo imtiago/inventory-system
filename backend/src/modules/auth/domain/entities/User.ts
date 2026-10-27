@@ -7,6 +7,7 @@ export class User extends BaseEntity {
   private _password: string;
   private _role: UserRole;
   private _active: boolean;
+  private _canApproveCredit: boolean;
 
   constructor(props: {
     id?: string;
@@ -15,6 +16,7 @@ export class User extends BaseEntity {
     password: string;
     role?: UserRole;
     active?: boolean;
+    canApproveCredit?: boolean;
     createdAt?: Date;
   }) {
     super({
@@ -27,6 +29,7 @@ export class User extends BaseEntity {
     this._password = props.password;
     this._role = props.role ?? UserRole.VENDEDOR;
     this._active = props.active ?? true;
+    this._canApproveCredit = props.canApproveCredit ?? false;
   }
 
   get name(): string {
@@ -47,6 +50,10 @@ export class User extends BaseEntity {
 
   get active(): boolean {
     return this._active;
+  }
+
+  get canApproveCredit(): boolean {
+    return this._canApproveCredit;
   }
 
   rename(name: string): void {

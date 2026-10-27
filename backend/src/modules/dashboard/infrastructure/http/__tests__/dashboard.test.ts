@@ -81,7 +81,7 @@ describe("Dashboard (GET /dashboard)", () => {
   };
 
   // Leitura com "agora" injetado na janela de 2099.
-  const readWindow = (): Promise<Dash> => makeGetDashboardUseCase().execute("ADMIN", NOW);
+  const readWindow = (): Promise<Dash> => makeGetDashboardUseCase().execute({ role: "ADMIN", canApproveCredit: false }, NOW);
 
   const createSale = async (
     status: "COMPLETED" | "CANCELED",

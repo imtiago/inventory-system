@@ -7,7 +7,7 @@ import { Section } from '@/shared/components/details/Section';
 import { DataTable, type DataTableColumn } from '@/shared/components/table';
 import { CrudPagination } from '@/shared/components/crud';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/badge';
+import { Badge, StatusBadge } from '@/components/ui/badge';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 
 import { useUsers } from '../hooks/useUsers';
@@ -29,7 +29,17 @@ export function UserListPage() {
   const columns: DataTableColumn<UserDTO>[] = [
     { id: 'name', header: 'Nome', mobile: 'title', cell: (user) => user.name },
     { id: 'email', header: 'E-mail', mobile: 'subtitle', cell: (user) => user.email },
-    { id: 'role', header: 'Papel', mobile: 'meta', cell: (user) => ROLE_LABELS[user.role] },
+    {
+      id: 'role',
+      header: 'Papel',
+      mobile: 'meta',
+      cell: (user) => (
+        <span className="inline-flex flex-wrap items-center gap-2">
+          {ROLE_LABELS[user.role]}
+          {user.canApproveCredit && user.role !== 'ADMIN' && <Badge tone="info">Aprova crédito</Badge>}
+        </span>
+      ),
+    },
     {
       id: 'status',
       header: 'Status',

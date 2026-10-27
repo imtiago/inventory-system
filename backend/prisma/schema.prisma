@@ -375,6 +375,8 @@ model User {
   createdAt           DateTime        @default(now())
   /// Última troca/redefinição de senha: tokens com `iat` anterior (em segundos) são recusados.
   passwordChangedAt   DateTime?
+  /// Pode aprovar crédito além do papel (ADMIN sempre pode).
+  canApproveCredit    Boolean         @default(false)
   stockMovements      StockMovement[]
   sales               Sale[]
   paymentsCreated     Payment[]       @relation("paymentsCreated")

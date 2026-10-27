@@ -81,7 +81,7 @@ export function makeAuthenticate(sessionUsers: SessionUserReader) {
       throw new UnauthorizedError("Sessão inválida.");
     }
 
-    request.user = { sub: user.id, role: user.role };
+    request.user = { sub: user.id, role: user.role, canApproveCredit: user.canApproveCredit };
   };
 }
 

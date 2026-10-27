@@ -39,7 +39,7 @@ export type TestUser = {
  * cleanup() apaga por id; se FKs impedirem, deixa o usuário inativo.
  */
 export async function createTestUser(
-  opts: { role?: Role; active?: boolean; password?: string } = {},
+  opts: { role?: Role; active?: boolean; password?: string; canApproveCredit?: boolean } = {},
 ): Promise<TestUser> {
   const email = `tx-test-${randomUUID()}@example.com`;
   const password = opts.password ?? "senha-de-teste";
@@ -51,6 +51,7 @@ export async function createTestUser(
       password: await bcrypt.hash(password, 4),
       role,
       active: opts.active ?? true,
+      canApproveCredit: opts.canApproveCredit ?? false,
     },
   });
   return {

@@ -27,6 +27,7 @@ export const PERMISSIONS = [
   "payables.reverse",
   "pricing.manage",
   "reports.profit",
+  "credit.approve",
   "self",
 ] as const;
 
@@ -58,7 +59,28 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   ],
 };
 
-export function can(role: string | null | undefined, permission: Permission): boolean {
+export interface PermissionSubject {
+  role: string;
+  canApproveCredit?: boolean;
+}
+
+/** Espelha `USER_FLAG_PERMISSIONS` do backend: permissões que também podem vir de uma marca do usuário. */
+export const USER_FLAG_PERMISSIONS: Partial<Record<Permission, 'canApproveCredit'>> = {
+  'credit.approve': 'canApproveCredit',
+};
+
+/**
+ * Papel **ou** marca por usuário (espelha `hasUserPermission`). Aceita só o papel (string) para
+ * quem não tem o usuário inteiro à mão: nesse caso a marca não conta.
+ */
+export function can(
+  subject: PermissionSubject | string | null | undefined,
+  permission: Permission,
+): boolean {
+  if (!subject) return false;
+  const { role, canApproveCredit } = typeof subject === 'string' ? { role: subject, canApproveCredit: false } : subject;
   if (!role || !Object.hasOwn(ROLE_PERMISSIONS, role)) return false;
-  return ROLE_PERMISSIONS[role as UserRole].includes(permission);
+  if (ROLE_PERMISSIONS[role as UserRole].includes(permission)) return true;
+  const flag = USER_FLAG_PERMISSIONS[permission];
+  return flag !== undefined && flag === 'canApproveCredit' && canApproveCredit === true;
 }
