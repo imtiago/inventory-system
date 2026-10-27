@@ -110,6 +110,17 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 - Venda/compra com pagamento ativo não cancela. Um documento financeiro ativo por origem.
 - Login: 10 falhas/15 min por IP+e-mail, 30 por conta, 50 por IP (memória, instância única). Troca de senha derruba sessões antigas.
 
+## Precificação e lucro (em vigor)
+- Módulo `backend/src/modules/pricing` (alias `@pricing/*`), frontend `modules/pricing` e `modules/reports` (lucro). Spec: `docs/superpowers/specs/2026-10-26-pricing-design.md`.
+- **Unidades:** dinheiro em centavos; custo em `Cost4` (inteiro, R$ 0,0001); percentuais em `Bps` (30% = 3000). Helpers em `@shared/domain/{percent,cost4}` e `@pricing/domain` (`pricingMath`, `cardFees`, arredondamento). Nunca float.
+- **Preço sugerido** = custo médio ÷ (1 − Σ despesas% − margem%), arredondado **para cima** (tabela: <R$10 → ,50/,90; R$10–99,99 → ,90; R$100–999,99 → 9,90; ≥R$1.000 → 9,00). Soma ≥ 100% → 422 `PRICING_PERCENT_SUM_TOO_HIGH`. Sem configuração salva (`configured=false`) não há sugestão nem revisão.
+- **Margem**: padrão da loja → categoria → produto → variante (vale a mais específica; campo `targetMarginBps`).
+- **Custo** = preço pago + parte do frete/IPI/ST/despesas da compra (rateio exato; `acquisitionExtraCost` por lote). **Custo médio** do estoque é o custo de venda (`SaleItem.unitCost4`, `NULL` = venda antiga "custo não registrado", diferente de 0).
+- **Cartão**: taxas em `PricingSettings`; repasse = preço ÷ (1 − taxa). Serviço pronto; a escolha na venda entra com o crediário.
+- **Revisão de preço (`PriceReview`)**: uma `PENDING` por variante (índice único parcial). Gatilhos dentro das transações (custo muda, configuração/despesa/margem muda, preço aplicado). Nada muda preço sozinho; aplicar/manter/editar é do ADMIN. Locks: `PriceReviewTrigger.beforeCostChange()` pega a trava compartilhada `pricing_settings` ANTES do primeiro lock de inventário; escrita de configuração pega a exclusiva (ordem completa na seção de travas).
+- **Visibilidade**: `pricing.manage`, `reports.profit` e `catalog.price` são só ADMIN. VENDEDOR nunca vê custo (campos listados em `COST_FIELDS`, `backend/src/shared/http/costVisibility.ts` — novo campo de custo entra ali); ESTOQUISTA vê custo (`canSeeStockCost` = `inventory.write`) mas nunca margem, `targetMarginBps/Percent`, preço do fornecedor, lucro nem a chave `pricing` do dashboard.
+- **Testes**: arquivos que mexem em `PricingSettings`/despesas usam `acquirePricingTestLock()` (`backend/src/test/pricingTestLock.ts`) porque a configuração é uma linha única e os arquivos rodam em paralelo.
+
 ## Fluxo de trabalho que funcionou
 1. Brainstorm/decisões com o usuário (regra de negócio nunca é decidida sozinha; registre a decisão na spec).
 2. Spec em `docs/superpowers/specs/AAAA-MM-DD-<nome>-design.md`, plano em `docs/superpowers/plans/`.
