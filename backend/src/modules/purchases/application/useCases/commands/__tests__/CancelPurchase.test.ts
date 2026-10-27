@@ -23,6 +23,7 @@ function build(purchase: Purchase | null) {
   };
   const finance: FinancialService = {
     createSaleReceivable: async () => {},
+    createPaidSaleReceivable: async () => {},
     cancelSaleReceivable: async () => {},
     createPurchasePayable: async () => {},
     cancelPurchasePayable: async (id) => {

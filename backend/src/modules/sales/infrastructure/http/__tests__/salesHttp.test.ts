@@ -12,6 +12,7 @@ import { makeInventoryService } from "@inventory/infrastructure/http/factories/I
 import { FinancialService } from "@finance/application/services/FinancialService";
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -284,6 +285,7 @@ describe("HTTP de vendas", () => {
       createSaleReceivable: async () => {
         throw new Error("financeiro indisponível");
       },
+      createPaidSaleReceivable: async () => {},
       cancelSaleReceivable: async () => {},
       createPurchasePayable: async () => {},
       cancelPurchasePayable: async () => {},
@@ -295,6 +297,7 @@ describe("HTTP de vendas", () => {
       makeCatalogService(),
       makeInventoryService(),
       failingFinance,
+      new PrismaPricingSettingsReader(),
     );
 
     await assert.rejects(

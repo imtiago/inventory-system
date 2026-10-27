@@ -5,6 +5,7 @@ import { makeInventoryService } from "@inventory/infrastructure/http/factories/I
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 
 export function makeCreateSaleUseCase() {
   const saleRepository = new PrismaSaleRepository();
@@ -26,5 +27,6 @@ export function makeCreateSaleUseCase() {
     catalogService,
     inventoryService,
     financialService,
+    new PrismaPricingSettingsReader(),
   );
 }

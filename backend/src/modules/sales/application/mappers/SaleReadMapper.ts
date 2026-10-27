@@ -24,6 +24,11 @@ interface SaleBaseRow {
 
 export interface SaleDetailRow extends SaleBaseRow {
   seller: PersonRow | null;
+  paymentCondition: string;
+  cardInstallments: number | null;
+  cardFeePassedOn: boolean;
+  surchargeAmount: Money;
+  downPayment: Money;
   items: {
     id: string;
     productVariantId: string;
@@ -68,11 +73,17 @@ export class SaleReadMapper {
     receivable: SaleReceivableRow | null,
     now: Date = new Date(),
     pendingCancelRequest: SaleCancelRequestDTO | null = null,
+    latestDecidedCancelRequest: SaleCancelRequestDTO | null = null,
   ): SaleDetailDTO {
     return {
       id: row.id,
       status: row.status,
       totalAmount: fromCents(cents(row.totalAmount)),
+      paymentCondition: row.paymentCondition,
+      cardInstallments: row.cardInstallments,
+      cardFeePassedOn: row.cardFeePassedOn,
+      surchargeAmount: fromCents(cents(row.surchargeAmount)),
+      downPayment: fromCents(cents(row.downPayment)),
       createdAt: row.createdAt,
       customer: { id: row.customer.id, name: row.customer.name },
       seller: row.seller ? { id: row.seller.id, name: row.seller.name } : null,
@@ -94,6 +105,7 @@ export class SaleReadMapper {
       }),
       receivable: receivable ? SaleReadMapper.toReceivableDTO(receivable, now) : null,
       pendingCancelRequest,
+      latestDecidedCancelRequest,
     };
   }
 

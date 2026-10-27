@@ -3,6 +3,11 @@
     "id": "0b6f3c2e-8a4d-4f1b-9c7e-2d5a8f1e3b40",
     "status": "COMPLETED",
     "totalAmount": 159.7,
+    "paymentCondition": "LEGACY_INSTALLMENTS",
+    "cardInstallments": null,
+    "cardFeePassedOn": false,
+    "surchargeAmount": 0,
+    "downPayment": 0,
     "createdAt": "2026-10-22T14:32:10.000Z",
     "customer": {
       "id": "6a1e9d3c-2b7f-4c8a-9e5d-1f3b7a9c2e64",
@@ -68,6 +73,7 @@
         }
       ]
     },
-    "pendingCancelRequest": null
+    "pendingCancelRequest": null,
+    "latestDecidedCancelRequest": null
   }
 }

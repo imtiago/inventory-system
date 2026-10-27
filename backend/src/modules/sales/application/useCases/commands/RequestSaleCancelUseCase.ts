@@ -5,6 +5,7 @@ import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { SaleCancelRequestRepository } from "@sales/domain/repositories/SaleCancelRequestRepository";
 import { SaleStatus } from "@sales/domain/enums/SaleStatus";
 import { SaleCancelRequestDTO } from "@sales/application/dto/SaleCancelRequestDTO";
+import { isWithinCheckoutRefundWindow } from "@sales/domain/services/checkoutRefundWindow";
 
 export interface IRequestSaleCancelInput {
   saleId: string;
@@ -14,13 +15,15 @@ export interface IRequestSaleCancelInput {
 
 /**
  * Vendedor pede o cancelamento. Trava a venda (serializa pedidos simultâneos) → valida
- * (não cancelada, sem pagamento ativo, sem pedido em aberto) → grava o pedido PENDING.
+ * (não cancelada, sem pagamento de parcela, pago no ato só até 7 dias, sem pedido em
+ * aberto) → grava o pedido PENDING. A janela é conferida de novo na aprovação.
  */
 export class RequestSaleCancelUseCase extends TransactionalUseCase<IRequestSaleCancelInput, SaleCancelRequestDTO> {
   constructor(
     private readonly sales: SaleRepository,
     private readonly requests: SaleCancelRequestRepository,
     transactionManager: TransactionManager,
+    private readonly now: () => Date = () => new Date(),
   ) {
     super(transactionManager);
   }
@@ -37,8 +40,15 @@ export class RequestSaleCancelUseCase extends TransactionalUseCase<IRequestSaleC
         ErrorCodes.CANCEL_REQUEST_ALREADY_PENDING,
       );
     }
-    if (await this.requests.saleHasActivePayments(saleId)) {
+    const payments = await this.requests.saleActivePayments(saleId);
+    if (payments.installment) {
       throw new ConflictError("Venda com pagamentos registrados não pode ser cancelada.", ErrorCodes.SALE_HAS_PAYMENTS);
+    }
+    if (payments.atCheckout && !isWithinCheckoutRefundWindow(sale.createdAt, this.now())) {
+      throw new ConflictError(
+        "Venda paga no ato só pode ser cancelada com estorno em até 7 dias.",
+        ErrorCodes.CHECKOUT_REFUND_WINDOW_EXPIRED,
+      );
     }
 
     const id = await this.requests.create({ saleId, reason, requestedById: userId });

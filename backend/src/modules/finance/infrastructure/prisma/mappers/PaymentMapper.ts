@@ -14,6 +14,7 @@ export class PaymentMapper {
       reference: prisma.reference,
       paymentDate: toDateOnly(prisma.paymentDate),
       createdById: prisma.createdById,
+      atCheckout: prisma.atCheckout,
       createdAt: prisma.createdAt,
       reversedAt: prisma.reversedAt,
       reversedById: prisma.reversedById,
@@ -30,6 +31,7 @@ export class PaymentMapper {
       reference: payment.reference,
       paymentDate: fromDateOnly(payment.paymentDate),
       createdById: payment.createdById,
+      atCheckout: payment.atCheckout,
       createdAt: payment.createdAt,
     };
   }

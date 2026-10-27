@@ -56,7 +56,7 @@ export class PrismaFinancialDocumentRepository implements FinancialDocumentRepos
 
     const documents = await db.financialDocument.findMany({
       where: { id: { in: rows.map((r) => r.id) } },
-      include: { parcels: true },
+      include: { parcels: { include: { payments: true } } },
       orderBy: { id: "asc" },
     });
 

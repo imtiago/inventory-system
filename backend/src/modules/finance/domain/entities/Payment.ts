@@ -10,6 +10,8 @@ export class Payment extends BaseEntity {
   /** Data do pagamento ("YYYY-MM-DD", data de negócio). */
   private readonly _paymentDate: string;
   private readonly _createdById: string | null;
+  /** Pago no fechamento da venda (estorno automático no cancelamento). */
+  private readonly _atCheckout: boolean;
 
   private _reversedAt: Date | null;
   private _reversedById: string | null;
@@ -23,6 +25,7 @@ export class Payment extends BaseEntity {
     reference: string | null;
     paymentDate: string;
     createdById?: string | null;
+    atCheckout?: boolean;
     createdAt?: Date;
     reversedAt?: Date | null;
     reversedById?: string | null;
@@ -41,6 +44,7 @@ export class Payment extends BaseEntity {
     this._reference = props.reference;
     this._paymentDate = props.paymentDate;
     this._createdById = props.createdById ?? null;
+    this._atCheckout = props.atCheckout ?? false;
     this._reversedAt = props.reversedAt ?? null;
     this._reversedById = props.reversedById ?? null;
     this._reversalReason = props.reversalReason ?? null;
@@ -70,6 +74,10 @@ export class Payment extends BaseEntity {
     return this._createdById;
   }
 
+  get atCheckout() {
+    return this._atCheckout;
+  }
+
   get reversedAt() {
     return this._reversedAt;
   }
@@ -87,7 +95,7 @@ export class Payment extends BaseEntity {
   }
 
   /** Estorna o pagamento (deixa de contar no pago). Já estornado → 409. */
-  reverse(userId: string, reason: string, now: Date = new Date()): void {
+  reverse(userId: string | null, reason: string, now: Date = new Date()): void {
     if (this.isReversed) {
       throw new ConflictError("Pagamento já estornado.", ErrorCodes.PAYMENT_ALREADY_REVERSED);
     }

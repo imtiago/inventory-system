@@ -6,7 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@shared/domain/errors";
-import { businessTodayAsUtcDate } from "@shared/domain/businessDate";
+import { businessTodayAsUtcDate, todayInBusinessTz } from "@shared/domain/businessDate";
 import { toCost4 } from "@shared/domain/cost4";
 import { toCents } from "@shared/domain/money";
 import { MAX_AMOUNT_CENTS } from "@shared/domain/limits";
@@ -21,6 +21,27 @@ import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
 import { buildInstallments } from "@shared/domain/installments";
 import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
+import { ImmediatePaymentCondition, PaymentCondition } from "@sales/domain/enums/PaymentCondition";
+import { checkoutCharge, CheckoutCharge } from "@sales/domain/services/checkoutCharge";
+import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
+import type { PricingSettingsReader } from "@pricing/application/contracts/PricingSettingsReader";
+
+type CheckoutPayment = NonNullable<ICreateSaleInput["payment"]>;
+type ImmediateCheckout = CheckoutPayment & { condition: "CASH" | "PIX" | "DEBIT_CARD" | "CREDIT_CARD" };
+
+const CHECKOUT_CONDITION: Record<ImmediateCheckout["condition"], ImmediatePaymentCondition> = {
+  CASH: PaymentCondition.CASH,
+  PIX: PaymentCondition.PIX,
+  DEBIT_CARD: PaymentCondition.DEBIT_CARD,
+  CREDIT_CARD: PaymentCondition.CREDIT_CARD,
+};
+
+const CHECKOUT_METHOD: Record<ImmediateCheckout["condition"], PaymentMethod> = {
+  CASH: PaymentMethod.CASH,
+  PIX: PaymentMethod.PIX,
+  DEBIT_CARD: PaymentMethod.DEBIT_CARD,
+  CREDIT_CARD: PaymentMethod.CREDIT_CARD,
+};
 
 /**
  * Falta de estoque na venda: identifica o item na mensagem (mesma classe e código
@@ -43,8 +64,10 @@ function describeStockShortage(error: unknown, variantName: string): unknown {
 
 /**
  * Cria a venda numa transação: valida cliente → resolve variantes (preço > 0,
- * snapshot) → consome estoque em ordem de variante (originId = venda) → grava a
- * venda → gera contas a receber com as parcelas. Qualquer falha desfaz tudo.
+ * snapshot) → calcula o valor da condição (repasse da taxa do cartão) → consome
+ * estoque em ordem de variante (originId = venda) → grava a venda → financeiro:
+ * à vista/cartão = documento PAID com pagamento `atCheckout`; parcelado antigo
+ * (`paymentTerms`) = contas a receber com as parcelas. Qualquer falha desfaz tudo.
  */
 export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sale> {
   constructor(
@@ -54,18 +77,33 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
     private readonly catalogService: CatalogService,
     private readonly inventoryService: InventoryService,
     private readonly financialService: FinancialService,
+    private readonly pricingSettings: Pick<PricingSettingsReader, "get">,
   ) {
     super(transactionManager);
   }
 
   protected async handle(request: ICreateSaleInput): Promise<Sale> {
-    const { installments } = request.paymentTerms;
-    if (installments > 1 && !request.paymentTerms.firstDueDate) {
+    const { payment, paymentTerms } = request;
+    if (!payment === !paymentTerms) {
+      throw new ValidationError("Dados inválidos.", [
+        { field: "payment", message: "Informe a condição de pagamento (só uma)." },
+      ]);
+    }
+    if (payment?.condition === "CREDIARIO") {
+      // Venda no crediário entra na Task 8 (regras, limite e plano).
+      throw new BusinessRuleError(
+        "O crediário ainda não foi ativado nas configurações.",
+        ErrorCodes.CREDIARIO_DISABLED,
+      );
+    }
+    const checkout = payment as ImmediateCheckout | undefined;
+    const installments = paymentTerms?.installments ?? 1;
+    if (paymentTerms && installments > 1 && !paymentTerms.firstDueDate) {
       throw new ValidationError("Dados inválidos.", [
         { field: "paymentTerms.firstDueDate", message: "Informe o primeiro vencimento." },
       ]);
     }
-    const firstDueDate = request.paymentTerms.firstDueDate ?? businessTodayAsUtcDate();
+    const firstDueDate = paymentTerms?.firstDueDate ?? businessTodayAsUtcDate();
 
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {
@@ -98,18 +136,30 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       );
     }
 
+    const itemsTotalCents = saleItems.reduce((total, item) => total + item.totalCents, 0);
+    const tooLarge = () =>
+      new ValidationError("Dados inválidos.", [{ field: "items", message: "O total da venda excede o máximo permitido." }]);
+    // Antes do repasse: itens × 10.000 precisa caber em inteiro seguro.
+    if (itemsTotalCents > MAX_AMOUNT_CENTS) throw tooLarge();
+    const charge = checkout ? await this.chargeFor(checkout, itemsTotalCents) : null;
     const sale = new Sale({
       customerId: customer.id,
       sellerId: request.sellerId,
       items: saleItems,
+      payment:
+        charge && checkout
+        ? {
+            condition: CHECKOUT_CONDITION[checkout.condition],
+            surchargeCents: charge.surchargeCents,
+            cardFeePassedOn: charge.cardFeePassedOn,
+            cardInstallments: charge.cardInstallments,
+            cardFeeBps: charge.cardFeeBps,
+          }
+        : { condition: PaymentCondition.LEGACY_INSTALLMENTS },
     });
 
     // Teto de DECIMAL(12,2): antes de baixar estoque (senão o banco estoura → 500).
-    if (sale.totalAmountCents > MAX_AMOUNT_CENTS) {
-      throw new ValidationError("Dados inválidos.", [
-        { field: "items", message: "O total da venda excede o máximo permitido." },
-      ]);
-    }
+    if (sale.totalAmountCents > MAX_AMOUNT_CENTS) throw tooLarge();
 
     // Cada parcela precisa de ao menos 1 centavo.
     if (sale.totalAmountCents < installments) {
@@ -146,6 +196,18 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
 
     const created = await this.saleRepository.create(sale);
 
+    if (checkout) {
+      await this.financialService.createPaidSaleReceivable({
+        saleId: sale.id,
+        customerId: sale.customerId,
+        amountCents: sale.totalAmountCents,
+        method: CHECKOUT_METHOD[checkout.condition],
+        userId: request.sellerId,
+        today: todayInBusinessTz(sale.createdAt),
+      });
+      return created;
+    }
+
     const plan = buildInstallments(sale.totalAmountCents, installments, firstDueDate);
     await this.financialService.createSaleReceivable({
       saleId: sale.id,
@@ -154,5 +216,18 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
     });
 
     return created;
+  }
+
+  /** Taxas do cartão só são lidas para cartão (precificação não configurada → taxa 0). */
+  private async chargeFor(checkout: ImmediateCheckout, itemsTotalCents: number): Promise<CheckoutCharge> {
+    const isCard = checkout.condition === "DEBIT_CARD" || checkout.condition === "CREDIT_CARD";
+    const cardFees = isCard ? (await this.pricingSettings.get()).cardFees : { debitBps: 0, creditBps: {} };
+    return checkoutCharge({
+      itemsTotalCents,
+      condition: CHECKOUT_CONDITION[checkout.condition],
+      cardInstallments: checkout.cardInstallments,
+      passCardFee: checkout.passCardFee,
+      cardFees,
+    });
   }
 }

@@ -1,3 +1,5 @@
+import { PaymentMethod } from "@finance/domain/enums/PaymentMethod";
+
 export interface SaleReceivableParcelInput {
   /** Valor da parcela em centavos inteiros. */
   amountCents: number;
@@ -10,6 +12,25 @@ export interface CreateSaleReceivableInput {
   parcels: SaleReceivableParcelInput[];
 }
 
+export interface CreatePaidSaleReceivableInput {
+  saleId: string;
+  customerId: string;
+  /** Valor pago no fechamento, em centavos. */
+  amountCents: number;
+  method: PaymentMethod;
+  userId: string;
+  /** Data de negócio "YYYY-MM-DD". */
+  today: string;
+}
+
+export interface CancelSaleReceivableInput {
+  saleId: string;
+  /** Quem cancela (autor do estorno dos pagamentos do fechamento). */
+  userId: string | null;
+  /** false = fora da janela de estorno dos pagamentos do fechamento (7 dias). */
+  checkoutRefundAllowed: boolean;
+}
+
 export interface CreatePurchasePayableInput {
   purchaseId: string;
   supplierId: string;
@@ -20,10 +41,17 @@ export interface CreatePurchasePayableInput {
 export interface FinancialService {
   createSaleReceivable(input: CreateSaleReceivableInput): Promise<void>;
   /**
-   * Cancela o documento a receber da venda. Lança ConflictError SALE_HAS_PAYMENTS
-   * se alguma parcela tem pagamento. Venda sem documento: nada a fazer.
+   * Venda paga no ato: documento com uma parcela vencendo hoje e pagamento `atCheckout`
+   * na mesma transação (documento PAID).
    */
-  cancelSaleReceivable(saleId: string): Promise<void>;
+  createPaidSaleReceivable(input: CreatePaidSaleReceivableInput): Promise<void>;
+  /**
+   * Cancela o documento a receber da venda. Pagamento de parcela (não `atCheckout`)
+   * → ConflictError SALE_HAS_PAYMENTS; pagamento do fechamento fora da janela →
+   * CHECKOUT_REFUND_WINDOW_EXPIRED; dentro dela é estornado ("Venda cancelada").
+   * Venda sem documento: nada a fazer.
+   */
+  cancelSaleReceivable(input: CancelSaleReceivableInput): Promise<void>;
   /** Cria o contas a pagar do pedido (PAYABLE, origem PURCHASE, parte SUPPLIER). */
   createPurchasePayable(input: CreatePurchasePayableInput): Promise<void>;
   /**

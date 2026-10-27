@@ -1,6 +1,6 @@
 import { api } from '@/shared/services/api';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
-import type { ICreateSaleDTO, ISaleCancelRequest, ISaleCancelRequestsResponse, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
+import type { ICreateSaleDTO, ISaleSimulation, ISaleCancelRequest, ISaleCancelRequestsResponse, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +20,13 @@ export async function getSales(page = 1, filters: ISaleFilters = {}): Promise<IS
 
 export async function createSale(data: ICreateSaleDTO, idempotencyKey: string): Promise<ISaleDetail> {
   const response = await api.post<{ data: ISaleDetail }>('/sales', data, idempotencyConfig(idempotencyKey));
+
+  return response.data.data;
+}
+
+/** Simulação (não grava nada): sem chave de idempotência. */
+export async function simulateSale(data: Pick<ICreateSaleDTO, 'customerId' | 'items'>): Promise<ISaleSimulation> {
+  const response = await api.post<{ data: ISaleSimulation }>('/sales/simulate', data);
 
   return response.data.data;
 }

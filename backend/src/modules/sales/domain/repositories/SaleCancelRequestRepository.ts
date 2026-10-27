@@ -11,8 +11,11 @@ export interface SaleCancelRequestRepository {
   /** Trava o pedido pendente da venda, se houver (antes da trava da venda). Exige transação. */
   lockPendingBySaleId(saleId: string): Promise<void>;
   hasPendingForSale(saleId: string): Promise<boolean>;
-  /** Pagamento ativo (não estornado) em qualquer documento da venda. */
-  saleHasActivePayments(saleId: string): Promise<boolean>;
+  /**
+   * Pagamentos ativos (não estornados) da venda, por tipo: de parcela (bloqueiam o
+   * cancelamento) e do fechamento (`atCheckout`, estornados até 7 dias).
+   */
+  saleActivePayments(saleId: string): Promise<{ installment: boolean; atCheckout: boolean }>;
   /** Grava a decisão (recusa). */
   saveDecision(request: SaleCancelRequest): Promise<void>;
   /** Fecha como APPROVED o pedido pendente da venda (cancelamento direto ou aprovação). */

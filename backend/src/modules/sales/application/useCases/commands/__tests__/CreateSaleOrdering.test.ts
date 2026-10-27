@@ -26,6 +26,7 @@ function build(variantIds: string[]) {
   } as unknown as CustomerService;
   const financialService: FinancialService = {
     createSaleReceivable: async () => {},
+    createPaidSaleReceivable: async () => {},
     cancelSaleReceivable: async () => {},
     createPurchasePayable: async () => {},
     cancelPurchasePayable: async () => {},
@@ -37,6 +38,7 @@ function build(variantIds: string[]) {
     new FakeCatalogService(variantIds.map((id) => makeVariant({ id }))),
     inventoryService,
     financialService,
+    { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
   );
   return { uc, calls };
 }
@@ -111,6 +113,7 @@ test("total em centavos menor que o nº de parcelas → 422 INSTALLMENTS_EXCEED_
     new FakeCatalogService([makeVariant({ id: "v-a", salePrice: 0.01 })]),
     inventoryService,
     financialService,
+    { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
   );
 
   await assert.rejects(

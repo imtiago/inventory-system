@@ -70,6 +70,15 @@ enum PaymentMethod {
   BOLETO
 }
 
+enum PaymentCondition {
+  CASH
+  PIX
+  DEBIT_CARD
+  CREDIT_CARD
+  CREDIARIO
+  LEGACY_INSTALLMENTS
+}
+
 enum ParcelStatus {
   OPEN
   PARTIALLY_PAID
@@ -308,6 +317,17 @@ model Sale {
 
   status SaleStatus @default(PENDING)
 
+  /// Condição escolhida no fechamento; vendas antigas = LEGACY_INSTALLMENTS.
+  paymentCondition PaymentCondition @default(LEGACY_INSTALLMENTS)
+  cardFeePassedOn  Boolean          @default(false)
+  /// 1..12 (CHECK na migration), só CREDIT_CARD.
+  cardInstallments Int?
+  /// Taxa do cartão aplicada (snapshot), só cartão.
+  cardFeeBps       Int?
+  /// Repasse da taxa / acréscimo do crediário (CHECK >= 0). totalAmount = itens + surchargeAmount.
+  surchargeAmount  Decimal          @default(0) @db.Decimal(12, 2)
+  downPayment      Decimal          @default(0) @db.Decimal(12, 2)
+
   customer Customer @relation(fields: [customerId], references: [id])
 
   seller User? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
@@ -471,6 +491,9 @@ model Payment {
   reversedById   String?
   reversedBy     User?     @relation("paymentsReversed", fields: [reversedById], references: [id], onDelete: SetNull)
   reversalReason String?
+
+  /// Pago no fechamento da venda (estornado automaticamente no cancelamento).
+  atCheckout Boolean @default(false)
 
   parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Restrict)
 

@@ -78,14 +78,15 @@ export class PrismaSaleCancelRequestRepository implements SaleCancelRequestRepos
     return (await getDb().saleCancelRequest.count({ where: { saleId, status: "PENDING" } })) > 0;
   }
 
-  async saleHasActivePayments(saleId: string): Promise<boolean> {
-    const count = await getDb().payment.count({
+  async saleActivePayments(saleId: string): Promise<{ installment: boolean; atCheckout: boolean }> {
+    const rows = await getDb().payment.groupBy({
+      by: ["atCheckout"],
       where: {
         reversedAt: null,
         parcel: { document: { originType: "SALE", originId: saleId } },
       },
     });
-    return count > 0;
+    return { installment: rows.some((r) => !r.atCheckout), atCheckout: rows.some((r) => r.atCheckout) };
   }
 
   async saveDecision(request: SaleCancelRequest): Promise<void> {

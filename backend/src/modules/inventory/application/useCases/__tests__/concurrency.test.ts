@@ -282,6 +282,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     } as unknown as CustomerService;
     const financialService: FinancialService = {
       createSaleReceivable: async () => {},
+      createPaidSaleReceivable: async () => {},
       cancelSaleReceivable: async () => {},
       createPurchasePayable: async () => {},
       cancelPurchasePayable: async () => {},
@@ -293,6 +294,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       new FakeCatalogService(variantIds.map((id) => makeVariant({ id }))),
       inventoryService,
       financialService,
+      { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
     );
   }
 

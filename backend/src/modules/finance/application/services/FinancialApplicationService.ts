@@ -4,7 +4,10 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { CreateFinancialDocumentUseCase } from "../useCases/commands/CreateFinancialDocumentUseCase";
 import { CancelSaleReceivableUseCase } from "../useCases/commands/CancelSaleReceivableUseCase";
 import { CancelPurchasePayableUseCase } from "../useCases/commands/CancelPurchasePayableUseCase";
+import { CreatePaidSaleReceivableUseCase } from "../useCases/commands/CreatePaidSaleReceivableUseCase";
 import {
+  CancelSaleReceivableInput,
+  CreatePaidSaleReceivableInput,
   CreatePurchasePayableInput,
   CreateSaleReceivableInput,
   FinancialService,
@@ -15,6 +18,7 @@ export class FinancialApplicationService implements FinancialService {
     private readonly createDocumentUseCase: Pick<CreateFinancialDocumentUseCase, "execute">,
     private readonly cancelSaleReceivableUseCase: Pick<CancelSaleReceivableUseCase, "execute">,
     private readonly cancelPurchasePayableUseCase: Pick<CancelPurchasePayableUseCase, "execute">,
+    private readonly createPaidSaleReceivableUseCase: Pick<CreatePaidSaleReceivableUseCase, "execute">,
   ) {}
 
   async createSaleReceivable(input: CreateSaleReceivableInput): Promise<void> {
@@ -28,8 +32,12 @@ export class FinancialApplicationService implements FinancialService {
     });
   }
 
-  async cancelSaleReceivable(saleId: string): Promise<void> {
-    await this.cancelSaleReceivableUseCase.execute({ saleId });
+  async createPaidSaleReceivable(input: CreatePaidSaleReceivableInput): Promise<void> {
+    await this.createPaidSaleReceivableUseCase.execute(input);
+  }
+
+  async cancelSaleReceivable(input: CancelSaleReceivableInput): Promise<void> {
+    await this.cancelSaleReceivableUseCase.execute(input);
   }
 
   async createPurchasePayable(input: CreatePurchasePayableInput): Promise<void> {

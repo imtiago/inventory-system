@@ -26,6 +26,8 @@ export interface RegisterPaymentProps {
   paymentDate: string;
   reference: string | null;
   createdById: string;
+  /** Pago no fechamento da venda. */
+  atCheckout?: boolean;
 }
 
 export class FinancialDocument extends BaseEntity {
@@ -144,7 +146,7 @@ export class FinancialDocument extends BaseEntity {
   }
 
   /** Estorna um pagamento de uma parcela deste documento e recalcula o status. */
-  reversePayment(paymentId: string, userId: string, reason: string, now: Date = new Date()): Payment {
+  reversePayment(paymentId: string, userId: string | null, reason: string, now: Date = new Date()): Payment {
     const payment = this._parcels.flatMap((p) => p.payments).find((p) => p.id === paymentId);
     if (!payment) {
       throw new NotFoundError("Pagamento não encontrado.", ErrorCodes.PAYMENT_NOT_FOUND);

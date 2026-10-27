@@ -140,6 +140,8 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   // Crédito (crediário): perfis e ficha para quem vê clientes; ajustes só credit.manage (corpo inválido → 400).
   ["customers.read", { method: "GET", url: "/credit/profiles", allowed: 200 }],
   ["customers.read", { method: "GET", url: `/customers/${missing}/credit`, allowed: 404 }],
+  // Simulação do fechamento (só leitura): corpo inválido → 400.
+  ["sales.create", { method: "POST", url: "/sales/simulate", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/settings", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/profiles/NEW", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],

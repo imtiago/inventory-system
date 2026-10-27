@@ -3,6 +3,7 @@ import { makeCreateSaleController } from "../controllers/CreateSaleController";
 import { makeListSalesController } from "../controllers/ListSalesController";
 import { makeGetSaleController } from "../controllers/GetSaleController";
 import { makeCancelSaleController } from "../controllers/CancelSaleController";
+import { makeSimulateSaleController } from "../controllers/SimulateSaleController";
 import {
   makeApproveSaleCancelRequestController,
   makeCountSaleCancelRequestsController,
@@ -18,6 +19,12 @@ export async function saleRoutes(app: FastifyInstance) {
     "/",
     { preHandler: [authorize("sales.create")] },
     idempotent(makeCreateSaleController()),
+  );
+  // Só leitura (não grava nem trava): sem idempotência.
+  app.post(
+    "/simulate",
+    { preHandler: [authorize("sales.create")] },
+    makeSimulateSaleController(),
   );
   app.get(
     "/:id",

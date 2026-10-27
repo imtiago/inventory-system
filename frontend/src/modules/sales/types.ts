@@ -43,13 +43,45 @@ export interface ISalePaymentTerms {
   firstDueDate?: string;
 }
 
-export interface ICreateSaleDTO {
+/** Condição escolhida no fechamento (crediário: regras na Task 8 do crediário). */
+export type SalePaymentCondition = 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'CREDIARIO';
+
+export interface ISalePaymentInput {
+  condition: SalePaymentCondition;
+  /** 1..12, só CREDIT_CARD (obrigatório nele). */
+  cardInstallments?: number;
+  /** Repassar a taxa do cartão; padrão true no backend. */
+  passCardFee?: boolean;
+  crediario?: { installments: number; downPayment: number; downPaymentMethod?: 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD'; dueDay?: number };
+  override?: { approverEmail: string; approverPassword: string; reason: string };
+}
+
+interface ICreateSaleBase {
   customerId: string;
   items: {
     productVariantId: string;
     quantity: number;
   }[];
-  paymentTerms: ISalePaymentTerms;
+}
+
+/** `payment` (novo fechamento) ou `paymentTerms` (parcelado antigo, até a Task 9); nunca os dois. */
+export type ICreateSaleDTO =
+  | (ICreateSaleBase & { payment: ISalePaymentInput; paymentTerms?: never })
+  | (ICreateSaleBase & { paymentTerms: ISalePaymentTerms; payment?: never });
+
+/** POST /sales/simulate: valores por condição; `margin` só para quem vê lucro (ADMIN). */
+export interface ISaleSimulationCondition {
+  condition: 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD';
+  cardInstallments: number | null;
+  passCardFee: boolean;
+  total: number;
+  /** null quando algum item não tem custo registrado. */
+  margin?: { amount: number; percent: number } | null;
+}
+
+export interface ISaleSimulation {
+  itemsTotal: number;
+  conditions: ISaleSimulationCondition[];
 }
 
 export interface ISaleParcel {
@@ -65,7 +97,14 @@ export interface ISaleParcel {
 export interface ISaleDetail {
   id: string;
   status: SaleStatus;
+  /** Itens + acréscimo (repasse da taxa do cartão). */
   totalAmount: number;
+  /** LEGACY_INSTALLMENTS = venda parcelada antiga. */
+  paymentCondition: SalePaymentCondition | 'LEGACY_INSTALLMENTS';
+  cardInstallments: number | null;
+  cardFeePassedOn: boolean;
+  surchargeAmount: number;
+  downPayment: number;
   createdAt: string;
   customer: { id: string; name: string };
   seller: { id: string; name: string } | null;
@@ -78,6 +117,8 @@ export interface ISaleDetail {
   }[];
   receivable: { id: string; status: string; parcels: ISaleParcel[] } | null;
   pendingCancelRequest: ISaleCancelRequest | null;
+  /** Último pedido de cancelamento já decidido (aprovado ou recusado, com o motivo). */
+  latestDecidedCancelRequest: ISaleCancelRequest | null;
 }
 
 export interface ISaleCancelRequestsResponse {

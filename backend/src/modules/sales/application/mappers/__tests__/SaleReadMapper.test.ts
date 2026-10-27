@@ -10,6 +10,11 @@ const sale: SaleDetailRow = {
   customer: { id: "c-1", name: "Cliente" },
   seller: null,
   items: [],
+  paymentCondition: "LEGACY_INSTALLMENTS",
+  cardInstallments: null,
+  cardFeePassedOn: false,
+  surchargeAmount: "0.00",
+  downPayment: "0.00",
 };
 
 const receivable = (dueDate: string, payments: { amount: string; reversedAt: Date | null }[] = []) => ({
