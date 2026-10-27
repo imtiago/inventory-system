@@ -62,7 +62,7 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 - Transação: `PrismaTransactionManager.execute()` + `AsyncLocalStorage` (`shared/infrastructure/prisma/transactionContext.ts`). Chamada aninhada participa da transação externa (a mais externa faz commit). Use cases não recebem `tx`. `lock_timeout` 5 s por transação; deadlock/timeout de trava → 409 `CONCURRENT_UPDATE`.
 - Travas `FOR UPDATE` (sempre com transação ativa; mantenha a ordem para não criar ciclo):
   - Estoque: inventário de cada variante em **ordem crescente de productVariantId** → lotes (ORDER BY id) → alocações em caixas. Upsert do inventário = `INSERT … ON CONFLICT DO NOTHING` + `FOR UPDATE`.
-  - Venda: itens ordenados por variante; cancelamento: venda (`lockById`) → documento a receber → estoque.
+  - Venda: itens ordenados por variante; cancelamento: pedido de cancelamento pendente (`SaleCancelRequest`, se houver) → venda (`lockById`) → documento a receber → estoque. Aprovar pedido: pedido (`lockById`) → `CancelSaleUseCase` aninhado (mesma ordem; o cancelamento direto pega o pedido pendente antes da venda para não criar ciclo). Criar pedido: venda → insert (único parcial: um pendente por venda).
   - Compra: pedido → (compartilhada de preço) → inventários (crescente) no recebimento; pedido → documento a pagar no cancelamento.
   - Pagamento/estorno: documento financeiro (`lockById`). Documentos por origem: ORDER BY id.
   - NF-e confirmar/descartar/reenviar: rascunho primeiro; mapeamentos por `supplierCode` ordenado. Reverter: importação → pedido → inventários (crescente) → lotes do pedido → alocações → documento a pagar.
@@ -107,6 +107,7 @@ O banco de dev (`inventory`, container `api_db_1`, volume `api_pgdata`) **foi ap
 - Cliente: CPF/CNPJ opcional, único quando informado (`CUSTOMER_DOCUMENT_EXISTS`); CNPJ alfanumérico aceito.
 - NF-e: só `finNFe=1`, `tpNF=1`, com `protNFe` e `cStat` 100/150, destinatário = `COMPANY_CNPJ` (se definido) → senão 422 `NFE_NOT_ACCEPTED`. Diferença duplicatas × total ≤ R$ 0,05 ajusta a última parcela; acima → 422 `INSTALLMENTS_TOTAL_MISMATCH`. `nItem` repetido/ausente → `INVALID_NFE`. Mapeamento de fornecedor não grava código vazio nem conflitante.
 - Desfazer NF-e: só ADMIN (`purchases.revert`), só se nenhum lote foi consumido e não há pagamento; estorna estoque, cancela pagar e pedido, importação `REVERTED`.
+- Cancelar venda é só ADMIN (`sales.cancel`); VENDEDOR pede (`sales.cancel.request`, `POST /sales/:id/cancel-requests`) e o ADMIN aprova/recusa (`/sales/cancel-requests/:id/approve|reject`); cancelar direto fecha o pedido pendente como `APPROVED`.
 - Venda/compra com pagamento ativo não cancela. Um documento financeiro ativo por origem.
 - Login: 10 falhas/15 min por IP+e-mail, 30 por conta, 50 por IP (memória, instância única). Troca de senha derruba sessões antigas.
 

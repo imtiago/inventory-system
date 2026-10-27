@@ -6,6 +6,7 @@ import { FinancialService } from "@finance/application/services/FinancialService
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { ICancelSaleInput } from "@sales/application/dto/SaleDTO";
 import { Sale } from "@sales/domain/entities/Sale";
+import { SaleCancelRequestRepository } from "@sales/domain/repositories/SaleCancelRequestRepository";
 
 /**
  * Cancela a venda numa transação: trava a linha da venda (cancelamentos
@@ -19,11 +20,14 @@ export class CancelSaleUseCase extends TransactionalUseCase<ICancelSaleInput, Sa
     transactionManager: TransactionManager,
     private readonly inventoryService: InventoryService,
     private readonly financialService: FinancialService,
+    private readonly cancelRequests: SaleCancelRequestRepository,
   ) {
     super(transactionManager);
   }
 
   protected async handle({ id, userId }: ICancelSaleInput): Promise<Sale> {
+    // Pedido pendente antes da venda: mesma ordem da aprovação (pedido → venda), sem ciclo.
+    await this.cancelRequests.lockPendingBySaleId(id);
     const sale = await this.saleRepository.lockById(id);
     if (!sale) throw new NotFoundError("Venda não encontrada.", ErrorCodes.SALE_NOT_FOUND);
 
@@ -37,6 +41,8 @@ export class CancelSaleUseCase extends TransactionalUseCase<ICancelSaleInput, Sa
       items: sale.items.map((i) => ({ productVariantId: i.variantId, quantity: i.quantity })),
     });
 
+    // Cancelamento direto (ou aprovação) fecha o pedido em aberto como APROVADO.
+    await this.cancelRequests.approvePendingForSale(sale.id, userId);
     return this.saleRepository.update(sale);
   }
 }

@@ -6,7 +6,10 @@ describe('can', () => {
     expect(can('ADMIN', 'users.manage')).toBe(true);
     expect(can('VENDEDOR', 'users.manage')).toBe(false);
     expect(can('VENDEDOR', 'finance.reverse')).toBe(false);
-    expect(can('VENDEDOR', 'sales.cancel')).toBe(true);
+    expect(can('VENDEDOR', 'sales.cancel')).toBe(false);
+    expect(can('VENDEDOR', 'sales.cancel.request')).toBe(true);
+    expect(can('ADMIN', 'sales.cancel')).toBe(true);
+    expect(can('ESTOQUISTA', 'sales.cancel.request')).toBe(false);
     expect(can('ESTOQUISTA', 'inventory.write')).toBe(true);
     expect(can('ESTOQUISTA', 'sales.read')).toBe(false);
   });

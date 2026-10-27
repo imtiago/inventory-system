@@ -1,6 +1,7 @@
 import { fromCents, toCents } from "@shared/domain/money";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { parcelStatus, remainingCents, toDateOnly } from "@finance/domain/services/receivableStatus";
+import { SaleCancelRequestDTO } from "../dto/SaleCancelRequestDTO";
 import { SaleDetailDTO, SaleListItemDTO, SaleReceivableDTO } from "../dto/SaleDTO";
 
 /** Valor monetário vindo da persistência (Decimal do Prisma, string ou number). */
@@ -66,6 +67,7 @@ export class SaleReadMapper {
     row: SaleDetailRow,
     receivable: SaleReceivableRow | null,
     now: Date = new Date(),
+    pendingCancelRequest: SaleCancelRequestDTO | null = null,
   ): SaleDetailDTO {
     return {
       id: row.id,
@@ -91,6 +93,7 @@ export class SaleReadMapper {
         };
       }),
       receivable: receivable ? SaleReadMapper.toReceivableDTO(receivable, now) : null,
+      pendingCancelRequest,
     };
   }
 

@@ -77,4 +77,19 @@ export interface ISaleDetail {
     totalPrice: number;
   }[];
   receivable: { id: string; status: string; parcels: ISaleParcel[] } | null;
+  pendingCancelRequest: ISaleCancelRequest | null;
+}
+
+export interface ISaleCancelRequest {
+  id: string;
+  saleId: string;
+  customerName: string;
+  total: number;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requestedBy: { id: string; name: string } | null;
+  requestedAt: string;
+  decidedBy: { id: string; name: string } | null;
+  decidedAt: string | null;
+  decisionReason: string | null;
 }

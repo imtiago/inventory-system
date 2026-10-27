@@ -1,3 +1,4 @@
+import { SaleCancelRequestDTO } from "./SaleCancelRequestDTO";
 import { SaleItemDTO } from "./SaleItemDTO";
 
 export interface SaleReceivableParcelDTO {
@@ -25,6 +26,8 @@ export interface SaleDetailDTO {
   seller: { id: string; name: string } | null;
   items: SaleItemDTO[];
   receivable: SaleReceivableDTO | null;
+  /** Pedido de cancelamento em aberto, se houver. */
+  pendingCancelRequest: SaleCancelRequestDTO | null;
 }
 
 export interface SaleListItemDTO {

@@ -104,6 +104,12 @@ enum StockMovementOrigin {
 
 // PENDING não é criado por nenhum fluxo (o domínio nasce COMPLETED); o default do banco só vale para
 // inserção fora da aplicação. Mantido porque filtro, CSV e front ainda o conhecem.
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SaleStatus {
   PENDING
   COMPLETED
@@ -308,6 +314,8 @@ model Sale {
 
   items SaleItem[]
 
+  cancelRequests SaleCancelRequest[]
+
   @@index([status, createdAt])
 
   @@index([customerId])
@@ -376,6 +384,8 @@ model User {
   nfeImportsConfirmed NfeImport[]     @relation("nfeImportsConfirmed")
   pricingSettingsUpdated PricingSettings[]
   priceReviewsResolved   PriceReview[]
+  saleCancelRequested    SaleCancelRequest[] @relation("saleCancelRequested")
+  saleCancelDecided      SaleCancelRequest[] @relation("saleCancelDecided")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -746,4 +756,24 @@ model PriceReview {
 
   @@index([status, createdAt])
   @@index([productVariantId])
+}
+
+/// Pedido de cancelamento de venda (vendedor pede, ADMIN decide). Único parcial
+/// "SaleCancelRequest_pending_sale_key" ON (saleId) WHERE status = 'PENDING' só na migration.
+model SaleCancelRequest {
+  id             String                 @id @default(uuid())
+  saleId         String
+  reason         String                 @db.VarChar(200)
+  status         ApprovalRequestStatus  @default(PENDING)
+  requestedById  String?
+  requestedAt    DateTime               @default(now())
+  decidedById    String?
+  decidedAt      DateTime?
+  decisionReason String?                @db.VarChar(200)
+
+  sale        Sale  @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  requestedBy User? @relation("saleCancelRequested", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy   User? @relation("saleCancelDecided", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
 }

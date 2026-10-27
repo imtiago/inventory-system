@@ -2,6 +2,7 @@ import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { SaleListFilter, SaleReadRepository } from "@sales/application/contracts/SaleReadRepository";
 import { SaleDetailDTO, SaleListItemDTO } from "@sales/application/dto/SaleDTO";
+import { PrismaSaleCancelRequestRepository } from "../repositories/PrismaSaleCancelRequestRepository";
 import { SaleReadMapper } from "@sales/application/mappers/SaleReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -82,6 +83,12 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       orderBy: { createdAt: "asc" },
     });
 
-    return SaleReadMapper.toDetailDTO(sale, receivable);
+    const pending = await getDb().saleCancelRequest.findFirst({
+      where: { saleId: id, status: "PENDING" },
+      select: { id: true },
+    });
+    const pendingCancelRequest = pending ? await new PrismaSaleCancelRequestRepository().findDtoById(pending.id) : null;
+
+    return SaleReadMapper.toDetailDTO(sale, receivable, new Date(), pendingCancelRequest);
   }
 }
