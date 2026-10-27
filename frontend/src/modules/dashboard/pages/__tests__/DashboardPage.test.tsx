@@ -150,4 +150,22 @@ describe('DashboardPage', () => {
     expect(value).toHaveClass('tabular-nums', 'text-foreground');
     expect(within(rec).getByTestId('receivables-open')).toHaveClass('min-w-0');
   });
+
+  test('ADMIN vê os cartões de lucro e margem do mês', async () => {
+    renderWithProviders(<DashboardPage />);
+    const card = await screen.findByRole('region', { name: 'Lucro do mês' });
+    expect(within(card).getByTestId('profit-month')).toHaveTextContent(/2\.410,80/);
+    expect(within(card).getByTestId('profit-margin')).toHaveTextContent(/27,60%/);
+    expect(within(card).getByRole('link', { name: /Ver relatório/ })).toHaveAttribute('href', '/reports/profit');
+  });
+
+  test('VENDEDOR não vê cartões de lucro', async () => {
+    const { profit: _p, pricing: _q, payables: _y, purchases: _c, ...rest } = fixture.data;
+    void _p; void _q; void _y; void _c;
+    serve(rest);
+    renderWithProviders(<DashboardPage />);
+    expect(await screen.findByRole('region', { name: 'Vendas' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Lucro do mês' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('profit-margin')).not.toBeInTheDocument();
+  });
 });

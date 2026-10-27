@@ -5,6 +5,8 @@ export const queryKeys = {
 
   dashboard: ['dashboard'] as const,
 
+  profitReport: (params: object) => ['reports', 'profit', params] as const,
+
   sales: ['sales'] as const,
 
   receivables: ['receivables'] as const,

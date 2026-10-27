@@ -40,6 +40,7 @@ function route(method, url) {
   }
   if (p === '/users/me') return me;
   if (p === '/dashboard') return j('dashboard/dashboard.json');
+  if (p === '/reports/profit') return j('reports/profit.json');
   if (p === '/products') return grow(j('catalog/productList.json'));
   if (s[0] === 'products' && s[2] === 'variants') return j('catalog/variantList.json');
   if (s[0] === 'products' && s[1]) return j('catalog/productDetail.json');

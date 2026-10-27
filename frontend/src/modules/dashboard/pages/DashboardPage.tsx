@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 
+import { formatPercent } from '@/modules/reports/utils/formatPercent';
 import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
@@ -103,7 +104,7 @@ export function DashboardPage() {
 
   const from = businessDay(data.generatedAt);
   const to = businessDay(data.generatedAt, 7);
-  const { sales, receivables, payables, inventory, purchases } = data;
+  const { sales, receivables, payables, inventory, purchases, profit } = data;
 
   return (
     <Page>
@@ -141,6 +142,18 @@ export function DashboardPage() {
               </div>
             </Card>
           </div>
+        )}
+
+        {profit && (
+          <Card title="Lucro do mês">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Stat id="profit-month" label="Lucro" value={formatCurrency(profit.month.profit)} hint={`Receita ${formatCurrency(profit.month.revenue)}`} danger={profit.month.profit < 0} />
+              <Stat id="profit-margin" label="Margem média" value={formatPercent(profit.month.marginPercent)} />
+            </div>
+            <Link to="/reports/profit" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">
+              Ver relatório
+            </Link>
+          </Card>
         )}
 
         {receivables && <FinanceCard title="Contas a receber" base="/receivables" data={receivables} from={from} to={to} />}
