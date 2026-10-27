@@ -90,6 +90,9 @@ function route(method, url) {
     if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
     return detail;
   }
+  if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
+  if (p === '/credit/settings') return j('credit/creditSettings.json');
+  if (p === '/credit/profiles') return j('credit/creditProfiles.json');
   if (p === '/customers') { const g = grow(j('customers/customerList.json')); g.data.forEach((r, i) => { if (i >= 2) r.name = names[i]; }); return g; }
   if (s[0] === 'customers') return j('customers/customer.json');
   if (p === '/suppliers') return grow(j('purchases/supplierList.json'));

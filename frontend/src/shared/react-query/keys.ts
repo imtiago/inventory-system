@@ -50,6 +50,12 @@ export const queryKeys = {
   variantPricing: (id: string) => ['pricing', 'variants', id] as const,
 
 
+  creditSettings: ['credit', 'settings'] as const,
+
+  creditProfiles: ['credit', 'profiles'] as const,
+
+  customerCredit: (id: string) => ['customers', id, 'credit'] as const,
+
   inventory: ['inventory'] as const,
 
   inventoryById: (id: string) => ['inventory', id] as const,

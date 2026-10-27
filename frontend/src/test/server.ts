@@ -9,5 +9,6 @@ import { purchasesHandlers } from './handlers/purchases';
 import { nfeHandlers } from './handlers/nfe';
 import { dashboardHandlers } from './handlers/dashboard';
 import { pricingHandlers } from './handlers/pricing';
+import { creditHandlers } from './handlers/credit';
 
-export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...payablesHandlers, ...authHandlers, ...usersHandlers, ...purchasesHandlers, ...nfeHandlers, ...dashboardHandlers, ...pricingHandlers);
+export const server = setupServer(...inventoryHandlers, ...salesHandlers, ...receivablesHandlers, ...payablesHandlers, ...authHandlers, ...usersHandlers, ...purchasesHandlers, ...nfeHandlers, ...dashboardHandlers, ...pricingHandlers, ...creditHandlers);

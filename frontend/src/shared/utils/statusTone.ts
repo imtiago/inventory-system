@@ -33,6 +33,10 @@ export const statusTone: Record<string, Tone> = {
   // Usuários
   ACTIVE: 'success',
   INACTIVE: 'neutral',
+
+  // Ficha de crédito (ACTIVE vem de Usuários)
+  BLOCKED: 'danger',
+  SUSPENDED: 'warning',
 };
 
 export function toneFor(status: string | null | undefined): Tone {
