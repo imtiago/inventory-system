@@ -5,7 +5,7 @@ import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Section } from '@/shared/components/details/Section';
 import { DetailTable } from '@/shared/components/details/DetailTable';
-import { StatusBadge } from '@/components/ui/badge';
+import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Modal } from '@/shared/components/Modal/Modal';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -18,6 +18,8 @@ import { useSale } from '../hooks/useSale';
 import { useCancelSale } from '../hooks/useCancelSale';
 import { FINANCIAL_STATUS_LABELS } from '@/shared/utils/financialStatus';
 import { Can } from '@/shared/auth/Can';
+import { useCan } from '@/shared/auth/useCan';
+import { RequestCancelModal } from '../components/RequestCancelModal';
 import { LoadingState } from '@/shared/components/LoadingState';
 import { formatDateTime } from '@/shared/utils/formatDateTime';
 
@@ -34,6 +36,9 @@ export function SaleDetailPage() {
   const cancel = useCancelSale(id ?? '');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const canCancel = useCan('sales.cancel');
+  const canRequest = useCan('sales.cancel.request');
 
   // Active payments (reversed ones are already out of paidAmount) block the cancellation on the backend too.
   const hasPayments = sale?.receivable?.parcels.some((parcel) => parcel.paidAmount > 0) ?? false;
@@ -64,12 +69,14 @@ export function SaleDetailPage() {
   const cancelAction =
     sale && sale.status !== 'CANCELED' ? (
       hasPayments ? (
-        <Can permission="sales.cancel">
+        <Can permission="sales.cancel.request">
           <p data-testid="cancel-blocked" className="max-w-xs text-sm text-muted">
-            Esta venda tem pagamento registrado. Estorne os pagamentos em contas a receber para poder cancelá-la.
+            {canCancel
+              ? 'Esta venda tem pagamento registrado. Estorne os pagamentos em contas a receber para poder cancelá-la.'
+              : 'Esta venda tem pagamento registrado. Um administrador precisa estornar os pagamentos antes do cancelamento.'}
           </p>
         </Can>
-      ) : (
+      ) : canCancel ? (
         <Can permission="sales.cancel">
           <button
             type="button"
@@ -82,7 +89,15 @@ export function SaleDetailPage() {
             Cancelar venda
           </button>
         </Can>
-      )
+      ) : canRequest && !sale.pendingCancelRequest ? (
+        <button
+          type="button"
+          className="min-h-11 rounded-lg bg-danger-solid px-4 py-2 text-danger-foreground hover:bg-danger-solid/90 disabled:opacity-50"
+          onClick={() => setRequestOpen(true)}
+        >
+          Pedir cancelamento
+        </button>
+      ) : undefined
     ) : undefined;
 
   return (
@@ -92,7 +107,10 @@ export function SaleDetailPage() {
         description={sale ? formatDateTime(sale.createdAt) : undefined}
         meta={
           sale ? (
-            <StatusBadge status={sale.status}>{saleStatusLabels[sale.status] ?? sale.status}</StatusBadge>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={sale.status}>{saleStatusLabels[sale.status] ?? sale.status}</StatusBadge>
+              {sale.pendingCancelRequest && <Badge tone="warning">Cancelamento pedido</Badge>}
+            </div>
           ) : undefined
         }
         backPath="/sales"
@@ -111,6 +129,20 @@ export function SaleDetailPage() {
       {cancelError && (
         <div role="alert" className="rounded-lg border border-danger/30 p-4 text-sm text-danger">
           {cancelError}
+        </div>
+      )}
+
+      {sale?.pendingCancelRequest && (
+        <div data-testid="cancel-request-notice" className="rounded-lg border border-warning/30 bg-warning-soft p-4 text-sm text-warning">
+          <p className="font-medium">
+            {`Cancelamento pedido${sale.pendingCancelRequest.requestedBy ? ` por ${sale.pendingCancelRequest.requestedBy.name}` : ''} em ${formatDateTime(sale.pendingCancelRequest.requestedAt)}`}
+          </p>
+          <p className="mt-1 whitespace-normal break-words">{`Motivo: ${sale.pendingCancelRequest.reason}`}</p>
+          <Can permission="sales.cancel">
+            <Link to="/sales/cancel-requests" className="mt-2 inline-block font-medium underline underline-offset-2">
+              Ver pedidos de cancelamento
+            </Link>
+          </Can>
         </div>
       )}
 
@@ -193,6 +225,8 @@ export function SaleDetailPage() {
           </button>
         </div>
       </Modal>
+
+      {requestOpen && id && <RequestCancelModal saleId={id} onClose={() => setRequestOpen(false)} />}
     </Page>
   );
 }

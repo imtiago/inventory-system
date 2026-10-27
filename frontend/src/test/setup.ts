@@ -25,6 +25,7 @@ afterAll(() => server.close());
 const COVERED_POSTS = [
   /\/sales$/,
   /\/sales\/[^/]+\/cancel$/,
+  /\/sales\/cancel-requests\/[^/]+\/approve$/,
   /\/(receivables|payables)\/[^/]+\/parcels\/[^/]+\/payments$/,
   /\/(receivables|payables)\/payments\/[^/]+\/reverse$/,
   /\/purchases$/,

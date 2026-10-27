@@ -12,6 +12,7 @@ import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import saleDetail from '@/test/fixtures/sales/saleDetail.json';
 import { setViewport } from '@/test/viewport';
+import { loginAs } from '@/test/auth';
 
 const id = saleDetail.data.id;
 
@@ -198,5 +199,92 @@ describe('SaleDetailPage no celular', () => {
 
     await screen.findByText('Maria Oliveira');
     expect(screen.getAllByRole('table')).toHaveLength(2);
+  });
+});
+
+describe('SaleDetailPage: pedido de cancelamento', () => {
+  const pending = {
+    id: 'req-1',
+    saleId: id,
+    customerName: 'Maria Oliveira',
+    total: 159.7,
+    reason: 'Cliente desistiu',
+    status: 'PENDING',
+    requestedBy: { id: 'u1', name: 'João Vendedor' },
+    requestedAt: '2026-10-26T13:10:00.000Z',
+    decidedBy: null,
+    decidedAt: null,
+    decisionReason: null,
+  };
+
+  test('VENDEDOR vê "Pedir cancelamento" e não "Cancelar venda"', async () => {
+    loginAs('VENDEDOR');
+    renderDetail();
+
+    expect(await screen.findByRole('button', { name: 'Pedir cancelamento' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar venda' })).not.toBeInTheDocument();
+  });
+
+  test('VENDEDOR envia o motivo (mín. 3), vê o selo e o botão some', async () => {
+    loginAs('VENDEDOR');
+    let body: unknown = null;
+    server.use(
+      http.post(`${API_URL}/sales/:id/cancel-requests`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ data: pending }, { status: 201 });
+      }),
+    );
+    renderDetail();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pedir cancelamento' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Motivo'), 'ab');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar pedido' }));
+    expect(await within(dialog).findByText(/3 a 200 caracteres/)).toBeInTheDocument();
+    expect(body).toBeNull();
+
+    await userEvent.type(within(dialog).getByLabelText('Motivo'), 'c');
+    // O detalhe recarregado já traz o pedido pendente.
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ data: { ...saleDetail.data, pendingCancelRequest: pending } })));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar pedido' }));
+
+    await waitFor(() => expect(body).toEqual({ reason: 'abc' }));
+    expect(await screen.findByText('Cancelamento pedido')).toBeInTheDocument();
+    expect(screen.getByText(/Cliente desistiu/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument());
+  });
+
+  test('409 ao pedir mostra a mensagem da API no modal', async () => {
+    loginAs('VENDEDOR');
+    server.use(
+      http.post(`${API_URL}/sales/:id/cancel-requests`, () =>
+        HttpResponse.json({ message: 'Já existe um pedido de cancelamento em aberto para esta venda.', code: 'CANCEL_REQUEST_ALREADY_PENDING' }, { status: 409 }),
+      ),
+    );
+    renderDetail();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pedir cancelamento' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Motivo'), 'Cliente desistiu');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar pedido' }));
+
+    expect(await within(dialog).findByText('Já existe um pedido de cancelamento em aberto para esta venda.')).toBeInTheDocument();
+  });
+
+  test('com pedido pendente mostra o selo e o motivo; VENDEDOR não pode pedir de novo', async () => {
+    loginAs('VENDEDOR');
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ data: { ...saleDetail.data, pendingCancelRequest: pending } })));
+    renderDetail();
+
+    expect(await screen.findByText('Cancelamento pedido')).toBeInTheDocument();
+    expect(screen.getByText(/Cliente desistiu/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument();
+  });
+
+  test('ADMIN mantém "Cancelar venda" e não vê "Pedir cancelamento"', async () => {
+    renderDetail();
+
+    expect(await screen.findByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument();
   });
 });

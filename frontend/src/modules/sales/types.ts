@@ -80,6 +80,11 @@ export interface ISaleDetail {
   pendingCancelRequest: ISaleCancelRequest | null;
 }
 
+export interface ISaleCancelRequestsResponse {
+  data: ISaleCancelRequest[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 export interface ISaleCancelRequest {
   id: string;
   saleId: string;

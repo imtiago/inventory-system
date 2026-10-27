@@ -1,6 +1,6 @@
 import { api } from '@/shared/services/api';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
-import type { ICreateSaleDTO, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
+import type { ICreateSaleDTO, ISaleCancelRequest, ISaleCancelRequestsResponse, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
 
 const PAGE_SIZE = 10;
 
@@ -26,6 +26,36 @@ export async function createSale(data: ICreateSaleDTO, idempotencyKey: string): 
 
 export async function getSale(id: string): Promise<ISaleDetail> {
   const response = await api.get<{ data: ISaleDetail }>(`/sales/${id}`);
+
+  return response.data.data;
+}
+
+export async function requestSaleCancel(saleId: string, reason: string): Promise<ISaleCancelRequest> {
+  const response = await api.post<{ data: ISaleCancelRequest }>(`/sales/${saleId}/cancel-requests`, { reason });
+
+  return response.data.data;
+}
+
+export async function listSaleCancelRequests(params: { page: number; limit: number; status: ISaleCancelRequest['status'] }): Promise<ISaleCancelRequestsResponse> {
+  const response = await api.get<ISaleCancelRequestsResponse>('/sales/cancel-requests', { params });
+
+  return response.data;
+}
+
+export async function getSaleCancelRequestCount(): Promise<number> {
+  const response = await api.get<{ data: { pending: number } }>('/sales/cancel-requests/count');
+
+  return response.data.data.pending;
+}
+
+export async function approveSaleCancelRequest(id: string, idempotencyKey: string): Promise<ISaleCancelRequest> {
+  const response = await api.post<{ data: ISaleCancelRequest }>(`/sales/cancel-requests/${id}/approve`, undefined, idempotencyConfig(idempotencyKey));
+
+  return response.data.data;
+}
+
+export async function rejectSaleCancelRequest(id: string, reason: string): Promise<ISaleCancelRequest> {
+  const response = await api.post<{ data: ISaleCancelRequest }>(`/sales/cancel-requests/${id}/reject`, { reason });
 
   return response.data.data;
 }

@@ -26,6 +26,8 @@ export function useCancelSale(id: string) {
         invalidateInventoryQueries(queryClient),
         queryClient.invalidateQueries({ queryKey: queryKeys.receivables }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
+        // Cancelling directly closes a pending request as APPROVED.
+        queryClient.invalidateQueries({ queryKey: queryKeys.cancelRequests }),
       ]);
       notify.success(saleMessages.canceled);
     },

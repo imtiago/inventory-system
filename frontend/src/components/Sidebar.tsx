@@ -11,11 +11,22 @@ import { allRoutes } from "@/routes/routes";
 import type { AppRoute } from "@/routes/types";
 import { usePriceReviewCount } from "@/modules/pricing/hooks/usePriceReviews";
 
+import { useSaleCancelRequestCount } from "@/modules/sales/hooks/useSaleCancelRequests";
+
 const PRICE_REVIEWS_PATH = "/catalog/price-reviews";
+const CANCEL_REQUESTS_PATH = "/sales/cancel-requests";
 
 /** Pendentes de revisão de preço; o hook só consulta quem tem `catalog.price`. */
 function PriceReviewBadge() {
-  const { data } = usePriceReviewCount();
+  return <PendingBadge count={usePriceReviewCount().data} />;
+}
+
+/** Pedidos de cancelamento pendentes; o hook só consulta quem tem `sales.cancel`. */
+function CancelRequestBadge() {
+  return <PendingBadge count={useSaleCancelRequestCount().data} />;
+}
+
+function PendingBadge({ count: data }: { count: number | undefined }) {
   if (!data) return null;
 
   return (
@@ -53,6 +64,7 @@ function renderItem(item: AppRoute, onNavigate?: () => void) {
       <span>{item.label}</span>
 
       {item.path === PRICE_REVIEWS_PATH && <PriceReviewBadge />}
+      {item.path === CANCEL_REQUESTS_PATH && <CancelRequestBadge />}
     </NavLink>
   );
 }

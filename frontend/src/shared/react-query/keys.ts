@@ -9,6 +9,12 @@ export const queryKeys = {
 
   sales: ['sales'] as const,
 
+  cancelRequests: ['cancel-requests'] as const,
+
+  cancelRequestList: (params: object) => ['cancel-requests', 'list', params] as const,
+
+  cancelRequestCount: ['cancel-requests', 'count'] as const,
+
   receivables: ['receivables'] as const,
 
   payables: ['payables'] as const,

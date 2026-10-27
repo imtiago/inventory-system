@@ -27,7 +27,8 @@ function grow(list, n = 8) {
   }
   return { ...list, data: out, pagination: { page: 1, limit: 10, total: 23, totalPages: 3 } };
 }
-const me = { data: { id: 'u-admin', name: 'Tiago Oliveira', email: 'tiago@example.com', role: 'ADMIN' } };
+// --role VENDEDOR simula o vendedor; --pending mostra a venda com pedido de cancelamento em aberto.
+const me = { data: { id: 'u-admin', name: 'Tiago Oliveira', email: 'tiago@example.com', role: flag('role') || 'ADMIN' } };
 const categories = { data: [{ id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', name: 'Perfumes', productsCount: 8 }, { id: 'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f80', name: 'Maquiagens', productsCount: 15 }, { id: 'c1', name: 'Cuidados com a pele', productsCount: 0 }], pagination: { page: 1, limit: 10, total: 3, totalPages: 1 } };
 
 /** A fixture traz uma simulação só (contrato); a tela precisa das 27 linhas (à vista, débito e crédito 1x-12x). */
@@ -82,7 +83,13 @@ function route(method, url) {
     g.data.forEach((r, i) => { if (r.customer) r.customer.name = names[i]; r.totalAmount = [159.7, 25, 1289.9, 74.5, 3420, 12.9, 560.4, 89.99][i]; });
     return g;
   }
-  if (s[0] === 'sales') return j('sales/saleDetail.json');
+  if (p === '/sales/cancel-requests/count') return j('sales/cancelRequestCount.json');
+  if (p === '/sales/cancel-requests') return j('sales/cancelRequests.json');
+  if (s[0] === 'sales') {
+    const detail = j('sales/saleDetail.json');
+    if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
+    return detail;
+  }
   if (p === '/customers') { const g = grow(j('customers/customerList.json')); g.data.forEach((r, i) => { if (i >= 2) r.name = names[i]; }); return g; }
   if (s[0] === 'customers') return j('customers/customer.json');
   if (p === '/suppliers') return grow(j('purchases/supplierList.json'));

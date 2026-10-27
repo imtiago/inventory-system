@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "id": "7c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f",
+      "saleId": "0b6f3c2e-8a4d-4f1b-9c7e-2d5a8f1e3b40",
+      "customerName": "Maria Oliveira",
+      "total": 159.7,
+      "reason": "Cliente desistiu da compra",
+      "status": "PENDING",
+      "requestedBy": { "id": "e2c4a6b8-1d3f-4a5c-8e7f-9b1d3f5a7c90", "name": "João Vendedor" },
+      "requestedAt": "2026-10-26T13:10:00.000Z",
+      "decidedBy": null,
+      "decidedAt": null,
+      "decisionReason": null
+    },
+    {
+      "id": "8d2e3f4a-5b6c-4d7e-9f8a-1b2c3d4e5f60",
+      "saleId": "1c7a4d3f-9b5e-4a2c-8d6f-3e6b9a2f4c51",
+      "customerName": "Carlos Souza",
+      "total": 89.9,
+      "reason": "Produto lançado em duplicidade",
+      "status": "PENDING",
+      "requestedBy": { "id": "e2c4a6b8-1d3f-4a5c-8e7f-9b1d3f5a7c90", "name": "João Vendedor" },
+      "requestedAt": "2026-10-26T15:42:00.000Z",
+      "decidedBy": null,
+      "decidedAt": null,
+      "decisionReason": null
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 2, "totalPages": 1 }
+}

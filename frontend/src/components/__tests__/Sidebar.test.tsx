@@ -90,6 +90,32 @@ describe('Sidebar', () => {
   });
 });
 
+describe('Sidebar: Pedidos de cancelamento', () => {
+  test('ADMIN vê o item sob Vendas com o contador no nome acessível', async () => {
+    renderSidebar('ADMIN');
+    const link = await screen.findByRole('link', { name: /Pedidos de cancelamento/ });
+    expect(link).toHaveAttribute('href', '/sales/cancel-requests');
+    await waitFor(() => expect(screen.getByRole('link', { name: /^Pedidos de cancelamento\s*2 pendentes$/ })).toBe(link));
+  });
+
+  test('sem pendentes não mostra o contador', async () => {
+    server.use(http.get(`${API_URL}/sales/cancel-requests/count`, () => HttpResponse.json({ data: { pending: 0 } })));
+    renderSidebar('ADMIN');
+    const link = await screen.findByRole('link', { name: /Pedidos de cancelamento/ });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(within(link).queryByText('0')).not.toBeInTheDocument();
+  });
+
+  test('VENDEDOR não vê o item nem consulta o contador', async () => {
+    const calls: string[] = [];
+    server.use(http.get(`${API_URL}/sales/cancel-requests/count`, ({ request }) => { calls.push(request.url); return HttpResponse.json({ data: { pending: 5 } }); }));
+    renderSidebar('VENDEDOR');
+    expect(screen.queryByText('Pedidos de cancelamento')).not.toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toEqual([]);
+  });
+});
+
 describe('Sidebar: Preços para revisar', () => {
   test('ADMIN vê o contador com o número pendente', async () => {
     renderSidebar('ADMIN');
