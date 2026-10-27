@@ -267,6 +267,7 @@ export function useInitialInventoryFlow() {
       batchNumber: data.batchNumber.trim(),
       quantity: data.quantity,
       unitCost: data.unitCost,
+      ...(data.extraCost !== undefined ? { extraCost: data.extraCost } : {}),
       expirationDate: data.expirationDate,
       manufacturingDate: data.manufacturingDate || undefined,
     });

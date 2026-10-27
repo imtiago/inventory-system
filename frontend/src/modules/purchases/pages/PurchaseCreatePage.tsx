@@ -28,6 +28,7 @@ type PurchaseFormValues = {
   purchaseDate: string;
   firstDueDate: string;
   notes: string;
+  extraCosts: string;
 };
 
 type PaymentMode = 'cash' | 'installments';
@@ -80,12 +81,13 @@ export function PurchaseCreatePage() {
     handleSubmit,
     formState: { errors },
   } = useForm<PurchaseFormValues>({
-    defaultValues: { supplierId: '', purchaseDate: today, firstDueDate: addDaysToDateOnly(today, DEFAULT_FIRST_DUE_DAYS), notes: '' },
+    defaultValues: { supplierId: '', purchaseDate: today, firstDueDate: addDaysToDateOnly(today, DEFAULT_FIRST_DUE_DAYS), notes: '', extraCosts: '' },
   });
 
   const supplierId = useWatch({ control, name: 'supplierId' });
   const purchaseDate = useWatch({ control, name: 'purchaseDate' });
   const firstDueDate = useWatch({ control, name: 'firstDueDate' });
+  const extraCostsText = useWatch({ control, name: 'extraCosts' });
 
   const [items, setItems] = useState<IPurchaseDraftItem[]>([]);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
@@ -103,8 +105,10 @@ export function PurchaseCreatePage() {
 
   const isInstallments = paymentMode === 'installments';
   const itemTotals = items.map((item) => itemTotalCents(item));
-  const totalCents = itemTotals.reduce<number>((sum, value) => sum + (value ?? 0), 0);
-  const reason = blockingReason(items, totalCents);
+  const extraCostsCents = moneyFieldCents(extraCostsText ?? '') ?? 0;
+  const totalCents = itemTotals.reduce<number>((sum, value) => sum + (value ?? 0), 0) + extraCostsCents;
+  const extraCostsError = moneyFieldError(extraCostsText ?? '');
+  const reason = extraCostsError ? `Frete e outras despesas da compra: ${extraCostsError.charAt(0).toLowerCase()}${extraCostsError.slice(1)}.` : blockingReason(items, totalCents);
   const isSubmitDisabled = !supplierId || items.length === 0 || reason !== null || createMutation.isPending;
 
   const preview = isInstallments && totalCents > 0 && DATE_PATTERN.test(firstDueDate) ? buildInstallments(totalCents, installments, firstDueDate) : [];
@@ -156,6 +160,7 @@ export function PurchaseCreatePage() {
         supplierId: values.supplierId,
         purchaseDate: values.purchaseDate,
         ...(notes ? { notes } : {}),
+        ...(extraCostsCents > 0 ? { extraCosts: moneyFieldToSend(values.extraCosts) } : {}),
         items: items.map((item) => ({
           productVariantId: item.productVariantId,
           quantity: parseQuantity(item.quantity) as number,
@@ -179,7 +184,7 @@ export function PurchaseCreatePage() {
             mapped[field === 'paymentTerms.firstDueDate' ? 'firstDueDate' : field] = text;
           }
 
-          const { applied, unmatched } = applyFieldErrors(setError, mapped, ['supplierId', 'purchaseDate', 'firstDueDate', 'notes']);
+          const { applied, unmatched } = applyFieldErrors(setError, mapped, ['supplierId', 'purchaseDate', 'firstDueDate', 'notes', 'extraCosts']);
           const detail = Object.values(unmatched)[0];
 
           // Shown once: inline when fully mapped to a field, otherwise as the alert (never both).
@@ -399,6 +404,21 @@ export function PurchaseCreatePage() {
                 {reason}
               </div>
             )}
+
+            <div className="mt-5 border-t pt-4 sm:max-w-xs">
+              <label htmlFor="purchase-extra-costs" className="mb-1 block text-sm font-medium">
+                Frete e outras despesas da compra (R$)
+              </label>
+              <MoneyInput
+                id="purchase-extra-costs"
+                disabled={createMutation.isPending}
+                {...fieldA11y('purchase-extra-costs', errors.extraCosts?.message ?? extraCostsError ?? undefined)}
+                {...register('extraCosts')}
+                className={cardMoneyClass}
+              />
+              <FieldError id="purchase-extra-costs" message={errors.extraCosts?.message ?? extraCostsError ?? undefined} />
+              <p className="mt-1 text-xs text-muted">Opcional. Rateado entre os itens e entra no custo de cada um.</p>
+            </div>
 
             <div className="mt-5 flex flex-col gap-2 border-t pt-4 sm:items-end">
               <p className="text-sm text-muted">Total do pedido</p>

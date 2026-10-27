@@ -1,4 +1,4 @@
-import { divideCentsRoundHalfUp, toCents, unitCostFromCents } from "@shared/domain/money";
+import { applyEntryExtraCost } from "./entryExtraCost";
 import { FastifyRequest, FastifyReply } from "fastify";
 import { HttpResponse } from "@shared/http/response";
 import { parseInput } from "@shared/http/parseInput";
@@ -18,18 +18,13 @@ export function makeReceiveInventoryController() {
   ) {
     const data = parseInput(receiveInventorySchema, request.body);
 
-    // Despesa total da entrada → custo efetivo por unidade (aritmética inteira em 1/10.000 de real).
-    const extraCents = toCents(data.extraCost ?? 0);
-    const unitCost =
-      extraCents > 0
-        ? divideCentsRoundHalfUp(Math.round(data.unitCost * 10_000) * data.quantity + extraCents * 100, data.quantity) / 10_000
-        : data.unitCost;
+    const { unitCost, acquisitionExtraCost } = applyEntryExtraCost(data);
 
     const { inventory } = await useCase.execute({
       productVariantId: data.productVariantId,
       quantity: data.quantity,
       unitCost,
-      acquisitionExtraCost: extraCents > 0 ? unitCostFromCents(extraCents, data.quantity) : undefined,
+      acquisitionExtraCost,
       batchNumber: data.batchNumber,
       expirationDate: data.expirationDate,
       manufacturingDate: data.manufacturingDate,

@@ -82,6 +82,8 @@ export interface CreateInventoryLotDTO {
   batchNumber: string;
   quantity: number;
   unitCost: number;
+  /** Frete/despesas da entrada inteira (R$), opcional. */
+  extraCost?: number;
   expirationDate: string | Date;
   manufacturingDate?: string | Date;
 }

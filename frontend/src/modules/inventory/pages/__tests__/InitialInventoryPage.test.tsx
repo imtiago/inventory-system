@@ -136,12 +136,13 @@ describe('InitialInventoryPage (assistente)', () => {
     await user.type(within(dialog).getByLabelText('Validade'), '2028-09-15');
     await user.clear(within(dialog).getByLabelText('Custo unitário'));
     await user.type(within(dialog).getByLabelText('Custo unitário'), '18.5');
+    await user.type(within(dialog).getByLabelText('Frete/despesas desta entrada (R$)'), '2,5');
     await user.clear(within(dialog).getByLabelText('Quantidade'));
     await user.type(within(dialog).getByLabelText('Quantidade'), '30');
     await user.click(within(dialog).getByRole('button', { name: 'Salvar lote' }));
 
     expect(await screen.findByRole('heading', { name: 'Caixa' })).toBeInTheDocument();
-    expect(createdLotBody).toMatchObject({ productVariantId: VARIANT_ID, batchNumber: 'L2026-10-A', quantity: 30, unitCost: 18.5 });
+    expect(createdLotBody).toMatchObject({ productVariantId: VARIANT_ID, batchNumber: 'L2026-10-A', quantity: 30, unitCost: 18.5, extraCost: 2.5 });
     expect(screen.getByText('Lote:').parentElement).toHaveTextContent('L2026-10-A');
 
     await addThreeUnitsToBox(user);

@@ -5,8 +5,9 @@ import { MoneyInput, QuantityInput, FieldError, fieldA11y } from '@/shared/compo
 import { formatMoneyInput, moneyTextError, parseMoneyToCents } from '@/shared/utils/money';
 
 /** O custo fica no formulário como o texto digitado (pt-BR); vira número só no envio. */
-interface FormValues extends Omit<InventoryLotFormData, 'unitCost'> {
+interface FormValues extends Omit<InventoryLotFormData, 'unitCost' | 'extraCost'> {
   unitCost: string;
+  extraCost: string;
 }
 
 export interface InventoryLotFormData {
@@ -15,6 +16,8 @@ export interface InventoryLotFormData {
   expirationDate: string;
   quantity: number;
   unitCost: number;
+  /** Frete/despesas da entrada inteira (R$); ausente quando em branco. */
+  extraCost?: number;
 }
 
 interface Props {
@@ -28,7 +31,7 @@ interface Props {
   onCancel(): void;
 }
 
-const LOT_FIELDS = ['batchNumber', 'manufacturingDate', 'expirationDate', 'quantity', 'unitCost'] as const;
+const LOT_FIELDS = ['batchNumber', 'manufacturingDate', 'expirationDate', 'quantity', 'unitCost', 'extraCost'] as const;
 
 export function InventoryLotForm({ initialValues, submitting = false, submitError = null, onSubmit, onCancel }: Props) {
   const {
@@ -49,11 +52,19 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
 
       // No silent default: an empty cost must be typed (required below).
       unitCost: initialValues?.unitCost === undefined ? '' : formatMoneyInput(initialValues.unitCost),
+
+      extraCost: initialValues?.extraCost === undefined ? '' : formatMoneyInput(initialValues.extraCost),
     },
   });
 
   const submit = handleSubmit(async (data) => {
-    const result = await onSubmit({ ...data, unitCost: (parseMoneyToCents(data.unitCost) ?? 0) / 100 });
+    const { extraCost, ...rest } = data;
+    const extraCents = extraCost.trim() === '' ? 0 : (parseMoneyToCents(extraCost) ?? 0);
+    const result = await onSubmit({
+      ...rest,
+      unitCost: (parseMoneyToCents(data.unitCost) ?? 0) / 100,
+      ...(extraCents > 0 ? { extraCost: extraCents / 100 } : {}),
+    });
 
     if (result?.fieldErrors) {
       const { unmatched } = applyFieldErrors(setError, result.fieldErrors, LOT_FIELDS);
@@ -130,6 +141,24 @@ export function InventoryLotForm({ initialValues, submitting = false, submitErro
           <FieldError id="unitCost" message={errors.unitCost?.message} />
 
           <p className="mt-1 text-sm text-muted">Informe quanto cada unidade deste lote custou.</p>
+        </div>
+
+        {/* FRETE/DESPESAS DA ENTRADA */}
+        <div>
+          <label htmlFor="extraCost" className="mb-1 block">
+            Frete/despesas desta entrada (R$)
+          </label>
+
+          <MoneyInput
+            id="extraCost" {...fieldA11y("extraCost", errors.extraCost?.message)}
+            {...register('extraCost', {
+              validate: (value) => (value.trim() === '' ? true : (moneyTextError(value) ?? true)),
+            })}
+          />
+
+          <FieldError id="extraCost" message={errors.extraCost?.message} />
+
+          <p className="mt-1 text-sm text-muted">Opcional. O valor total é rateado entre as unidades e entra no custo.</p>
         </div>
 
         {/* QUANTIDADE */}

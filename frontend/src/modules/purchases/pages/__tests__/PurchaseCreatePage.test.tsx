@@ -96,6 +96,40 @@ describe('PurchaseCreatePage', () => {
     expect(await screen.findByText('Detalhe do pedido')).toBeInTheDocument();
   });
 
+  test('frete e outras despesas da compra: entram no total estimado e viajam como extraCosts', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Quantidade de Camiseta Azul', '2');
+    await fill('Preço unitário de Camiseta Azul', '10');
+    await fill('Frete e outras despesas da compra (R$)', '12,5');
+
+    expect(screen.getByTestId('purchase-total')).toHaveTextContent('R$ 32,50');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));
+
+    await waitFor(() => expect(posted).toMatchObject({ extraCosts: 12.5, items: [{ quantity: 2, unitPrice: 10 }] }));
+  });
+
+  test('sem frete/despesas da compra a chave extraCosts não é enviada', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Preço unitário de Camiseta Azul', '10');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));
+    await waitFor(() => expect(posted).toBeDefined());
+    expect(posted).not.toHaveProperty('extraCosts');
+  });
+
+  test('despesas da compra inválidas bloqueiam o envio', async () => {
+    renderPage();
+    await pickSupplier();
+    await addVariant();
+    await fill('Preço unitário de Camiseta Azul', '10');
+    await fill('Frete e outras despesas da compra (R$)', '1.23,4');
+    expect(await screen.findByText('Valor inválido')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar pedido' })).toBeDisabled();
+  });
+
   test('bloqueia envio com total zero ou item negativo', async () => {
     renderPage();
     await pickSupplier();

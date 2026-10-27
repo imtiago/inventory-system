@@ -68,4 +68,24 @@ describe("Entrada manual com despesa (extraCost)", () => {
     }
     assert.equal(await prisma.inventoryLot.count({ where: { productVariantId: variantId } }), 0);
   });
+
+  test("POST /inventory/lots (formulário de lote) também aceita extraCost, com a mesma conta", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/inventory/lots",
+      headers: withIdempotencyKey("POST", { authorization: `Bearer ${token}` }),
+      payload: {
+        productVariantId: variantId,
+        batchNumber: "EX-LOT",
+        quantity: 3,
+        unitCost: 10,
+        extraCost: 1,
+        expirationDate: "2027-06-30T00:00:00.000Z",
+      },
+    });
+    assert.equal(res.statusCode, 200, res.body);
+    const lot = await prisma.inventoryLot.findFirstOrThrow({ where: { productVariantId: variantId } });
+    assert.equal(lot.unitCost.toNumber(), 10.3333);
+    assert.equal(lot.acquisitionExtraCost.toNumber(), 0.3333);
+  });
 });
