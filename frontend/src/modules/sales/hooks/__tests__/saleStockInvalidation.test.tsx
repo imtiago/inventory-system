@@ -7,6 +7,7 @@ import { useCreateSale } from '../useCreateSale';
 import { useCancelSale } from '../useCancelSale';
 import { createTestQueryClient } from '@/test/render';
 import saleDetail from '@/test/fixtures/sales/saleDetail.json';
+import { queryKeys } from '@/shared/react-query/keys';
 
 function setup() {
   const queryClient = createTestQueryClient();
@@ -28,13 +29,31 @@ describe('estoque após venda', () => {
     result.current.mutate({
       customerId: saleDetail.data.customer.id,
       items: [{ productVariantId: 'v', quantity: 1 }],
-      paymentTerms: { installments: 1 },
-    } as never);
+      payment: { condition: 'CASH' },
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const keys = invalidatedKeys(spy);
     expect(keys).toContainEqual(['inventory']);
     expect(keys).toContainEqual(['inventory-lots']);
+  });
+
+  test('venda no crediário invalida a ficha de crédito do cliente (disponível muda)', async () => {
+    const { spy, wrapper } = setup();
+    const { result } = renderHook(() => useCreateSale(), { wrapper });
+
+    result.current.mutate({
+      customerId: saleDetail.data.customer.id,
+      items: [{ productVariantId: 'v', quantity: 1 }],
+      payment: { condition: 'CREDIARIO', crediario: { installments: 2, downPayment: 0 } },
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const keys = invalidatedKeys(spy);
+    expect(keys).toContainEqual(queryKeys.customerCredit(saleDetail.data.customer.id));
+    expect(keys).toContainEqual(queryKeys.sales);
+    expect(keys).toContainEqual(queryKeys.receivables);
+    expect(keys).toContainEqual(queryKeys.dashboard);
   });
 
   test('cancelar venda invalida estoque (inventory) e lotes', async () => {

@@ -115,7 +115,7 @@ describe("Tetos de quantidade e valor (400 no campo, nunca 500)", () => {
     const sale = (quantity: number) => ({
       customerId,
       items: [{ productVariantId: variantId, quantity }],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     await expect400("/sales", sale(TOO_MANY), "items.0.quantity");
 
@@ -132,7 +132,7 @@ describe("Tetos de quantidade e valor (400 no campo, nunca 500)", () => {
     const sale = (count: number) => ({
       customerId,
       items: Array.from({ length: count }, item),
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     const res = await post("/sales", sale(201));
     assert.equal(res.statusCode, 400, res.body);

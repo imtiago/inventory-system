@@ -47,11 +47,23 @@ function pricingWithSimulations() {
   return { ...base, simulations: sims };
 }
 
+/** Simulação com 4 opções do crediário; disponível baixo para mostrar opções que pedem autorização. */
+function saleSimulation() {
+  const sim = j('sales/saleSimulation.json');
+  const c = sim.data.crediario;
+  const opt = (n, parcel, last, surcharge, pct) => ({ installments: n, downPayment: 47.91, installmentAmount: parcel, lastInstallmentAmount: last, total: Number((47.91 + parcel * (n - 1) + last).toFixed(2)), surcharge, surchargePercent: pct, margin: n === 4 ? null : { amount: Number((62.4 + surcharge).toFixed(2)), percent: 39.07 } });
+  c.available = 120;
+  c.maxInstallments = 4;
+  c.options = [opt(1, 111.79, 111.79, 0, 0), opt(2, 55.9, 55.89, 0, 0), opt(3, 40.24, 40.25, 8.94, 8), opt(4, 30.69, 30.7, 10.98, 9.82)];
+  return sim;
+}
+
 function route(method, url) {
   const u = new URL(url, 'http://x');
   const p = u.pathname.replace(/^\/api/, '');
   const s = p.split('/').filter(Boolean);
   if (method !== 'GET') {
+    if (p === '/sales/simulate') return saleSimulation();
     if (p === '/auth/login') return { token: 'fake', user: me.data, data: { token: 'fake', user: me.data } };
     return { data: {} };
   }
@@ -85,7 +97,7 @@ function route(method, url) {
   }
   if (p === '/sales/cancel-requests/count') return j('sales/cancelRequestCount.json');
   if (p === '/sales/cancel-requests') return j('sales/cancelRequests.json');
-  if (s[0] === 'sales' && s[1] === 'crediario1') return j('sales/saleDetailCrediario.json');
+  if (s[0] === 'sales' && s[1] === j('sales/saleDetailCrediario.json').data.id) return j('sales/saleDetailCrediario.json');
   if (s[0] === 'sales') {
     const detail = j('sales/saleDetail.json');
     if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
@@ -104,6 +116,7 @@ function route(method, url) {
   if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
   if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
   if (p === '/settings/store') return j('credit/storeSettings.json');
+  if (p === '/credit/approvers') return j('credit/creditApprovers.json');
   if (p === '/credit/settings') return j('credit/creditSettings.json');
   if (p === '/credit/profiles') return j('credit/creditProfiles.json');
   if (p === '/customers') { const g = grow(j('customers/customerList.json')); g.data.forEach((r, i) => { if (i >= 2) r.name = names[i]; }); return g; }

@@ -7,6 +7,7 @@ import { deleteFinancialDocuments } from "../../../../test/cleanup";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../app";
 import { createTestVariant } from "../../../../test/inventoryFixtures";
+import { convertToLegacyInstallments } from "../../../../test/legacySaleFixtures";
 import { createTestUser, TestUser } from "../../../../test/authFixtures";
 import { newIdempotencyKey } from "../../../../test/idempotency";
 import { purgeIdempotencyRecords } from "../../../../scripts/purgeIdempotency";
@@ -90,14 +91,12 @@ describe("Idempotency-Key nas operações de dinheiro e estoque", () => {
     const res = await post("/sales", {
       customerId,
       items: [{ productVariantId: variantId, quantity: 2 }],
-      paymentTerms: { installments: 1, firstDueDate: addDays(30) },
+      payment: { condition: "CASH" },
     });
     assert.equal(res.statusCode, 201, res.body);
-    const doc = await prisma.financialDocument.findFirstOrThrow({
-      where: { originId: res.json().data.id },
-      include: { parcels: true },
-    });
-    return { documentId: doc.id, parcelId: doc.parcels[0].id };
+    // Parcela em aberto: venda parcelada antiga (o parcelado saiu da API).
+    const { documentId, parcelIds } = await convertToLegacyInstallments(res.json().data.id, 1, addDays(30));
+    return { documentId, parcelId: parcelIds[0] };
   };
 
   const paymentsOf = (parcelId: string) => prisma.payment.count({ where: { parcelId } });

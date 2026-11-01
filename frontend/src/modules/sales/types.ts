@@ -37,14 +37,29 @@ export interface ISaleDraftItem {
   unitPrice: number;
 }
 
-export interface ISalePaymentTerms {
-  installments: number;
-  /** "YYYY-MM-DD"; required by the backend when installments > 1. */
-  firstDueDate?: string;
-}
-
 /** Condição escolhida no fechamento. */
 export type SalePaymentCondition = 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'CREDIARIO';
+
+/** Forma de pagamento da entrada do crediário (e do pagamento no ato). */
+export type CheckoutPaymentMethod = 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD';
+
+/** Autorização de exceção (limite/atraso) por quem aprova crédito, com a própria senha. */
+export interface ICreditOverrideInput {
+  approverEmail: string;
+  approverPassword: string;
+  /** 3..200 */
+  reason: string;
+}
+
+export interface ISaleCrediarioInput {
+  installments: number;
+  /** Reais (≤ 2 casas). */
+  downPayment: number;
+  /** Obrigatória quando há entrada. */
+  downPaymentMethod?: CheckoutPaymentMethod;
+  /** 1..28; ausente = padrão da loja. */
+  dueDay?: number;
+}
 
 export interface ISalePaymentInput {
   condition: SalePaymentCondition;
@@ -52,8 +67,8 @@ export interface ISalePaymentInput {
   cardInstallments?: number;
   /** Repassar a taxa do cartão; padrão true no backend. */
   passCardFee?: boolean;
-  crediario?: { installments: number; downPayment: number; downPaymentMethod?: 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD'; dueDay?: number };
-  override?: { approverEmail: string; approverPassword: string; reason: string };
+  crediario?: ISaleCrediarioInput;
+  override?: ICreditOverrideInput;
 }
 
 interface ICreateSaleBase {
@@ -64,10 +79,19 @@ interface ICreateSaleBase {
   }[];
 }
 
-/** `payment` (novo fechamento) ou `paymentTerms` (parcelado antigo, até a Task 9); nunca os dois. */
-export type ICreateSaleDTO =
-  | (ICreateSaleBase & { payment: ISalePaymentInput; paymentTerms?: never })
-  | (ICreateSaleBase & { paymentTerms: ISalePaymentTerms; payment?: never });
+export interface ICreateSaleDTO extends ICreateSaleBase {
+  payment: ISalePaymentInput;
+}
+
+/** GET /credit/approvers: quem pode autorizar exceção de crédito na venda. */
+export interface ICreditApprover {
+  id: string;
+  name: string;
+  email: string;
+}
+
+/** Exceções que só passam com autorização (as demais travas não têm exceção). */
+export type CreditOverrideKind = 'LIMIT' | 'OVERDUE';
 
 /** POST /sales/simulate: valores por condição; `margin` só para quem vê lucro (ADMIN). */
 export interface ISaleSimulationCondition {
@@ -120,7 +144,7 @@ export interface ISaleSimulationRequest extends ICreateSaleBase {
 export interface ISaleFinancing {
   cashPrice: number;
   downPayment: number;
-  downPaymentMethod: 'CASH' | 'PIX' | 'DEBIT_CARD' | 'CREDIT_CARD' | null;
+  downPaymentMethod: CheckoutPaymentMethod | null;
   financedAmount: number;
   installments: number;
   monthlyRatePercent: number;
@@ -130,7 +154,7 @@ export interface ISaleFinancing {
   /** Date-only "YYYY-MM-DD". */
   firstDueDate: string;
   /** Exceção autorizada na venda (limite/atraso). */
-  override: { approver: { id: string; name: string } | null; reason: string; kinds: ('LIMIT' | 'OVERDUE')[] } | null;
+  override: { approver: { id: string; name: string } | null; reason: string; kinds: CreditOverrideKind[] } | null;
 }
 
 export interface ISaleParcel {

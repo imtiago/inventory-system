@@ -62,7 +62,7 @@ describe("FEFO e lote vencido", () => {
     (await prisma.inventoryLot.findUniqueOrThrow({ where: { id: lotId } })).remainingQuantity;
 
   const sell = (items: { productVariantId: string; quantity: number }[]) =>
-    request("POST", "/sales", { customerId, items, paymentTerms: { installments: 1 } });
+    request("POST", "/sales", { customerId, items, payment: { condition: "CASH" } });
 
   beforeEach(async () => {
     token = signTestToken(await getTestUserId());

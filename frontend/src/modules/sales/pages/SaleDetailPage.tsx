@@ -23,6 +23,8 @@ import { RequestCancelModal } from '../components/RequestCancelModal';
 import { LoadingState } from '@/shared/components/LoadingState';
 import { formatDateTime } from '@/shared/utils/formatDateTime';
 import { CreditDocumentsActions } from '@/modules/credit/components/CreditDocumentsActions';
+import { SalePaymentSection } from '../components/SalePaymentSection';
+import { hasInstallmentPayments } from '../utils/checkout';
 
 const saleStatusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
@@ -41,8 +43,9 @@ export function SaleDetailPage() {
   const canCancel = useCan('sales.cancel');
   const canRequest = useCan('sales.cancel.request');
 
-  // Active payments (reversed ones are already out of paidAmount) block the cancellation on the backend too.
-  const hasPayments = sale?.receivable?.parcels.some((parcel) => parcel.paidAmount > 0) ?? false;
+  // Active parcel payments (reversed ones are already out of paidAmount) block the cancellation on the backend too;
+  // the amount paid at checkout (cash, card, crediário down payment) is reversed by the cancellation itself.
+  const hasPayments = sale ? hasInstallmentPayments(sale) : false;
 
   const parsedLoadError = isError ? parseApiErrorSync(loadError) : null;
   const isNotFound = parsedLoadError?.status === 404 || parsedLoadError?.code === 'SALE_NOT_FOUND';
@@ -202,6 +205,8 @@ export function SaleDetailPage() {
             </div>
             <p className="border-t border-border bg-surface-muted px-4 py-3 text-right text-lg font-semibold tabular-nums sm:px-6">Total: {formatCurrency(sale.totalAmount)}</p>
           </Section>
+
+          <SalePaymentSection sale={sale} />
 
           {sale.receivable && (
             <Section

@@ -11,12 +11,20 @@ const H = `window.__h = {
 };1`;
 // [rota, [passo, espera em ms, passo, espera, ...]]
 const scan = (code) => `(async()=>{ const i=document.querySelector('input[placeholder="Código de barras"]'); __h.setVal(i,'${code}'); __h.click('button','Adicionar'); })()`;
+const saleItems = [
+  `(async()=>{ const i=document.querySelector('input[placeholder*="nome do cliente"]'); i.focus(); __h.setVal(i,'Ana'); })()`, 1200,
+  `(async()=>{ const o=document.querySelector('[role=option] button') || document.querySelector('[role=option]'); if(o){ o.dispatchEvent(new MouseEvent('mousedown',{bubbles:true})); o.click(); } return !!o })()`, 600,
+  scan('7890'), 900, scan('7891'), 900, scan('7890'), 900,
+];
+// Fechamento: rola até a seção para a captura mostrar a condição escolhida.
+const toCheckout = `(()=>{ const m=document.querySelector('main'); const t=document.querySelector('#checkout-title'); if (m && t) m.scrollTop += t.getBoundingClientRect().top - m.getBoundingClientRect().top - 8; })()`;
 const flows = {
-  'sale-new-items': ['/sales/new', [
-    `(async()=>{ const i=document.querySelector('input[placeholder*="nome do cliente"]'); i.focus(); __h.setVal(i,'Ana'); })()`, 1200,
-    `(async()=>{ const o=document.querySelector('[role=option]'); if(o){ o.dispatchEvent(new MouseEvent('mousedown',{bubbles:true})); o.click(); } return !!o })()`, 600,
-    scan('7890'), 900, scan('7891'), 900, scan('7890'), 900,
-  ]],
+  'sale-new-items': ['/sales/new', saleItems],
+  'sale-close-cash': ['/sales/new', [...saleItems, toCheckout, 600]],
+  'sale-close-debit': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='DEBIT_CARD').click()`, 600, toCheckout, 600]],
+  'sale-close-credit': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='CREDIT_CARD').click()`, 400, `(()=>{ const s=document.querySelector('#card-installments'); __h.setVal(s,'3'); })()`, 600, toCheckout, 600]],
+  'sale-close-crediario': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='CREDIARIO').click()`, 1200, `document.querySelector('input[aria-label^="2x"]').click()`, 600, toCheckout, 600]],
+  'sale-close-override': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='CREDIARIO').click()`, 1200, `document.querySelector('input[aria-label^="3x"]').click()`, 600, `__h.click('button','Pedir autorização')`, 1000]],
   'purchase-new-items': ['/purchases/new', [scan('7890'), 900, scan('7891'), 900]],
   'payment-modal': ['/receivables/x1', [`[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('Registrar pagamento')&&!b.disabled)[0].click()`, 900]],
   'payment-modal-fees': ['/receivables/fees1', [`[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('Registrar pagamento')&&!b.disabled)[0].click()`, 1200, `(async()=>{ const i=document.getElementById('payment-waive'); if(i){ __h.setVal(i,'0,50'); __h.setVal(document.getElementById('payment-waiver-reason'),'Cliente antigo'); } return !!i })()`, 600]],

@@ -89,8 +89,8 @@ export interface ICreateSaleInput {
     productVariantId: string;
     quantity: number;
   }[];
-  /** Condição escolhida no fechamento (exclusiva com `paymentTerms`). */
-  payment?: {
+  /** Condição escolhida no fechamento. */
+  payment: {
     condition: "CASH" | "PIX" | "DEBIT_CARD" | "CREDIT_CARD" | "CREDIARIO";
     /** 1..12, só CREDIT_CARD. */
     cardInstallments?: number;
@@ -98,12 +98,6 @@ export interface ICreateSaleInput {
     passCardFee?: boolean;
     crediario?: CrediarioPaymentInput;
     override?: CreditOverrideInput;
-  };
-  /** Parcelado antigo (LEGACY_INSTALLMENTS), aceito até a Task 9. */
-  paymentTerms?: {
-    installments: number;
-    /** Meia-noite UTC; ausente com 1 parcela = hoje. */
-    firstDueDate?: Date;
   };
 }
 

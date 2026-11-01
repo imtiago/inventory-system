@@ -31,7 +31,7 @@ describe('invalidação entre módulos', () => {
   test('criar venda invalida recebíveis e dashboard', async () => {
     const { wrapper, keys } = setup();
     const { result } = renderHook(() => useCreateSale(), { wrapper });
-    result.current.mutate({ customerId: 'c', items: [{ productVariantId: 'v', quantity: 1 }], paymentTerms: { installments: 1 } } as never);
+    result.current.mutate({ customerId: 'c', items: [{ productVariantId: 'v', quantity: 1 }], payment: { condition: 'CASH' } });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(keys()).toContainEqual(queryKeys.receivables);
     expect(keys()).toContainEqual(queryKeys.dashboard);

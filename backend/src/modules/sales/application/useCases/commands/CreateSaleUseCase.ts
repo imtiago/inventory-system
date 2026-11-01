@@ -6,7 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@shared/domain/errors";
-import { businessTodayAsUtcDate, todayInBusinessTz } from "@shared/domain/businessDate";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { toCost4 } from "@shared/domain/cost4";
 import { toCents } from "@shared/domain/money";
 import { MAX_AMOUNT_CENTS } from "@shared/domain/limits";
@@ -19,7 +19,6 @@ import { FinancialService } from "@finance/application/services/FinancialService
 import { SaleRepository } from "@sales/domain/repositories/SaleRepository";
 import { SaleItem } from "@sales/domain/entities/SaleItem";
 import { Sale } from "@sales/domain/entities/Sale";
-import { buildInstallments } from "@shared/domain/installments";
 import { ICreateSaleInput } from "@sales/application/dto/SaleDTO";
 import { ImmediatePaymentCondition, PaymentCondition } from "@sales/domain/enums/PaymentCondition";
 import { checkoutCharge, CheckoutCharge } from "@sales/domain/services/checkoutCharge";
@@ -76,8 +75,7 @@ function describeStockShortage(error: unknown, variantName: string): unknown {
  * regras, trava da ficha do cliente e plano — ANTES do estoque) → consome
  * estoque em ordem de variante (originId = venda) → grava a venda → financeiro:
  * à vista/cartão = documento PAID com pagamento `atCheckout`; crediário = entrada
- * paga no ato + parcelas, com `SaleFinancing`; parcelado antigo (`paymentTerms`) =
- * contas a receber com as parcelas. Qualquer falha desfaz tudo.
+ * paga no ato + parcelas, com `SaleFinancing`. Qualquer falha desfaz tudo.
  */
 export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sale> {
   constructor(
@@ -94,11 +92,9 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
   }
 
   protected async handle(request: ICreateSaleInput): Promise<Sale> {
-    const { payment, paymentTerms } = request;
-    if (!payment === !paymentTerms) {
-      throw new ValidationError("Dados inválidos.", [
-        { field: "payment", message: "Informe a condição de pagamento (só uma)." },
-      ]);
+    const { payment } = request;
+    if (!payment) {
+      throw new ValidationError("Dados inválidos.", [{ field: "payment", message: "Informe a condição de pagamento." }]);
     }
     const crediarioPayment = payment?.condition === "CREDIARIO" ? payment : undefined;
     if (crediarioPayment && !crediarioPayment.crediario) {
@@ -111,14 +107,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
         { field: "payment.crediario.downPaymentMethod", message: "Informe a forma de pagamento da entrada." },
       ]);
     }
-    const checkout = crediarioPayment ? undefined : (payment as ImmediateCheckout | undefined);
-    const installments = paymentTerms?.installments ?? 1;
-    if (paymentTerms && installments > 1 && !paymentTerms.firstDueDate) {
-      throw new ValidationError("Dados inválidos.", [
-        { field: "paymentTerms.firstDueDate", message: "Informe o primeiro vencimento." },
-      ]);
-    }
-    const firstDueDate = paymentTerms?.firstDueDate ?? businessTodayAsUtcDate();
+    const checkout = crediarioPayment ? undefined : (payment as ImmediateCheckout);
 
     const customer = await this.customerService.getCustomer(request.customerId);
     if (!customer) {
@@ -182,27 +171,17 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
             surchargeCents: crediarioPlan.option.surchargeCents,
             downPaymentCents: crediarioPlan.option.downPaymentCents,
           }
-        : charge && checkout
-          ? {
-              condition: CHECKOUT_CONDITION[checkout.condition],
-              surchargeCents: charge.surchargeCents,
-              cardFeePassedOn: charge.cardFeePassedOn,
-              cardInstallments: charge.cardInstallments,
-              cardFeeBps: charge.cardFeeBps,
-            }
-          : { condition: PaymentCondition.LEGACY_INSTALLMENTS },
+        : {
+            condition: CHECKOUT_CONDITION[checkout!.condition],
+            surchargeCents: charge!.surchargeCents,
+            cardFeePassedOn: charge!.cardFeePassedOn,
+            cardInstallments: charge!.cardInstallments,
+            cardFeeBps: charge!.cardFeeBps,
+          },
     });
 
     // Teto de DECIMAL(12,2): antes de baixar estoque (senão o banco estoura → 500).
     if (sale.totalAmountCents > MAX_AMOUNT_CENTS) throw tooLarge();
-
-    // Cada parcela precisa de ao menos 1 centavo.
-    if (sale.totalAmountCents < installments) {
-      throw new BusinessRuleError(
-        "O valor da venda não permite esse número de parcelas.",
-        ErrorCodes.INSTALLMENTS_EXCEED_TOTAL,
-      );
-    }
 
     // Ordem crescente de productVariantId: vendas simultâneas travam as variantes
     // sempre na mesma ordem (sem deadlock). Itens repetidos da mesma variante
@@ -243,25 +222,14 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       return created;
     }
 
-    if (checkout) {
-      await this.financialService.createPaidSaleReceivable({
-        saleId: sale.id,
-        customerId: sale.customerId,
-        amountCents: sale.totalAmountCents,
-        method: CHECKOUT_METHOD[checkout.condition],
-        userId: request.sellerId,
-        today: todayInBusinessTz(sale.createdAt),
-      });
-      return created;
-    }
-
-    const plan = buildInstallments(sale.totalAmountCents, installments, firstDueDate);
-    await this.financialService.createSaleReceivable({
+    await this.financialService.createPaidSaleReceivable({
       saleId: sale.id,
       customerId: sale.customerId,
-      parcels: plan.map((p) => ({ amountCents: p.amountCents, dueDate: p.dueDate })),
+      amountCents: sale.totalAmountCents,
+      method: CHECKOUT_METHOD[checkout!.condition],
+      userId: request.sellerId,
+      today: todayInBusinessTz(sale.createdAt),
     });
-
     return created;
   }
 

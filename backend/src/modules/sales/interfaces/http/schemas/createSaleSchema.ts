@@ -1,20 +1,8 @@
 import { z } from "zod";
 import { MAX_AMOUNT, MAX_QUANTITY, MAX_SALE_ITEMS } from "@shared/domain/limits";
-import { todayInBusinessTz } from "@shared/domain/businessDate";
-
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** No máximo 2 casas decimais (robusto a erro de float, ex.: 0.1 + 0.2). */
 const hasAtMostTwoDecimals = (v: number) => Number.isInteger(Number((v * 100).toPrecision(15)));
-
-/** Data sem hora "YYYY-MM-DD", interpretada como meia-noite UTC. */
-const dateOnlySchema = z
-  .string({ error: "Informe a data no formato AAAA-MM-DD." })
-  .regex(DATE_ONLY, "Informe a data no formato AAAA-MM-DD.")
-  .refine((value) => {
-    const date = new Date(`${value}T00:00:00.000Z`);
-    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-  }, "Data inválida.");
 
 const saleItemSchema = z.object({
   productVariantId: z.string({ error: "Informe a variante." }).uuid("Variante inválida."),
@@ -38,19 +26,6 @@ const saleItemsSchema = z
       ids.add(item.productVariantId);
     });
   });
-
-/** Parcelado antigo (sem crediário). Aceito até a Task 9 trocar a tela; vira LEGACY_INSTALLMENTS. */
-const paymentTermsSchema = z.object(
-  {
-    installments: z
-      .number({ error: "Informe o número de parcelas." })
-      .int("O número de parcelas deve ser inteiro.")
-      .min(1, "O número de parcelas deve ser no mínimo 1.")
-      .max(12, "O número de parcelas deve ser no máximo 12."),
-    firstDueDate: dateOnlySchema.optional(),
-  },
-  { error: "Informe a condição de pagamento." },
-);
 
 export const PAYMENT_CONDITIONS = ["CASH", "PIX", "DEBIT_CARD", "CREDIT_CARD", "CREDIARIO"] as const;
 export type PaymentConditionInput = (typeof PAYMENT_CONDITIONS)[number];
@@ -138,56 +113,11 @@ const paymentSchema = z
 
 export type SalePaymentBody = z.output<typeof paymentSchema>;
 
-export const createSaleSchema = z
-  .object({
-    customerId: z.string({ error: "Informe o cliente." }).uuid("Cliente inválido."),
-    items: saleItemsSchema,
-    paymentTerms: paymentTermsSchema.optional(),
-    payment: paymentSchema.optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.payment && data.paymentTerms) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Envie só a condição de pagamento (payment), sem paymentTerms.",
-        path: ["paymentTerms"],
-      });
-    }
-    if (!data.payment && !data.paymentTerms) {
-      ctx.addIssue({ code: "custom", message: "Informe a condição de pagamento.", path: ["payment"] });
-    }
-    if (!data.paymentTerms) return;
-
-    const { installments, firstDueDate } = data.paymentTerms;
-    if (installments > 1 && !firstDueDate) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Informe o primeiro vencimento.",
-        path: ["paymentTerms", "firstDueDate"],
-      });
-    }
-    // Comparação lexicográfica de "YYYY-MM-DD" equivale à cronológica.
-    if (firstDueDate && firstDueDate < todayInBusinessTz()) {
-      ctx.addIssue({
-        code: "custom",
-        message: "O primeiro vencimento não pode ser anterior a hoje.",
-        path: ["paymentTerms", "firstDueDate"],
-      });
-    }
-  })
-  .transform((data) => ({
-    customerId: data.customerId,
-    items: data.items,
-    payment: data.payment,
-    paymentTerms: data.paymentTerms
-      ? {
-          installments: data.paymentTerms.installments,
-          firstDueDate: data.paymentTerms.firstDueDate
-            ? new Date(`${data.paymentTerms.firstDueDate}T00:00:00.000Z`)
-            : undefined,
-        }
-      : undefined,
-  }));
+export const createSaleSchema = z.object({
+  customerId: z.string({ error: "Informe o cliente." }).uuid("Cliente inválido."),
+  items: saleItemsSchema,
+  payment: paymentSchema,
+});
 
 export type CreateSaleBody = z.output<typeof createSaleSchema>;
 

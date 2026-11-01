@@ -12,6 +12,7 @@ import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { newIdempotencyKey, withIdempotencyKey } from "../../../../../test/idempotency";
 import { acquirePricingTestLock } from "../../../../../test/pricingTestLock";
+import { convertToLegacyInstallments } from "../../../../../test/legacySaleFixtures";
 
 app.log.level = "silent";
 
@@ -334,11 +335,13 @@ describe("fechamento da venda: dinheiro, PIX, débito e crédito", () => {
     const created = await call(seller, "POST", "/sales", {
       customerId,
       items: [{ productVariantId: variantId, quantity: 1 }],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     assert.equal(created.statusCode, 201, created.body);
     const dto = created.json().data;
-    const paid = await call(admin, "POST", `/receivables/${dto.receivable.id}/parcels/${dto.receivable.parcels[0].id}/payments`, {
+    // Parcela em aberto (venda parcelada antiga); o pagamento dela não é atCheckout.
+    const legacy = await convertToLegacyInstallments(dto.id);
+    const paid = await call(admin, "POST", `/receivables/${legacy.documentId}/parcels/${legacy.parcelIds[0]}/payments`, {
       amount: 10,
       method: "CASH",
     });
@@ -359,31 +362,6 @@ describe("fechamento da venda: dinheiro, PIX, débito e crédito", () => {
     assert.equal(second.json().data.id, first.json().data.id);
     assert.equal(await prisma.sale.count({ where: { customerId } }), 1);
     assert.equal(await prisma.payment.count({ where: { parcel: { document: { partyId: customerId } } } }), 1);
-    assert.equal(await qty(variantId), 9);
-  });
-
-  test("paymentTerms antigo ainda funciona; payment + paymentTerms juntos → 400", async () => {
-    const variantId = await createVariant(10);
-    const legacy = await call(seller, "POST", "/sales", {
-      customerId,
-      items: [{ productVariantId: variantId, quantity: 1 }],
-      paymentTerms: { installments: 1 },
-    });
-    assert.equal(legacy.statusCode, 201, legacy.body);
-    assert.equal(legacy.json().data.paymentCondition, "LEGACY_INSTALLMENTS");
-    assert.equal(legacy.json().data.receivable.status, "OPEN");
-    assert.equal((await checkoutPayments(legacy.json().data.id)).length, 0);
-
-    const both = await call(seller, "POST", "/sales", {
-      customerId,
-      items: [{ productVariantId: variantId, quantity: 1 }],
-      paymentTerms: { installments: 1 },
-      payment: { condition: "CASH" },
-    });
-    assert.equal(both.statusCode, 400, both.body);
-
-    const neither = await call(seller, "POST", "/sales", { customerId, items: [{ productVariantId: variantId, quantity: 1 }] });
-    assert.equal(neither.statusCode, 400, neither.body);
     assert.equal(await qty(variantId), 9);
   });
 });

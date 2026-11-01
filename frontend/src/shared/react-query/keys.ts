@@ -9,6 +9,9 @@ export const queryKeys = {
 
   sales: ['sales'] as const,
 
+  /** Simulação do fechamento (sob `sales`: invalidar vendas refaz a simulação). */
+  saleSimulation: (params: object) => ['sales', 'simulate', params] as const,
+
   cancelRequests: ['cancel-requests'] as const,
 
   cancelRequestList: (params: object) => ['cancel-requests', 'list', params] as const,
@@ -63,6 +66,7 @@ export const queryKeys = {
   creditRequestCount: ['credit', 'requests', 'count'] as const,
 
   creditReviewPreview: ['credit', 'review', 'preview'] as const,
+  creditApprovers: ['credit', 'approvers'] as const,
 
   customerCredit: (id: string) => ['customers', id, 'credit'] as const,
 

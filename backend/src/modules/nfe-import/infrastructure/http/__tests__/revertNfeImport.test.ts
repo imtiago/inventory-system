@@ -90,7 +90,7 @@ describe("Desfazer importação de NF-e (POST /nfe-imports/:id/revert)", () => {
   const inventoryOf = (productVariantId: string) => prisma.inventory.findUniqueOrThrow({ where: { productVariantId } });
 
   const sell = (productVariantId: string, quantity: number) =>
-    call("POST", "/sales", { customerId, items: [{ productVariantId, quantity }], paymentTerms: { installments: 1 } });
+    call("POST", "/sales", { customerId, items: [{ productVariantId, quantity }], payment: { condition: "CASH" } });
 
   /** Estado que um bloqueio não pode alterar. */
   const snapshot = async (importId: string, purchaseId: string, variants: string[]) => ({

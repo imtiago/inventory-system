@@ -338,3 +338,71 @@ describe('SaleDetailPage: pedido de cancelamento', () => {
     expect(screen.queryByRole('button', { name: 'Carnê (PDF)' })).not.toBeInTheDocument();
   });
 });
+
+describe('SaleDetailPage: condição de pagamento', () => {
+  const paidParcel = (amount: number) => ({ id: 'p-1', amount, dueDate: '2026-10-22', paidAmount: amount, remainingAmount: 0, status: 'PAID' });
+
+  test('crediário: condição, entrada, parcelas, taxa, acréscimo, total a prazo e a autorização gravada', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetailCrediario)));
+    renderDetail();
+
+    const payment = await screen.findByTestId('sale-payment');
+    expect(within(payment).getByText('Crediário')).toBeInTheDocument();
+    expect(within(payment).getByText(/300,00/)).toBeInTheDocument(); // à vista
+    expect(within(payment).getByText(/90,00 · PIX/)).toBeInTheDocument(); // entrada
+    expect(within(payment).getByText(/210,00/)).toBeInTheDocument(); // financiado
+    expect(within(payment).getByText(/3x de R\$\s75,66/)).toBeInTheDocument();
+    expect(within(payment).getByText(/3,99% ao mês/)).toBeInTheDocument();
+    expect(within(payment).getByText(/^R\$\s16,97/)).toBeInTheDocument();
+    expect(within(payment).getByText(/^R\$\s316,97/)).toBeInTheDocument();
+
+    const auth = within(payment).getByTestId('sale-override');
+    expect(auth).toHaveTextContent('Ana Aprovadora');
+    expect(auth).toHaveTextContent('Cliente antigo, pagou ontem');
+    expect(auth).toHaveTextContent('Atraso');
+  });
+
+  test('crediário tem o botão "Carnê" (download ligado depois)', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetailCrediario)));
+    renderDetail();
+    expect(await screen.findByRole('button', { name: 'Carnê' })).toBeInTheDocument();
+  });
+
+  test('crediário com só a entrada paga (no ato) mantém "Cancelar venda"', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetailCrediario)));
+    renderDetail();
+    expect(await screen.findByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
+  });
+
+  test('cartão de crédito com repasse: condição, parcelas e taxa repassada', async () => {
+    server.use(
+      http.get(`${API_URL}/sales/:id`, () =>
+        HttpResponse.json({
+          data: {
+            ...saleDetail.data,
+            paymentCondition: 'CREDIT_CARD',
+            cardInstallments: 3,
+            cardFeePassedOn: true,
+            surchargeAmount: 8.39,
+            totalAmount: 168.09,
+            receivable: { id: 'r-1', status: 'PAID', parcels: [paidParcel(168.09)] },
+          },
+        }),
+      ),
+    );
+    renderDetail();
+
+    const payment = await screen.findByTestId('sale-payment');
+    expect(within(payment).getByText('Crédito 3x')).toBeInTheDocument();
+    expect(within(payment).getByText(/Repassada ao cliente: R\$\s8,39/)).toBeInTheDocument();
+    // Pago no ato não bloqueia o cancelamento (o backend estorna em até 7 dias).
+    expect(screen.getByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Carnê' })).not.toBeInTheDocument();
+  });
+
+  test('venda antiga parcelada aparece como "Parcelado (antigo)"', async () => {
+    renderDetail();
+    const payment = await screen.findByTestId('sale-payment');
+    expect(within(payment).getByText('Parcelado (antigo)')).toBeInTheDocument();
+  });
+});

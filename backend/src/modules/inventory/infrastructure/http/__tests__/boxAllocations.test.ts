@@ -187,7 +187,7 @@ describe("Estoque em caixas consistente com o saldo do lote", () => {
     const sale = await call("POST", "/sales", {
       customerId,
       items: [{ productVariantId: v, quantity: 5 }],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     assert.equal(sale.statusCode, 201, sale.body);
     assert.deepEqual(await allocations(l), [[b, 5]]);

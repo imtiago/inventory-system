@@ -9,6 +9,7 @@ import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { withIdempotencyKey } from "../../../../../test/idempotency";
+import { convertToLegacyInstallments } from "../../../../../test/legacySaleFixtures";
 
 app.log.level = "silent";
 
@@ -51,10 +52,13 @@ describe("pedidos de cancelamento de venda", () => {
     const res = await call(seller, "POST", "/sales", {
       customerId,
       items: [{ productVariantId: variantId, quantity: 2 }],
-      paymentTerms: installments > 1 ? { installments, firstDueDate: inThirtyDays() } : { installments },
+      payment: { condition: "CASH" },
     });
     assert.equal(res.statusCode, 201, res.body);
-    return res.json().data.id as string;
+    const saleId = res.json().data.id as string;
+    // Conta a receber em aberto: venda parcelada antiga (o parcelado saiu da API).
+    await convertToLegacyInstallments(saleId, installments, installments > 1 ? inThirtyDays() : undefined);
+    return saleId;
   };
 
   const qty = async (variantId: string) =>

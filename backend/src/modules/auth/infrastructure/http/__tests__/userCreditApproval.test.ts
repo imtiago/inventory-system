@@ -5,6 +5,8 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../../../app";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
+import { readFileSync } from "node:fs";
+import { keyShape } from "../../../../../test/keyShape";
 
 app.log.level = "silent";
 
@@ -77,6 +79,11 @@ describe("canApproveCredit por usuário", () => {
       assert.ok(!ids.includes(seller.id));
       assert.ok(!ids.includes(inactive.id));
       assert.deepEqual(Object.keys(res.json().data[0]).sort(), ["email", "id", "name"]);
+      // Contrato com o modal de autorização do front.
+      const fixture = JSON.parse(
+        readFileSync(new URL("../../../../../../../frontend/src/test/fixtures/credit/creditApprovers.json", import.meta.url), "utf8"),
+      );
+      assert.deepEqual(keyShape(res.json()), keyShape(fixture));
     } finally {
       await inactive.cleanup();
     }

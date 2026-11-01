@@ -1,6 +1,6 @@
 import { api } from '@/shared/services/api';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
-import type { ICreateSaleDTO, ISaleSimulation, ISaleSimulationRequest, ISaleCancelRequest, ISaleCancelRequestsResponse, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
+import type { ICreateSaleDTO, ICreditApprover, ISaleSimulation, ISaleSimulationRequest, ISaleCancelRequest, ISaleCancelRequestsResponse, ISaleFilters, ISaleDetail, ISalesResponse } from '../types';
 
 const PAGE_SIZE = 10;
 
@@ -27,6 +27,13 @@ export async function createSale(data: ICreateSaleDTO, idempotencyKey: string): 
 /** Simulação (não grava nada): sem chave de idempotência. */
 export async function simulateSale(data: ISaleSimulationRequest): Promise<ISaleSimulation> {
   const response = await api.post<{ data: ISaleSimulation }>('/sales/simulate', data);
+
+  return response.data.data;
+}
+
+/** Quem pode autorizar exceção de crédito (seletor do modal de autorização). */
+export async function listCreditApprovers(): Promise<ICreditApprover[]> {
+  const response = await api.get<{ data: ICreditApprover[] }>('/credit/approvers');
 
   return response.data.data;
 }
