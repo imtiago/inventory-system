@@ -34,6 +34,8 @@ export interface RegisterPaymentProps {
   /** Dispensa (≤ multa + juros), com motivo; autor = `createdById`. */
   waivedCents?: number;
   waiverReason?: string | null;
+  /** Motivo da data passada (a receber, só quem aprova crédito). */
+  backdateReason?: string | null;
 }
 
 export class FinancialDocument extends BaseEntity {

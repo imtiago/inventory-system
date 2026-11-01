@@ -19,6 +19,8 @@ export class Payment extends BaseEntity {
   private readonly _waivedCents: number;
   private readonly _waiverReason: string | null;
   private readonly _waivedById: string | null;
+  /** Motivo do pagamento a receber lançado com data passada. */
+  private readonly _backdateReason: string | null;
 
   private _reversedAt: Date | null;
   private _reversedById: string | null;
@@ -38,6 +40,7 @@ export class Payment extends BaseEntity {
     waivedCents?: number;
     waiverReason?: string | null;
     waivedById?: string | null;
+    backdateReason?: string | null;
     createdAt?: Date;
     reversedAt?: Date | null;
     reversedById?: string | null;
@@ -73,6 +76,7 @@ export class Payment extends BaseEntity {
     this._waivedCents = waivedCents;
     this._waiverReason = waivedCents > 0 ? waiverReason : null;
     this._waivedById = waivedCents > 0 ? (props.waivedById ?? null) : null;
+    this._backdateReason = props.backdateReason?.trim() || null;
     this._parcelId = props.parcelId;
     this._amountCents = props.amountCents;
     this._method = props.method;
@@ -131,6 +135,10 @@ export class Payment extends BaseEntity {
 
   get waivedById() {
     return this._waivedById;
+  }
+
+  get backdateReason() {
+    return this._backdateReason;
   }
 
   /** Recebido em caixa = principal + multa + juros − dispensa. */

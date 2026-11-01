@@ -107,6 +107,7 @@ export class PrismaCreditDocumentsReader implements CreditDocumentsReader {
         interestCents: cents(payment.interestAmount),
         waivedCents: cents(payment.waivedAmount),
         waiverReason: payment.waiverReason,
+        backdateReason: payment.backdateReason,
         receivedBy: payment.createdBy?.name ?? null,
         originLabel: saleId ? `Venda #${codeOf(saleId)}` : "Conta a receber",
       },

@@ -259,6 +259,16 @@ describe('ReceivableDetailPage', () => {
     expect(within(screen.getByTestId('parcel-3')).queryByText(/Se paga hoje/)).toBeNull();
   });
 
+  test('pagamento lançado com data passada mostra o motivo', async () => {
+    const backdated = structuredClone(receivableDetail);
+    Object.assign(backdated.data.parcels[0].payments[1] as Record<string, unknown>, { backdateReason: 'Pagou no balcão, lançado hoje' });
+    server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json(backdated)));
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+    const active = screen.getByTestId(`payment-${activePaymentId}`);
+    expect(within(active).getByText('Data passada: Pagou no balcão, lançado hoje')).toBeInTheDocument();
+  });
+
   test('documento sem encargos (venda antiga) avisa que não cobra multa nem juros', async () => {
     server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json({ data: { ...receivableDetail.data, noLateFees: true } })));
     renderDetail();

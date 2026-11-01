@@ -116,6 +116,65 @@ describe('RegisterPaymentModal — multa e juros', () => {
     expect(await within(dialog).findByText('Só quem aprova crédito pode dispensar multa e juros.')).toBeInTheDocument();
   });
 
+  test('sem credit.approve, a receber: data do pagamento é hoje e só leitura; corpo sem motivo', async () => {
+    loginAs('VENDEDOR');
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(paymentsUrl, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(receivableDetail, { status: 201 });
+      }),
+    );
+    renderModal();
+    const dialog = await screen.findByRole('dialog');
+    const date = within(dialog).getByLabelText('Data do pagamento');
+    expect(date).toHaveAttribute('readonly');
+    expect(date).toHaveValue(todayInBusinessTz());
+    expect(within(dialog).getByText('Só quem aprova crédito lança pagamento com data passada.')).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('Motivo da data passada')).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
+    await waitFor(() => expect(body).toEqual({ amount: 53.23, method: 'CASH', paymentDate: todayInBusinessTz() }));
+  });
+
+  test('com credit.approve: data passada pede motivo (3 a 200) e envia backdateReason', async () => {
+    loginAs('VENDEDOR', { canApproveCredit: true });
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(paymentsUrl, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(receivableDetail, { status: 201 });
+      }),
+    );
+    renderModal();
+    const dialog = await screen.findByRole('dialog');
+    const date = within(dialog).getByLabelText('Data do pagamento');
+    expect(date).not.toHaveAttribute('readonly');
+    expect(within(dialog).queryByLabelText('Motivo da data passada')).toBeNull();
+    await userEvent.clear(date);
+    await userEvent.type(date, '2026-10-20');
+    const reason = await within(dialog).findByLabelText('Motivo da data passada');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
+    expect(await within(dialog).findByText('Informe o motivo da data passada (3 a 200 caracteres).')).toBeInTheDocument();
+    expect(body).toBeNull();
+
+    await userEvent.type(reason, ' Pagou no balcão ');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pagamento' }));
+    await waitFor(() =>
+      expect(body).toEqual({ amount: 53.23, method: 'CASH', paymentDate: '2026-10-20', backdateReason: 'Pagou no balcão' }),
+    );
+  });
+
+  test('conta a pagar: data livre e sem motivo de data passada', async () => {
+    loginAs('ADMIN');
+    renderModal('payable');
+    const dialog = await screen.findByRole('dialog');
+    const date = within(dialog).getByLabelText('Data do pagamento');
+    expect(date).not.toHaveAttribute('readonly');
+    await userEvent.clear(date);
+    await userEvent.type(date, '2026-10-20');
+    expect(within(dialog).queryByLabelText('Motivo da data passada')).toBeNull();
+  });
+
   test('conta a pagar: sem consulta de encargos e sem resumo', async () => {
     loginAs('ADMIN');
     let quoted = 0;

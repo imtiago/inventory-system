@@ -45,6 +45,8 @@ export interface FinancialPaymentDTO {
   waivedAmount: number;
   waiverReason: string | null;
   waivedBy: PersonRefDTO | null;
+  /** Motivo do pagamento a receber lançado com data passada (null = data do dia). */
+  backdateReason: string | null;
   /** Recebido em caixa = amount + fineAmount + interestAmount − waivedAmount. */
   receivedAmount: number;
 }

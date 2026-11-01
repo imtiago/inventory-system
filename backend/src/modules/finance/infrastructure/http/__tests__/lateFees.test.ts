@@ -206,7 +206,7 @@ describe("Multa, juros e dispensa no recebimento", () => {
     const { documentId, parcelId } = await createDocument({ amount: 100, dueDate: addDays(-20) });
 
     // 1º pagamento há 10 dias: 10 dias de atraso → multa 2,00 + juros 0,33 sobre 100.
-    const first = await pay(documentId, parcelId, { amount: 40, paymentDate: addDays(-10) });
+    const first = await pay(documentId, parcelId, { amount: 40, paymentDate: addDays(-10), backdateReason: "Pago na loja, lançado depois" });
     assert.equal(first.statusCode, 201, first.body);
     const p1 = first.json().data.parcels[0].payments[0];
     assert.equal(p1.fineAmount, 2);
@@ -227,6 +227,52 @@ describe("Multa, juros e dispensa no recebimento", () => {
     const active = second.json().data.parcels[0].payments.find((p: { reversedAt: string | null }) => p.reversedAt === null);
     assert.equal(active.fineAmount, 2);
     assert.equal(active.interestAmount, 0.67);
+  });
+
+  test("data passada a receber: sem credit.approve → 403 BACKDATED_PAYMENT_FORBIDDEN; aprovador precisa de motivo; futuro → 400", async () => {
+    const flagged = await createTestUser({ role: "VENDEDOR", canApproveCredit: true });
+    const plain = await createTestUser({ role: "VENDEDOR" });
+    users.push(flagged, plain);
+    // Parcela vencida há 20 dias: pagar "no vencimento" zeraria multa e juros.
+    const { documentId, parcelId } = await createDocument({ amount: 100, dueDate: addDays(-20) });
+
+    const denied = await pay(documentId, parcelId, { amount: 100, paymentDate: addDays(-20), backdateReason: "Pagou no dia" }, plain.token);
+    assert.equal(denied.statusCode, 403, denied.body);
+    assert.equal(denied.json().code, "BACKDATED_PAYMENT_FORBIDDEN");
+    assert.equal(denied.json().message, "Só quem pode aprovar crédito registra pagamento com data passada.");
+    assert.equal(await prisma.payment.count({ where: { parcelId } }), 0);
+
+    const future = await pay(documentId, parcelId, { amount: 100, paymentDate: addDays(1) }, flagged.token);
+    assert.equal(future.statusCode, 400, future.body);
+
+    for (const backdateReason of [undefined, "  ", "ab"]) {
+      const noReason = await pay(documentId, parcelId, { amount: 100, paymentDate: addDays(-20), backdateReason }, flagged.token);
+      assert.equal(noReason.statusCode, 400, noReason.body);
+      assert.equal(noReason.json().errors[0].field, "backdateReason");
+    }
+
+    // Hoje, sem data ou com a data de hoje: qualquer um com finance.pay; motivo ignorado.
+    const todayOk = await pay(documentId, parcelId, { amount: 10, paymentDate: TODAY, backdateReason: "ignorado" }, plain.token);
+    assert.equal(todayOk.statusCode, 201, todayOk.body);
+    assert.equal(todayOk.json().data.parcels[0].payments[0].backdateReason, null);
+
+    const ok = await pay(documentId, parcelId, { amount: 90, paymentDate: addDays(-20), backdateReason: "  Pagou no vencimento, lançado hoje  " }, flagged.token);
+    assert.equal(ok.statusCode, 201, ok.body);
+    const back = ok.json().data.parcels[0].payments.find((p: { amount: number }) => p.amount === 90);
+    assert.equal(back.paymentDate, addDays(-20));
+    assert.equal(back.backdateReason, "Pagou no vencimento, lançado hoje");
+    const row = await prisma.payment.findFirstOrThrow({ where: { parcelId, amount: 90 } });
+    assert.equal(row.backdateReason, "Pagou no vencimento, lançado hoje");
+  });
+
+  test("contas a pagar: data passada continua livre (sem motivo); backdateReason → 400", async () => {
+    const { documentId, parcelId } = await createDocument({ amount: 100, dueDate: addDays(-30), type: "PAYABLE" });
+    const url = `/payables/${documentId}/parcels/${parcelId}/payments`;
+    const bad = await request("POST", url, adminToken, { amount: 10, method: "CASH", paymentDate: addDays(-5), backdateReason: "x y z" });
+    assert.equal(bad.statusCode, 400, bad.body);
+    const res = await request("POST", url, adminToken, { amount: 10, method: "CASH", paymentDate: addDays(-5) });
+    assert.equal(res.statusCode, 201, res.body);
+    assert.equal(res.json().data.parcels[0].payments[0].backdateReason, null);
   });
 
   test("contas a pagar não aceita waiveAmount (400) e não calcula encargos", async () => {

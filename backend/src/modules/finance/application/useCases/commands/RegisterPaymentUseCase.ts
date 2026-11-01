@@ -24,8 +24,10 @@ export interface IRegisterPaymentInput {
   /** Dispensa de multa/juros (reais, só a receber); exige `canWaive` e motivo. */
   waiveAmount?: number;
   waiverReason?: string | null;
-  /** O usuário tem `credit.approve` (papel ou marca). */
+  /** O usuário tem `credit.approve` (papel ou marca): dispensa encargos e registra data passada (a receber). */
   canWaive?: boolean;
+  /** A receber com `paymentDate` passada: motivo obrigatório (3–200), gravado no pagamento. */
+  backdateReason?: string | null;
 }
 
 /** Monta a resposta (detalhe do documento) depois do commit. */
@@ -60,6 +62,22 @@ export class RegisterPaymentUseCase<T extends FinancialType>
       throw new ValidationError("Dados inválidos.", [
         { field: "paymentDate", message: "A data do pagamento não pode ser futura." },
       ]);
+    }
+    // A receber: data passada muda multa/juros e o histórico de crédito → só quem aprova crédito, com motivo.
+    const backdated = this.type === FinancialType.RECEIVABLE && paymentDate < today;
+    const backdateReason = backdated ? input.backdateReason?.trim() || null : null;
+    if (backdated) {
+      if (!input.canWaive) {
+        throw new ForbiddenError(
+          "Só quem pode aprovar crédito registra pagamento com data passada.",
+          ErrorCodes.BACKDATED_PAYMENT_FORBIDDEN,
+        );
+      }
+      if (!backdateReason || backdateReason.length < 3) {
+        throw new ValidationError("Dados inválidos.", [
+          { field: "backdateReason", message: "Informe o motivo da data passada (3 a 200 caracteres)." },
+        ]);
+      }
     }
     const reference = input.reference?.trim() || null;
     const amountCents = toCents(input.amount);
@@ -102,6 +120,7 @@ export class RegisterPaymentUseCase<T extends FinancialType>
         interestCents,
         waivedCents,
         waiverReason,
+        backdateReason,
         parcelId: input.parcelId,
         amountCents,
         method: input.method,

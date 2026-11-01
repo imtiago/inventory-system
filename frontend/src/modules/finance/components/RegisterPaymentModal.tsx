@@ -17,7 +17,7 @@ import { LateFeeSummary } from './LateFeeSummary';
 import { PAYMENT_METHOD_LABELS, type IFinanceParcel, type PaymentMethod } from '../types';
 
 const METHODS = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[];
-const KNOWN_FIELDS = ['amount', 'method', 'paymentDate', 'reference', 'waiveAmount', 'waiverReason'] as const;
+const KNOWN_FIELDS = ['amount', 'method', 'paymentDate', 'reference', 'waiveAmount', 'waiverReason', 'backdateReason'] as const;
 
 interface FormValues {
   amount: string;
@@ -26,6 +26,7 @@ interface FormValues {
   reference: string;
   waiveAmount: string;
   waiverReason: string;
+  backdateReason: string;
 }
 
 interface Props {
@@ -43,6 +44,8 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
   const remainingCents = toCents(parcel.remainingAmount);
   const isReceivable = kind === 'receivable';
   const canWaive = useCan('credit.approve');
+  // A receber: data passada muda multa/juros e o histórico de crédito → só quem aprova crédito, com motivo.
+  const dateLocked = isReceivable && !canWaive;
 
   const {
     register,
@@ -52,7 +55,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
     control,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: { amount: formatMoneyInput(parcel.remainingAmount), method: 'CASH', paymentDate: today, reference: '', waiveAmount: '', waiverReason: '' },
+    defaultValues: { amount: formatMoneyInput(parcel.remainingAmount), method: 'CASH', paymentDate: today, reference: '', waiveAmount: '', waiverReason: '', backdateReason: '' },
   });
 
   const [paymentDate, amountText, waiveText] = useWatch({ control, name: ['paymentDate', 'amount', 'waiveAmount'] });
@@ -61,6 +64,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
   const showWaiver = isReceivable && canWaive && feesCents > 0;
   const amountCents = parseMoneyToCents(amountText) ?? 0;
   const waivedCents = showWaiver ? (parseMoneyToCents(waiveText) ?? 0) : 0;
+  const backdated = isReceivable && !dateLocked && !!paymentDate && paymentDate < today;
 
   function close() {
     if (mutation.isPending) return;
@@ -81,6 +85,7 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
           paymentDate: values.paymentDate,
           ...(values.reference.trim() ? { reference: values.reference.trim() } : {}),
           ...(waiveCentsOf(values) > 0 ? { waiveAmount: waiveCentsOf(values) / 100, waiverReason: values.waiverReason.trim() } : {}),
+          ...(backdated ? { backdateReason: values.backdateReason.trim() } : {}),
         },
       });
       onClose();
@@ -189,9 +194,11 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
           </label>
           <input
             id="payment-date" {...fieldA11y("payment-date", errors.paymentDate?.message)}
+            {...(dateLocked ? { 'aria-describedby': 'payment-date-hint' } : {})}
             type="date"
             max={today}
-            className={inputClass}
+            readOnly={dateLocked}
+            className={`${inputClass}${dateLocked ? ' bg-surface-muted text-muted' : ''}`}
             {...register('paymentDate', {
               validate: (value) => {
                 if (!value) return 'Informe a data do pagamento.';
@@ -201,7 +208,34 @@ export function RegisterPaymentModal({ kind, documentId, parcel, onClose }: Prop
             })}
           />
           <FieldError id="payment-date" message={errors.paymentDate?.message} />
+          {dateLocked && (
+            <p id="payment-date-hint" className="mt-1 text-xs text-muted">
+              Só quem aprova crédito lança pagamento com data passada.
+            </p>
+          )}
         </div>
+
+        {backdated && (
+          <div>
+            <label htmlFor="payment-backdate-reason" className="mb-2 block text-sm font-medium text-foreground">
+              Motivo da data passada
+            </label>
+            <input
+              id="payment-backdate-reason"
+              type="text"
+              maxLength={200}
+              className={inputClass}
+              {...fieldA11y('payment-backdate-reason', errors.backdateReason?.message)}
+              {...register('backdateReason', {
+                validate: (value) => {
+                  const reason = value.trim();
+                  return (reason.length >= 3 && reason.length <= 200) || 'Informe o motivo da data passada (3 a 200 caracteres).';
+                },
+              })}
+            />
+            <FieldError id="payment-backdate-reason" message={errors.backdateReason?.message} />
+          </div>
+        )}
 
         <div>
           <label htmlFor="payment-reference" className="mb-2 block text-sm font-medium text-foreground">

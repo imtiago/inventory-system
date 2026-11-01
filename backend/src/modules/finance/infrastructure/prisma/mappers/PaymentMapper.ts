@@ -20,6 +20,7 @@ export class PaymentMapper {
       waivedCents: toCents(Number(prisma.waivedAmount)),
       waiverReason: prisma.waiverReason,
       waivedById: prisma.waivedById,
+      backdateReason: prisma.backdateReason,
       createdAt: prisma.createdAt,
       reversedAt: prisma.reversedAt,
       reversedById: prisma.reversedById,
@@ -42,6 +43,7 @@ export class PaymentMapper {
       waivedAmount: fromCents(payment.waivedCents),
       waiverReason: payment.waiverReason,
       waivedById: payment.waivedById,
+      backdateReason: payment.backdateReason,
       createdAt: payment.createdAt,
     };
   }

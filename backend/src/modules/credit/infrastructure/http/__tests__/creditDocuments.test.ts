@@ -308,6 +308,25 @@ describe("Carnê, recibo e dados da loja", () => {
       }
     });
 
+    test("recibo de pagamento com data passada mostra o motivo", async () => {
+      await saveStore();
+      const doc = await prisma.financialDocument.create({
+        data: {
+          type: "RECEIVABLE", originType: "MANUAL", originId: randomUUID(), partyType: "CUSTOMER", partyId: customerId,
+          createdAt: new Date(`${addDays(-30)}T12:00:00.000Z`),
+          parcels: { create: [{ amount: 100, dueDate: day(addDays(-5)) }] },
+        },
+        include: { parcels: true },
+      });
+      const paid = await payParcel(doc.id, doc.parcels[0].id, { amount: 100, paymentDate: addDays(-5), backdateReason: "Pagou no balcão, lançado hoje" });
+      assert.equal(paid.statusCode, 201, paid.body);
+      const payment = await prisma.payment.findFirstOrThrow({ where: { parcelId: doc.parcels[0].id } });
+      const [text] = pdfPages((await call(admin, "GET", `/receivables/payments/${payment.id}/receipt.pdf`)).rawPayload);
+      for (const needle of ["Motivo da data retroativa", "Pagou no balcão, lançado hoje"]) {
+        assert.ok(text.includes(needle), `recibo sem "${needle}"`);
+      }
+    });
+
     test("recibo da entrada do crediário diz 'Entrada'; parcela do plano é numerada sem contar a entrada", async () => {
       await saveStore();
       const { doc } = await createCrediarioSale({ parcels: [75.66, 75.66, 75.65], downPayment: 90, cashPrice: 300, surcharge: 16.97 });

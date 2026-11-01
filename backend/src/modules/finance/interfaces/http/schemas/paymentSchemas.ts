@@ -36,6 +36,7 @@ const noFeesMessage = "Contas a pagar não têm multa nem juros.";
 const payablePaymentBodySchema = basePaymentBodySchema.extend({
   waiveAmount: z.never({ message: noFeesMessage }).optional(),
   waiverReason: z.never({ message: noFeesMessage }).optional(),
+  backdateReason: z.never({ message: "Contas a pagar não pedem motivo para data passada." }).optional(),
 });
 
 /** Contas a receber: `amount` = principal; dispensa de multa/juros opcional, com motivo. */
@@ -49,6 +50,13 @@ const receivablePaymentBodySchema = basePaymentBodySchema
       .optional(),
     waiverReason: z
       .string({ message: "Motivo da dispensa inválido." })
+      .trim()
+      .max(200, "O motivo deve ter entre 3 e 200 caracteres.")
+      .optional()
+      .nullable(),
+    /** Obrigatório (3–200) quando `paymentDate` é passada; só quem aprova crédito (regra no caso de uso). */
+    backdateReason: z
+      .string({ message: "Motivo da data passada inválido." })
       .trim()
       .max(200, "O motivo deve ter entre 3 e 200 caracteres.")
       .optional()

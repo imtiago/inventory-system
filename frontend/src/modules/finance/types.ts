@@ -74,6 +74,8 @@ export interface IFinancePayment {
   waivedAmount: number;
   waiverReason: string | null;
   waivedBy: { id: string; name: string } | null;
+  /** Motivo do pagamento a receber lançado com data passada (null = data do dia). */
+  backdateReason: string | null;
   /** Recebido em caixa = amount + fineAmount + interestAmount − waivedAmount. */
   receivedAmount: number;
 }
@@ -136,4 +138,6 @@ export interface IRegisterPaymentInput {
   /** Só contas a receber, com `credit.approve`. */
   waiveAmount?: number;
   waiverReason?: string;
+  /** Só contas a receber com data passada (exige `credit.approve`). */
+  backdateReason?: string;
 }

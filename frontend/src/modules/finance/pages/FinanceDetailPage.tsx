@@ -127,6 +127,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                                 {payment.reference ? ` · ${payment.reference}` : ''}
                                 {payment.createdBy ? ` · por ${payment.createdBy.name}` : ''}
                               </p>
+                              {payment.backdateReason && <p className="text-xs text-muted">Data passada: {payment.backdateReason}</p>}
                               <PaymentFees payment={payment} />
                               {reversed && (
                                 <p className="text-xs text-danger">

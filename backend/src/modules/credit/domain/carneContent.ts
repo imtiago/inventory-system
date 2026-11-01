@@ -66,6 +66,8 @@ export interface ReceiptInput {
     interestCents: number;
     waivedCents: number;
     waiverReason: string | null;
+    /** Pagamento lançado com data passada: motivo. */
+    backdateReason?: string | null;
     receivedBy: string | null;
     originLabel: string;
   };
@@ -209,6 +211,7 @@ export function buildReceiptContent(input: ReceiptInput): ReceiptContent {
     { label: "Referente a", value: p.originLabel },
     { label: "Parcela", value: `${parcelText} (venc. ${formatDateBr(p.dueDate)})` },
     { label: "Data do pagamento", value: formatDateBr(p.paymentDate) },
+    ...(p.backdateReason ? [{ label: "Motivo da data retroativa", value: p.backdateReason }] : []),
     { label: "Forma de pagamento", value: methodLabel(p.method) },
   ];
   if (p.reference) lines.push({ label: "Referência", value: p.reference });

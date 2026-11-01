@@ -47,6 +47,7 @@
             "waivedAmount": 0,
             "waiverReason": null,
             "waivedBy": null,
+            "backdateReason": null,
             "receivedAmount": 53.23
           },
           {
@@ -68,6 +69,7 @@
             "waivedAmount": 0,
             "waiverReason": null,
             "waivedBy": null,
+            "backdateReason": null,
             "receivedAmount": 53.23
           }
         ],

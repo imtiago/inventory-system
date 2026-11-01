@@ -40,6 +40,7 @@ export interface PaymentDetailRow extends PaymentAmountRow {
   waivedAmount: Money;
   waiverReason: string | null;
   waivedBy: PersonRefDTO | null;
+  backdateReason: string | null;
 }
 
 export interface FinancialDocumentRow<P extends PaymentAmountRow = PaymentAmountRow> {
@@ -214,6 +215,7 @@ export class FinancialDocumentReadMapper {
       waivedAmount: fromCents(waivedCents),
       waiverReason: payment.waiverReason,
       waivedBy: payment.waivedBy ? { id: payment.waivedBy.id, name: payment.waivedBy.name } : null,
+      backdateReason: payment.backdateReason,
       receivedAmount: fromCents(amountCents + fineCents + interestCents - waivedCents),
     };
   }
