@@ -90,6 +90,15 @@ function route(method, url) {
     if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
     return detail;
   }
+  if (p === '/credit/review/preview') {
+    const d = j('credit/creditReviewItems.json');
+    const up = d.data[0];
+    d.data.push(
+      { ...up, customerId: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', customerName: 'Carlos Souza', fromProfile: 'GOOD', toProfile: 'REGULAR', fromLimit: 2500, toLimit: 800, action: 'DOWN', reason: 'desceu para Regular: atraso de 31 dias no período', score: 30 },
+      { ...up, customerId: 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f', customerName: 'Ana Lima', fromProfile: 'REGULAR', toProfile: 'REGULAR', fromLimit: 900, toLimit: 900, toStatus: 'SUSPENDED', action: 'SUSPEND', reason: 'suspenso: parcela vencida há 61 dias', score: 5 },
+    );
+    return d;
+  }
   if (p === '/credit/limit-requests/count') return j('credit/creditLimitRequestCount.json');
   if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
   if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');

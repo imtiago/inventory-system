@@ -34,6 +34,7 @@ const flows = {
   'cancel-request-reject': ['/sales/cancel-requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Recusar')`, 900]],
   'credit-request-approve': ['/credit/requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Aprovar')`, 900]],
   'credit-request-reject': ['/credit/requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Recusar')`, 900]],
+  'credit-review-confirm': ['/credit/review', [`document.querySelector('input[aria-label="Selecionar Maria Oliveira"]')?.click()`, 300, `__h.click('button','Aplicar selecionados')`, 900]],
   'credit-limit-request': ['/customers/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', [`__h.click('button','Pedir aumento de limite')`, 900]],
   'credit-sidebar-drawer': ['/credit/requests', [`document.querySelector('button[aria-label="Abrir menu"]')?.click()`, 900]],
   'sidebar-drawer': ['/sales/cancel-requests', [`document.querySelector('button[aria-label="Abrir menu"]')?.click()`, 900]],

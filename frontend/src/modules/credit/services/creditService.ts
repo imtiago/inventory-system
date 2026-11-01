@@ -1,7 +1,7 @@
 import { api } from '@/shared/services/api';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 
-import type { ApproveLimitRequestInput, CreateLimitRequestInput, CreditLimitRequest, CreditLimitRequestsResponse, CreditProfile, CreditRequestStatus, CreditProfileCode, CreditSettings, CustomerCredit, UpdateCreditProfileInput, UpdateCreditSettingsInput, UpdateCustomerCreditInput } from '../types';
+import type { ApproveLimitRequestInput, CreateLimitRequestInput, CreditLimitRequest, CreditLimitRequestsResponse, CreditProfile, CreditRequestStatus, CreditProfileCode, CreditReviewItem, CreditSettings, CustomerCredit, UpdateCreditProfileInput, UpdateCreditSettingsInput, UpdateCustomerCreditInput } from '../types';
 
 export async function getCreditSettings(): Promise<CreditSettings> {
   const { data } = await api.get<{ data: CreditSettings }>('/credit/settings');
@@ -65,6 +65,18 @@ export async function approveLimitRequest({ id, ...body }: ApproveLimitRequestIn
 
 export async function rejectLimitRequest(id: string, reason: string): Promise<CreditLimitRequest> {
   const { data } = await api.post<{ data: CreditLimitRequest }>(`/credit/limit-requests/${id}/reject`, { reason });
+
+  return data.data;
+}
+
+export async function getCreditReviewPreview(): Promise<CreditReviewItem[]> {
+  const { data } = await api.get<{ data: CreditReviewItem[] }>('/credit/review/preview');
+
+  return data.data;
+}
+
+export async function applyCreditReview(customerIds: string[], idempotencyKey: string): Promise<CreditReviewItem[]> {
+  const { data } = await api.post<{ data: CreditReviewItem[] }>('/credit/review/apply', { customerIds }, idempotencyConfig(idempotencyKey));
 
   return data.data;
 }

@@ -28,6 +28,7 @@ const COVERED_POSTS = [
   /\/sales\/cancel-requests\/[^/]+\/approve$/,
   /\/credit\/limit-requests$/,
   /\/credit\/limit-requests\/[^/]+\/approve$/,
+  /\/credit\/review\/apply$/,
   /\/(receivables|payables)\/[^/]+\/parcels\/[^/]+\/payments$/,
   /\/(receivables|payables)\/payments\/[^/]+\/reverse$/,
   /\/purchases$/,

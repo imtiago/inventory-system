@@ -5,8 +5,10 @@ import { queryKeys } from '@/shared/react-query/keys';
 import { useCrudMutation } from '@/shared/react-query/useCrudMutation';
 
 import {
+  applyCreditReview,
   approveLimitRequest,
   createLimitRequest,
+  getCreditReviewPreview,
   getCreditSettings,
   getCustomerCredit,
   getLimitRequestCount,
@@ -99,6 +101,21 @@ export function useRejectLimitRequest() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectLimitRequest(id, reason),
     invalidateKeys: [queryKeys.creditRequests],
     successMessage: 'Pedido recusado.',
+    silentError: true,
+  });
+}
+
+/** Prévia da revisão: sempre recalculada (nunca em cache), pois depende do dia e dos pagamentos. */
+export function useCreditReviewPreview() {
+  return useQuery({ queryKey: queryKeys.creditReviewPreview, queryFn: getCreditReviewPreview, staleTime: 0, gcTime: 0 });
+}
+
+// Aplicar muda perfil/limite/situação das fichas e o histórico de cada cliente.
+export function useApplyCreditReview() {
+  return useCrudMutation({
+    mutationFn: (customerIds: string[], key) => applyCreditReview(customerIds, key),
+    idempotent: true,
+    invalidateKeys: [queryKeys.creditReviewPreview, queryKeys.customers],
     silentError: true,
   });
 }

@@ -60,6 +60,8 @@ export const queryKeys = {
 
   creditRequestCount: ['credit', 'requests', 'count'] as const,
 
+  creditReviewPreview: ['credit', 'review', 'preview'] as const,
+
   customerCredit: (id: string) => ['customers', id, 'credit'] as const,
 
   inventory: ['inventory'] as const,

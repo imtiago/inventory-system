@@ -142,3 +142,20 @@ export interface ApproveLimitRequestInput {
   approvedLimit?: number;
   reason?: string;
 }
+
+export type CreditReviewAction = 'UP' | 'DOWN' | 'SUSPEND';
+
+/** Mudança proposta pela revisão periódica (limites em reais). */
+export interface CreditReviewItem {
+  customerId: string;
+  customerName: string;
+  fromProfile: CreditProfileCode;
+  toProfile: CreditProfileCode;
+  fromLimit: number;
+  toLimit: number;
+  fromStatus: CreditStatus;
+  toStatus: CreditStatus;
+  action: CreditReviewAction;
+  reason: string;
+  score: number;
+}
