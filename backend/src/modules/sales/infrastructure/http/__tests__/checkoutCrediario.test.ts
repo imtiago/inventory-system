@@ -11,7 +11,9 @@ import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
-import { withIdempotencyKey } from "../../../../../test/idempotency";
+import { newIdempotencyKey, withIdempotencyKey } from "../../../../../test/idempotency";
+import { createHash } from "node:crypto";
+import { canonicalJson, REDACTED_SECRET } from "@shared/http/idempotency/requestHash";
 import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
 import { resetCreditDefaults } from "../../../../../test/creditFixtures";
 
@@ -344,6 +346,48 @@ describe("fechamento da venda: crediário", () => {
     assert.equal(res.statusCode, 403, res.body);
     assert.equal(res.json().code, "CREDIT_OVERRIDE_DENIED");
     assert.equal(await qty(variantId), 10);
+  });
+
+  test("idempotência com exceção: a senha do aprovador não entra no hash nem no registro; retry com outra senha → replay", async () => {
+    const variantId = await createVariant(300);
+    await prisma.customer.update({ where: { id: customerId }, data: { creditLimit: 100 } });
+    const boss = await approver({ canApproveCredit: true });
+    const key = newIdempotencyKey();
+    const body = (approverPassword: string, reason = "Autorizo") => ({
+      customerId,
+      items: [{ productVariantId: variantId, quantity: 1 }],
+      payment: crediario(PLAN_3X, { approverEmail: boss.email, approverPassword, reason }),
+    });
+    const post = (payload: unknown) =>
+      app.inject({
+        method: "POST",
+        url: "/sales",
+        payload: payload as any,
+        headers: { authorization: `Bearer ${seller.token}`, "idempotency-key": key },
+      });
+    const rawHash = (payload: unknown) =>
+      createHash("sha256").update(canonicalJson(["POST", "/sales", {}, payload])).digest("hex");
+
+    const first = await post(body(boss.password));
+    assert.equal(first.statusCode, 201, first.body);
+    const record = await prisma.idempotencyRecord.findFirstOrThrow({ where: { userId: seller.id, key } });
+    assert.equal(record.requestHash, rawHash(body(REDACTED_SECRET)));
+    assert.notEqual(record.requestHash, rawHash(body(boss.password)));
+    assert.notEqual(record.requestHash, rawHash(body(REDACTED_SECRET, "Outro motivo")));
+    assert.ok(!JSON.stringify(record).includes(boss.password), "senha no registro de idempotência");
+    assert.ok(!first.body.includes(boss.password));
+
+    // Resposta perdida, o vendedor redigita a senha (até errada): mesma chave → replay, sem outra venda.
+    const retry = await post(body("senha-redigitada"));
+    assert.equal(retry.statusCode, 201, retry.body);
+    assert.equal(retry.headers["idempotent-replayed"], "true");
+    assert.deepEqual(retry.json(), first.json());
+    assert.equal(await qty(variantId), 9);
+
+    // Outro campo diferente com a mesma chave continua recusado.
+    const other = await post(body(boss.password, "Outro motivo"));
+    assert.equal(other.statusCode, 422, other.body);
+    assert.equal(other.json().code, "IDEMPOTENCY_KEY_REUSED");
   });
 
   test("SUSPENDED → 422 CREDIT_SUSPENDED mesmo com override", async () => {
