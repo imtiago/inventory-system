@@ -38,7 +38,7 @@ describe('Registrar pagamento usa o MoneyInput compartilhado', () => {
     const dialog = await openDialog();
     const amount = within(dialog).getByLabelText('Valor');
 
-    expect(within(dialog).getByText('R$')).toBeInTheDocument();
+    expect(within(amount.parentElement!).getByText('R$')).toBeInTheDocument();
     expect(amount).toHaveAttribute('inputmode', 'decimal');
 
     await userEvent.clear(amount);

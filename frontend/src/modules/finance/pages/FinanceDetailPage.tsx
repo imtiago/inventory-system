@@ -76,6 +76,10 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
             </dl>
           </Section>
 
+          {kind === 'receivable' && document.noLateFees && (
+            <p className="rounded-xl border border-border bg-surface-muted p-3 text-sm text-muted">Sem multa nem juros de atraso: conta anterior ao crediário.</p>
+          )}
+
           <Section title="Parcelas">
             <div className="flex flex-col gap-4 p-4 sm:p-6">
               {document.parcels.map((parcel) => (
@@ -87,6 +91,12 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                         Vencimento {formatDateOnly(parcel.dueDate)} · Valor {formatCurrency(parcel.amount)} · Pago {formatCurrency(parcel.paidAmount)} · Restante{' '}
                         {formatCurrency(parcel.remainingAmount)}
                       </p>
+                      {!canceled && parcel.remainingAmount > 0 && parcel.lateFeesToday && parcel.lateFeesToday.fine + parcel.lateFeesToday.interest > 0 && (
+                        <p className="text-sm font-medium text-warning">
+                          Se paga hoje: multa {formatCurrency(parcel.lateFeesToday.fine)} · juros {formatCurrency(parcel.lateFeesToday.interest)} · total{' '}
+                          {formatCurrency(parcel.lateFeesToday.totalDue)}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <StatusBadge status={parcel.status}>{FINANCE_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge>
@@ -116,6 +126,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                                 {payment.reference ? ` · ${payment.reference}` : ''}
                                 {payment.createdBy ? ` · por ${payment.createdBy.name}` : ''}
                               </p>
+                              <PaymentFees payment={payment} />
                               {reversed && (
                                 <p className="text-xs text-danger">
                                   Estornado em {formatDateTime(payment.reversedAt)} por {payment.reversedBy?.name ?? '—'}: {payment.reversalReason ?? '—'}
@@ -144,5 +155,28 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
       {document && payingParcel && <RegisterPaymentModal kind={kind} key={payingParcel.id} documentId={document.id} parcel={payingParcel} onClose={() => setPayingParcelId(null)} />}
       {document && reversing && <ReversePaymentModal kind={kind} key={reversing.id} documentId={document.id} payment={reversing} onClose={() => setReversing(null)} />}
     </Page>
+  );
+}
+
+/** Multa, juros, dispensa e recebido em caixa de um pagamento com encargos. */
+function PaymentFees({ payment }: { payment: IFinancePayment }) {
+  const fine = payment.fineAmount ?? 0;
+  const interest = payment.interestAmount ?? 0;
+  if (fine + interest <= 0) return null;
+  const waived = payment.waivedAmount ?? 0;
+  const parts = [`Multa ${formatCurrency(fine)}`, `Juros ${formatCurrency(interest)}`];
+
+  return (
+    <div className={`mt-0.5 text-xs ${payment.reversedAt ? 'text-muted line-through' : 'text-muted'}`}>
+      <p>
+        {parts.join(' · ')} · <span className="font-medium text-foreground">Recebido em caixa {formatCurrency(payment.receivedAmount)}</span>
+      </p>
+      {waived > 0 && (
+        <p>
+          Dispensado {formatCurrency(waived)}
+          {payment.waivedBy ? ` por ${payment.waivedBy.name}` : ''}: {payment.waiverReason ?? '—'}
+        </p>
+      )}
+    </div>
   );
 }

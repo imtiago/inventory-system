@@ -19,6 +19,7 @@ const flows = {
   ]],
   'purchase-new-items': ['/purchases/new', [scan('7890'), 900, scan('7891'), 900]],
   'payment-modal': ['/receivables/x1', [`[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('Registrar pagamento')&&!b.disabled)[0].click()`, 900]],
+  'payment-modal-fees': ['/receivables/fees1', [`[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('Registrar pagamento')&&!b.disabled)[0].click()`, 1200, `(async()=>{ const i=document.getElementById('payment-waive'); if(i){ __h.setVal(i,'0,50'); __h.setVal(document.getElementById('payment-waiver-reason'),'Cliente antigo'); } return !!i })()`, 600]],
   'reverse-modal': ['/receivables/x1', [`__h.click('button','Estornar')`, 900]],
   'change-password': ['/', [`__h.click('button','Alterar senha')`, 900]],
   'brand-create': ['/brands', [`__h.click('button','Nova marca')`, 900]],

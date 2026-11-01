@@ -188,5 +188,36 @@ describe('ReceivableDetailPage', () => {
     const link = await screen.findByRole('link', { name: 'Ver contas a receber' });
     expect(link).toHaveAttribute('href', `/receivables/${saleDetail.data.receivable!.id}`);
   });
-});
 
+  test('pagamento com encargos mostra multa, juros, dispensa e o recebido em caixa; parcela vencida mostra encargos de hoje', async () => {
+    const withFees = structuredClone(receivableDetail);
+    const payment = withFees.data.parcels[0].payments[1] as Record<string, unknown>;
+    Object.assign(payment, {
+      fineAmount: 1.06,
+      interestAmount: 0.35,
+      waivedAmount: 0.41,
+      waiverReason: 'Cliente antigo',
+      waivedBy: { id: 'u-1', name: 'Ana Gerente' },
+      receivedAmount: 54.23,
+    });
+    server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json(withFees)));
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+
+    const active = screen.getByTestId(`payment-${activePaymentId}`);
+    expect(within(active).getByText(/Multa R\$\s1,06/)).toBeInTheDocument();
+    expect(within(active).getByText(/Juros R\$\s0,35/)).toBeInTheDocument();
+    expect(within(active).getByText(/Dispensado R\$\s0,41 por Ana Gerente: Cliente antigo/)).toBeInTheDocument();
+    expect(within(active).getByText(/Recebido em caixa R\$\s54,23/)).toBeInTheDocument();
+
+    const overdue = screen.getByTestId(`parcel-${parcel2.number}`);
+    expect(within(overdue).getByText(/Se paga hoje: multa R\$\s1,06 · juros R\$\s0,18 · total R\$\s54,47/)).toBeInTheDocument();
+    expect(within(screen.getByTestId('parcel-3')).queryByText(/Se paga hoje/)).toBeNull();
+  });
+
+  test('documento sem encargos (venda antiga) avisa que não cobra multa nem juros', async () => {
+    server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json({ data: { ...receivableDetail.data, noLateFees: true } })));
+    renderDetail();
+    expect(await screen.findByText(/Sem multa nem juros de atraso/)).toBeInTheDocument();
+  });
+});

@@ -104,6 +104,8 @@ function route(method, url) {
   if (p === '/nfe-imports') return grow(j('nfe/nfeImportList.json'), 4);
   if (s[0] === 'nfe-imports') return j('nfe/nfeImport.json');
   if (p === '/receivables') return grow(j('finance/receivableList.json'));
+  if (s[0] === 'receivables' && s[4] === 'late-fees') return j('finance/lateFeeQuote.json');
+  if (s[0] === 'receivables' && s[1] === 'fees1') return j('finance/receivableDetailLateFees.json');
   if (s[0] === 'receivables') return j('finance/receivableDetail.json');
   if (p === '/payables') return grow(j('finance/payableList.json'));
   if (s[0] === 'payables') return j('finance/payableDetail.json');
