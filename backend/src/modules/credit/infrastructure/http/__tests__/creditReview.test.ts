@@ -11,7 +11,12 @@ import { keyShape } from "../../../../../test/keyShape";
 import { newIdempotencyKey } from "../../../../../test/idempotency";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
-import { resetCreditDefaults } from "../../../../../test/creditFixtures";
+import {
+  createCashSaleOrigin,
+  createCrediarioSaleOrigin,
+  deleteCustomerSales,
+  resetCreditDefaults,
+} from "../../../../../test/creditFixtures";
 
 app.log.level = "silent";
 
@@ -34,15 +39,45 @@ describe("Revisão periódica (/credit/review)", () => {
       headers: { authorization: `Bearer ${users[role].token}`, ...(method === "POST" ? { "idempotency-key": key } : {}) },
     });
 
-  async function customer(): Promise<string> {
+  /** Cliente de 3 meses com 9 parcelas do crediário quitadas em dia (ou, com `cashSales`, só compras à vista). */
+  async function customer(opts: { cashSales?: number } = {}): Promise<string> {
     const id = randomUUID();
     await prisma.$executeRaw`
       INSERT INTO "Customer" (id, name, code, "createdAt")
       VALUES (${id}, ${`tx-test-rev-${id.slice(0, 8)}`}, ${`TX${id.slice(0, 12)}`},
               ((${today}::date - make_interval(months => 3))::timestamp + interval '15 hours'))`;
     customerIds.push(id);
+    if (opts.cashSales !== undefined) {
+      // Como o fechamento à vista grava: documento PAID, parcela de hoje paga no ato (`atCheckout`).
+      for (let i = 0; i < opts.cashSales; i++) {
+        const doc = await prisma.financialDocument.create({
+          data: {
+            type: "RECEIVABLE",
+            originType: "SALE",
+            originId: await createCashSaleOrigin(id),
+            partyId: id,
+            partyType: "CUSTOMER",
+            status: "PAID",
+          },
+        });
+        const parcel = await prisma.financialParcel.create({
+          data: { financialDocumentId: doc.id, amount: 500, dueDate: at(-60 + i * 10) },
+        });
+        await prisma.payment.create({
+          data: { parcelId: parcel.id, amount: 500, method: "PIX", paymentDate: at(-60 + i * 10), atCheckout: true },
+        });
+      }
+      return id;
+    }
     const doc = await prisma.financialDocument.create({
-      data: { type: "RECEIVABLE", originType: "MANUAL", originId: randomUUID(), partyId: id, partyType: "CUSTOMER", status: "PAID" },
+      data: {
+        type: "RECEIVABLE",
+        originType: "SALE",
+        originId: await createCrediarioSaleOrigin(id),
+        partyId: id,
+        partyType: "CUSTOMER",
+        status: "PAID",
+      },
     });
     for (let i = 0; i < 9; i++) {
       const parcel = await prisma.financialParcel.create({
@@ -62,6 +97,7 @@ describe("Revisão periódica (/credit/review)", () => {
   after(async () => {
     try {
       await deleteFinancialDocuments({ where: { partyId: { in: customerIds } } });
+      await deleteCustomerSales(customerIds);
       await prisma.creditLimitChange.deleteMany({ where: { customerId: { in: customerIds } } });
       await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
       for (const u of Object.values(users)) await u?.cleanup();
@@ -85,6 +121,17 @@ describe("Revisão periódica (/credit/review)", () => {
     assert.equal(mine.toProfile, "REGULAR");
     assert.equal(mine.reason, "subiu para Regular: 9 parcelas em dia, 0 atrasos");
     assert.deepEqual(keyShape(res.json()), keyShape(loadFixture("creditReviewItems")));
+    assert.equal((await prisma.customer.findUniqueOrThrow({ where: { id } })).creditProfileCode, "NEW");
+  });
+
+  test("4 compras à vista (pagas no ato) não sobem Novo → Regular", async () => {
+    const id = await customer({ cashSales: 4 });
+    const res = await call("ADMIN", "GET", "/credit/review/preview");
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.json().data.find((i: { customerId: string }) => i.customerId === id), undefined);
+    const apply = await call("ADMIN", "POST", "/credit/review/apply", { customerIds: [id] });
+    assert.equal(apply.statusCode, 200, apply.body);
+    assert.deepEqual(apply.json().data, []);
     assert.equal((await prisma.customer.findUniqueOrThrow({ where: { id } })).creditProfileCode, "NEW");
   });
 

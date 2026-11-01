@@ -32,3 +32,16 @@ export function countsTowardCreditHistory(alias = "fd"): Prisma.Sql {
   const doc = Prisma.raw(alias);
   return Prisma.sql`(${doc}.status <> 'CANCELED' AND NOT (${doc}."noLateFees" AND ${doc}."originType"::text = 'LEGACY'))`;
 }
+
+/**
+ * Histórico de crédito = só parcelas do crediário (decisão do dono, 2026-11-01): documento de venda com
+ * `SaleFinancing` que vale para pontuação (`countsTowardCreditHistory`), sem a parcela paga no fechamento
+ * (a entrada). Vendas à vista/PIX/cartão (documento pago `atCheckout`) e contas avulsas nunca contam.
+ * `fd` = documento, `fp` = parcela na consulta.
+ */
+export function crediarioInstallmentForHistory(): Prisma.Sql {
+  return Prisma.sql`(${countsTowardCreditHistory()}
+    AND fd."originType" = 'SALE'
+    AND EXISTS (SELECT 1 FROM "SaleFinancing" sf WHERE sf."saleId" = fd."originId")
+    AND NOT EXISTS (SELECT 1 FROM "Payment" pc WHERE pc."parcelId" = fp.id AND pc."atCheckout"))`;
+}

@@ -3,7 +3,7 @@ import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import type { CreditHistory } from "@credit/domain/creditScore";
 import type { CreditHistoryReader } from "@credit/application/contracts/CreditHistoryReader";
 import type { CreditSettingsReader } from "@credit/application/contracts/CreditSettingsReader";
-import { countsTowardCreditHistory, receivableParcelsCte } from "./receivableParcelsSql";
+import { crediarioInstallmentForHistory, receivableParcelsCte } from "./receivableParcelsSql";
 
 type Row = {
   id: string;
@@ -18,6 +18,7 @@ type Row = {
 };
 
 /**
+ * Só parcelas do crediário (`crediarioInstallmentForHistory`: sem vendas pagas no ato nem a entrada).
  * Janela `[today − months, today]`. Uma única classificação por parcela alimenta `paidInstallments`
  * e `paidOnTime` (mesma janela: quitação dentro dela). Dias de atraso = quitação − vencimento;
  * em dia = atraso ≤ carência; `totalDaysLate` soma só as atrasadas (além da carência);
@@ -32,7 +33,7 @@ export class PrismaCreditHistoryReader implements CreditHistoryReader {
     const { rules } = await this.settings.get();
     const grace = rules.graceDays;
     const idList = Prisma.join(ids);
-    const parcels = receivableParcelsCte(Prisma.sql`fd."partyId" IN (${idList})`, countsTowardCreditHistory());
+    const parcels = receivableParcelsCte(Prisma.sql`fd."partyId" IN (${idList})`, crediarioInstallmentForHistory());
 
     const rows = await getDb().$queryRaw<Row[]>`
       WITH win AS (
@@ -56,7 +57,7 @@ export class PrismaCreditHistoryReader implements CreditHistoryReader {
         JOIN "FinancialDocument" fd ON fd.id = fp."financialDocumentId"
         CROSS JOIN win
         WHERE fd.type = 'RECEIVABLE' AND fd."partyType" = 'CUSTOMER' AND fd."partyId" IN (${idList})
-          AND ${countsTowardCreditHistory()} AND p."reversedAt" IS NULL
+          AND ${crediarioInstallmentForHistory()} AND p."reversedAt" IS NULL AND NOT p."atCheckout"
           AND p."paymentDate"::date BETWEEN win.start AND win.today
         GROUP BY fd."partyId"
       )

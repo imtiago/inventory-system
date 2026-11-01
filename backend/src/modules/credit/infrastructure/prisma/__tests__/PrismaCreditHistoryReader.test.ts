@@ -6,7 +6,12 @@ import { prisma } from "@shared/prisma";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
-import { resetCreditDefaults } from "../../../../../test/creditFixtures";
+import {
+  createCashSaleOrigin,
+  createCrediarioSaleOrigin,
+  deleteCustomerSales,
+  resetCreditDefaults,
+} from "../../../../../test/creditFixtures";
 import { PrismaCreditHistoryReader } from "@credit/infrastructure/prisma/PrismaCreditHistoryReader";
 import { PrismaCreditExposureReader } from "@credit/infrastructure/prisma/PrismaCreditExposureReader";
 import { countsTowardCreditHistory } from "@credit/infrastructure/prisma/receivableParcelsSql";
@@ -31,17 +36,29 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
     return id;
   }
 
-  /** Parcelas de um documento RECEIVABLE; `payments` = [dias relativos a hoje, valor, estornado?]. */
+  type Origin = "CREDIARIO" | "CASH_SALE" | "MANUAL";
+
+  /**
+   * Parcelas de um documento RECEIVABLE; `payments` = [dias relativos a hoje, valor, estornado?, atCheckout?].
+   * Origem padrão: venda no crediário (só ela conta no histórico).
+   */
   async function receivable(
     customerId: string,
-    parcels: { amount: number; due: number; payments?: [number, number, boolean?][] }[],
+    parcels: { amount: number; due: number; payments?: [number, number, boolean?, boolean?][] }[],
     status: "OPEN" | "PARTIALLY_PAID" | "PAID" | "CANCELED" = "PARTIALLY_PAID",
+    origin: Origin = "CREDIARIO",
   ) {
+    const originId =
+      origin === "CREDIARIO"
+        ? await createCrediarioSaleOrigin(customerId)
+        : origin === "CASH_SALE"
+          ? await createCashSaleOrigin(customerId)
+          : randomUUID();
     const doc = await prisma.financialDocument.create({
       data: {
         type: "RECEIVABLE",
-        originType: "MANUAL",
-        originId: randomUUID(),
+        originType: origin === "MANUAL" ? "MANUAL" : "SALE",
+        originId,
         partyId: customerId,
         partyType: "CUSTOMER",
         status,
@@ -51,9 +68,16 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
       const parcel = await prisma.financialParcel.create({
         data: { financialDocumentId: doc.id, amount: p.amount, dueDate: at(p.due) },
       });
-      for (const [day, amount, reversed] of p.payments ?? []) {
+      for (const [day, amount, reversed, atCheckout] of p.payments ?? []) {
         await prisma.payment.create({
-          data: { parcelId: parcel.id, amount, method: "CASH", paymentDate: at(day), reversedAt: reversed ? new Date() : null },
+          data: {
+            parcelId: parcel.id,
+            amount,
+            method: "CASH",
+            paymentDate: at(day),
+            reversedAt: reversed ? new Date() : null,
+            atCheckout: atCheckout ?? false,
+          },
         });
       }
     }
@@ -67,6 +91,7 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
   after(async () => {
     try {
       await deleteFinancialDocuments({ where: { partyId: { in: customerIds } } });
+      await deleteCustomerSales(customerIds);
       await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
     } finally {
       await releaseLock?.();
@@ -118,6 +143,39 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
     // A exposição usa o mesmo cálculo de saldo: 70 (vencida) + 100 (a vencer).
     const exposure = await new PrismaCreditExposureReader().forCustomer(id, today);
     assert.deepEqual(exposure, { openBalanceCents: 17000, currentMaxOverdueDays: 7 });
+  });
+
+  test("só parcelas do crediário contam: vendas à vista/PIX/cartão (pagas no ato), a entrada e documentos avulsos ficam fora", async () => {
+    const id = await customer(6);
+    // 6 vendas à vista: documento PAID com a parcela de hoje (ou de dias atrás) paga no ato.
+    for (let i = 0; i < 6; i++) {
+      await receivable(id, [{ amount: 100, due: -10 * i, payments: [[-10 * i, 100, false, true]] }], "PAID", "CASH_SALE");
+    }
+    // Conta a receber avulsa quitada em dia: não é crediário.
+    await receivable(id, [{ amount: 100, due: -20, payments: [[-20, 100]] }], "PAID", "MANUAL");
+    // Crediário: entrada paga no ato (fora) + 1 parcela quitada em dia + 1 a vencer.
+    await receivable(id, [
+      { amount: 30, due: -40, payments: [[-40, 30, false, true]] },
+      { amount: 70, due: -10, payments: [[-11, 70]] },
+      { amount: 70, due: 20 },
+    ]);
+
+    const reader = new PrismaCreditHistoryReader(new PrismaCreditSettingsRepository());
+    const h = (await reader.forCustomers([id], today, 12)).get(id)!;
+    assert.equal(h.paidInstallments, 1);
+    assert.equal(h.paidOnTime, 1);
+    assert.equal(h.totalPaidCents, 7000);
+    assert.equal(h.maxDaysLateInPeriod, 0);
+
+    // Só à vista: nada no histórico (4 compras não sobem Novo → Regular; 6 não liberam auto-aprovação).
+    const cashOnly = await customer(6);
+    for (let i = 0; i < 6; i++) {
+      await receivable(cashOnly, [{ amount: 100, due: -5 * i, payments: [[-5 * i, 100, false, true]] }], "PAID", "CASH_SALE");
+    }
+    const c = (await reader.forCustomers([cashOnly], today, 12)).get(cashOnly)!;
+    assert.equal(c.paidInstallments, 0);
+    assert.equal(c.paidOnTime, 0);
+    assert.equal(c.totalPaidCents, 0);
   });
 
   test("predicado do histórico: caderninho (LEGACY + noLateFees) e cancelados ficam fora; noLateFees de outra origem conta", async () => {

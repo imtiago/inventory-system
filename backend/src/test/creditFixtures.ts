@@ -27,3 +27,44 @@ export async function resetCreditDefaults(): Promise<void> {
     });
   }
 }
+
+/**
+ * Venda no crediário só para montar histórico de crédito (sem itens nem estoque): grava `Sale` +
+ * `SaleFinancing`. Use o id como `originId` (originType SALE) do documento a receber. Apague com
+ * `deleteCustomerSales` (depois dos documentos, antes do cliente).
+ */
+export async function createCrediarioSaleOrigin(customerId: string): Promise<string> {
+  const sale = await prisma.sale.create({
+    data: { customerId, status: "COMPLETED", paymentCondition: "CREDIARIO", totalAmount: 100 },
+  });
+  await prisma.saleFinancing.create({
+    data: {
+      saleId: sale.id,
+      cashPrice: 100,
+      downPayment: 0,
+      financedAmount: 100,
+      installments: 1,
+      monthlyRateBps: 0,
+      surchargeAmount: 0,
+      totalAmount: 100,
+      firstDueDate: new Date(),
+    },
+  });
+  return sale.id;
+}
+
+/** Venda à vista (sem itens) do cliente, para o documento PAID com pagamento `atCheckout` do fechamento. */
+export async function createCashSaleOrigin(customerId: string): Promise<string> {
+  const sale = await prisma.sale.create({
+    data: { customerId, status: "COMPLETED", paymentCondition: "CASH", totalAmount: 100 },
+  });
+  return sale.id;
+}
+
+/** Apaga as vendas dos clientes (o `SaleFinancing` sai em cascata). */
+export async function deleteCustomerSales(customerIds: string[]): Promise<void> {
+  const sales = await prisma.sale.findMany({ where: { customerId: { in: customerIds } }, select: { id: true } });
+  const saleIds = sales.map((s) => s.id);
+  await prisma.saleCancelRequest.deleteMany({ where: { saleId: { in: saleIds } } });
+  await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
+}

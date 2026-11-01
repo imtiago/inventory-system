@@ -11,7 +11,12 @@ import { keyShape } from "../../../../../test/keyShape";
 import { newIdempotencyKey } from "../../../../../test/idempotency";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
-import { resetCreditDefaults } from "../../../../../test/creditFixtures";
+import {
+  createCashSaleOrigin,
+  createCrediarioSaleOrigin,
+  deleteCustomerSales,
+  resetCreditDefaults,
+} from "../../../../../test/creditFixtures";
 
 app.log.level = "silent";
 
@@ -35,8 +40,11 @@ describe("Pedidos de aumento de limite (/credit/limit-requests)", () => {
       headers: { authorization: `Bearer ${users[role].token}`, ...(method === "POST" ? { "idempotency-key": key } : {}) },
     });
 
-  /** Cliente com perfil/limite e `paid` parcelas quitadas; `lateDays` > 0 faz a última quitar com esse atraso. */
-  async function customer(opts: { profile?: "NEW" | "REGULAR" | "GOOD" | "EXCELLENT"; limit?: number; paid?: number; lateDays?: number; status?: "ACTIVE" | "BLOCKED" } = {}) {
+  /**
+   * Cliente com perfil/limite e `paid` parcelas do crediário quitadas; `lateDays` > 0 faz a última quitar com
+   * esse atraso. `cashSales` = só compras à vista (documento pago no ato), sem crediário.
+   */
+  async function customer(opts: { profile?: "NEW" | "REGULAR" | "GOOD" | "EXCELLENT"; limit?: number; paid?: number; lateDays?: number; status?: "ACTIVE" | "BLOCKED"; cashSales?: number } = {}) {
     const id = randomUUID();
     await prisma.$executeRaw`
       INSERT INTO "Customer" (id, name, code, "createdAt") VALUES (${id}, ${`tx-test-${id}`}, ${`TX${id.slice(0, 12)}`}, now())`;
@@ -45,10 +53,19 @@ describe("Pedidos de aumento de limite (/credit/limit-requests)", () => {
       where: { id },
       data: { creditProfileCode: opts.profile ?? "GOOD", creditLimit: opts.limit ?? 1000, creditStatus: opts.status ?? "ACTIVE" },
     });
-    const paid = opts.paid ?? 6;
+    for (let i = 0; i < (opts.cashSales ?? 0); i++) {
+      const doc = await prisma.financialDocument.create({
+        data: { type: "RECEIVABLE", originType: "SALE", originId: await createCashSaleOrigin(id), partyId: id, partyType: "CUSTOMER", status: "PAID" },
+      });
+      const parcel = await prisma.financialParcel.create({ data: { financialDocumentId: doc.id, amount: 100, dueDate: at(-60 - i * 5) } });
+      await prisma.payment.create({
+        data: { parcelId: parcel.id, amount: 100, method: "CASH", paymentDate: at(-60 - i * 5), atCheckout: true },
+      });
+    }
+    const paid = opts.cashSales !== undefined ? 0 : (opts.paid ?? 6);
     if (paid > 0) {
       const doc = await prisma.financialDocument.create({
-        data: { type: "RECEIVABLE", originType: "MANUAL", originId: randomUUID(), partyId: id, partyType: "CUSTOMER", status: "PAID" },
+        data: { type: "RECEIVABLE", originType: "SALE", originId: await createCrediarioSaleOrigin(id), partyId: id, partyType: "CUSTOMER", status: "PAID" },
       });
       for (let i = 0; i < paid; i++) {
         const late = i === paid - 1 ? (opts.lateDays ?? 0) : 0;
@@ -84,6 +101,7 @@ describe("Pedidos de aumento de limite (/credit/limit-requests)", () => {
     try {
       await prisma.creditLimitRequest.deleteMany({ where: { customerId: { in: customerIds } } });
       await deleteFinancialDocuments({ where: { partyId: { in: customerIds } } });
+      await deleteCustomerSales(customerIds);
       await prisma.creditLimitChange.deleteMany({ where: { customerId: { in: customerIds } } });
       await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
       for (const u of Object.values(users)) await u?.cleanup();
@@ -123,6 +141,7 @@ describe("Pedidos de aumento de limite (/credit/limit-requests)", () => {
       ["5 pagas", await customer({ paid: 5 })],
       ["atraso de 6 dias", await customer({ lateDays: 6 })],
       ["bloqueado", await customer({ status: "BLOCKED" })],
+      ["6 compras à vista, sem crediário", await customer({ cashSales: 6 })],
     ];
     for (const [label, id] of cases) {
       const res = await request("VENDEDOR", id, label === "acima de 150%" ? 1500.01 : 1500);

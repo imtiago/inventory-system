@@ -6,7 +6,7 @@ import { prisma } from "@shared/prisma";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { deleteFinancialDocuments } from "../../test/cleanup";
 import { acquireCreditTestLock } from "../../test/creditTestLock";
-import { resetCreditDefaults } from "../../test/creditFixtures";
+import { createCrediarioSaleOrigin, deleteCustomerSales, resetCreditDefaults } from "../../test/creditFixtures";
 import { checkReviewDatabase, formatReviewSummary, parseCreditReviewArgs, runCreditReview } from "../creditReview";
 
 const DAY = 86_400_000;
@@ -46,6 +46,7 @@ describe("credit-review (script mensal)", () => {
     after(async () => {
       try {
         await deleteFinancialDocuments({ where: { partyId: { in: customerIds } } });
+        await deleteCustomerSales(customerIds);
         await prisma.creditLimitChange.deleteMany({ where: { customerId: { in: customerIds } } });
         await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
       } finally {
@@ -62,7 +63,7 @@ describe("credit-review (script mensal)", () => {
                 ((${today}::date - make_interval(months => 3))::timestamp + interval '15 hours'))`;
       customerIds.push(id);
       const doc = await prisma.financialDocument.create({
-        data: { type: "RECEIVABLE", originType: "MANUAL", originId: randomUUID(), partyId: id, partyType: "CUSTOMER", status: "PAID" },
+        data: { type: "RECEIVABLE", originType: "SALE", originId: await createCrediarioSaleOrigin(id), partyId: id, partyType: "CUSTOMER", status: "PAID" },
       });
       for (let i = 0; i < 9; i++) {
         const parcel = await prisma.financialParcel.create({ data: { financialDocumentId: doc.id, amount: 50, dueDate: at(-80 + i * 5) } });

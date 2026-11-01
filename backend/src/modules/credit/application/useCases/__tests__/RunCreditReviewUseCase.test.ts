@@ -6,7 +6,7 @@ import { prisma } from "@shared/prisma";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
-import { resetCreditDefaults } from "../../../../../test/creditFixtures";
+import { createCrediarioSaleOrigin, deleteCustomerSales, resetCreditDefaults } from "../../../../../test/creditFixtures";
 import { makeRunCreditReviewUseCase } from "@credit/infrastructure/factories/creditFactories";
 
 const DAY = 86_400_000;
@@ -37,8 +37,8 @@ describe("RunCreditReviewUseCase", () => {
     const doc = await prisma.financialDocument.create({
       data: {
         type: "RECEIVABLE",
-        originType: "MANUAL",
-        originId: randomUUID(),
+        originType: "SALE",
+        originId: await createCrediarioSaleOrigin(customerId), // só o crediário conta no histórico
         partyId: customerId,
         partyType: "CUSTOMER",
         status: "PARTIALLY_PAID",
@@ -68,6 +68,7 @@ describe("RunCreditReviewUseCase", () => {
   after(async () => {
     try {
       await deleteFinancialDocuments({ where: { partyId: { in: customerIds } } });
+      await deleteCustomerSales(customerIds);
       await prisma.creditLimitChange.deleteMany({ where: { customerId: { in: customerIds } } });
       await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
     } finally {
@@ -185,9 +186,9 @@ describe("RunCreditReviewUseCase", () => {
     assert.equal(await prisma.creditLimitChange.count({ where: { customerId: id } }), 1);
   });
 
-  test("dívida do caderninho (noLateFees) não conta na pontuação: documentos de outras origens continuam contando", async () => {
+  test("dívida do caderninho (noLateFees) não conta na pontuação: noLateFees em venda do crediário continua contando", async () => {
     const id = await customer();
-    await receivable(id, onTime(9), { noLateFees: true }); // origem MANUAL: conta
+    await receivable(id, onTime(9), { noLateFees: true }); // origem venda do crediário: conta
     assert.equal((await useCase.preview(today, [id])).length, 1);
   });
 });
