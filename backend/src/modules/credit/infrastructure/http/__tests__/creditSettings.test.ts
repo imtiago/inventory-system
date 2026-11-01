@@ -175,6 +175,7 @@ describe("Configurações do crédito e perfis (/credit/settings, /credit/profil
 
   test("ativar sem dados da loja → 422 STORE_SETTINGS_MISSING e continua desligado", async () => {
     const approver = await createTestUser({ role: "VENDEDOR", canApproveCredit: true });
+    await prisma.storeSettings.deleteMany();
     try {
       const res = await call("ADMIN", "PUT", "/credit/settings", { crediarioEnabled: true });
       assert.equal(res.statusCode, 422);

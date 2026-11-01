@@ -956,3 +956,14 @@ model CreditLimitRequest {
   @@index([status, requestedAt])
   @@index([customerId, requestedAt])
 }
+
+/// Dados da loja para carnê e recibo. Linha única (`id = 'default'`, CHECK na migration
+/// 20261029100700_store_settings), sem linha inicial: ausente = não preenchido.
+model StoreSettings {
+  id        String   @id
+  name      String   @db.VarChar(120)
+  cnpj      String   @db.VarChar(20)
+  address   String   @db.VarChar(250)
+  phone     String   @db.VarChar(20)
+  updatedAt DateTime @updatedAt
+}
