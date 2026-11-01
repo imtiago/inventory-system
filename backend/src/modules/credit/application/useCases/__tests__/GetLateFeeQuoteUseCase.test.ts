@@ -9,7 +9,7 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 
-const settings = { get: async () => ({ crediarioEnabled: true, rules: structuredClone(DEFAULT_CREDIT_RULES) }) };
+const rates = { rates: async () => structuredClone(DEFAULT_CREDIT_RULES) };
 
 function documentDue(dueDate: string) {
   const document = new FinancialDocument({
@@ -29,7 +29,7 @@ describe("GetLateFeeQuoteUseCase — data de negócio (São Paulo)", () => {
   const makeUseCase = (now: Date, document: FinancialDocument) =>
     new GetLateFeeQuoteUseCase(
       { findById: async (id: string) => (id === document.id ? document : null) },
-      new LateFeeService(settings),
+      new LateFeeService(rates),
       () => now,
     );
 

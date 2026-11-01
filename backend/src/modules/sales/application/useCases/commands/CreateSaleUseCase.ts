@@ -269,6 +269,7 @@ export class CreateSaleUseCase extends TransactionalUseCase<ICreateSaleInput, Sa
       overrideById: plan.overrideById,
       overrideReason: plan.overrideById ? overrideReason : null,
       overrideKinds: plan.overrideById ? plan.overrideKinds : [],
+      ...plan.lateFeeTerms,
     });
   }
 

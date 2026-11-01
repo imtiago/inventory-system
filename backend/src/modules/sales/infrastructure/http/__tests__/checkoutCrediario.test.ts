@@ -219,6 +219,62 @@ describe("fechamento da venda: crediário", () => {
     assert.equal(goodDto.surchargeAmount, 0);
   });
 
+  test("termos de atraso ficam na venda: mudar multa/juros/carência depois não muda a prévia nem o pagamento da venda antiga", async () => {
+    const variantId = await createVariant(300);
+    const res = await sell(seller, variantId, crediario(PLAN_3X));
+    assert.equal(res.statusCode, 201, res.body);
+    const saleId = res.json().data.id;
+    const financing = await prisma.saleFinancing.findUniqueOrThrow({ where: { saleId } });
+    assert.deepEqual(
+      { fineBps: financing.fineBps, monthlyInterestBps: financing.monthlyInterestBps, graceDays: financing.graceDays },
+      { fineBps: 200, monthlyInterestBps: 100, graceDays: 3 },
+    );
+
+    // Primeira parcela do plano (75,66) vencida há 10 dias.
+    const doc = await prisma.financialDocument.findFirstOrThrow({
+      where: { originType: "SALE", originId: saleId },
+      include: { parcels: { orderBy: { dueDate: "asc" } } },
+    });
+    const parcel = doc.parcels[1];
+    const dueDate = new Date(Date.parse(`${todayInBusinessTz()}T00:00:00.000Z`) - 10 * DAY_MS);
+    await prisma.financialParcel.update({ where: { id: parcel.id }, data: { dueDate } });
+
+    // A loja muda os termos depois da venda.
+    const settings = await prisma.creditSettings.findUniqueOrThrow({ where: { id: "default" } });
+    await prisma.creditSettings.update({
+      where: { id: "default" },
+      data: { rules: { ...(settings.rules as object), fineBps: 100, monthlyInterestBps: 500, graceDays: 0 } },
+    });
+    try {
+      // Contratado: multa 2% de 75,66 = 1,51; juros 1% a.m. × 10 dias = 0,25 (novos termos dariam 0,76 + 1,26).
+      const quote = await call(seller, "GET", `/receivables/${doc.id}/parcels/${parcel.id}/late-fees`);
+      assert.equal(quote.statusCode, 200, quote.body);
+      assert.deepEqual(quote.json().data, { principalRemaining: 75.66, daysLate: 10, fine: 1.51, interest: 0.25, totalDue: 77.42 });
+
+      const detail = await call(seller, "GET", `/receivables/${doc.id}`);
+      const today = detail.json().data.parcels.find((p: { id: string }) => p.id === parcel.id).lateFeesToday;
+      assert.deepEqual(today, { daysLate: 10, fine: 1.51, interest: 0.25, totalDue: 77.42 });
+
+      const paid = await call(seller, "POST", `/receivables/${doc.id}/parcels/${parcel.id}/payments`, { amount: 75.66, method: "CASH" });
+      assert.equal(paid.statusCode, 201, paid.body);
+      const payment = await prisma.payment.findFirstOrThrow({ where: { parcelId: parcel.id } });
+      assert.equal(Number(payment.fineAmount), 1.51);
+      assert.equal(Number(payment.interestAmount), 0.25);
+
+      // Venda nova grava os termos atuais.
+      await prisma.customer.update({ where: { id: customerId }, data: { creditLimit: 5000 } });
+      const next = await sell(seller, variantId, crediario(PLAN_3X));
+      assert.equal(next.statusCode, 201, next.body);
+      const nextFinancing = await prisma.saleFinancing.findUniqueOrThrow({ where: { saleId: next.json().data.id } });
+      assert.deepEqual(
+        { fineBps: nextFinancing.fineBps, monthlyInterestBps: nextFinancing.monthlyInterestBps, graceDays: nextFinancing.graceDays },
+        { fineBps: 100, monthlyInterestBps: 500, graceDays: 0 },
+      );
+    } finally {
+      await prisma.creditSettings.update({ where: { id: "default" }, data: { rules: settings.rules as object } });
+    }
+  });
+
   test("entrada 89,99 (< 30%) → 422 DOWN_PAYMENT_TOO_LOW com minDownPayment 90,00", async () => {
     const variantId = await createVariant(300);
     const res = await sell(seller, variantId, crediario({ ...PLAN_3X, downPayment: 89.99 }));

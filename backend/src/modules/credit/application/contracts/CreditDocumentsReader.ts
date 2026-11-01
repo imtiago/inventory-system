@@ -1,7 +1,7 @@
 import type { CarneInput, ReceiptInput } from "@credit/domain/carneContent";
 
 export type CarneSaleRead =
-  | { kind: "OK"; input: Omit<CarneInput, "store" | "rules"> }
+  | { kind: "OK"; input: Omit<CarneInput, "store"> }
   | { kind: "NOT_CREDIARIO" }
   | { kind: "CANCELED" };
 

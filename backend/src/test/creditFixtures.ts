@@ -48,6 +48,9 @@ export async function createCrediarioSaleOrigin(customerId: string): Promise<str
       surchargeAmount: 0,
       totalAmount: 100,
       firstDueDate: new Date(),
+      fineBps: 200,
+      monthlyInterestBps: 100,
+      graceDays: 3,
     },
   });
   return sale.id;

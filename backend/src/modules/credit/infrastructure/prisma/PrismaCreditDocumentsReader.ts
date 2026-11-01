@@ -47,7 +47,7 @@ export class PrismaCreditDocumentsReader implements CreditDocumentsReader {
     });
     const { plan } = planParcels(document?.parcels ?? [], cents(financing.downPayment) > 0);
 
-    const input: Omit<CarneInput, "store" | "rules"> = {
+    const input: Omit<CarneInput, "store"> = {
       customer: { name: sale.customer.name, document: sale.customer.document, phone: sale.customer.phone, address: sale.customer.address },
       sale: {
         code: codeOf(sale.id),
@@ -65,6 +65,8 @@ export class PrismaCreditDocumentsReader implements CreditDocumentsReader {
         totalCents: cents(financing.totalAmount),
       },
       parcels: plan.map((p) => ({ dueDate: toDateOnly(p.dueDate), amountCents: cents(p.amount) })),
+      // Termos contratados na venda (não os atuais das configurações).
+      rules: { fineBps: financing.fineBps, monthlyInterestBps: financing.monthlyInterestBps, graceDays: financing.graceDays },
     };
     return { kind: "OK" as const, input };
   }

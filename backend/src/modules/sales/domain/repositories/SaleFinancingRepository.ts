@@ -18,6 +18,10 @@ export interface SaleFinancingRecord {
   overrideById: string | null;
   overrideReason: string | null;
   overrideKinds: ("LIMIT" | "OVERDUE")[];
+  /** Termos de atraso contratados (configurações do crédito no momento da venda). */
+  fineBps: number;
+  monthlyInterestBps: number;
+  graceDays: number;
 }
 
 export interface SaleFinancingRepository {

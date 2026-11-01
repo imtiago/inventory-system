@@ -32,6 +32,8 @@ export interface CrediarioDecision {
   monthlyRateBps: number;
   /** Dia escolhido (ou o padrão da loja); null = mesmo dia de hoje + 30. */
   dueDay: number | null;
+  /** Multa/juros/carência das configurações lidas nesta venda (gravados no `SaleFinancing`). */
+  lateFeeTerms: { fineBps: number; monthlyInterestBps: number; graceDays: number };
 }
 
 export type CrediarioBlockedReason = "DISABLED" | "SUSPENDED" | "OVERDUE" | "LIMIT";
@@ -157,6 +159,7 @@ export class CrediarioCheckoutService {
         overrideKinds: kinds,
         monthlyRateBps: option.installments <= rules.interestFreeInstallments ? 0 : rules.monthlyRateBps,
         dueDay,
+        lateFeeTerms: { fineBps: rules.fineBps, monthlyInterestBps: rules.monthlyInterestBps, graceDays: rules.graceDays },
       };
     });
   }

@@ -6,7 +6,6 @@ import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTr
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { PrismaStoreSettingsRepository } from "@credit/infrastructure/prisma/PrismaStoreSettingsRepository";
 import { PrismaCreditDocumentsReader } from "@credit/infrastructure/prisma/PrismaCreditDocumentsReader";
-import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
 import { CreditDocumentsPdfService } from "@credit/infrastructure/pdf/CreditDocumentsPdfService";
 import { GetStoreSettingsUseCase, UpdateStoreSettingsUseCase } from "@credit/application/useCases/StoreSettingsUseCases";
 import { GenerateCarneUseCase, GenerateReceiptUseCase, type GeneratedPdf } from "@credit/application/useCases/CreditDocumentsUseCases";
@@ -27,7 +26,7 @@ export async function creditDocumentRoutes(app: FastifyInstance) {
   const pdf = new CreditDocumentsPdfService();
   const getStore = new GetStoreSettingsUseCase(store);
   const updateStore = new UpdateStoreSettingsUseCase(store, new PrismaTransactionManager());
-  const carne = new GenerateCarneUseCase(reader, store, new PrismaCreditSettingsRepository(), pdf);
+  const carne = new GenerateCarneUseCase(reader, store, pdf);
   const receipt = new GenerateReceiptUseCase(reader, store, pdf);
 
   // Leitura para quem vende (tela do carnê); edição só ADMIN.

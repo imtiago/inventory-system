@@ -2,7 +2,6 @@ import { BusinessRuleError, NotFoundError } from "@shared/domain/errors";
 import { ErrorCodes } from "@shared/domain/errors/errorCodes";
 import { buildCarneContent, buildReceiptContent } from "@credit/domain/carneContent";
 import type { CreditDocumentsReader } from "@credit/application/contracts/CreditDocumentsReader";
-import type { CreditSettingsReader } from "@credit/application/contracts/CreditSettingsReader";
 import type { StoreSettingsRepository } from "@credit/application/contracts/StoreSettingsRepository";
 import type { CreditDocumentsPdfService } from "@credit/infrastructure/pdf/CreditDocumentsPdfService";
 
@@ -23,7 +22,6 @@ export class GenerateCarneUseCase {
   constructor(
     private readonly reader: CreditDocumentsReader,
     private readonly store: StoreSettingsRepository,
-    private readonly settings: CreditSettingsReader,
     private readonly pdf: CreditDocumentsPdfService,
   ) {}
 
@@ -37,12 +35,8 @@ export class GenerateCarneUseCase {
       throw new BusinessRuleError("Venda cancelada não tem carnê.", ErrorCodes.SALE_ALREADY_CANCELED);
     }
     const store = await requireStore(this.store, "o carnê");
-    const { rules } = await this.settings.get();
-    const content = buildCarneContent({
-      ...read.input,
-      store,
-      rules: { fineBps: rules.fineBps, monthlyInterestBps: rules.monthlyInterestBps, graceDays: rules.graceDays },
-    });
+    // Multa/juros/carência: os gravados na venda (`SaleFinancing`), lidos pelo reader.
+    const content = buildCarneContent({ ...read.input, store });
     return { pdf: await this.pdf.carne(content), filename: `carne-${read.input.sale.code}.pdf` };
   }
 }

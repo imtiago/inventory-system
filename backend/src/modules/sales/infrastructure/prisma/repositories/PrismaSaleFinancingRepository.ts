@@ -20,6 +20,9 @@ export class PrismaSaleFinancingRepository implements SaleFinancingRepository {
         overrideById: record.overrideById,
         overrideReason: record.overrideReason,
         overrideKinds: record.overrideKinds,
+        fineBps: record.fineBps,
+        monthlyInterestBps: record.monthlyInterestBps,
+        graceDays: record.graceDays,
       },
     });
   }

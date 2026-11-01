@@ -51,7 +51,15 @@ describe("Carnê, recibo e dados da loja", () => {
    * Venda no crediário gravada como o fechamento grava: documento a receber com a entrada (parcela de hoje,
    * paga `atCheckout`, se houver) e as parcelas do plano.
    */
-  const createCrediarioSale = async (opts: { parcels: number[]; downPayment?: number; cashPrice: number; surcharge: number; status?: "COMPLETED" | "CANCELED" }) => {
+  const createCrediarioSale = async (opts: {
+    parcels: number[];
+    downPayment?: number;
+    cashPrice: number;
+    surcharge: number;
+    status?: "COMPLETED" | "CANCELED";
+    /** Termos de atraso gravados na venda; padrão = valores iniciais das configurações. */
+    terms?: { fineBps: number; monthlyInterestBps: number; graceDays: number };
+  }) => {
     const { variantId, cleanup } = await createTestVariant();
     variants.push({ cleanup });
     const down = opts.downPayment ?? 0;
@@ -77,6 +85,7 @@ describe("Carnê, recibo e dados da loja", () => {
             surchargeAmount: opts.surcharge,
             totalAmount: total,
             firstDueDate: day(addDays(30)),
+            ...(opts.terms ?? { fineBps: 200, monthlyInterestBps: 100, graceDays: 3 }),
           },
         },
       },
@@ -226,6 +235,19 @@ describe("Carnê, recibo e dados da loja", () => {
       assert.ok(summary.includes("R$ 90,00 (Pix)"));
       assert.equal((stubs.match(/Parcela \d\/3/g) ?? []).length, 3);
       assert.ok(!stubs.includes("R$ 90,00"));
+    });
+
+    test("multa, juros e carência do carnê são os da venda, não os atuais das configurações", async () => {
+      await saveStore();
+      const { saleId } = await createCrediarioSale({
+        parcels: [100, 100],
+        cashPrice: 190,
+        surcharge: 10,
+        terms: { fineBps: 150, monthlyInterestBps: 120, graceDays: 7 },
+      });
+      const [summary] = pdfPages((await call(admin, "GET", `/sales/${saleId}/carne.pdf`)).rawPayload);
+      for (const needle of ["1,5%", "1,2% ao mês", "7 dias"]) assert.ok(summary.includes(needle), `resumo sem "${needle}"`);
+      assert.ok(!summary.includes("1% ao mês"), "carnê usou os juros atuais");
     });
 
     test("sem dados da loja → 422 STORE_SETTINGS_MISSING", async () => {

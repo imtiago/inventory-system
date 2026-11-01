@@ -38,7 +38,7 @@ export class GetFinancialDocumentByIdUseCase<T extends FinancialType> {
 
   private async withLateFeesToday(document: FinancialDetailBaseDTO, today: string, reader: LateFeeRatesReader) {
     const exempt = document.noLateFees || document.status === FinancialStatus.CANCELED;
-    const rates = exempt ? { graceDays: 0, fineBps: 0, monthlyInterestBps: 0 } : await reader.rates();
+    const rates = exempt ? { graceDays: 0, fineBps: 0, monthlyInterestBps: 0 } : await reader.rates(document);
     for (const parcel of document.parcels) {
       const fees = parcelLateFees({
         amountCents: toCents(parcel.amount),

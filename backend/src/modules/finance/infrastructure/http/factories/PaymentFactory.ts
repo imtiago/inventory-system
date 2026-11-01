@@ -7,6 +7,9 @@ import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTr
 import { LateFeeService } from "@credit/application/services/LateFeeService";
 import { GetLateFeeQuoteUseCase } from "@credit/application/useCases/GetLateFeeQuoteUseCase";
 import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
+import { PrismaLateFeeRatesReader } from "@credit/infrastructure/prisma/PrismaLateFeeRatesReader";
+
+const lateFeeService = () => new LateFeeService(new PrismaLateFeeRatesReader(new PrismaCreditSettingsRepository()));
 import { makeGetFinancialDocumentByIdUseCase } from "./FinancialDocumentReadFactory";
 
 export function makeRegisterPaymentUseCase<T extends FinancialType>(type: T) {
@@ -17,14 +20,14 @@ export function makeRegisterPaymentUseCase<T extends FinancialType>(type: T) {
     new PrismaTransactionManager(),
     makeGetFinancialDocumentByIdUseCase(type),
     undefined,
-    type === FinancialType.RECEIVABLE ? new LateFeeService(new PrismaCreditSettingsRepository()) : null,
+    type === FinancialType.RECEIVABLE ? lateFeeService() : null,
   );
 }
 
 export function makeGetLateFeeQuoteUseCase() {
   return new GetLateFeeQuoteUseCase(
     new PrismaFinancialDocumentRepository(),
-    new LateFeeService(new PrismaCreditSettingsRepository()),
+    lateFeeService(),
   );
 }
 

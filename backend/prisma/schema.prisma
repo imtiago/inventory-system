@@ -510,6 +510,8 @@ model Payment {
   fineAmount     Decimal @default(0) @db.Decimal(12, 2)
   interestAmount Decimal @default(0) @db.Decimal(12, 2)
   waivedAmount   Decimal @default(0) @db.Decimal(12, 2)
+  /// Motivo do pagamento a receber com data passada (só quem aprova crédito registra).
+  backdateReason String? @db.VarChar(200)
   waiverReason   String? @db.VarChar(200)
   waivedById     String?
   waivedBy       User?   @relation("paymentsWaived", fields: [waivedById], references: [id], onDelete: SetNull)
@@ -856,6 +858,10 @@ model SaleFinancing {
   overrideReason    String?        @db.VarChar(200)
   /// "LIMIT" | "OVERDUE"
   overrideKinds     String[]       @default([])
+  /// Termos de atraso contratados (snapshot de CreditSettings na venda; CHECK na migration 20261101120000).
+  fineBps            Int
+  monthlyInterestBps Int
+  graceDays          Int
   createdAt         DateTime       @default(now())
 
   sale       Sale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
