@@ -64,6 +64,7 @@ function makeColumns(header: string): DataTableColumn<IProfitRow>[] {
       ),
     },
     { id: 'expenses', header: 'Despesas estimadas', numeric: true, mobile: 'meta', cell: (r) => <span className={bold(r)}>{formatCurrency(r.estimatedExpenses)}</span> },
+    { id: 'cardFees', header: 'Taxa de cartão', numeric: true, mobile: 'meta', cell: (r) => <span className={bold(r)}>{formatCurrency(r.cardFees)}</span> },
   ];
 }
 
@@ -92,7 +93,7 @@ export function ProfitReportPage() {
     <Page>
       <PageHeader
         title="Lucro"
-        description="Receita, custo registrado e despesas estimadas das vendas no período."
+        description="Receita, custo registrado, despesas estimadas e taxa de cartão das vendas no período."
         actions={
           <ExportButton
             permission="reports.profit"
@@ -148,13 +149,18 @@ export function ProfitReportPage() {
 
           {totals && (
             <div className="flex flex-col gap-3 border-b border-border p-4 sm:p-5">
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                 <Summary id="profit-revenue" label="Receita" value={formatCurrency(totals.revenue)} />
                 <Summary id="profit-cost" label="Custo" value={formatCurrency(totals.cost)} />
                 <Summary id="profit-expenses" label="Despesas estimadas" value={formatCurrency(totals.estimatedExpenses)} />
+                <Summary id="profit-card-fees" label="Taxa de cartão" value={formatCurrency(totals.cardFees)} />
                 <Summary id="profit-total" label="Lucro" value={formatCurrency(totals.profit)} tone={totals.profit < 0 ? 'danger' : undefined} />
                 <Summary id="profit-margin-total" label="Margem" value={formatPercent(totals.marginPercent)} />
               </div>
+              <p className="text-sm text-muted">
+                Receita = itens vendidos: o acréscimo cobrado do cliente (repasse da taxa do cartão, juros do crediário) não
+                entra. Taxa de cartão = só a que a loja pagou sem repassar.
+              </p>
               {totals.itemsWithoutCost > 0 && (
                 <p role="status" className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
                   {plural(totals.itemsWithoutCost, 'item sem custo registrado', 'itens sem custo registrado')}: o custo deles não entra na conta e o lucro pode estar acima do real.

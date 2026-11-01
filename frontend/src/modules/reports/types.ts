@@ -3,9 +3,12 @@ export type ProfitView = 'period' | 'sale' | 'variant' | 'category';
 export interface IProfitRow {
   key: string;
   label: string;
+  /** Itens vendidos; o acréscimo (repasse do cartão, juros do crediário) não entra. */
   revenue: number;
   cost: number;
   estimatedExpenses: number;
+  /** Taxa de cartão absorvida pela loja (venda no cartão sem repasse ao cliente). */
+  cardFees: number;
   profit: number;
   /** null quando a receita é zero. */
   marginPercent: number | null;
