@@ -29,10 +29,11 @@ const optionLabel = (option: ISaleSimulationCrediarioOption) => `${option.instal
 /**
  * Todas as opções do crediário (1..máximo) com entrada, parcela, total a prazo e acréscimo.
  * Opção que precisa de autorização (limite/atraso) fica esmaecida com o motivo, mas pode ser
- * escolhida; crediário desligado ou ficha suspensa desabilita todas. Celular: cartões.
+ * escolhida; crediário desligado ou ficha suspensa desabilita todas. Celular e tablet: cartões.
  */
 export function CrediarioSimulationTable({ crediario, selected, onSelect, showMargin, disabled = false }: Props) {
-  const isWide = useBreakpoint('md');
+  // Tabela só a partir de lg: em 768 px as 7 colunas (com margem e situação) não cabem.
+  const isWide = useBreakpoint('lg');
   const locked = disabled || crediarioHardBlock(crediario) !== null;
 
   if (crediario.options.length === 0) {

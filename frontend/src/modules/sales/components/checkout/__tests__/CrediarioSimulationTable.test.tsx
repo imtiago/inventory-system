@@ -86,6 +86,13 @@ describe('CrediarioSimulationTable', () => {
     expect(within(group).getAllByText(/Margem/).length).toBeGreaterThan(0);
   });
 
+  test('no tablet (768 px) também vira cartões: a tabela com margem e situação não cabe', () => {
+    setViewport(768);
+    render(<CrediarioSimulationTable crediario={withOptions()} selected={null} onSelect={() => {}} showMargin />);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Opções do crediário' })).toBeInTheDocument();
+  });
+
   test('sem opções (entrada cobre o total) mostra aviso', () => {
     render(<CrediarioSimulationTable crediario={withOptions({ options: [], maxInstallments: 0, allowed: false })} selected={null} onSelect={() => {}} showMargin={false} />);
     expect(screen.getByText('Nada a financiar: a entrada cobre o total.')).toBeInTheDocument();
