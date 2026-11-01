@@ -63,7 +63,8 @@ function makeColumns(header: string): DataTableColumn<IProfitRow>[] {
         </span>
       ),
     },
-    { id: 'expenses', header: 'Despesas estimadas', numeric: true, mobile: 'meta', cell: (r) => <span className={bold(r)}>{formatCurrency(r.estimatedExpenses)}</span> },
+    // Cabeçalho curto: a tabela cabe em 1280 px com a coluna da taxa (o resumo diz "Despesas estimadas").
+    { id: 'expenses', header: 'Despesas', numeric: true, mobile: 'meta', cell: (r) => <span className={bold(r)}>{formatCurrency(r.estimatedExpenses)}</span> },
     { id: 'cardFees', header: 'Taxa de cartão', numeric: true, mobile: 'meta', cell: (r) => <span className={bold(r)}>{formatCurrency(r.cardFees)}</span> },
   ];
 }
@@ -149,7 +150,7 @@ export function ProfitReportPage() {
 
           {totals && (
             <div className="flex flex-col gap-3 border-b border-border p-4 sm:p-5">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
                 <Summary id="profit-revenue" label="Receita" value={formatCurrency(totals.revenue)} />
                 <Summary id="profit-cost" label="Custo" value={formatCurrency(totals.cost)} />
                 <Summary id="profit-expenses" label="Despesas estimadas" value={formatCurrency(totals.estimatedExpenses)} />
