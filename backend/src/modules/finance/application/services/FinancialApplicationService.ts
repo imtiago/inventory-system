@@ -32,6 +32,8 @@ export class FinancialApplicationService implements FinancialService {
       partyType: FinancialPartyType.CUSTOMER,
       partyId: input.customerId,
       parcels: input.parcels,
+      // Parcelado antigo (LEGACY_INSTALLMENTS): sem multa/juros; só o crediário cobra encargos.
+      noLateFees: true,
     });
   }
 

@@ -38,6 +38,24 @@ export interface FinancialPaymentDTO {
   reversedAt: Date | null;
   reversedBy: PersonRefDTO | null;
   reversalReason: string | null;
+  /** Encargos de atraso cobrados neste pagamento (`amount` = principal abatido). */
+  fineAmount: number;
+  interestAmount: number;
+  /** Parte dos encargos dispensada, com motivo e quem dispensou. */
+  waivedAmount: number;
+  waiverReason: string | null;
+  waivedBy: PersonRefDTO | null;
+  /** Recebido em caixa = amount + fineAmount + interestAmount − waivedAmount. */
+  receivedAmount: number;
+}
+
+/** Encargos se a parcela fosse paga hoje (só a receber; zero se isenta, quitada ou cancelada). */
+export interface ParcelLateFeesTodayDTO {
+  daysLate: number;
+  fine: number;
+  interest: number;
+  /** Restante + multa + juros. */
+  totalDue: number;
 }
 
 export interface FinancialParcelDTO {
@@ -49,6 +67,8 @@ export interface FinancialParcelDTO {
   remainingAmount: number;
   status: string;
   payments: FinancialPaymentDTO[];
+  /** Só contas a receber; contas a pagar → null. */
+  lateFeesToday: ParcelLateFeesTodayDTO | null;
 }
 
 /** Campos comuns do detalhe (sem a contraparte). */
@@ -62,6 +82,8 @@ export interface FinancialDetailBaseDTO {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  /** Documento sem multa nem juros de atraso. */
+  noLateFees: boolean;
   parcels: FinancialParcelDTO[];
 }
 

@@ -4,6 +4,9 @@ import { ReversePaymentUseCase } from "@finance/application/useCases/commands/Re
 import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
 import { PrismaPaymentRepository } from "@finance/infrastructure/prisma/repositories/PrismaPaymentRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
+import { LateFeeService } from "@credit/application/services/LateFeeService";
+import { GetLateFeeQuoteUseCase } from "@credit/application/useCases/GetLateFeeQuoteUseCase";
+import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
 import { makeGetFinancialDocumentByIdUseCase } from "./FinancialDocumentReadFactory";
 
 export function makeRegisterPaymentUseCase<T extends FinancialType>(type: T) {
@@ -13,6 +16,15 @@ export function makeRegisterPaymentUseCase<T extends FinancialType>(type: T) {
     new PrismaPaymentRepository(),
     new PrismaTransactionManager(),
     makeGetFinancialDocumentByIdUseCase(type),
+    undefined,
+    type === FinancialType.RECEIVABLE ? new LateFeeService(new PrismaCreditSettingsRepository()) : null,
+  );
+}
+
+export function makeGetLateFeeQuoteUseCase() {
+  return new GetLateFeeQuoteUseCase(
+    new PrismaFinancialDocumentRepository(),
+    new LateFeeService(new PrismaCreditSettingsRepository()),
   );
 }
 

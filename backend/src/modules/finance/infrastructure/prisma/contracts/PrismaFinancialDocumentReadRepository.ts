@@ -380,7 +380,7 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
       include: {
         parcels: {
           include: {
-            payments: { include: { createdBy: personSelect, reversedBy: personSelect } },
+            payments: { include: { createdBy: personSelect, reversedBy: personSelect, waivedBy: personSelect } },
           },
         },
       },

@@ -2,6 +2,7 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { ListFinancialDocumentsUseCase } from "@finance/application/useCases/queries/ListFinancialDocumentsUseCase";
 import { ExportFinancialParcelsUseCase } from "@finance/application/useCases/queries/ExportFinancialParcelsUseCase";
 import { GetFinancialDocumentByIdUseCase } from "@finance/application/useCases/queries/GetFinancialDocumentByIdUseCase";
+import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
 import { PrismaFinancialDocumentReadRepository } from "@finance/infrastructure/prisma/contracts/PrismaFinancialDocumentReadRepository";
 
 export function makeListFinancialDocumentsUseCase<T extends FinancialType>(type: T) {
@@ -9,7 +10,10 @@ export function makeListFinancialDocumentsUseCase<T extends FinancialType>(type:
 }
 
 export function makeGetFinancialDocumentByIdUseCase<T extends FinancialType>(type: T) {
-  return new GetFinancialDocumentByIdUseCase(type, new PrismaFinancialDocumentReadRepository());
+  const settings = new PrismaCreditSettingsRepository();
+  return new GetFinancialDocumentByIdUseCase(type, new PrismaFinancialDocumentReadRepository(), undefined, {
+    rates: async () => (await settings.get()).rules,
+  });
 }
 
 export function makeExportFinancialParcelsUseCase<T extends FinancialType>(type: T) {

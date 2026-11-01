@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { computeLateFees } from "../lateFees";
+import { computeLateFees, parcelLateFees } from "../lateFees";
 import { InternalInvariantError } from "@shared/domain/errors";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 
@@ -78,5 +78,45 @@ describe("computeLateFees", () => {
     assert.throws(() => computeLateFees({ ...base, paymentDate: "2026-11-20", principalRemainingCents: -1 }), InternalInvariantError);
     assert.throws(() => computeLateFees({ ...base, paymentDate: "2026-11-20", graceDays: -1 }), InternalInvariantError);
     assert.throws(() => computeLateFees({ ...base, paymentDate: "2026-11-20", interestFrom: "x" }), InternalInvariantError);
+  });
+});
+
+describe("parcelLateFees", () => {
+  const rates = { graceDays: 3, fineBps: 200, monthlyInterestBps: 100 };
+  const pay = (amountCents: number, fineCents: number, interestCents: number, paymentDate: string, reversed = false) => ({
+    amountCents,
+    fineCents,
+    interestCents,
+    paymentDate,
+    reversed,
+  });
+
+  test("restante, multa já cobrada e juros desde o último pagamento com encargo", () => {
+    const r = parcelLateFees({
+      amountCents: 10_000,
+      dueDate: "2026-11-10",
+      payments: [pay(4_000, 200, 33, "2026-11-20"), pay(1_000, 0, 0, "2026-11-25", true)],
+      paymentDate: "2026-11-30",
+      rates,
+      exempt: false,
+    });
+    assert.deepEqual(r, { principalRemainingCents: 6_000, daysLate: 20, fineCents: 0, interestCents: 20 });
+  });
+
+  test("pagamento com encargo estornado → volta a cobrar multa e juros desde o vencimento", () => {
+    const r = parcelLateFees({
+      amountCents: 10_000,
+      dueDate: "2026-11-10",
+      payments: [pay(4_000, 200, 33, "2026-11-20", true)],
+      paymentDate: "2026-11-30",
+      rates,
+      exempt: false,
+    });
+    assert.deepEqual(r, { principalRemainingCents: 10_000, daysLate: 20, fineCents: 200, interestCents: 67 });
+  });
+
+  test("documento isento → zero (dias de atraso continuam informados)", () => {
+    const r = parcelLateFees({ amountCents: 10_000, dueDate: "2026-11-10", payments: [], paymentDate: "2026-12-10", rates, exempt: true });
+    assert.deepEqual(r, { principalRemainingCents: 10_000, daysLate: 30, fineCents: 0, interestCents: 0 });
   });
 });

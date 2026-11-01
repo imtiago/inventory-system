@@ -7,6 +7,7 @@ import { makeListFinancialDocumentsController } from "../controllers/ListFinanci
 import { makeGetFinancialDocumentController } from "../controllers/GetFinancialDocumentController";
 import { makeRegisterPaymentController } from "../controllers/RegisterPaymentController";
 import { makeReversePaymentController } from "../controllers/ReversePaymentController";
+import { makeGetLateFeeQuoteController } from "../controllers/GetLateFeeQuoteController";
 
 interface FinancialRoutesOptions {
   type: FinancialType;
@@ -22,6 +23,14 @@ function financialDocumentRoutes({ type, permissions }: FinancialRoutesOptions) 
   return async function routes(app: FastifyInstance) {
     app.get("/", { preHandler: [authorize(permissions.read)] }, makeListFinancialDocumentsController(type));
     app.get("/:id", { preHandler: [authorize(permissions.read)] }, makeGetFinancialDocumentController(type));
+    if (type === FinancialType.RECEIVABLE) {
+      // Prévia de multa e juros (o pagamento recalcula sob a trava do documento).
+      app.get(
+        "/:id/parcels/:parcelId/late-fees",
+        { preHandler: [authorize(permissions.pay)] },
+        makeGetLateFeeQuoteController(),
+      );
+    }
     app.post(
       "/:id/parcels/:parcelId/payments",
       { preHandler: [authorize(permissions.pay)] },

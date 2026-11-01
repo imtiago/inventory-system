@@ -35,6 +35,11 @@ export interface PaymentDetailRow extends PaymentAmountRow {
   reversalReason: string | null;
   createdBy: PersonRefDTO | null;
   reversedBy: PersonRefDTO | null;
+  fineAmount: Money;
+  interestAmount: Money;
+  waivedAmount: Money;
+  waiverReason: string | null;
+  waivedBy: PersonRefDTO | null;
 }
 
 export interface FinancialDocumentRow<P extends PaymentAmountRow = PaymentAmountRow> {
@@ -44,6 +49,8 @@ export interface FinancialDocumentRow<P extends PaymentAmountRow = PaymentAmount
   originId: string;
   partyId: string;
   createdAt: Date;
+  /** Só o detalhe usa (sem multa/juros). */
+  noLateFees?: boolean;
   parcels: { id: string; amount: Money; dueDate: Date; payments: P[] }[];
 }
 
@@ -143,6 +150,7 @@ export class FinancialDocumentReadMapper {
       totalAmount: fromCents(figures.totalCents),
       paidAmount: fromCents(figures.paidCents),
       remainingAmount: fromCents(figures.remainingCents),
+      noLateFees: row.noLateFees ?? false,
       parcels: parcelAmounts(row).map((p, index) => ({
         id: p.row.id,
         number: index + 1,
@@ -154,6 +162,7 @@ export class FinancialDocumentReadMapper {
         payments: [...p.row.payments]
           .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id))
           .map(FinancialDocumentReadMapper.toPaymentDTO),
+        lateFeesToday: null,
       })),
     };
   }
@@ -185,9 +194,13 @@ export class FinancialDocumentReadMapper {
   }
 
   private static toPaymentDTO(payment: PaymentDetailRow): FinancialPaymentDTO {
+    const amountCents = cents(payment.amount);
+    const fineCents = cents(payment.fineAmount);
+    const interestCents = cents(payment.interestAmount);
+    const waivedCents = cents(payment.waivedAmount);
     return {
       id: payment.id,
-      amount: fromCents(cents(payment.amount)),
+      amount: fromCents(amountCents),
       method: payment.method,
       paymentDate: toDateOnly(payment.paymentDate),
       reference: payment.reference,
@@ -196,6 +209,12 @@ export class FinancialDocumentReadMapper {
       reversedAt: payment.reversedAt,
       reversedBy: payment.reversedBy ? { id: payment.reversedBy.id, name: payment.reversedBy.name } : null,
       reversalReason: payment.reversalReason,
+      fineAmount: fromCents(fineCents),
+      interestAmount: fromCents(interestCents),
+      waivedAmount: fromCents(waivedCents),
+      waiverReason: payment.waiverReason,
+      waivedBy: payment.waivedBy ? { id: payment.waivedBy.id, name: payment.waivedBy.name } : null,
+      receivedAmount: fromCents(amountCents + fineCents + interestCents - waivedCents),
     };
   }
 }

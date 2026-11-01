@@ -14,6 +14,7 @@
     "totalAmount": 159.7,
     "paidAmount": 53.23,
     "remainingAmount": 106.47,
+    "noLateFees": false,
     "parcels": [
       {
         "id": "1a3c5e7f-2b4d-4f6a-8c1e-3d5f7a9b1c38",
@@ -40,7 +41,13 @@
               "id": "f3d5b7c9-2e4a-4b6d-9f8a-0c2e4a6b8d01",
               "name": "Ana Gerente"
             },
-            "reversalReason": "Pago na conta errada"
+            "reversalReason": "Pago na conta errada",
+            "fineAmount": 0,
+            "interestAmount": 0,
+            "waivedAmount": 0,
+            "waiverReason": null,
+            "waivedBy": null,
+            "receivedAmount": 53.23
           },
           {
             "id": "5b7d9f1a-3c5e-4a7b-8d9f-1a3c5e7b9d10",
@@ -55,9 +62,16 @@
             },
             "reversedAt": null,
             "reversedBy": null,
-            "reversalReason": null
+            "reversalReason": null,
+            "fineAmount": 0,
+            "interestAmount": 0,
+            "waivedAmount": 0,
+            "waiverReason": null,
+            "waivedBy": null,
+            "receivedAmount": 53.23
           }
-        ]
+        ],
+        "lateFeesToday": null
       },
       {
         "id": "2b4d6f8a-3c5e-4a7b-9d2f-4e6a8c1d3f59",
@@ -67,7 +81,8 @@
         "paidAmount": 0,
         "remainingAmount": 53.23,
         "status": "OVERDUE",
-        "payments": []
+        "payments": [],
+        "lateFeesToday": null
       },
       {
         "id": "3c5e7a9b-4d6f-4b8c-8e3a-5f7b9d2e4a71",
@@ -77,7 +92,8 @@
         "paidAmount": 0,
         "remainingAmount": 53.24,
         "status": "OPEN",
-        "payments": []
+        "payments": [],
+        "lateFeesToday": null
       }
     ]
   }

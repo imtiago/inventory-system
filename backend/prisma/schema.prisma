@@ -412,6 +412,7 @@ model User {
   sales               Sale[]
   paymentsCreated     Payment[]       @relation("paymentsCreated")
   paymentsReversed    Payment[]       @relation("paymentsReversed")
+  paymentsWaived      Payment[]       @relation("paymentsWaived")
   purchasesCanceled   Purchase[]      @relation("purchasesCanceled")
   nfeImportsCreated   NfeImport[]     @relation("nfeImportsCreated")
   nfeImportsConfirmed NfeImport[]     @relation("nfeImportsConfirmed")
@@ -441,6 +442,9 @@ model FinancialDocument {
   partyType FinancialPartyType
 
   status FinancialStatus @default(OPEN)
+
+  /// Sem multa nem juros de atraso (vendas anteriores ao crediário, parcelado antigo, caderninho).
+  noLateFees Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -501,9 +505,19 @@ model Payment {
   /// Pago no fechamento da venda (estornado automaticamente no cancelamento).
   atCheckout Boolean @default(false)
 
+  /// Encargos de atraso cobrados neste pagamento (amount = principal abatido) e a parte dispensada.
+  /// CHECKs (só na migration 20261029100600_late_fees): >= 0, waived <= fine + interest, motivo ⇔ dispensa.
+  fineAmount     Decimal @default(0) @db.Decimal(12, 2)
+  interestAmount Decimal @default(0) @db.Decimal(12, 2)
+  waivedAmount   Decimal @default(0) @db.Decimal(12, 2)
+  waiverReason   String? @db.VarChar(200)
+  waivedById     String?
+  waivedBy       User?   @relation("paymentsWaived", fields: [waivedById], references: [id], onDelete: SetNull)
+
   parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Restrict)
 
   @@index([parcelId])
+  @@index([waivedById])
 }
 
 model NumberRange {

@@ -18,6 +18,8 @@ export interface ICreateFinancialDocumentInput {
   partyId: string;
   /** Parcelas em centavos inteiros; vencimento à meia-noite UTC. */
   parcels: { amountCents: number; dueDate: Date }[];
+  /** Sem multa nem juros de atraso (padrão false). */
+  noLateFees?: boolean;
 }
 
 /** Cria um documento (a receber ou a pagar) com as parcelas, na transação ativa. */
@@ -40,6 +42,7 @@ export class CreateFinancialDocumentUseCase extends TransactionalUseCase<
       originType: props.originType,
       partyId: props.partyId,
       partyType: props.partyType,
+      noLateFees: props.noLateFees ?? false,
     });
 
     const parcels = props.parcels.map(

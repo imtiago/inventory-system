@@ -14,7 +14,7 @@ export const registerPaymentParamsSchema = (type: FinancialType) =>
     parcelId: z.string().uuid("Parcela inválida."),
   });
 
-export const registerPaymentBodySchema = z.object({
+const basePaymentBodySchema = z.object({
   amount: z
     .number({ message: "Informe o valor do pagamento." })
     .positive("O valor do pagamento deve ser maior que zero.")
@@ -28,6 +28,47 @@ export const registerPaymentBodySchema = z.object({
     .max(100, "A referência deve ter no máximo 100 caracteres.")
     .optional()
     .nullable(),
+});
+
+const noFeesMessage = "Contas a pagar não têm multa nem juros.";
+
+/** Contas a pagar: sem encargos nem dispensa. */
+const payablePaymentBodySchema = basePaymentBodySchema.extend({
+  waiveAmount: z.never({ message: noFeesMessage }).optional(),
+  waiverReason: z.never({ message: noFeesMessage }).optional(),
+});
+
+/** Contas a receber: `amount` = principal; dispensa de multa/juros opcional, com motivo. */
+const receivablePaymentBodySchema = basePaymentBodySchema
+  .extend({
+    waiveAmount: z
+      .number({ message: "Valor da dispensa inválido." })
+      .min(0, "O valor da dispensa não pode ser negativo.")
+      .max(MAX_AMOUNT, "O valor da dispensa excede o máximo permitido.")
+      .refine(hasAtMostTwoDecimals, "O valor deve ter no máximo 2 casas decimais.")
+      .optional(),
+    waiverReason: z
+      .string({ message: "Motivo da dispensa inválido." })
+      .trim()
+      .max(200, "O motivo deve ter entre 3 e 200 caracteres.")
+      .optional()
+      .nullable(),
+  })
+  .superRefine((body, ctx) => {
+    if ((body.waiveAmount ?? 0) > 0 && (body.waiverReason ?? "").length < 3) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["waiverReason"],
+        message: "Informe o motivo da dispensa (3 a 200 caracteres).",
+      });
+    }
+  });
+
+export const registerPaymentBodySchema = (type: FinancialType) =>
+  type === FinancialType.RECEIVABLE ? receivablePaymentBodySchema : payablePaymentBodySchema;
+
+export const lateFeeQuoteQuerySchema = z.object({
+  paymentDate: dateOnly("Data do pagamento").optional(),
 });
 
 export const reversePaymentParamsSchema = z.object({

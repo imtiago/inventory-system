@@ -6,7 +6,8 @@ import { TransactionManager } from "@shared/application/transaction/TransactionM
 import { UseCase } from "@shared/domain/UseCase";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { toCents } from "@shared/domain/money";
-import { ErrorCodes, NotFoundError, ValidationError } from "@shared/domain/errors";
+import { ErrorCodes, ForbiddenError, NotFoundError, ValidationError } from "@shared/domain/errors";
+import type { LateFeePolicy } from "../../contracts/LateFeePolicy";
 import { FINANCIAL_TYPE_LABEL } from "@finance/domain/enums/financialTypeLabels";
 import { FinancialDocumentDetailDTO } from "../../dto/FinancialDocumentReadDTO";
 
@@ -20,6 +21,11 @@ export interface IRegisterPaymentInput {
   paymentDate?: string;
   reference?: string | null;
   userId: string;
+  /** Dispensa de multa/juros (reais, só a receber); exige `canWaive` e motivo. */
+  waiveAmount?: number;
+  waiverReason?: string | null;
+  /** O usuário tem `credit.approve` (papel ou marca). */
+  canWaive?: boolean;
 }
 
 /** Monta a resposta (detalhe do documento) depois do commit. */
@@ -43,6 +49,8 @@ export class RegisterPaymentUseCase<T extends FinancialType>
     private readonly transactionManager: TransactionManager,
     private readonly detail: FinancialDocumentDetailReader<T>,
     private readonly today: () => string = () => todayInBusinessTz(),
+    /** Encargos de atraso (só contas a receber); ausente = nunca cobra. */
+    private readonly lateFees: LateFeePolicy | null = null,
   ) {}
 
   async execute(input: IRegisterPaymentInput): Promise<FinancialDocumentDetailDTO<T>> {
@@ -55,6 +63,21 @@ export class RegisterPaymentUseCase<T extends FinancialType>
     }
     const reference = input.reference?.trim() || null;
     const amountCents = toCents(input.amount);
+    const waivedCents = input.waiveAmount ? toCents(input.waiveAmount) : 0;
+    const waiverReason = input.waiverReason?.trim() || null;
+    if (waivedCents > 0) {
+      if (!input.canWaive) {
+        throw new ForbiddenError(
+          "Só quem aprova crédito pode dispensar multa e juros.",
+          ErrorCodes.LATE_FEE_WAIVER_FORBIDDEN,
+        );
+      }
+      if (!waiverReason) {
+        throw new ValidationError("Dados inválidos.", [
+          { field: "waiverReason", message: "Informe o motivo da dispensa." },
+        ]);
+      }
+    }
 
     await this.transactionManager.execute(async () => {
       const document = await this.documents.lockById(input.documentId);
@@ -69,7 +92,16 @@ export class RegisterPaymentUseCase<T extends FinancialType>
           { field: "paymentDate", message: "A data do pagamento não pode ser anterior à criação do título." },
         ]);
       }
+      // Encargos sobre o restante ANTES deste pagamento, cobrados por inteiro nele (sob a trava do documento).
+      const charge = this.lateFees ? await this.lateFees.chargeFor(document, input.parcelId, paymentDate) : null;
+      const fineCents = charge?.fineCents ?? 0;
+      const interestCents = charge?.interestCents ?? 0;
+      // Dispensa > encargos → 422 WAIVER_EXCEEDS_FEES (Payment), depois das checagens de parcela/documento.
       const payment = document.registerPayment({
+        fineCents,
+        interestCents,
+        waivedCents,
+        waiverReason,
         parcelId: input.parcelId,
         amountCents,
         method: input.method,

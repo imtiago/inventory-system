@@ -15,6 +15,11 @@ export class PaymentMapper {
       paymentDate: toDateOnly(prisma.paymentDate),
       createdById: prisma.createdById,
       atCheckout: prisma.atCheckout,
+      fineCents: toCents(Number(prisma.fineAmount)),
+      interestCents: toCents(Number(prisma.interestAmount)),
+      waivedCents: toCents(Number(prisma.waivedAmount)),
+      waiverReason: prisma.waiverReason,
+      waivedById: prisma.waivedById,
       createdAt: prisma.createdAt,
       reversedAt: prisma.reversedAt,
       reversedById: prisma.reversedById,
@@ -32,6 +37,11 @@ export class PaymentMapper {
       paymentDate: fromDateOnly(payment.paymentDate),
       createdById: payment.createdById,
       atCheckout: payment.atCheckout,
+      fineAmount: fromCents(payment.fineCents),
+      interestAmount: fromCents(payment.interestCents),
+      waivedAmount: fromCents(payment.waivedCents),
+      waiverReason: payment.waiverReason,
+      waivedById: payment.waivedById,
       createdAt: payment.createdAt,
     };
   }
