@@ -21,3 +21,14 @@ export function receivableParcelsCte(customerFilter: Prisma.Sql, docFilter: Pris
     ) pay ON TRUE
     WHERE fd.type = 'RECEIVABLE' AND fd."partyType" = 'CUSTOMER' AND ${customerFilter} AND ${docFilter}`;
 }
+
+/**
+ * Documentos que valem para pontuação/histórico: não cancelados e fora do caderninho. Dívida do caderninho
+ * (origem LEGACY com `noLateFees`) nunca conta como atraso nem mexe em perfil/pontuação (spec §10).
+ * A origem LEGACY ainda não existe no enum (importação do caderninho, tarefa futura): comparamos como texto.
+ * `alias` é o alias do documento (`FinancialDocument`) na consulta.
+ */
+export function countsTowardCreditHistory(alias = "fd"): Prisma.Sql {
+  const doc = Prisma.raw(alias);
+  return Prisma.sql`(${doc}.status <> 'CANCELED' AND NOT (${doc}."noLateFees" AND ${doc}."originType"::text = 'LEGACY'))`;
+}

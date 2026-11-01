@@ -14,6 +14,8 @@ import { PrismaCreditLimitChangeRepository } from "@credit/infrastructure/prisma
 import { PrismaCreditProfileRepository } from "@credit/infrastructure/prisma/PrismaCreditProfileRepository";
 import { PrismaCreditExposureReader } from "@credit/infrastructure/prisma/PrismaCreditExposureReader";
 import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
+import { RunCreditReviewUseCase } from "@credit/application/useCases/RunCreditReviewUseCase";
+import { PrismaCreditReviewCandidates } from "@credit/infrastructure/prisma/PrismaCreditReviewCandidates";
 import { CrediarioCheckoutService } from "@credit/application/services/CrediarioCheckoutService";
 import { CreditOverrideAuthorizer } from "@credit/application/services/CreditOverrideAuthorizer";
 import { PrismaUserRepository } from "@auth/infrastructure/prisma/repositories/PrismaUserRepository";
@@ -82,4 +84,17 @@ export function makeRejectCreditLimitRequestUseCase(): RejectCreditLimitRequestU
 
 export function makeListCreditLimitRequestsUseCase(): ListCreditLimitRequestsUseCase {
   return new ListCreditLimitRequestsUseCase(new PrismaCreditLimitRequestRepository());
+}
+
+export function makeRunCreditReviewUseCase(): RunCreditReviewUseCase {
+  const settings = new PrismaCreditSettingsRepository();
+  return new RunCreditReviewUseCase(
+    new PrismaCreditReviewCandidates(),
+    new PrismaCustomerCreditRepository(),
+    new PrismaCreditProfileRepository(),
+    settings,
+    new PrismaCreditHistoryReader(settings),
+    makeCustomerCreditService(),
+    new PrismaTransactionManager(),
+  );
 }

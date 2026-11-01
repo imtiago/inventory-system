@@ -231,3 +231,10 @@ export const rejectLimitRequestSchema = z.object({ reason: requestReason(300) })
 export const limitRequestsQuerySchema = z.object({
   status: z.enum(["PENDING", "APPROVED", "REJECTED"], { error: "Status inválido." }).optional(),
 });
+
+export const applyCreditReviewSchema = z.object({
+  customerIds: z
+    .array(z.string().uuid("Cliente inválido."), { error: "Informe os clientes." })
+    .min(1, "Selecione ao menos um cliente.")
+    .max(500, "Selecione no máximo 500 clientes por vez."),
+});

@@ -3,7 +3,7 @@ import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import type { CreditHistory } from "@credit/domain/creditScore";
 import type { CreditHistoryReader } from "@credit/application/contracts/CreditHistoryReader";
 import type { CreditSettingsReader } from "@credit/application/contracts/CreditSettingsReader";
-import { receivableParcelsCte } from "./receivableParcelsSql";
+import { countsTowardCreditHistory, receivableParcelsCte } from "./receivableParcelsSql";
 
 type Row = {
   id: string;
@@ -32,7 +32,7 @@ export class PrismaCreditHistoryReader implements CreditHistoryReader {
     const { rules } = await this.settings.get();
     const grace = rules.graceDays;
     const idList = Prisma.join(ids);
-    const parcels = receivableParcelsCte(Prisma.sql`fd."partyId" IN (${idList})`, Prisma.sql`fd.status <> 'CANCELED'`);
+    const parcels = receivableParcelsCte(Prisma.sql`fd."partyId" IN (${idList})`, countsTowardCreditHistory());
 
     const rows = await getDb().$queryRaw<Row[]>`
       WITH win AS (
@@ -56,7 +56,7 @@ export class PrismaCreditHistoryReader implements CreditHistoryReader {
         JOIN "FinancialDocument" fd ON fd.id = fp."financialDocumentId"
         CROSS JOIN win
         WHERE fd.type = 'RECEIVABLE' AND fd."partyType" = 'CUSTOMER' AND fd."partyId" IN (${idList})
-          AND fd.status <> 'CANCELED' AND p."reversedAt" IS NULL
+          AND ${countsTowardCreditHistory()} AND p."reversedAt" IS NULL
           AND p."paymentDate"::date BETWEEN win.start AND win.today
         GROUP BY fd."partyId"
       )

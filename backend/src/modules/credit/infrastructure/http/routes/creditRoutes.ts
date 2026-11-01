@@ -19,6 +19,7 @@ import {
   makeRejectCreditLimitRequestController,
   makeRequestCreditLimitController,
 } from "@credit/infrastructure/http/controllers/creditLimitRequestControllers";
+import { makeApplyCreditReviewController, makePreviewCreditReviewController } from "@credit/infrastructure/http/controllers/creditReviewControllers";
 import {
   creditProfileParamsSchema,
   updateCreditProfileSchema,
@@ -86,4 +87,8 @@ export async function creditRoutes(app: FastifyInstance) {
   app.get("/limit-requests/count", approve, makeCountCreditLimitRequestsController());
   app.post("/limit-requests/:id/approve", approve, idempotent(makeApproveCreditLimitRequestController()));
   app.post("/limit-requests/:id/reject", approve, makeRejectCreditLimitRequestController());
+
+  // Revisão periódica: prévia (não grava) e aplicação nos selecionados.
+  app.get("/review/preview", manage, makePreviewCreditReviewController());
+  app.post("/review/apply", manage, idempotent(makeApplyCreditReviewController()));
 }

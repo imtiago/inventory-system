@@ -149,6 +149,8 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["credit.approve", { method: "GET", url: "/credit/limit-requests/count", allowed: 200 }],
   ["credit.approve", { method: "POST", url: `/credit/limit-requests/${missing}/approve`, payload: {}, allowed: 404 }],
   ["credit.approve", { method: "POST", url: `/credit/limit-requests/${missing}/reject`, payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "GET", url: "/credit/review/preview", allowed: 200 }],
+  ["credit.manage", { method: "POST", url: "/credit/review/apply", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/settings", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/profiles/NEW", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],

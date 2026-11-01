@@ -9,6 +9,7 @@ import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
 import { resetCreditDefaults } from "../../../../../test/creditFixtures";
 import { PrismaCreditHistoryReader } from "@credit/infrastructure/prisma/PrismaCreditHistoryReader";
 import { PrismaCreditExposureReader } from "@credit/infrastructure/prisma/PrismaCreditExposureReader";
+import { countsTowardCreditHistory } from "@credit/infrastructure/prisma/receivableParcelsSql";
 import { PrismaCreditSettingsRepository } from "@credit/infrastructure/prisma/PrismaCreditSettingsRepository";
 
 const DAY = 86_400_000;
@@ -117,5 +118,19 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
     // A exposição usa o mesmo cálculo de saldo: 70 (vencida) + 100 (a vencer).
     const exposure = await new PrismaCreditExposureReader().forCustomer(id, today);
     assert.deepEqual(exposure, { openBalanceCents: 17000, currentMaxOverdueDays: 7 });
+  });
+
+  test("predicado do histórico: caderninho (LEGACY + noLateFees) e cancelados ficam fora; noLateFees de outra origem conta", async () => {
+    const rows = await prisma.$queryRaw<{ k: string }[]>`
+      SELECT k FROM (VALUES
+        ('legacy-nolatefees', 'OPEN', 'LEGACY', true),
+        ('legacy-comum', 'OPEN', 'LEGACY', false),
+        ('manual-nolatefees', 'OPEN', 'MANUAL', true),
+        ('venda', 'PAID', 'SALE', false),
+        ('cancelado', 'CANCELED', 'SALE', false)
+      ) AS fd(k, status, "originType", "noLateFees")
+      WHERE ${countsTowardCreditHistory()}
+      ORDER BY k`;
+    assert.deepEqual(rows.map((r) => r.k), ["legacy-comum", "manual-nolatefees", "venda"]);
   });
 });
