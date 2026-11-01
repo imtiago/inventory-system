@@ -87,13 +87,18 @@ describe("Dashboard (GET /dashboard)", () => {
     status: "COMPLETED" | "CANCELED",
     createdAt: Date,
     items: { variantId: string; quantity: number; unitPrice: number; unitCost?: number | null }[],
+    payment: { paymentCondition?: "CASH" | "CREDIT_CARD" | "CREDIARIO"; cardFeeBps?: number; surchargeAmount?: number } = {},
   ) => {
     const total = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const sale = await prisma.sale.create({
       data: {
         customerId,
         status,
-        totalAmount: total,
+        totalAmount: total + (payment.surchargeAmount ?? 0),
+        paymentCondition: payment.paymentCondition ?? "CASH",
+        cardFeeBps: payment.cardFeeBps ?? null,
+        cardFeePassedOn: (payment.surchargeAmount ?? 0) > 0 && payment.paymentCondition === "CREDIT_CARD",
+        surchargeAmount: payment.surchargeAmount ?? 0,
         createdAt,
         items: {
           create: items.map((i) => ({
@@ -233,6 +238,40 @@ describe("Dashboard (GET /dashboard)", () => {
     assert.equal(top[1].quantity, 500_000 + (yesterdayInMonth ? 2 : 0));
     assert.equal(top[1].total, round2(50_000 + (yesterdayInMonth ? 20 : 0)));
     assert.ok(!top.some((t: Dash) => t.productVariantId === vc.variantId), "venda de amanhã fora do top");
+  });
+
+  test("vendas e lucro: acréscimo (repasse do cartão, juros do crediário) não é receita; taxa absorvida desconta do lucro", async () => {
+    const bps = (await new PrismaPricingSettingsReader().get()).expensesBps;
+    const before = await readWindow();
+    const at = new Date(`${TODAY}T13:00:00-03:00`);
+    const v = variants[3].variantId;
+    await createSale("COMPLETED", at, [{ variantId: v, quantity: 1, unitPrice: 50, unitCost: 10 }], {
+      paymentCondition: "CREDIT_CARD",
+      cardFeeBps: 349,
+      surchargeAmount: 1.81,
+    });
+    await createSale("COMPLETED", at, [{ variantId: v, quantity: 2, unitPrice: 100, unitCost: 40 }], {
+      paymentCondition: "CREDIARIO",
+      surchargeAmount: 24.56,
+    });
+    await createSale("COMPLETED", at, [{ variantId: v, quantity: 1, unitPrice: 100, unitCost: 40 }], {
+      paymentCondition: "CREDIT_CARD",
+      cardFeeBps: 349,
+    });
+    const after = await readWindow();
+    assert.equal(round2(after.sales.today.total - before.sales.today.total), 350);
+    assert.equal(round2(after.sales.month.total - before.sales.month.total), 350);
+    assert.equal(round2(after.sales.last7Days[6].total - before.sales.last7Days[6].total), 350);
+    assert.equal(round2(after.profit.month.revenue - before.profit.month.revenue), 350);
+    if (bps === (await new PrismaPricingSettingsReader().get()).expensesBps) {
+      // Custo 130,00 (10 + 80 + 40); taxa absorvida 3,49 (só a venda sem repasse); despesas sobre os itens do dia.
+      const expenses = (total: number) => applyBps(Math.round(total * 100), bps) / 100;
+      const dayExpenses = expenses(after.sales.last7Days[6].total) - expenses(before.sales.last7Days[6].total);
+      assert.equal(
+        round2(after.profit.month.profit - before.profit.month.profit),
+        round2(350 - 130 - dayExpenses - 3.49),
+      );
+    }
   });
 
   test("last7Days: sempre 7 datas consecutivas terminando hoje, com 0 onde não há venda", async () => {

@@ -2,12 +2,16 @@ import { cost4ToCents } from "@shared/domain/cost4";
 import { applyBps, type Bps } from "@shared/domain/percent";
 import { fromCents } from "@shared/domain/money";
 
-/** Linha agregada lida do banco: receita em centavos, custo em Cost4 (R$ 0,0001). */
+/**
+ * Linha agregada lida do banco: receita (só itens, sem acréscimo) em centavos, custo em Cost4
+ * (R$ 0,0001) e taxa de cartão absorvida pela loja em centavos.
+ */
 export interface RawProfitRow {
   key: string;
   label: string;
   revenueCents: number;
   cost4: number;
+  cardFeeCents: number;
   itemsWithoutCost: number;
 }
 
@@ -18,22 +22,28 @@ export interface ProfitRowDTO {
   revenue: number;
   cost: number;
   estimatedExpenses: number;
+  /** Taxa de cartão que a loja pagou sem repassar ao cliente. */
+  cardFees: number;
   profit: number;
   marginPercent: number | null;
   itemsWithoutCost: number;
 }
 
-/** Lucro = receita − custo − despesas estimadas (receita × despesas atuais); tudo em centavos inteiros. */
+/**
+ * Lucro = receita − custo − despesas estimadas (receita × despesas atuais) − taxa de cartão absorvida;
+ * tudo em centavos inteiros.
+ */
 export function toProfitRow(raw: RawProfitRow, expensesBps: Bps): ProfitRowDTO {
   const costCents = cost4ToCents(raw.cost4);
   const expensesCents = applyBps(raw.revenueCents, expensesBps);
-  const profitCents = raw.revenueCents - costCents - expensesCents;
+  const profitCents = raw.revenueCents - costCents - expensesCents - raw.cardFeeCents;
   return {
     key: raw.key,
     label: raw.label,
     revenue: fromCents(raw.revenueCents),
     cost: fromCents(costCents),
     estimatedExpenses: fromCents(expensesCents),
+    cardFees: fromCents(raw.cardFeeCents),
     profit: fromCents(profitCents),
     marginPercent: raw.revenueCents > 0 ? Math.round((profitCents * 10_000) / raw.revenueCents) / 100 : null,
     itemsWithoutCost: raw.itemsWithoutCost,
@@ -47,7 +57,8 @@ export function buildProfit(rawRows: RawProfitRow[], expensesBps: Bps): { rows: 
   const revenueCents = sumCents((r) => r.revenue);
   const costCents = sumCents((r) => r.cost);
   const expensesCents = sumCents((r) => r.estimatedExpenses);
-  const profitCents = revenueCents - costCents - expensesCents;
+  const cardFeeCents = sumCents((r) => r.cardFees);
+  const profitCents = revenueCents - costCents - expensesCents - cardFeeCents;
   return {
     rows,
     totals: {
@@ -56,6 +67,7 @@ export function buildProfit(rawRows: RawProfitRow[], expensesBps: Bps): { rows: 
       revenue: fromCents(revenueCents),
       cost: fromCents(costCents),
       estimatedExpenses: fromCents(expensesCents),
+      cardFees: fromCents(cardFeeCents),
       profit: fromCents(profitCents),
       marginPercent: revenueCents > 0 ? Math.round((profitCents * 10_000) / revenueCents) / 100 : null,
       itemsWithoutCost: rows.reduce((s, r) => s + r.itemsWithoutCost, 0),

@@ -50,6 +50,23 @@ const PARCEL_STATUS_LABEL: Record<string, string> = {
   CANCELED: "Cancelada",
 };
 
+const CONDITION_LABEL: Record<string, string> = {
+  CASH: "Dinheiro",
+  PIX: "PIX",
+  DEBIT_CARD: "Débito",
+  CREDIT_CARD: "Crédito",
+  CREDIARIO: "Crediário",
+  LEGACY_INSTALLMENTS: "Parcelado (antigo)",
+};
+
+/** Mesmo rótulo do detalhe da venda: "Crédito 3x", "Crediário 5x", "Parcelado (antigo)". */
+function paymentLabel(s: { paymentCondition: string; cardInstallments: number | null; crediarioInstallments: number | null }) {
+  const base = CONDITION_LABEL[s.paymentCondition] ?? s.paymentCondition;
+  if (s.paymentCondition === "CREDIT_CARD") return `${base} ${s.cardInstallments ?? 1}x`;
+  if (s.paymentCondition === "CREDIARIO" && s.crediarioInstallments) return `${base} ${s.crediarioInstallments}x`;
+  return base;
+}
+
 const ORIGIN_LABEL: Record<string, string> = { MANUAL: "Manual", INVOICE: "Nota fiscal", PURCHASE: "Compra" };
 const originLabel = (type: string, id: string) => (type === "SALE" ? `Venda ${id}` : (ORIGIN_LABEL[type] ?? type));
 
@@ -68,8 +85,12 @@ export function makeSalesReportController() {
     return send(
       reply,
       "vendas",
-      ["Venda", "Data", "Cliente", "Status", "Itens", "Total"],
-      sales.map((s) => [s.id, csvDate(s.day), s.customerName, SALE_STATUS_LABEL[s.status] ?? s.status, s.itemsCount, csvMoney(s.total)]),
+      // "Total" = o que o cliente pagou (itens + acréscimo); colunas novas sempre no fim.
+      ["Venda", "Data", "Cliente", "Status", "Itens", "Total", "Acréscimo", "Forma de pagamento"],
+      sales.map((s) => [
+        s.id, csvDate(s.day), s.customerName, SALE_STATUS_LABEL[s.status] ?? s.status, s.itemsCount, csvMoney(s.total),
+        csvMoney(s.surcharge), paymentLabel(s),
+      ]),
     );
   };
 }
@@ -81,10 +102,14 @@ export function makeSaleItemsReportController() {
     return send(
       reply,
       "itens-vendidos",
-      ["Venda", "Data", "Cliente", "Produto", "Variante", "Código", "Quantidade", "Preço unitário", "Total"],
+      // "Acréscimo" = parte do acréscimo da venda rateada pela linha (a soma fecha com a venda).
+      [
+        "Venda", "Data", "Cliente", "Produto", "Variante", "Código", "Quantidade", "Preço unitário", "Total",
+        "Acréscimo", "Forma de pagamento",
+      ],
       items.map((i) => [
         i.saleId, csvDate(i.day), i.customerName, i.productName, i.variantName, i.code,
-        csvQty(i.quantity), csvMoney(i.unitPrice), csvMoney(i.total),
+        csvQty(i.quantity), csvMoney(i.unitPrice), csvMoney(i.total), csvCents(i.surchargeCents), paymentLabel(i),
       ]),
     );
   };
@@ -167,6 +192,7 @@ export function makeProfitCsvController() {
       csvCents(Math.round(r.revenue * 100)),
       csvCents(Math.round(r.cost * 100)),
       csvCents(Math.round(r.estimatedExpenses * 100)),
+      csvCents(Math.round(r.cardFees * 100)),
       csvCents(Math.round(r.profit * 100)),
       r.marginPercent === null ? "" : csvQty(r.marginPercent.toFixed(2)),
       r.itemsWithoutCost,
@@ -174,7 +200,7 @@ export function makeProfitCsvController() {
     return send(
       reply,
       "lucro",
-      [PROFIT_VIEW_HEADER[view], "Receita", "Custo", "Despesas estimadas", "Lucro", "Margem (%)", "Custo não registrado"],
+      [PROFIT_VIEW_HEADER[view], "Receita", "Custo", "Despesas estimadas", "Taxa de cartão", "Lucro", "Margem (%)", "Custo não registrado"],
       [...rows.map(line), line(totals)],
     );
   };
