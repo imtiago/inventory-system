@@ -87,12 +87,24 @@ export async function createTestVariant(): Promise<{
 }
 
 export async function getTestUserId(): Promise<string> {
-  // ON CONFLICT: arquivos de teste paralelos num banco vazio criam o mesmo usuário
-  // ao mesmo tempo; o upsert do Prisma não é atômico nesse caso (P2002).
-  const rows = await prisma.$queryRaw<{ id: string }[]>`
-    INSERT INTO "users" ("id", "name", "email", "password", "role")
-    VALUES (gen_random_uuid()::text, 'tx-test-inventory', 'tx-test-inventory@local', 'tx-test', 'ADMIN')
-    ON CONFLICT ("email") DO UPDATE SET "email" = EXCLUDED."email"
-    RETURNING "id"`;
-  return rows[0].id;
+  // ON CONFLICT DO NOTHING (não DO UPDATE): um UPDATE "no-op" criaria nova versão da linha a
+  // cada chamada, e transações REPEATABLE READ de outros arquivos que gravam FK para este
+  // usuário (Payment.createdById…) falhariam com 40001/P2034. Arquivos paralelos num banco
+  // vazio podem inserir ao mesmo tempo: quem perde não enxerga a linha no próprio snapshot
+  // do comando e relê.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const rows = await prisma.$queryRaw<{ id: string }[]>`
+      WITH ins AS (
+        INSERT INTO "users" ("id", "name", "email", "password", "role")
+        VALUES (gen_random_uuid()::text, 'tx-test-inventory', 'tx-test-inventory@local', 'tx-test', 'ADMIN')
+        ON CONFLICT ("email") DO NOTHING
+        RETURNING "id"
+      )
+      SELECT "id" FROM ins
+      UNION ALL
+      SELECT "id" FROM "users" WHERE "email" = 'tx-test-inventory@local'
+      LIMIT 1`;
+    if (rows[0]) return rows[0].id;
+  }
+  throw new Error("getTestUserId: usuário de teste não encontrado.");
 }

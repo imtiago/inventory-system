@@ -13,7 +13,8 @@ import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { makeGetDashboardUseCase } from "../factories/GetDashboardFactory";
-import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
+import { createTestVariant } from "../../../../../test/inventoryFixtures";
+import { retryOnDeadlock } from "../../../../../test/retryOnDeadlock";
 
 const FIXTURE = new URL("../../../../../../../frontend/src/test/fixtures/dashboard/dashboard.json", import.meta.url);
 
@@ -40,19 +41,25 @@ class Rollback extends Error {}
  * leitura e não enxerga o que outras suítes gravam em paralelo; as escritas do próprio teste, na
  * mesma transação, aparecem. Por isso a diferença entre duas leituras é exatamente o que o teste
  * criou (asserções com `===`, sem `>=`), e nada sobra no banco.
+ * As FKs gravadas apontam só para linhas deste arquivo (usuário admin próprio, nunca o usuário
+ * compartilhado de `getTestUserId`): em REPEATABLE READ, FK para linha que outro arquivo
+ * atualizou depois do snapshot aborta com 40001/P2034. Se ainda assim o banco abortar
+ * (deadlock/serialização), a transação inteira é repetida: ela é sempre desfeita.
  */
 async function isolated(work: () => Promise<void>): Promise<void> {
-  try {
-    await prisma.$transaction(
-      async (tx) => {
-        await runInTransactionContext(tx, work);
-        throw new Rollback();
-      },
-      { isolationLevel: "RepeatableRead", timeout: 30_000, maxWait: 10_000 },
-    );
-  } catch (error) {
-    if (!(error instanceof Rollback)) throw error;
-  }
+  await retryOnDeadlock(async () => {
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          await runInTransactionContext(tx, work);
+          throw new Rollback();
+        },
+        { isolationLevel: "RepeatableRead", timeout: 30_000, maxWait: 10_000 },
+      );
+    } catch (error) {
+      if (!(error instanceof Rollback)) throw error;
+    }
+  });
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -156,7 +163,7 @@ describe("Dashboard (GET /dashboard)", () => {
     admin = await createTestUser({ role: "ADMIN" });
     vendedor = await createTestUser({ role: "VENDEDOR" });
     estoquista = await createTestUser({ role: "ESTOQUISTA" });
-    userId = await getTestUserId();
+    userId = admin.id; // usuário próprio: ver `isolated`
     customerId = (await prisma.customer.create({ data: { name: "tx-test", code: `tx-${randomUUID()}` } })).id;
     supplierId = (await prisma.supplier.create({ data: { name: "tx-test", document: `tx-${randomUUID()}` } })).id;
     for (let i = 0; i < 4; i++) variants.push(await createTestVariant());
