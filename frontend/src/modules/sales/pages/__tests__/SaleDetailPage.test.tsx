@@ -11,6 +11,7 @@ import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import saleDetail from '@/test/fixtures/sales/saleDetail.json';
+import saleDetailCrediario from '@/test/fixtures/sales/saleDetailCrediario.json';
 import { setViewport } from '@/test/viewport';
 import { loginAs } from '@/test/auth';
 
@@ -318,5 +319,22 @@ describe('SaleDetailPage: pedido de cancelamento', () => {
 
     expect(await screen.findByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument();
+  });
+
+  test('venda no crediário mostra Carnê (PDF) e WhatsApp; venda comum não', async () => {
+    server.use(http.get(`${API_URL}/sales/${saleDetailCrediario.data.id}`, () => HttpResponse.json(saleDetailCrediario)));
+    const crediario = renderWithProviders(
+      <Routes>
+        <Route path="/sales/:id" element={<SaleDetailPage />} />
+      </Routes>,
+      { route: `/sales/${saleDetailCrediario.data.id}` },
+    );
+    expect(await screen.findByRole('button', { name: 'Carnê (PDF)' })).toBeInTheDocument();
+    expect(screen.getByText(/Enviar pelo WhatsApp/)).toBeInTheDocument();
+    crediario.unmount();
+
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+    expect(screen.queryByRole('button', { name: 'Carnê (PDF)' })).not.toBeInTheDocument();
   });
 });

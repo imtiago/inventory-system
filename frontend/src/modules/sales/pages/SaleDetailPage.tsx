@@ -22,6 +22,7 @@ import { useCan } from '@/shared/auth/useCan';
 import { RequestCancelModal } from '../components/RequestCancelModal';
 import { LoadingState } from '@/shared/components/LoadingState';
 import { formatDateTime } from '@/shared/utils/formatDateTime';
+import { CreditDocumentsActions } from '@/modules/credit/components/CreditDocumentsActions';
 
 const saleStatusLabels: Record<string, string> = {
   COMPLETED: 'Concluída',
@@ -161,6 +162,8 @@ export function SaleDetailPage() {
 
       {sale && (
         <>
+          <CreditDocumentsActions sale={sale} />
+
           <Section title="Resumo">
             <dl className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6">
               <div>

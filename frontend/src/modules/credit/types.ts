@@ -159,3 +159,15 @@ export interface CreditReviewItem {
   reason: string;
   score: number;
 }
+
+/** Dados da loja (carnê e recibo). `configured` = nome, CNPJ, endereço e telefone preenchidos. */
+export interface StoreSettings {
+  name: string;
+  cnpj: string;
+  address: string;
+  phone: string;
+  configured: boolean;
+  updatedAt: string | null;
+}
+
+export type StoreSettingsInput = Pick<StoreSettings, 'name' | 'cnpj' | 'address' | 'phone'>;

@@ -1,7 +1,9 @@
+import { AxiosError } from 'axios';
+
 import { api } from '@/shared/services/api';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 
-import type { ApproveLimitRequestInput, CreateLimitRequestInput, CreditLimitRequest, CreditLimitRequestsResponse, CreditProfile, CreditRequestStatus, CreditProfileCode, CreditReviewItem, CreditSettings, CustomerCredit, UpdateCreditProfileInput, UpdateCreditSettingsInput, UpdateCustomerCreditInput } from '../types';
+import type { ApproveLimitRequestInput, CreateLimitRequestInput, CreditLimitRequest, CreditLimitRequestsResponse, CreditProfile, CreditRequestStatus, CreditProfileCode, CreditReviewItem, CreditSettings, CustomerCredit, StoreSettings, StoreSettingsInput, UpdateCreditProfileInput, UpdateCreditSettingsInput, UpdateCustomerCreditInput } from '../types';
 
 export async function getCreditSettings(): Promise<CreditSettings> {
   const { data } = await api.get<{ data: CreditSettings }>('/credit/settings');
@@ -79,4 +81,34 @@ export async function applyCreditReview(customerIds: string[], idempotencyKey: s
   const { data } = await api.post<{ data: CreditReviewItem[] }>('/credit/review/apply', { customerIds }, idempotencyConfig(idempotencyKey));
 
   return data.data;
+}
+
+export async function getStoreSettings(): Promise<StoreSettings> {
+  const { data } = await api.get<{ data: StoreSettings }>('/settings/store');
+
+  return data.data;
+}
+
+export async function saveStoreSettings(input: StoreSettingsInput): Promise<StoreSettings> {
+  const { data } = await api.put<{ data: StoreSettings }>('/settings/store', input);
+
+  return data.data;
+}
+
+/** Baixa um PDF (carnê, recibo) como Blob; o erro volta com o corpo já lido (parseApiError acha a mensagem). */
+export async function fetchPdf(url: string): Promise<Blob> {
+  try {
+    const { data } = await api.get<Blob>(url, { responseType: 'blob' });
+
+    return new Blob([data], { type: 'application/pdf' });
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text());
+      } catch {
+        /* não é JSON: parseApiError usa a mensagem genérica */
+      }
+    }
+    throw error;
+  }
 }

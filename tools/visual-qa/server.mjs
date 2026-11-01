@@ -85,6 +85,7 @@ function route(method, url) {
   }
   if (p === '/sales/cancel-requests/count') return j('sales/cancelRequestCount.json');
   if (p === '/sales/cancel-requests') return j('sales/cancelRequests.json');
+  if (s[0] === 'sales' && s[1] === 'crediario1') return j('sales/saleDetailCrediario.json');
   if (s[0] === 'sales') {
     const detail = j('sales/saleDetail.json');
     if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
@@ -102,10 +103,11 @@ function route(method, url) {
   if (p === '/credit/limit-requests/count') return j('credit/creditLimitRequestCount.json');
   if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
   if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
+  if (p === '/settings/store') return j('credit/storeSettings.json');
   if (p === '/credit/settings') return j('credit/creditSettings.json');
   if (p === '/credit/profiles') return j('credit/creditProfiles.json');
   if (p === '/customers') { const g = grow(j('customers/customerList.json')); g.data.forEach((r, i) => { if (i >= 2) r.name = names[i]; }); return g; }
-  if (s[0] === 'customers') return j('customers/customer.json');
+  if (s[0] === 'customers') { const c = j('customers/customer.json'); if (flag('nophone')) c.data.phone = null; return c; }
   if (p === '/suppliers') return grow(j('purchases/supplierList.json'));
   if (s[0] === 'suppliers') return j('purchases/supplier.json');
   if (p === '/purchases') return grow(j('purchases/purchaseList.json'));

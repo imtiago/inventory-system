@@ -12,14 +12,16 @@ import {
   getCreditSettings,
   getCustomerCredit,
   getLimitRequestCount,
+  getStoreSettings,
   listCreditProfiles,
   listLimitRequests,
   rejectLimitRequest,
+  saveStoreSettings,
   updateCreditProfile,
   updateCreditSettings,
   updateCustomerCredit,
 } from '../services/creditService';
-import type { ApproveLimitRequestInput, CreateLimitRequestInput, CreditProfileCode, CreditRequestStatus, UpdateCreditProfileInput, UpdateCreditSettingsInput, UpdateCustomerCreditInput } from '../types';
+import type { ApproveLimitRequestInput, CreateLimitRequestInput, CreditProfileCode, CreditRequestStatus, StoreSettingsInput, UpdateCreditProfileInput, UpdateCreditSettingsInput, UpdateCustomerCreditInput } from '../types';
 
 export function useCreditSettings() {
   return useQuery({ queryKey: queryKeys.creditSettings, queryFn: getCreditSettings });
@@ -116,6 +118,19 @@ export function useApplyCreditReview() {
     mutationFn: (customerIds: string[], key) => applyCreditReview(customerIds, key),
     idempotent: true,
     invalidateKeys: [queryKeys.creditReviewPreview, queryKeys.customers],
+    silentError: true,
+  });
+}
+
+export function useStoreSettings() {
+  return useQuery({ queryKey: queryKeys.storeSettings, queryFn: getStoreSettings });
+}
+
+export function useSaveStoreSettings() {
+  return useCrudMutation({
+    mutationFn: (input: StoreSettingsInput) => saveStoreSettings(input),
+    invalidateKeys: [queryKeys.storeSettings],
+    successMessage: 'Dados da loja salvos.',
     silentError: true,
   });
 }

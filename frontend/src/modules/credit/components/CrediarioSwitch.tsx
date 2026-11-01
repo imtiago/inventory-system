@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { TriangleAlert } from 'lucide-react';
 
 import { Section } from '@/shared/components/details/Section';
@@ -9,13 +10,13 @@ import { useSaveCreditSettings } from '../hooks/useCredit';
 import type { CreditSettings } from '../types';
 
 /** Mensagens extras por código de erro da ativação (a API já manda o texto principal em PT). */
-const ACTIVATION_HINTS: Record<string, string> = {
-  STORE_SETTINGS_MISSING: 'Preencha os dados da loja',
+const ACTIVATION_HINTS: Record<string, { text: string; to: string }> = {
+  STORE_SETTINGS_MISSING: { text: 'Preencha os dados da loja', to: '/settings/store' },
 };
 
 export function CrediarioSwitch({ settings }: { settings: CreditSettings }) {
   const save = useSaveCreditSettings();
-  const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
+  const [error, setError] = useState<{ message: string; hint?: { text: string; to: string } } | null>(null);
   const enabled = settings.crediarioEnabled;
 
   async function toggle() {
@@ -66,7 +67,13 @@ export function CrediarioSwitch({ settings }: { settings: CreditSettings }) {
         {error && (
           <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
             <p>{error.message}</p>
-            {error.hint && <p className="mt-1 font-medium">{error.hint}</p>}
+            {error.hint && (
+              <p className="mt-1 font-medium">
+                <Link to={error.hint.to} className="underline underline-offset-2">
+                  {error.hint.text}
+                </Link>
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ import { FINANCE_KINDS, partyOf, type FinanceKind } from '../config';
 import { useFinanceDocument } from '../hooks/useFinanceDocument';
 import { PAYMENT_METHOD_LABELS, FINANCE_STATUS_LABELS, type IFinancePayment } from '../types';
 import { Can } from '@/shared/auth/Can';
+import { PdfDocumentButton } from '@/modules/credit/components/PdfDocumentButton';
 import { LoadingState } from '@/shared/components/LoadingState';
 import { formatDateTime } from '@/shared/utils/formatDateTime';
 
@@ -133,12 +134,19 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                                 </p>
                               )}
                             </div>
-                            {!reversed && !canceled && (
-                              <Can permission={config.reverse}>
-                                <button type="button" className="rounded-lg border px-3 py-1 text-sm hover:bg-surface-muted" onClick={() => setReversing(payment)}>
-                                  Estornar
-                                </button>
-                              </Can>
+                            {!reversed && (
+                              <div className="flex flex-wrap items-start gap-2">
+                                {kind === 'receivable' && (
+                                  <PdfDocumentButton label="Recibo" ariaLabel={`Recibo do pagamento de ${formatCurrency(payment.amount)}`} url={`/receivables/payments/${payment.id}/receipt.pdf`} fileName={`recibo-${payment.id.slice(0, 8).toUpperCase()}.pdf`} />
+                                )}
+                                {!canceled && (
+                                  <Can permission={config.reverse}>
+                                    <button type="button" className="rounded-lg border px-3 py-1 text-sm hover:bg-surface-muted" onClick={() => setReversing(payment)}>
+                                      Estornar
+                                    </button>
+                                  </Can>
+                                )}
+                              </div>
                             )}
                           </li>
                         );
