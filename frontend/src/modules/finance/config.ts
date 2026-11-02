@@ -1,4 +1,4 @@
-import type { IFinanceDetail, IFinanceListItem, IFinanceSummary } from './types';
+import { FINANCE_STATUS_LABELS, type IFinanceDetail, type IFinanceListItem, type IFinanceParcel, type IFinanceSummary } from './types';
 
 export type FinanceKind = 'receivable' | 'payable';
 
@@ -86,6 +86,25 @@ export const FINANCE_KINDS: Record<FinanceKind, IFinanceKindConfig> = {
 export const LEGACY_ORIGIN = 'LEGACY';
 export const LEGACY_LABEL = 'Caderninho';
 export const DUE_TO_AGREE_LABEL = 'A combinar';
+
+/**
+ * Etiqueta de situação do documento. Em aberto e com todo o saldo em parcelas "a combinar" (dívida do caderninho
+ * ainda sem datas) → "A combinar" no tom neutro, nunca "A vencer". Lista: sem próximo vencimento datado.
+ */
+export function documentStatusBadge(
+  doc: Pick<IFinanceListItem, 'displayStatus'> & ({ parcels: Pick<IFinanceParcel, 'dueDateUnknown' | 'remainingAmount' | 'status'>[] } | Pick<IFinanceListItem, 'hasDueDateUnknown' | 'nextDueDate'>),
+): { status: string; label: string } {
+  const label = FINANCE_STATUS_LABELS[doc.displayStatus] ?? doc.displayStatus;
+  if (doc.displayStatus !== 'OPEN') return { status: doc.displayStatus, label };
+  const onlyToAgree =
+    'parcels' in doc
+      ? (() => {
+          const open = doc.parcels.filter((p) => p.status !== 'CANCELED' && p.remainingAmount > 0);
+          return open.length > 0 && open.every((p) => p.dueDateUnknown);
+        })()
+      : doc.hasDueDateUnknown && !doc.nextDueDate;
+  return onlyToAgree ? { status: 'DUE_TO_AGREE', label: DUE_TO_AGREE_LABEL } : { status: doc.displayStatus, label };
+}
 
 export function partyOf(kind: FinanceKind, item: Pick<IFinanceDetail, 'customer' | 'supplier'>) {
   return item[FINANCE_KINDS[kind].partyKey];

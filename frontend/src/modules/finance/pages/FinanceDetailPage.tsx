@@ -12,7 +12,7 @@ import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { ReversePaymentModal } from '../components/ReversePaymentModal';
 import { SplitParcelModal } from '../components/SplitParcelModal';
-import { DUE_TO_AGREE_LABEL, FINANCE_KINDS, LEGACY_LABEL, LEGACY_ORIGIN, partyOf, type FinanceKind } from '../config';
+import { DUE_TO_AGREE_LABEL, documentStatusBadge, FINANCE_KINDS, LEGACY_LABEL, LEGACY_ORIGIN, partyOf, type FinanceKind } from '../config';
 import { useFinanceDocument } from '../hooks/useFinanceDocument';
 import { PAYMENT_METHOD_LABELS, FINANCE_STATUS_LABELS, type IFinancePayment } from '../types';
 import { Can } from '@/shared/auth/Can';
@@ -42,7 +42,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
         meta={
           document ? (
             <span className="inline-flex flex-wrap items-center gap-2">
-              <StatusBadge status={document.displayStatus}>{FINANCE_STATUS_LABELS[document.displayStatus] ?? document.displayStatus}</StatusBadge>
+              <StatusBadge status={documentStatusBadge(document).status}>{documentStatusBadge(document).label}</StatusBadge>
               {document.originType === LEGACY_ORIGIN && <StatusBadge status="LEGACY">{LEGACY_LABEL}</StatusBadge>}
             </span>
           ) : undefined

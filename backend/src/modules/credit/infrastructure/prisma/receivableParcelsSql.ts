@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 /**
  * Parcelas de RECEIVABLE de clientes (documento filtrado por `docFilter`), com pago em centavos
  * (pagamentos ativos) e data de quitação (último pagamento ativo). Base comum de exposição e histórico.
- * Colunas: cid, id, due (date), amount_c, paid_c, remaining_c, last_paid (date|null) e
- * counts_as_late (a parcela pode contar como atraso: `countsAsLate`).
+ * Colunas: cid, id, due (date), amount_c, paid_c, remaining_c, last_paid (date|null),
+ * counts_as_late (a parcela pode contar como atraso: `countsAsLate`) e is_notebook (dívida do caderninho).
  */
 export function receivableParcelsCte(customerFilter: Prisma.Sql, docFilter: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`
@@ -13,7 +13,8 @@ export function receivableParcelsCte(customerFilter: Prisma.Sql, docFilter: Pris
            COALESCE(pay.paid_c, 0)::bigint AS paid_c,
            GREATEST((fp.amount * 100)::bigint - COALESCE(pay.paid_c, 0), 0)::bigint AS remaining_c,
            pay.last_paid,
-           ${countsAsLate()} AS counts_as_late
+           ${countsAsLate()} AS counts_as_late,
+           ${notebookDebt("fd")} AS is_notebook
     FROM "FinancialDocument" fd
     JOIN "FinancialParcel" fp ON fp."financialDocumentId" = fd.id
     LEFT JOIN LATERAL (

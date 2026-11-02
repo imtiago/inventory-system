@@ -15,7 +15,7 @@ import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 import { PartyFilter } from '../components/PartyFilter';
-import { DUE_TO_AGREE_LABEL, FINANCE_KINDS, LEGACY_LABEL, LEGACY_ORIGIN, partyOf, summaryValue, type FinanceKind } from '../config';
+import { documentStatusBadge, DUE_TO_AGREE_LABEL, FINANCE_KINDS, LEGACY_LABEL, LEGACY_ORIGIN, partyOf, summaryValue, type FinanceKind } from '../config';
 import { useFinanceList } from '../hooks/useFinanceList';
 import { FINANCE_STATUS_LABELS, type IFinanceFilters, type IFinanceListItem, type FinanceStatus } from '../types';
 import { LoadingState } from '@/shared/components/LoadingState';
@@ -66,7 +66,10 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
     id: 'status',
     header: 'Status',
     mobile: 'meta',
-    cell: (item) => <StatusBadge status={item.displayStatus}>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</StatusBadge>,
+    cell: (item) => {
+      const badge = documentStatusBadge(item);
+      return <StatusBadge status={badge.status}>{badge.label}</StatusBadge>;
+    },
   },
   {
     id: 'actions',

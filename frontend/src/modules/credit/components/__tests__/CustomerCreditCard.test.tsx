@@ -31,6 +31,25 @@ describe('CustomerCreditCard', () => {
     expect(screen.getByText(/Perfil: Novo → Bom/)).toBeInTheDocument();
   });
 
+  it('mostra a parte do caderninho no valor em aberto com a etiqueta, só quando houver', async () => {
+    server.use(http.get(`${API_URL}/customers/:id/credit`, () => HttpResponse.json({ data: { ...creditFixture.data, openBalance: 340.5, legacyOpenBalance: 220.5 } })));
+    renderWithProviders(<CustomerCreditCard customerId={ID} />);
+
+    const note = await screen.findByTestId('credit-legacy-balance');
+    expect(within(note).getByText('Caderninho')).toHaveAttribute('data-status', 'LEGACY');
+    expect(note).toHaveTextContent('R$ 220,50');
+    expect(note).toHaveTextContent('sem multa nem juros');
+    expect(screen.getByRole('link', { name: 'Ver contas a receber do cliente' })).toHaveAttribute('href', `/receivables?customerId=${ID}&openOnly=true`);
+  });
+
+  it('sem dívida do caderninho não mostra a etiqueta', async () => {
+    renderWithProviders(<CustomerCreditCard customerId={ID} />);
+
+    await screen.findByText('Bom');
+    expect(screen.queryByTestId('credit-legacy-balance')).not.toBeInTheDocument();
+    expect(screen.queryByText('Caderninho')).not.toBeInTheDocument();
+  });
+
   it('hides "Ajustar" without credit.manage', async () => {
     loginAs('VENDEDOR');
     renderWithProviders(<CustomerCreditCard customerId={ID} />);

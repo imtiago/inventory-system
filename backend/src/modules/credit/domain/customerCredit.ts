@@ -33,6 +33,8 @@ export interface CustomerCredit {
 /** Exposição atual: saldo devedor em aberto e maior atraso de parcela com saldo (dias). */
 export interface CreditExposure {
   openBalanceCents: number;
+  /** Parte do saldo que é dívida do caderninho (LEGACY sem encargos); já incluída em `openBalanceCents`. */
+  legacyOpenBalanceCents?: number;
   currentMaxOverdueDays: number;
 }
 

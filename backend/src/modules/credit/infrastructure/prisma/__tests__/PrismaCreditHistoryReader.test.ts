@@ -142,7 +142,7 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
 
     // A exposição usa o mesmo cálculo de saldo: 70 (vencida) + 100 (a vencer).
     const exposure = await new PrismaCreditExposureReader().forCustomer(id, today);
-    assert.deepEqual(exposure, { openBalanceCents: 17000, currentMaxOverdueDays: 7 });
+    assert.deepEqual(exposure, { openBalanceCents: 17000, legacyOpenBalanceCents: 0, currentMaxOverdueDays: 7 });
   });
 
   test("só parcelas do crediário contam: vendas à vista/PIX/cartão (pagas no ato), a entrada e documentos avulsos ficam fora", async () => {
@@ -194,7 +194,7 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
     await legacy([{ amount: 150, due: -90, unknown: true }]);
     await legacy([{ amount: 40, due: -60 }, { amount: 40, due: 30 }]);
     const reader = new PrismaCreditExposureReader();
-    assert.deepEqual(await reader.forCustomer(id, today), { openBalanceCents: 23000, currentMaxOverdueDays: 0 });
+    assert.deepEqual(await reader.forCustomer(id, today), { openBalanceCents: 23000, legacyOpenBalanceCents: 23000, currentMaxOverdueDays: 0 });
 
     const history = (await new PrismaCreditHistoryReader(new PrismaCreditSettingsRepository()).forCustomers([id], today, 12)).get(id)!;
     assert.equal(history.currentMaxOverdueDays, 0);
@@ -207,7 +207,7 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
     });
     await prisma.financialParcel.create({ data: { financialDocumentId: manual.id, amount: 10, dueDate: at(-30), dueDateUnknown: true } });
     await prisma.financialParcel.create({ data: { financialDocumentId: manual.id, amount: 10, dueDate: at(-5) } });
-    assert.deepEqual(await reader.forCustomer(other, today), { openBalanceCents: 2000, currentMaxOverdueDays: 5 });
+    assert.deepEqual(await reader.forCustomer(other, today), { openBalanceCents: 2000, legacyOpenBalanceCents: 0, currentMaxOverdueDays: 5 });
   });
 
   test("predicado do histórico: caderninho (LEGACY + noLateFees) e cancelados ficam fora; noLateFees de outra origem conta", async () => {

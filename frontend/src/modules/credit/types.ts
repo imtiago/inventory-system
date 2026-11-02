@@ -95,6 +95,8 @@ export interface CustomerCredit {
   profileName: string;
   limit: number;
   openBalance: number;
+  /** Parte de `openBalance` que é dívida antiga do caderninho (sem multa/juros, nunca atrasa). */
+  legacyOpenBalance: number;
   available: number;
   status: CreditStatus;
   currentMaxOverdueDays: number;

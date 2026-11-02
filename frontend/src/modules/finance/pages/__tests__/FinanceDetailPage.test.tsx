@@ -37,6 +37,17 @@ describe('Conta a receber do caderninho — detalhe', () => {
     expect(screen.queryByRole('link', { name: /Venda de origem/ })).toBeNull();
   });
 
+  test('cabeçalho: documento só com saldo a combinar mostra "A combinar", não "A vencer"', async () => {
+    loginAs('ADMIN');
+    renderDetail();
+
+    await screen.findByTestId('parcel-1');
+    const header = screen.getByRole('heading', { level: 1 }).closest('header') ?? document.body;
+    const badges = within(header as HTMLElement).getAllByText((_, el) => el?.getAttribute('data-status') === 'DUE_TO_AGREE');
+    expect(badges[0]).toHaveTextContent('A combinar');
+    expect(screen.queryByText('A vencer')).toBeNull();
+  });
+
   test('parcela a combinar nunca usa o tom de vencida', async () => {
     loginAs('ADMIN');
     renderDetail();
@@ -70,5 +81,8 @@ describe('Contas a receber — lista com caderninho', () => {
     expect(screen.getAllByText('Caderninho').length).toBeGreaterThan(0);
     expect(screen.getAllByText('A combinar').length).toBeGreaterThan(0);
     expect(screen.queryByText('LEGACY')).toBeNull();
+    // Só a linha do caderninho (saldo todo a combinar) troca "A vencer" por "A combinar"; a venda comum continua "A vencer".
+    expect(screen.getAllByText('A combinar', { selector: '[data-status="DUE_TO_AGREE"]' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('A vencer', { selector: '[data-status="OPEN"]' }).length).toBeGreaterThan(0);
   });
 });

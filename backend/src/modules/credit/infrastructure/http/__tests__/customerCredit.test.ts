@@ -71,6 +71,7 @@ describe("Ficha de crédito do cliente (/customers/:id/credit)", () => {
       profileName: "Novo",
       limit: 300,
       openBalance: 0,
+      legacyOpenBalance: 0,
       available: 300,
       status: "ACTIVE",
       currentMaxOverdueDays: 0,
@@ -179,6 +180,57 @@ describe("Ficha de crédito do cliente (/customers/:id/credit)", () => {
     const lowered = await call("ADMIN", "PUT", `/customers/${id}/credit`, { limit: 100, reason: "Reduzido" });
     assert.equal(lowered.json().data.available, 0);
     assert.equal(lowered.json().data.openBalance, 120);
+  });
+
+  test("legacyOpenBalance: parte do saldo que é dívida do caderninho (LEGACY sem encargos), sem atraso", async () => {
+    const id = await existingCustomer();
+    await prisma.financialDocument.create({
+      data: {
+        type: "RECEIVABLE",
+        originType: "MANUAL",
+        originId: randomUUID(),
+        partyId: id,
+        partyType: "CUSTOMER",
+        parcels: { create: [{ amount: 40, dueDate: dateOffset(10) }] },
+      },
+    });
+    // Caderninho: uma a combinar e uma datada vencida (não conta como atraso).
+    for (const parcel of [
+      { amount: 150, dueDate: dateOffset(0), dueDateUnknown: true },
+      { amount: 70.5, dueDate: dateOffset(-30), dueDateUnknown: false },
+    ]) {
+      await prisma.financialDocument.create({
+        data: {
+          type: "RECEIVABLE",
+          originType: "LEGACY",
+          originId: randomUUID(),
+          partyId: id,
+          partyType: "CUSTOMER",
+          noLateFees: true,
+          parcels: { create: [parcel] },
+        },
+      });
+    }
+    // Caderninho cancelado não conta.
+    await prisma.financialDocument.create({
+      data: {
+        type: "RECEIVABLE",
+        originType: "LEGACY",
+        originId: randomUUID(),
+        partyId: id,
+        partyType: "CUSTOMER",
+        noLateFees: true,
+        status: "CANCELED",
+        parcels: { create: [{ amount: 999, dueDate: dateOffset(0), dueDateUnknown: true }] },
+      },
+    });
+
+    const res = await call("VENDEDOR", "GET", `/customers/${id}/credit`);
+    assert.equal(res.statusCode, 200, res.body);
+    const { data } = res.json();
+    assert.equal(data.openBalance, 260.5);
+    assert.equal(data.legacyOpenBalance, 220.5);
+    assert.equal(data.currentMaxOverdueDays, 0);
   });
 
   test("VENDEDOR: GET ficha 200, PUT 403", async () => {
