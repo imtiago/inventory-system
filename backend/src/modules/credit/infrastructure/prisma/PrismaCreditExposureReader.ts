@@ -13,7 +13,7 @@ export class PrismaCreditExposureReader implements CreditExposureReader {
     const [row] = await getDb().$queryRaw<{ open_c: bigint; overdue: number }[]>`
       WITH parcel AS (${parcels})
       SELECT COALESCE(SUM(remaining_c), 0)::bigint AS open_c,
-             COALESCE(MAX(${today}::date - due) FILTER (WHERE remaining_c > 0 AND due < ${today}::date), 0)::int AS overdue
+             COALESCE(MAX(${today}::date - due) FILTER (WHERE remaining_c > 0 AND due < ${today}::date AND counts_as_late), 0)::int AS overdue
       FROM parcel`;
     return { openBalanceCents: Number(row.open_c), currentMaxOverdueDays: row.overdue };
   }

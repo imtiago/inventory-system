@@ -103,6 +103,7 @@ export class PrismaCreditDocumentsReader implements CreditDocumentsReader {
         parcelNumber: down && down.id === payment.parcelId ? null : index + 1,
         parcelCount: plan.length,
         dueDate: toDateOnly(payment.parcel.dueDate),
+        dueDateUnknown: payment.parcel.dueDateUnknown,
         principalCents: cents(payment.amount),
         fineCents: cents(payment.fineAmount),
         interestCents: cents(payment.interestAmount),
@@ -110,7 +111,11 @@ export class PrismaCreditDocumentsReader implements CreditDocumentsReader {
         waiverReason: payment.waiverReason,
         backdateReason: payment.backdateReason,
         receivedBy: payment.createdBy?.name ?? null,
-        originLabel: saleId ? `Venda #${codeOf(saleId)}` : "Conta a receber",
+        originLabel: saleId
+          ? `Venda #${codeOf(saleId)}`
+          : document.originType === "LEGACY"
+            ? "Saldo anterior — caderninho"
+            : "Conta a receber",
       },
     };
     return { kind: "OK" as const, input };

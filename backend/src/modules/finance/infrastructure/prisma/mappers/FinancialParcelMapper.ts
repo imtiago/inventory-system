@@ -14,6 +14,7 @@ export class FinancialParcelMapper {
       id: prisma.id,
       amountCents: toCents(Number(prisma.amount)),
       dueDate: toDateOnly(prisma.dueDate),
+      dueDateUnknown: prisma.dueDateUnknown,
       financialDocumentId: prisma.financialDocumentId,
       createdAt: prisma.createdAt,
       payments: prisma.payments?.map((p) => PaymentMapper.toDomain(p)) ?? [],
@@ -25,6 +26,7 @@ export class FinancialParcelMapper {
       id: parcel.id,
       amount: fromCents(parcel.amountCents),
       dueDate: fromDateOnly(parcel.dueDate),
+      dueDateUnknown: parcel.dueDateUnknown,
       financialDocumentId: parcel.financialDocumentId,
     };
   }

@@ -67,7 +67,12 @@ function paymentLabel(s: { paymentCondition: string; cardInstallments: number | 
   return base;
 }
 
-const ORIGIN_LABEL: Record<string, string> = { MANUAL: "Manual", INVOICE: "Nota fiscal", PURCHASE: "Compra" };
+const ORIGIN_LABEL: Record<string, string> = {
+  MANUAL: "Manual",
+  INVOICE: "Nota fiscal",
+  PURCHASE: "Compra",
+  LEGACY: "Caderninho",
+};
 const originLabel = (type: string, id: string) => (type === "SALE" ? `Venda ${id}` : (ORIGIN_LABEL[type] ?? type));
 
 const saleItemsQuerySchema = z.object(periodShape).refine(validPeriod, periodError).refine(spanOk, spanError);
@@ -152,7 +157,7 @@ export function makeFinanceReportController(type: FinancialType) {
         p.partyName,
         receivable ? originLabel(p.originType, p.originId) : (p.purchaseCode ?? ""),
         p.number,
-        csvDate(p.dueDate),
+        p.dueDateUnknown ? "A combinar" : csvDate(p.dueDate),
         csvMoney(p.amount.toFixed(2)),
         csvMoney(p.paidAmount.toFixed(2)),
         csvMoney(p.remainingAmount.toFixed(2)),

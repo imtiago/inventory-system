@@ -9,12 +9,15 @@ export class FinancialParcel extends BaseEntity {
   private readonly _amountCents: number;
   /** Vencimento "YYYY-MM-DD". */
   private readonly _dueDate: string;
+  /** Vencimento "a combinar" (caderninho): nunca fica vencida. */
+  private readonly _dueDateUnknown: boolean;
   private readonly _payments: Payment[];
 
   constructor(props: {
     id?: string;
     amountCents: number;
     dueDate: string;
+    dueDateUnknown?: boolean;
     financialDocumentId: string;
     payments?: Payment[];
     createdAt?: Date;
@@ -25,6 +28,7 @@ export class FinancialParcel extends BaseEntity {
     });
     this._amountCents = props.amountCents;
     this._dueDate = props.dueDate;
+    this._dueDateUnknown = props.dueDateUnknown ?? false;
     this._financialDocumentId = props.financialDocumentId;
     this._payments = props.payments ?? [];
   }
@@ -35,6 +39,10 @@ export class FinancialParcel extends BaseEntity {
 
   get dueDate() {
     return this._dueDate;
+  }
+
+  get dueDateUnknown(): boolean {
+    return this._dueDateUnknown;
   }
 
   get financialDocumentId() {
@@ -61,7 +69,13 @@ export class FinancialParcel extends BaseEntity {
   /** Status na data de negócio `today`; documento CANCELED → CANCELED. */
   status(today: string, documentStatus: FinancialStatus = FinancialStatus.OPEN): ParcelStatus {
     return parcelStatus(
-      { amountCents: this._amountCents, paidCents: this.paidCents, dueDate: this._dueDate, documentStatus },
+      {
+        amountCents: this._amountCents,
+        paidCents: this.paidCents,
+        dueDate: this._dueDate,
+        dueDateUnknown: this._dueDateUnknown,
+        documentStatus,
+      },
       today,
     );
   }

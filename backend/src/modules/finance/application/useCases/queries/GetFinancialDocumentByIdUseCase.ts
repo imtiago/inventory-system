@@ -40,9 +40,11 @@ export class GetFinancialDocumentByIdUseCase<T extends FinancialType> {
     const exempt = document.noLateFees || document.status === FinancialStatus.CANCELED;
     const rates = exempt ? { graceDays: 0, fineBps: 0, monthlyInterestBps: 0 } : await reader.rates(document);
     for (const parcel of document.parcels) {
+      // Parcela "a combinar": sem vencimento, logo sem atraso nem encargos.
+      const unknown = parcel.dueDateUnknown;
       const fees = parcelLateFees({
         amountCents: toCents(parcel.amount),
-        dueDate: parcel.dueDate,
+        dueDate: unknown ? today : parcel.dueDate,
         payments: parcel.payments.map((p) => ({
           amountCents: toCents(p.amount),
           fineCents: toCents(p.fineAmount),
@@ -51,8 +53,8 @@ export class GetFinancialDocumentByIdUseCase<T extends FinancialType> {
           reversed: p.reversedAt !== null,
         })),
         paymentDate: today,
-        rates,
-        exempt,
+        rates: unknown ? { graceDays: 0, fineBps: 0, monthlyInterestBps: 0 } : rates,
+        exempt: exempt || unknown,
       });
       parcel.lateFeesToday = {
         daysLate: fees.principalRemainingCents > 0 ? fees.daysLate : 0,

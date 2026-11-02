@@ -22,11 +22,16 @@ export class LateFeeService implements LateFeePolicy {
     return LateFeeService.forParcel(parcel, paymentDate, rules);
   }
 
-  /** `rules` null = documento isento (só restante e dias de atraso). */
+  /**
+   * `rules` null = documento isento (só restante e dias de atraso). Parcela "a combinar" não tem
+   * vencimento: isenta e sem dias de atraso.
+   */
   static forParcel(parcel: FinancialParcel, paymentDate: string, rules: LateFeeRates | null): LateFeeCharge {
+    const unknown = parcel.dueDateUnknown;
+    const effectiveRules = unknown ? null : rules;
     return parcelLateFees({
       amountCents: parcel.amountCents,
-      dueDate: parcel.dueDate,
+      dueDate: unknown ? paymentDate : parcel.dueDate,
       payments: parcel.payments.map((p) => ({
         amountCents: p.amountCents,
         fineCents: p.fineCents,
@@ -35,8 +40,8 @@ export class LateFeeService implements LateFeePolicy {
         reversed: p.isReversed,
       })),
       paymentDate,
-      rates: rules ?? { graceDays: 0, fineBps: 0, monthlyInterestBps: 0 },
-      exempt: rules === null,
+      rates: effectiveRules ?? { graceDays: 0, fineBps: 0, monthlyInterestBps: 0 },
+      exempt: effectiveRules === null,
     });
   }
 }

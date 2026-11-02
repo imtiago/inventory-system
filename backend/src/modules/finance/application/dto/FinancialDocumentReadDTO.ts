@@ -22,7 +22,10 @@ export interface FinancialListItemBaseDTO {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  /** Menor vencimento com saldo entre as parcelas com data definida (parcela "a combinar" não entra). */
   nextDueDate: string | null;
+  /** Há parcela "a combinar" com saldo (caderninho): a tela mostra "A combinar". */
+  hasDueDateUnknown: boolean;
   parcelsCount: number;
   createdAt: Date;
 }
@@ -64,7 +67,10 @@ export interface FinancialParcelDTO {
   id: string;
   number: number;
   amount: number;
+  /** Com `dueDateUnknown`, é só a data da importação (a tela mostra "A combinar"). */
   dueDate: string;
+  /** Vencimento "a combinar": nunca fica vencida. */
+  dueDateUnknown: boolean;
   paidAmount: number;
   remainingAmount: number;
   status: string;
@@ -104,9 +110,9 @@ export type ReceivableDetailDTO = FinancialDetailBaseDTO & ReceivableParty;
 export type PayableDetailDTO = FinancialDetailBaseDTO & PayableParty;
 
 export interface ReceivableSummaryDTO {
-  /** Saldo a vencer (vencimento ≥ hoje) de documentos não cancelados. */
+  /** Saldo a vencer (vencimento ≥ hoje ou "a combinar") de documentos não cancelados. */
   openAmount: number;
-  /** Saldo vencido (vencimento < hoje) de documentos não cancelados. */
+  /** Saldo vencido (vencimento < hoje, nunca "a combinar") de documentos não cancelados. */
   overdueAmount: number;
   /** Soma dos pagamentos ativos (não estornados). */
   receivedAmount: number;
@@ -165,6 +171,8 @@ export interface FinancialParcelExportRow {
   originId: string;
   number: number;
   dueDate: string;
+  /** Vencimento "a combinar" (o CSV mostra "A combinar"). */
+  dueDateUnknown: boolean;
   amount: number;
   paidAmount: number;
   remainingAmount: number;

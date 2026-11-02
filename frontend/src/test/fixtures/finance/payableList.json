@@ -15,6 +15,7 @@
       "paidAmount": 53.23,
       "remainingAmount": 106.47,
       "nextDueDate": "2026-10-21",
+      "hasDueDateUnknown": false,
       "parcelsCount": 3,
       "createdAt": "2026-09-21T14:32:10.000Z"
     },
@@ -33,6 +34,7 @@
       "paidAmount": 0,
       "remainingAmount": 25,
       "nextDueDate": "2026-11-10",
+      "hasDueDateUnknown": false,
       "parcelsCount": 1,
       "createdAt": "2026-10-10T10:05:00.000Z"
     },
@@ -51,6 +53,7 @@
       "paidAmount": 40,
       "remainingAmount": 0,
       "nextDueDate": null,
+      "hasDueDateUnknown": false,
       "parcelsCount": 1,
       "createdAt": "2026-10-01T09:00:00.000Z"
     }

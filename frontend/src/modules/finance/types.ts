@@ -15,7 +15,10 @@ export interface IFinanceListItem {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  /** Menor vencimento com saldo entre parcelas com data definida (parcela "a combinar" não entra). */
   nextDueDate: string | null;
+  /** Há parcela "a combinar" com saldo (caderninho). */
+  hasDueDateUnknown: boolean;
   parcelsCount: number;
   createdAt: string;
 }
@@ -102,7 +105,10 @@ export interface IFinanceParcel {
   id: string;
   number: number;
   amount: number;
+  /** Com `dueDateUnknown`, é só a data da importação. */
   dueDate: string;
+  /** Vencimento "a combinar" (caderninho): nunca fica vencida. */
+  dueDateUnknown: boolean;
   paidAmount: number;
   remainingAmount: number;
   status: FinanceStatus;
@@ -125,7 +131,7 @@ export interface IFinanceDetail {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  /** Sem multa nem juros de atraso (venda anterior ao crediário, parcelado antigo). */
+  /** Sem multa nem juros de atraso (venda anterior ao crediário, parcelado antigo, caderninho). */
   noLateFees: boolean;
   parcels: IFinanceParcel[];
 }
