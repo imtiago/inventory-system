@@ -41,15 +41,25 @@ interface Values {
   notes: string;
 }
 
+/** Códigos de valor que não pôde ser lido: o editor mostra o texto como foi digitado na planilha. */
+const UNREADABLE = new Set(['INVALID_AMOUNT', 'INVALID_DATE', 'INVALID_DUE_DATES', 'INVALID_PHONE', 'UNKNOWN_PROFILE']);
+
+/** Texto original da coluna quando o valor dela não pôde ser lido (null se leu bem ou está vazio). */
+function unreadableText(row: LegacyRow, column: LegacyColumn): string | null {
+  const text = row.raw?.[column]?.trim() ?? '';
+  if (text === '') return null;
+  return row.issues.some((issue) => issue.field === column && UNREADABLE.has(issue.code)) ? text : null;
+}
+
 function initialValues(row: LegacyRow): Values {
   const d = row.data;
   return {
     name: d.name,
-    phone: d.phone ?? '',
+    phone: unreadableText(row, 'celular') ?? d.phone ?? '',
     purchaseDate: d.purchaseDate ?? '',
     description: d.description ?? '',
-    total: d.total ? formatMoneyInput(d.total) : '',
-    paid: d.paid ? formatMoneyInput(d.paid) : '',
+    total: unreadableText(row, 'valor_total') ?? (d.total ? formatMoneyInput(d.total) : ''),
+    paid: unreadableText(row, 'valor_pago') ?? (d.paid ? formatMoneyInput(d.paid) : ''),
     dueDates: (d.dueDates ?? []).map((due) => ({ date: due.date, amount: formatMoneyInput(due.amount) })),
     profileCode: d.profileCode ?? '',
     notes: d.notes ?? '',
@@ -183,6 +193,11 @@ export function LegacyRowEditor({ batchId, row, onClose, onCreateNew }: Props) {
   const notes = fieldProps('notes');
   const dueSumCents = values.dueDates.reduce((sum, d) => sum + (parseMoneyToCents(d.amount) ?? 0), 0);
   const missingCustomer = serverError !== null && isMissingLinkedCustomer(row, serverError);
+  // Data, perfil e vencimentos usam controles que não aceitam o texto livre: o original aparece como dica.
+  const typedHint = (field: Field) => {
+    const text = touched.has(field) ? null : unreadableText(row, COLUMN_OF[field]);
+    return text ? <p className="mt-1 break-words text-xs text-muted">{`Na planilha: ${text}`}</p> : null;
+  };
 
   return (
     <form aria-label={`Editar linha ${row.line}`} onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-xl border border-border bg-surface-muted/40 p-3 sm:p-4">
@@ -206,6 +221,7 @@ export function LegacyRowEditor({ batchId, row, onClose, onCreateNew }: Props) {
             Data da compra
           </label>
           <input id={date.id} type="date" value={values.purchaseDate} onChange={(e) => set('purchaseDate', e.target.value)} className={inputClass} {...date.a11y} />
+          {typedHint('purchaseDate')}
           <FieldError id={date.id} message={date.message} className={date.cls} />
         </div>
         <div>
@@ -241,6 +257,7 @@ export function LegacyRowEditor({ batchId, row, onClose, onCreateNew }: Props) {
               </option>
             ))}
           </select>
+          {typedHint('profileCode')}
           <FieldError id={profile.id} message={profile.message} className={profile.cls} />
         </div>
         <div className="sm:col-span-2">
@@ -255,6 +272,7 @@ export function LegacyRowEditor({ batchId, row, onClose, onCreateNew }: Props) {
       <fieldset className="flex flex-col gap-2" aria-describedby={due.message ? `${due.id}-error` : undefined}>
         <legend className={labelClass}>Vencimentos</legend>
         <p className="text-xs text-muted">Opcional. Sem vencimentos, a dívida fica como uma parcela "a combinar". A soma deve dar o valor em aberto.</p>
+        {typedHint('dueDates')}
         {values.dueDates.length > 0 && (
           <ul className="flex flex-col gap-2">
             {values.dueDates.map((item, index) => (

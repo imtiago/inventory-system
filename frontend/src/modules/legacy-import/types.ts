@@ -73,9 +73,13 @@ export interface LegacyRow {
   id: string;
   line: number;
   status: LegacyRowStatus;
+  /** Colunas como foram digitadas (planilha ou lançamento rápido): mostra o valor inválido para corrigir. */
+  raw: Record<LegacyColumn, string>;
   data: LegacyRowData;
   issues: LegacyIssue[];
   customerAction: LegacyCustomerAction;
+  /** Vínculo feito pelo sistema (nome idêntico a um único cliente) — pede conferência. */
+  autoLinked: boolean;
   suggestions: LegacySuggestion[];
   customerId: string | null;
   financialDocumentId: string | null;
@@ -146,6 +150,11 @@ export interface AddLegacyRowsInput {
 /** Origem do lote para a tela: nome do arquivo ou "Lançamento rápido". */
 export function batchLabel(batch: Pick<LegacyBatchListItem, 'source' | 'fileName'>): string {
   return batch.source === 'CSV' ? (batch.fileName ?? 'Planilha CSV') : 'Lançamento rápido';
+}
+
+/** Linha vinculada a um cliente que foi excluído depois do vínculo (erro da revisão). */
+export function hasMissingLinkedCustomer(row: LegacyRow): boolean {
+  return row.issues.some((issue) => issue.code === 'LINKED_CUSTOMER_MISSING');
 }
 
 /** Linha com nome parecido ainda sem decisão (o servidor só emite SIMILAR_* enquanto a decisão está pendente). */

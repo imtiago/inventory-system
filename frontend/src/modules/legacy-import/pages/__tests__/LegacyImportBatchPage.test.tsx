@@ -103,6 +103,75 @@ describe('LegacyImportBatchPage — revisão', () => {
     await waitFor(() => expect(patches).toEqual([{ rowId: rowId(2), body: { customerAction: { kind: 'NEW' } } }]));
   });
 
+  test('vínculo escolhido pela usuária não aparece como automático (usa autoLinked, não o nome)', async () => {
+    const batch = structuredClone(review);
+    const chosen = batch.rows.find((r) => r.line === 2)!;
+    chosen.autoLinked = false;
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    const row = rowOf(2);
+    expect(within(row).getByText('Vinculado a Maria Silva')).toBeInTheDocument();
+    expect(within(row).queryByText(/automaticamente/)).not.toBeInTheDocument();
+  });
+
+  test('vínculo automático sem sugestão na lista ainda mostra "confira" com o nome da linha', async () => {
+    const batch = structuredClone(review);
+    const auto = batch.rows.find((r) => r.line === 2)!;
+    auto.suggestions = [];
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    expect(within(rowOf(2)).getByText('Vinculado automaticamente a Maria Silva — confira')).toBeInTheDocument();
+  });
+
+  test('cliente vinculado apagado aparece na revisão (erro da linha) com "Criar novo"', async () => {
+    const batch = structuredClone(review);
+    const gone = batch.rows.find((r) => r.line === 2)!;
+    gone.status = 'ERROR';
+    gone.autoLinked = false;
+    gone.customerId = null;
+    gone.suggestions = [];
+    gone.issues = [
+      { code: 'LINKED_CUSTOMER_MISSING', severity: 'ERROR', field: 'nome', message: 'O cliente vinculado não existe mais (foi excluído). Escolha "Criar novo" ou vincule outro cliente.' },
+    ];
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    const row = rowOf(2);
+    expect(within(row).getByText('Cliente vinculado foi excluído')).toBeInTheDocument();
+    expect(within(row).queryByText(/Vinculado a/)).not.toBeInTheDocument();
+    await userEvent.click(within(row).getByRole('button', { name: 'Criar novo' }));
+    await waitFor(() => expect(patches).toEqual([{ rowId: rowId(2), body: { customerAction: { kind: 'NEW' } } }]));
+  });
+
+  test('editor mostra o texto digitado na planilha quando o valor é inválido', async () => {
+    const batch = structuredClone(review);
+    const bad = batch.rows.find((r) => r.line === 4)!;
+    bad.raw = { ...bad.raw, valor_pago: '15O,00', data_compra: '31/02/2026', celular: '123', perfil: 'Ótimo', vencimentos: '10/12/2026=x' };
+    bad.data = { ...bad.data, paid: 0, purchaseDate: null, phone: null, profileCode: null };
+    bad.issues = [
+      { code: 'INVALID_AMOUNT', severity: 'ERROR', field: 'valor_pago', message: 'Valor pago inválido. Use o formato 1.234,56.' },
+      { code: 'INVALID_DATE', severity: 'ERROR', field: 'data_compra', message: 'Data inválida. Use dd/mm/aaaa.' },
+      { code: 'INVALID_PHONE', severity: 'WARNING', field: 'celular', message: 'Celular inválido (use DDD + número).' },
+      { code: 'UNKNOWN_PROFILE', severity: 'ERROR', field: 'perfil', message: 'Perfil desconhecido. Use Novo, Regular, Bom ou Excelente.' },
+      { code: 'INVALID_DUE_DATES', severity: 'ERROR', field: 'vencimentos', message: 'Vencimentos inválidos.' },
+    ];
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    await userEvent.click(within(rowOf(4)).getByRole('button', { name: 'Editar' }));
+    const editor = screen.getByRole('form', { name: 'Editar linha 4' });
+    expect(within(editor).getByLabelText('Valor pago')).toHaveValue('15O,00');
+    expect(within(editor).getByLabelText('Celular')).toHaveValue('123');
+    expect(within(editor).getByText('Na planilha: 31/02/2026')).toBeInTheDocument();
+    expect(within(editor).getByText('Na planilha: Ótimo')).toBeInTheDocument();
+    expect(within(editor).getByText('Na planilha: 10/12/2026=x')).toBeInTheDocument();
+    // Sem mexer, nada é enviado: o valor digitado só aparece para corrigir.
+    await userEvent.click(within(editor).getByRole('button', { name: 'Salvar linha' }));
+    expect(patches).toEqual([]);
+  });
+
   test('nome parecido com cliente: vincular ao existente ou criar novo', async () => {
     renderPage();
     await screen.findByText('caderno-loja.csv');
@@ -262,7 +331,7 @@ describe('LegacyImportBatchPage — revisão', () => {
       http.patch(`${API_URL}/legacy-imports/:id/rows/:rowId`, async ({ params, request }) => {
         const body = (await request.json()) as { data?: unknown };
         patches.push({ rowId: params.rowId as string, body });
-        if (body.data) return HttpResponse.json({ message: 'Registro em uso por outros dados.', code: 'RESOURCE_IN_USE' }, { status: 409 });
+        if (body.data) return HttpResponse.json({ message: 'Cliente não encontrado.', code: 'CUSTOMER_NOT_FOUND' }, { status: 404 });
         return HttpResponse.json({ data: current });
       }),
     );
@@ -274,7 +343,7 @@ describe('LegacyImportBatchPage — revisão', () => {
     await userEvent.click(within(editor).getByRole('button', { name: 'Salvar linha' }));
 
     const alert = await within(editor).findByRole('alert');
-    expect(alert).toHaveTextContent('Registro em uso por outros dados.');
+    expect(alert).toHaveTextContent('Cliente não encontrado.');
     expect(alert).toHaveTextContent('O cliente vinculado pode ter sido excluído');
     await userEvent.click(within(alert).getByRole('button', { name: 'Criar cliente novo' }));
 

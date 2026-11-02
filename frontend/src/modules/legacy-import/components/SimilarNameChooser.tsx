@@ -1,6 +1,6 @@
-import { CheckCircle2, Link2, UserPlus } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Link2, UserPlus } from 'lucide-react';
 
-import { hasPendingSimilar, type LegacyRow, type UpdateLegacyRowInput } from '../types';
+import { hasMissingLinkedCustomer, hasPendingSimilar, type LegacyRow, type UpdateLegacyRowInput } from '../types';
 
 interface Props {
   row: LegacyRow;
@@ -39,9 +39,23 @@ export function SimilarNameChooser({ row, rowsById, disabled = false, onChange }
     </button>
   );
 
+  if (action.kind === 'LINK' && hasMissingLinkedCustomer(row)) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="flex items-start gap-1.5 text-sm text-danger">
+          <CircleAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span>Cliente vinculado foi excluído</span>
+        </p>
+        <div className="flex flex-wrap gap-2">{newButton}</div>
+      </div>
+    );
+  }
+
   if (action.kind === 'LINK') {
     const linked = row.suggestions.find((s) => s.customerId === action.customerId);
-    const text = linked ? (linked.match === 'SAME' ? `Vinculado automaticamente a ${linked.name} — confira` : `Vinculado a ${linked.name}`) : 'Vinculado a um cliente cadastrado';
+    // Vínculo automático = nome idêntico ao da linha; o nome do cadastro vem da sugestão quando há.
+    const name = linked?.name ?? (row.autoLinked ? row.data.name : null);
+    const text = row.autoLinked ? `Vinculado automaticamente a ${name} — confira` : name ? `Vinculado a ${name}` : 'Vinculado a um cliente cadastrado';
 
     return (
       <div className="flex flex-col gap-2">
