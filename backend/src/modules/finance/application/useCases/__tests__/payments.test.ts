@@ -191,12 +191,37 @@ test("paymentDate futura → 400; padrão = hoje negócio; createdById do token"
   assert.equal(log.length, 0, "não deve travar nada com data inválida");
 
   await register.execute(pay(doc, 0, 1, { reference: "  NSU 123  " }));
-  await register.execute(pay(doc, 0, 1, { paymentDate: "2026-10-01", reference: "   " }));
+  await register.execute(pay(doc, 0, 1, { paymentDate: "2026-10-01", reference: "   ", canWaive: true, backdateReason: "Lançado depois" }));
   assert.equal(created[0].paymentDate, TODAY);
   assert.equal(created[0].createdById, "user-1");
   assert.equal(created[0].reference, "NSU 123");
   assert.equal(created[1].paymentDate, "2026-10-01");
   assert.equal(created[1].reference, null);
+  assert.equal(created[1].backdateReason, "Lançado depois");
+  assert.equal(created[0].backdateReason, null);
+});
+
+test("a receber com data passada: sem credit.approve → 403 BACKDATED_PAYMENT_FORBIDDEN; aprovador sem motivo → 400; a pagar livre", async () => {
+  const doc = newDoc([10000]);
+  const { register, created, log } = build([doc]);
+  await assert.rejects(
+    () => register.execute(pay(doc, 0, 1, { paymentDate: "2026-10-01", backdateReason: "Lançado depois" })),
+    (e: any) => e.name === "ForbiddenError" && e.code === "BACKDATED_PAYMENT_FORBIDDEN",
+  );
+  for (const backdateReason of [undefined, "  ", "ab"]) {
+    await assert.rejects(
+      () => register.execute(pay(doc, 0, 1, { paymentDate: "2026-10-01", canWaive: true, backdateReason })),
+      (e: any) => e.name === "ValidationError" && e.errors[0].field === "backdateReason",
+    );
+  }
+  assert.equal(log.length, 0, "nada travado nem gravado");
+  assert.equal(created.length, 0);
+
+  const payable = newDoc([1000], { type: FinancialType.PAYABLE });
+  const forPayables = build([payable], FinancialType.PAYABLE);
+  await forPayables.register.execute(pay(payable, 0, 1, { paymentDate: "2026-10-01" }));
+  assert.equal(forPayables.created[0].paymentDate, "2026-10-01");
+  assert.equal(forPayables.created[0].backdateReason, null);
 });
 
 test("estorno → status recalculado; documento PAID volta a PARTIALLY_PAID", async () => {
@@ -266,14 +291,14 @@ test("paymentDate anterior à criação do título (data de negócio) → 400 se
   const { register, created } = build([doc]);
 
   await assert.rejects(
-    () => register.execute(pay(doc, 0, 1, { paymentDate: "2026-08-31" })),
+    () => register.execute(pay(doc, 0, 1, { paymentDate: "2026-08-31", canWaive: true, backdateReason: "Lançado depois" })),
     (e: any) =>
       e.name === "ValidationError" &&
       e.errors[0].field === "paymentDate" &&
       e.errors[0].message === "A data do pagamento não pode ser anterior à criação do título.",
   );
   assert.equal(created.length, 0);
-  await register.execute(pay(doc, 0, 1, { paymentDate: "2026-09-01" }));
+  await register.execute(pay(doc, 0, 1, { paymentDate: "2026-09-01", canWaive: true, backdateReason: "Lançado depois" }));
   assert.equal(created.length, 1);
 });
 

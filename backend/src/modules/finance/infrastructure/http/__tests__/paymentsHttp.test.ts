@@ -203,6 +203,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
       amount: 1,
       method: "PIX",
       paymentDate: addDays(-1),
+      backdateReason: "Pago antes, lançado hoje",
     });
     assert.equal(before.statusCode, 400, before.body);
     assert.equal(before.json().code, "VALIDATION_ERROR");
@@ -235,6 +236,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
       amount: 1,
       method: "DEBIT_CARD",
       paymentDate: addDays(-3),
+      backdateReason: "Pago no débito, lançado depois",
     });
     assert.equal(past.statusCode, 201, past.body);
     assert.equal(past.json().data.parcels[0].payments[0].paymentDate, addDays(-3));
