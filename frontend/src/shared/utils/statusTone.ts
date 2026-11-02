@@ -20,6 +20,10 @@ export const statusTone: Record<string, Tone> = {
   PAID: 'success',
   OVERDUE: 'danger',
 
+  // Caderninho (origem LEGACY) e vencimento "a combinar": nunca com tom de vencida
+  LEGACY: 'info',
+  DUE_TO_AGREE: 'neutral',
+
   // NF-e
   DRAFT: 'warning',
   CONFIRMED: 'success',

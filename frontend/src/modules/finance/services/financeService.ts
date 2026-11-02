@@ -35,6 +35,17 @@ export async function reversePayment(kind: FinanceKind, paymentId: string, reaso
   return response.data.data;
 }
 
+export interface ISplitParcelInput {
+  parcels: { dueDate: string; amount: number }[];
+}
+
+/** Parcela o saldo de uma parcela com vencimento "a combinar" (só contas a receber). */
+export async function splitParcel(documentId: string, parcelId: string, input: ISplitParcelInput, idempotencyKey: string): Promise<IFinanceDetail> {
+  const response = await api.post<{ data: IFinanceDetail }>(`/receivables/${documentId}/parcels/${parcelId}/split`, input, idempotencyConfig(idempotencyKey));
+
+  return response.data.data;
+}
+
 /** Multa e juros de uma parcela a receber se paga em `paymentDate` (prévia; o pagamento recalcula). */
 export async function getLateFeeQuote(documentId: string, parcelId: string, paymentDate: string): Promise<ILateFeeQuote> {
   const response = await api.get<{ data: ILateFeeQuote }>(`/receivables/${documentId}/parcels/${parcelId}/late-fees`, { params: { paymentDate } });

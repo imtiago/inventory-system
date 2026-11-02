@@ -31,6 +31,7 @@ const COVERED_POSTS = [
   /\/credit\/review\/apply$/,
   /\/(receivables|payables)\/[^/]+\/parcels\/[^/]+\/payments$/,
   /\/(receivables|payables)\/payments\/[^/]+\/reverse$/,
+  /\/receivables\/[^/]+\/parcels\/[^/]+\/split$/,
   /\/purchases$/,
   /\/purchases\/[^/]+\/(receipts|cancel)$/,
   /\/nfe-imports\/[^/]+\/(confirm|revert)$/,

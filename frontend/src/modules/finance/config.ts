@@ -82,6 +82,11 @@ export const FINANCE_KINDS: Record<FinanceKind, IFinanceKindConfig> = {
   },
 };
 
+/** Origem das dívidas antigas importadas do caderno: não tem venda nem pedido para abrir. */
+export const LEGACY_ORIGIN = 'LEGACY';
+export const LEGACY_LABEL = 'Caderninho';
+export const DUE_TO_AGREE_LABEL = 'A combinar';
+
 export function partyOf(kind: FinanceKind, item: Pick<IFinanceDetail, 'customer' | 'supplier'>) {
   return item[FINANCE_KINDS[kind].partyKey];
 }

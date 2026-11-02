@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pencil, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { Can } from '@/shared/auth/Can';
 import { StatusBadge } from '@/components/ui/badge';
@@ -69,6 +70,13 @@ export function CustomerCreditCard({ customerId }: { customerId: string }) {
             <InfoItem label="Disponível" value={formatCurrency(credit.available)} />
             <InfoItem label="Situação" value={<StatusBadge status={credit.status}>{CREDIT_STATUS_LABELS[credit.status]}</StatusBadge>} />
           </div>
+
+          <p className="px-4 pb-4 text-sm text-muted sm:px-6">
+            Em aberto inclui as dívidas antigas do caderninho.{' '}
+            <Link to={`/receivables?customerId=${customerId}&openOnly=true`} className="font-medium text-primary underline underline-offset-2 hover:text-primary-hover">
+              Ver contas a receber do cliente
+            </Link>
+          </p>
 
           {credit.currentMaxOverdueDays > 0 && (
             <p className="px-4 pb-4 text-sm text-danger sm:px-6">Parcela em atraso há {credit.currentMaxOverdueDays} dias.</p>
