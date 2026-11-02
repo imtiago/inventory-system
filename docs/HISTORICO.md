@@ -137,7 +137,7 @@ Implementada na branch `feat/notebook-import` (9 tarefas do plano `docs/superpow
 - Contas a receber de origem `LEGACY` ("Caderninho"), sempre sem multa/juros (`noLateFees`), sem venda nem estoque; parcela "a combinar" (`dueDateUnknown`) que nunca aparece como vencida (lista, resumo, detalhe, painel, CSV, crédito).
 - Lotes de importação: CSV pelo modelo (Excel em português ou Google Sheets) ou lançamento rápido no celular; revisão linha a linha com situação, avisos em português, edição na própria linha (com o texto original quando o valor não pôde ser lido), ignorar/restaurar, filtro de avisos/erros.
 - Nomes parecidos (conservador: "Maria Silva" × "Mariana Silva" não junta; "Maria S." e "Jose"/"José" juntam), vínculo automático por nome idêntico (marcado "confira"), "mesma pessoa da linha N", aviso de cliente vinculado excluído.
-- Confirmação atômica e idempotente: cria clientes, uma dívida por linha, aplica perfil e limite (regra `limitRule`) com histórico `LEGACY_IMPORT`. Desfazer seguro (recusado com pagamento).
+- Confirmação atômica e idempotente: cria clientes, uma dívida por linha, aplica perfil e limite (regra `limitRule`) com histórico `LEGACY_IMPORT`. Desfazer seguro (recusado com pagamento), que restaura limite/perfil dados pela importação quando a ficha não mudou depois.
 - "Parcelar saldo" a combinar em 1–24 parcelas (modal com divisão automática e edição).
 - Ficha do cliente mostra quanto do saldo é do caderninho (etiqueta "Caderninho").
 - Verificação final (Task 9): backend 1121 testes, 5 rodadas (3 verdes; uma falha instável de teste corrigida — inicial aleatória "E" virava partícula — e uma do relatório de lucro, antiga, sem relação), mais 1 rodada verde num banco novo com as 39 migrations; frontend 946 testes (2 rodadas), lint/tipos/build limpos; roteiro ponta a ponta automatizado (`legacyEndToEnd.test.ts`); QA visual 375/768/1280 nos dois temas sem rolagem horizontal e contraste sem falhas.
@@ -147,17 +147,17 @@ Implementada na branch `feat/notebook-import` (9 tarefas do plano `docs/superpow
 - Conta no saldo e no limite, mas **nunca bloqueia** o crediário por atraso **nem pontua** (perfil/revisão).
 - Nome idêntico a um único cliente vincula automaticamente; a tela pede conferência e permite "Criar novo".
 - Limite na confirmação: padrão = maior entre limite atual, limite inicial do perfil e saldo importado (o cliente não começa estourado); opção "só o limite do perfil".
-- **Desfazer mantém** clientes criados, perfil e limite (o histórico fica); só cancela as dívidas, e só se nenhuma recebeu pagamento.
+- **Desfazer mantém** os clientes criados e cancela as dívidas (só se nenhuma recebeu pagamento). Revisto em 2026-11-01 (revisão final, I-5): perfil e limite que a importação mudou **voltam ao de antes** quando a ficha ainda está como a importação deixou e ninguém mexeu depois (histórico "Lote desfeito", `LEGACY_IMPORT`); senão ficam e a tela lista quem não foi restaurado. Motivo: manter o limite elevado deixava crédito disponível que ninguém aprovou.
+- Correções da revisão final (2026-11-01): editar o nome refaz o vínculo automático e a tela mostra o nome do cadastro à parte; aviso de dívida repetida (mesmo cliente, mesmo saldo em aberto num lote confirmado) com decisão por linha e aviso de arquivo já importado (SHA-256); lote de até 500 linhas e revisão indexada (500 × 5.000 ≈ 0,1 s); limites de texto do cadastro no CSV.
 - Parcelar um saldo a combinar não conta como renegociação.
 - Parcela datada vencida do caderninho aparece como "Vencida" em contas a receber e no painel (é uma cobrança atrasada de fato), sem encargos e sem efeito no crédito.
 
 **Ficou aberto (menores)**
 - Busca de candidatos acima de 5.000 clientes compara só o 1º termo do nome (sem acento); nomes com apóstrofo ("D'Ávila") podem não aparecer como parecidos.
-- Inicial isolada "E." num nome é lida como partícula ("e") e some da comparação ("Maria E. Silva" × "Maria Eduarda Silva" não é sugerido).
 - Mudar a quantidade de parcelas ou a 1ª data no modal de parcelar refaz a sugestão e apaga edições manuais (há um aviso na tela).
-- Confirmação simultânea de lote muito grande (2.000 linhas) pode responder 409 `CONCURRENT_UPDATE` (trava de 5 s) em vez de `LEGACY_BATCH_NOT_DRAFT` (os dois seguros).
+- Confirmação simultânea de lote grande (500 linhas) pode responder 409 `CONCURRENT_UPDATE` (trava de 5 s) em vez de `LEGACY_BATCH_NOT_DRAFT` (os dois seguros).
 - Recibo de dívida do caderninho ("Saldo anterior — caderninho") sem teste HTTP próprio (só o conteúdo).
-- Teste instável antigo do relatório de lucro (`profitReport.test.ts`, despesas estimadas) quando outro arquivo muda as configurações de preço durante a consulta: não segura `acquirePricingTestLock()`.
+- Menores adiados da revisão final: CHECK em `LegacyImportBatch.limitRule` (exige migration), celular na busca de candidatos acima de 5.000 clientes, faixa de datas no CSV, perfil menor rebaixando cliente existente na regra MAX, linhas duplicadas por reenvio do lançamento rápido (sem idempotência), cache da revisão com respostas fora de ordem, parcelas do "Parcelar saldo" nunca contam como atraso (pergunta ao dono).
 
 **Passo a passo do operador**
 1. Separar o caderno. Para cada cliente com dívida: nome, celular (se tiver), data e descrição da compra, valor total, quanto já pagou, vencimentos combinados (se houver) e perfil (Novo/Regular/Bom/Excelente, se souber).
@@ -166,4 +166,4 @@ Implementada na branch `feat/notebook-import` (9 tarefas do plano `docs/superpow
 4. Escolher a regra do limite e **confirmar**. Conferir em Contas a receber (etiqueta "Caderninho") e na ficha dos clientes.
 5. Para saldos "a combinar", quando o cliente acertar as datas: abrir a conta e usar **Parcelar saldo**.
 6. Ajustar perfis e limites na ficha do cliente quando necessário (o histórico mostra a origem "Migração do caderninho").
-7. Se algo saiu errado: **Desfazer lote** (só sem pagamentos; estorne antes). Clientes e limites continuam.
+7. Se algo saiu errado: **Desfazer lote** (só sem pagamentos; estorne antes). Os clientes continuam; limite e perfil que a importação deu voltam ao de antes (se você não mexeu na ficha depois — a tela lista quem ficou como está).
