@@ -270,7 +270,7 @@ export function SaleCreatePage() {
   }
 
   const isRegisterDisabled =
-    !customerId || cart.items.length === 0 || hasUnpricedItems || createSaleMutation.isPending || (isCrediario && (!crediario || crediarioBlocked !== null));
+    !customerId || cart.items.length === 0 || hasUnpricedItems || createSaleMutation.isPending || (isCrediario && (!crediario || crediarioBlocked !== null || simulation.isFetching)); // crediário: não envia plano/exceção de uma simulação desatualizada
 
   const registerLabel = createSaleMutation.isPending ? 'Registrando venda...' : neededOverride.length > 0 ? 'Pedir autorização' : 'Registrar venda';
 

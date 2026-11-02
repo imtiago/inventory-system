@@ -328,6 +328,32 @@ describe('SaleCreatePage — crediário', () => {
     expect(posts).toHaveLength(0);
   });
 
+  test('enquanto a simulação da nova entrada não volta, o botão fica desabilitado (sem enviar plano antigo)', async () => {
+    await readyToClose();
+    await chooseCondition('Crediário');
+    await screen.findByRole('table', { name: 'Opções do crediário' });
+    await userEvent.click(screen.getByRole('radio', { name: /1x de/ }));
+    const button = screen.getByRole('button', { name: /Registrar venda|Pedir autorização/ });
+    expect(button).toBeEnabled();
+
+    let release: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.post(`${API_URL}/sales/simulate`, async ({ request }) => {
+        simulations.push((await request.json()) as Record<string, unknown>);
+        await pending;
+        return HttpResponse.json(saleSimulation);
+      }),
+    );
+    await userEvent.type(screen.getByLabelText('Entrada'), '60,00');
+    await waitFor(() => expect(simulations.some((s) => s.downPayment === 60)).toBe(true));
+    expect(button).toBeDisabled();
+    release();
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+
   test('escolher uma opção é obrigatório', async () => {
     await readyToClose();
     await chooseCondition('Crediário');

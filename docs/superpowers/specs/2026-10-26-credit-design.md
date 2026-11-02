@@ -181,6 +181,19 @@ A venda passa a ter **uma condição de pagamento**, escolhida no fim:
 - **Dívidas do caderninho:** contam no saldo devedor e no limite, mas **não** bloqueiam o cliente por atraso e **não** pioram perfil nem pontuação (nem as vencidas). Decidido em 2026-10-26.
 - **Ativação do crediário:** nasce desligado com os valores iniciais já preenchidos. O ADMIN ativa em Configurações de crédito depois de conferir; a ativação exige dados da loja preenchidos (para o carnê) e ao menos um aprovador de crédito, e registra quem e quando ativou. A rotina mensal de revisão de limite fica desligada no cron até os pesos serem aprovados (dá para rodar manualmente com prévia). Precificação: sem preço sugerido até a configuração de preço ser salva. Decidido pelo Claude a pedido do usuário ("da melhor forma").
 
+- **Correções da revisão final (decididas pelo usuário, 2026-11-01):**
+  - Histórico de crédito (revisão periódica e auto-aprovação) conta **só parcelas do crediário** (venda com `SaleFinancing`); vendas pagas no ato (à vista/PIX/cartão), a entrada e contas avulsas não contam.
+  - Pagamento a receber com data passada: só quem tem `credit.approve`, com motivo gravado (`Payment.backdateReason`); sem a permissão → 403 `BACKDATED_PAYMENT_FORBIDDEN`. Contas a pagar continuam livres.
+  - Multa, juros e carência são gravados na venda (`SaleFinancing`); mudar as configurações só vale para vendas novas (carnê, prévia e pagamento usam o snapshot).
+  - A senha do aprovador nunca entra no hash de idempotência (corpo com segredos trocados por constante).
+  - Aprovar pedido de aumento não baixa o limite: valor aprovado ≤ limite atual → 422 `CREDIT_LIMIT_NOT_HIGHER`.
+
+### Limitações conhecidas (aceitas)
+- **Primeiro período longo:** com dia de vencimento escolhido, a 1ª parcela pode vencer até ~58 dias depois da venda, mas a Tabela Price considera um período só (favorece o cliente).
+- **Estorno × venda no crediário:** o estorno de pagamento trava só o documento; um estorno confirmado entre a leitura do saldo e o commit da venda pode deixar a venda passar do limite pelo valor estornado (raro, só ADMIN).
+- **Aplicar a revisão periódica:** roda numa transação só e segura a ficha de todos os clientes revisados até o fim; venda no crediário de um deles nesse meio tempo pode esperar até 5 s e receber 409 `CONCURRENT_UPDATE`. Rode fora do horário de vendas.
+- **bcrypt sob a trava do cliente:** a conferência da senha do aprovador (~100 ms) acontece com a ficha travada.
+
 ## 11. Valores iniciais
 Faixas, perfis, taxa de 3,99% ao mês e pesos da revisão são valores iniciais; a usuária confere e ajusta antes de ativar (§10).
 
