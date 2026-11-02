@@ -82,6 +82,18 @@ describe('LegacyImportBatchPage — revisão', () => {
     expect(within(rowOf(6)).getByText('Sem data da compra.')).toBeInTheDocument();
   });
 
+  test('lote com mais de 200 linhas abre já filtrado em "só com aviso ou erro"', async () => {
+    const batch = structuredClone(review);
+    const ok = batch.rows.find((r) => r.line === 5)!;
+    batch.rows = [...batch.rows, ...Array.from({ length: 200 }, (_, i) => ({ ...structuredClone(ok), id: `extra-${i}`, line: 100 + i }))];
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    expect(screen.getByRole('checkbox', { name: 'Só com aviso ou erro' })).toBeChecked();
+    expect(screen.queryByTestId('legacy-row-100')).not.toBeInTheDocument();
+    expect(screen.getByTestId('legacy-row-4')).toBeInTheDocument();
+  });
+
   test('filtro "só com aviso ou erro" esconde linhas OK e ignoradas', async () => {
     renderPage();
     await screen.findByText('caderno-loja.csv');

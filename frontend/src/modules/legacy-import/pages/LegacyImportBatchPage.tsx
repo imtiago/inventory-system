@@ -90,7 +90,8 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
   const revert = useRevertLegacyBatch(routeId);
   const remove = useDeleteLegacyBatch();
 
-  const [onlyIssues, setOnlyIssues] = useState(false);
+  // Lote grande: abre só com o que precisa de atenção (centenas de cartões pesam no celular).
+  const [onlyIssues, setOnlyIssues] = useState(() => batch.rows.length > 200);
   const [editing, setEditing] = useState<string | null>(null);
   const [rowError, setRowError] = useState<RowError | null>(null);
   const [limitRule, setLimitRule] = useState<LegacyLimitRule>(batch.limitRule ?? 'MAX_OF_PROFILE_AND_BALANCE');

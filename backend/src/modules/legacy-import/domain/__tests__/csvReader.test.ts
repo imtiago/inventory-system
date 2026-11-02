@@ -77,3 +77,15 @@ test("modelo: BOM, CRLF, 9 colunas, lido de volta sem erro", () => {
   assert.equal(r.rows.length, 2);
   assert.doesNotThrow(() => mapHeader(r.header));
 });
+
+test('UTF-16 com BOM ("Texto Unicode" do Excel, separado por tabulação) é lido', () => {
+  const text = "nome\tvalor_total\nJosé Lima\t10,00\n";
+  const le = new Uint8Array([0xff, 0xfe, ...Buffer.from(text, "utf16le")]);
+  const parsed = parseCsv(decodeCsvBytes(le));
+  assert.deepEqual(parsed.header, ["nome", "valor_total"]);
+  assert.deepEqual(parsed.rows[0].cells, ["José Lima", "10,00"]);
+  const swapped = Buffer.from(text, "utf16le");
+  swapped.swap16();
+  const be = new Uint8Array([0xfe, 0xff, ...swapped]);
+  assert.deepEqual(parseCsv(decodeCsvBytes(be)).rows[0].cells, ["José Lima", "10,00"]);
+});

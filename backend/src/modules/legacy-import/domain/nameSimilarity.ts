@@ -6,18 +6,25 @@ export type SimilarMatch = NameMatch | "PHONE";
 
 const PARTICLES = new Set(["da", "de", "do", "das", "dos", "e"]);
 
-/** Tokens: sem acento, minúsculas, '.' e '-' viram espaço, outra pontuação some, sem partículas. */
+/**
+ * Tokens: sem acento, minúsculas, '.' e '-' separam, outra pontuação some, sem partículas.
+ * Uma letra seguida de ponto ("E.") é inicial, não a partícula "e" ("Maria E. Souza" ≠ "Maria Souza").
+ */
 export function normalizeName(name: string): string[] {
   const cleaned = name
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    .replace(/(^|[^a-z0-9])e\./g, "$1\u0001 ")
     .replace(/[.\-]/g, " ")
-    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/[^a-z0-9\s\u0001]/g, "")
     .replace(/\s+/g, " ")
     .trim();
   if (!cleaned) return [];
-  return cleaned.split(" ").filter((t) => !PARTICLES.has(t));
+  return cleaned
+    .split(" ")
+    .filter((t) => !PARTICLES.has(t))
+    .map((t) => (t === "\u0001" ? "e" : t));
 }
 
 function levenshtein(a: string, b: string): number {

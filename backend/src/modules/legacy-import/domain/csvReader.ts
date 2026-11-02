@@ -5,8 +5,10 @@ export const MAX_CSV_CHARS = 1_000_000;
 export const MAX_CSV_DATA_LINES = MAX_BATCH_ROWS;
 const TOO_BIG = "Arquivo grande demais (máx. 1 MB).";
 
-/** UTF-8 estrito (sem BOM); se os bytes não forem UTF-8 válido, windows-1252. */
+/** UTF-16 com BOM ("Texto Unicode" do Excel); senão UTF-8 estrito (sem BOM); se não for UTF-8 válido, windows-1252. */
 export function decodeCsvBytes(bytes: Uint8Array): string {
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder("utf-16le").decode(bytes.subarray(2));
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder("utf-16be").decode(bytes.subarray(2));
   let text: string;
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -19,6 +21,7 @@ export function decodeCsvBytes(bytes: Uint8Array): string {
 function detectSeparator(text: string): string {
   let inQuotes = false;
   let semi = 0;
+  let tab = 0;
   let line = "";
   // Primeira linha não vazia (fora de aspas).
   for (let i = 0; i < text.length; i++) {
@@ -28,12 +31,14 @@ function detectSeparator(text: string): string {
       if (line.replace(/[;,\s]/g, "") !== "") break;
       line = "";
       semi = 0;
+      tab = 0;
       continue;
     }
     if (!inQuotes && ch === ";") semi++;
+    if (!inQuotes && ch === "\t") tab++;
     line += ch;
   }
-  return semi > 0 ? ";" : ",";
+  return semi > 0 ? ";" : tab > 0 && !line.includes(",") ? "\t" : ",";
 }
 
 /**

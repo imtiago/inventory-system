@@ -95,3 +95,12 @@ test("desempenho: 100 linhas × 200 clientes, mediana de 5 rodadas < 1 s", () =>
   const median = [...runs].sort((a, b) => a - b)[2];
   assert.ok(median < 1000, `mediana ${median.toFixed(1)} ms (rodadas: ${runs.map((ms) => ms.toFixed(0)).join(", ")})`);
 });
+
+test('"E." com ponto é inicial (não a partícula "e"): "Maria E. Souza" não é a mesma que "Maria Souza"', () => {
+  assert.deepEqual(normalizeName("Maria E. Souza"), ["maria", "e", "souza"]);
+  assert.deepEqual(normalizeName("Maria e Souza"), ["maria", "souza"]);
+  assert.deepEqual(normalizeName("Maria E.Souza"), ["maria", "e", "souza"]);
+  assert.equal(nameMatch("Maria E. Souza", "Maria Souza"), null);
+  assert.equal(nameMatch("Maria E. Souza", "Maria Eduarda Souza"), "SIMILAR");
+  assert.equal(nameMatch("Pedro e Paulo Lima", "Pedro Paulo Lima"), "SAME");
+});
