@@ -108,7 +108,8 @@ describe("Lotes de importação do caderninho (/legacy-imports)", () => {
   });
 
   test("linha com nome parecido a cliente existente → WARNING SIMILAR_CUSTOMER com sugestão; duas linhas da mesma pessoa → SIMILAR_ROW", async () => {
-    const [a, b, c] = [cap(word()), cap(word()), cap(word())];
+    // Inicial fixa "M": uma inicial aleatória "E" vira partícula ("e") e some da comparação (teste instável).
+    const [a, b, c] = [cap(word()), `M${word()}`, cap(word())];
     const existing = await createCustomer(`${a} ${b} ${c}`);
     const d = cap(word());
     const csv = [

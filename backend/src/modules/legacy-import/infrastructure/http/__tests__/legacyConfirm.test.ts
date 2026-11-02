@@ -250,7 +250,8 @@ describe("Confirmar e desfazer lote do caderninho", () => {
     assert.ok(okRow.financialDocumentId);
     assert.equal((await legacyDocs([ignoredRow.id])).length, 0);
 
-    const [w1, w2, w3] = [cap(word()), cap(word()), cap(word())];
+    // Inicial fixa "M": uma inicial aleatória "E" vira partícula ("e") e some da comparação (teste instável).
+    const [w1, w2, w3] = [cap(word()), `M${word()}`, cap(word())];
     const existing = await prisma.customer.create({ data: { name: `${w1} ${w2} ${w3}`, code: `tx-test-${randomUUID()}` } });
     extraCustomerIds.push(existing.id);
     const similar = await upload([`${w1} ${w2[0]}. ${w3};;;x;100,00;;;;`]);
