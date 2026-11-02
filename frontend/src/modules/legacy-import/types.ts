@@ -118,6 +118,16 @@ export interface LegacyBatch extends LegacyBatchListItem {
   rows: LegacyRow[];
 }
 
+export interface CreditRestoreItem {
+  customerId: string;
+  name: string;
+}
+
+/** Resposta do desfazer: fichas que a importação mudou, restauradas ou mantidas (mudaram depois). */
+export interface LegacyRevertResult extends LegacyBatch {
+  creditRestore: { restored: CreditRestoreItem[]; notRestored: CreditRestoreItem[] };
+}
+
 export interface LegacyBatchListResponse {
   data: LegacyBatchListItem[];
   pagination: { page: number; limit: number; total: number; totalPages: number };

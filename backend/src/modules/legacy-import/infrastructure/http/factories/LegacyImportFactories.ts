@@ -11,6 +11,7 @@ import {
   type LegacyBatchDeps,
 } from "../../../application/useCases/LegacyBatchUseCases";
 import { PrismaLegacyCustomerLookup } from "../../prisma/PrismaLegacyCustomerLookup";
+import { PrismaLegacyCreditHistory } from "../../prisma/PrismaLegacyCreditHistory";
 import { PrismaLegacyImportBatchReadRepository } from "../../prisma/PrismaLegacyImportBatchReadRepository";
 import { PrismaLegacyImportBatchRepository } from "../../prisma/PrismaLegacyImportBatchRepository";
 import { ConfirmLegacyBatchUseCase } from "../../../application/useCases/ConfirmLegacyBatchUseCase";
@@ -72,6 +73,9 @@ export const makeRevertLegacyBatchUseCase = () =>
       reads: new PrismaLegacyImportBatchReadRepository(),
       customers: new PrismaLegacyCustomerLookup(),
       documents: new PrismaFinancialDocumentRepository(),
+      customerCredits: new PrismaCustomerCreditRepository(),
+      creditService: makeCustomerCreditService(),
+      creditHistory: new PrismaLegacyCreditHistory(),
     },
     tm(),
   );

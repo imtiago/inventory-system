@@ -2,7 +2,7 @@ import { api } from '@/shared/services/api';
 import { downloadFile } from '@/shared/utils/download';
 import { idempotencyConfig } from '@/shared/utils/idempotencyKey';
 
-import type { AddLegacyRowsInput, LegacyBatch, LegacyBatchListResponse, LegacyLimitRule, UpdateLegacyRowInput } from '../types';
+import type { AddLegacyRowsInput, LegacyBatch, LegacyBatchListResponse, LegacyLimitRule, LegacyRevertResult, UpdateLegacyRowInput } from '../types';
 
 const PAGE_SIZE = 10;
 
@@ -61,8 +61,8 @@ export async function confirmLegacyBatch(id: string, limitRule: LegacyLimitRule,
   return response.data.data;
 }
 
-export async function revertLegacyBatch(id: string, idempotencyKey: string): Promise<LegacyBatch> {
-  const response = await api.post<{ data: LegacyBatch }>(`/legacy-imports/${id}/revert`, undefined, idempotencyConfig(idempotencyKey));
+export async function revertLegacyBatch(id: string, idempotencyKey: string): Promise<LegacyRevertResult> {
+  const response = await api.post<{ data: LegacyRevertResult }>(`/legacy-imports/${id}/revert`, undefined, idempotencyConfig(idempotencyKey));
 
   return response.data.data;
 }

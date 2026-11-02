@@ -9,9 +9,13 @@ import { newIdempotencyKey } from "../../../../../test/idempotency";
 import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
 import { resetCreditDefaults } from "../../../../../test/creditFixtures";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
+import { readFileSync } from "node:fs";
+import { keyShape } from "../../../../../test/keyShape";
 import { BOUNDARY, multipart } from "../../../../nfe-import/infrastructure/http/__tests__/nfeTestNotes";
 
 app.log.level = "silent";
+
+const FIXTURES_DIR = new URL("../../../../../../../frontend/src/test/fixtures/legacy-import/", import.meta.url);
 
 const word = () =>
   Array.from(randomBytes(8))
@@ -269,5 +273,56 @@ describe("Caderninho: correções da revisão final (nome × vínculo, dívida r
     const b = await upload([`${ana.name};;;x;77,00;;;;`]);
     assert.ok(!b.rows[0].issues.some((i) => i.code === "POSSIBLE_DUPLICATE_DEBT"));
     assert.equal(b.sameFileAs, null);
+  });
+
+  test("I-5: desfazer restaura o limite/perfil que a importação mudou, se não mudou desde então; senão mantém e informa", async () => {
+    const kept = await createCustomer(newName(), { creditLimit: 100 });
+    const changed = await createCustomer(newName(), { creditLimit: 100 });
+    const untouched = await createCustomer(newName(), { creditLimit: 5000 });
+    const batch = await upload([
+      `${kept.name};;;x;700,00;;;Regular;`,
+      `${changed.name};;;y;500,00;;;;`,
+      `${untouched.name};;;z;50,00;;;;`,
+    ]);
+    assert.deepEqual(batch.rows.map((r) => r.customerAction.kind), ["LINK", "LINK", "LINK"]);
+    assert.equal((await confirm(batch.id)).statusCode, 200);
+    const limitOf = async (id: string) => {
+      const c = await prisma.customer.findUniqueOrThrow({ where: { id } });
+      return { limit: Number(c.creditLimit), profile: c.creditProfileCode };
+    };
+    assert.deepEqual(await limitOf(kept.id), { limit: 800, profile: "REGULAR" });
+    assert.deepEqual(await limitOf(changed.id), { limit: 500, profile: "NEW" });
+    assert.deepEqual(await limitOf(untouched.id), { limit: 5000, profile: "NEW" });
+
+    // Ajuste manual depois da importação: o desfazer não pode passar por cima.
+    const manual = await app.inject({
+      method: "PUT",
+      url: `/customers/${changed.id}/credit`,
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { limit: 900, reason: "Ajuste manual" },
+    });
+    assert.equal(manual.statusCode, 200, manual.body);
+
+    const res = await revert(batch.id);
+    assert.equal(res.statusCode, 200, res.body);
+    const { creditRestore } = res.json().data as {
+      creditRestore: { restored: { customerId: string; name: string }[]; notRestored: { customerId: string; name: string }[] };
+    };
+    assert.deepEqual(creditRestore.restored, [{ customerId: kept.id, name: kept.name }]);
+    assert.deepEqual(creditRestore.notRestored, [{ customerId: changed.id, name: changed.name }]);
+    const fixture = JSON.parse(readFileSync(new URL("legacyBatchReverted.json", FIXTURES_DIR), "utf8")) as { data: object };
+    assert.deepEqual(keyShape({ ...res.json().data, rows: [] }), keyShape({ ...fixture.data, rows: [] }));
+
+    assert.deepEqual(await limitOf(kept.id), { limit: 100, profile: "NEW" });
+    assert.deepEqual(await limitOf(changed.id), { limit: 900, profile: "NEW" });
+    assert.deepEqual(await limitOf(untouched.id), { limit: 5000, profile: "NEW" });
+
+    const last = await prisma.creditLimitChange.findFirstOrThrow({ where: { customerId: kept.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }] });
+    assert.equal(last.source, "LEGACY_IMPORT");
+    assert.equal(last.reason, "Lote desfeito");
+    assert.equal(Number(last.fromLimit), 800);
+    assert.equal(Number(last.toLimit), 100);
+    assert.equal(last.changedById, admin.id);
+    assert.equal(await prisma.creditLimitChange.count({ where: { customerId: changed.id, reason: "Lote desfeito" } }), 0);
   });
 });

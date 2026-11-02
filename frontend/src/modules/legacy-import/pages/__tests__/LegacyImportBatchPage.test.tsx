@@ -11,11 +11,13 @@ import { API_URL } from '@/test/handlers/inventory';
 import { resetViewport, setViewport } from '@/test/viewport';
 import reviewFixture from '@/test/fixtures/legacy-import/legacyBatchReview.json';
 import confirmedFixture from '@/test/fixtures/legacy-import/legacyBatchConfirmed.json';
+import revertedFixture from '@/test/fixtures/legacy-import/legacyBatchReverted.json';
 import type { LegacyBatch } from '../../types';
 
 type Batch = LegacyBatch;
 const review = reviewFixture.data as unknown as Batch;
 const confirmed = confirmedFixture.data as unknown as Batch;
+const reverted = revertedFixture.data;
 const rowId = (line: number) => review.rows.find((r) => r.line === line)!.id;
 
 /** Lote sem erro nem nome parecido pendente (só a linha da Maria e a da Carla). */
@@ -442,7 +444,7 @@ describe('LegacyImportBatchPage — lote confirmado', () => {
         keys.push(request.headers.get('Idempotency-Key'));
         if (keys.length === 1) return HttpResponse.json({ message: 'Alguma dívida deste lote já recebeu pagamento.', code: 'LEGACY_BATCH_HAS_PAYMENTS' }, { status: 409 });
         current = { ...confirmed, status: 'REVERTED', revertedAt: '2026-11-01T15:00:00.000Z' };
-        return HttpResponse.json({ data: current });
+        return HttpResponse.json({ data: reverted });
       }),
     );
     renderPage(confirmed);
@@ -456,7 +458,9 @@ describe('LegacyImportBatchPage — lote confirmado', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Desfazer lote' }));
     const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('As dívidas deste lote serão canceladas');
     expect(dialog).toHaveTextContent('Os clientes continuam cadastrados');
+    expect(dialog).toHaveTextContent('voltam ao valor de antes, se ninguém mexeu na ficha depois');
     expect(dialog).toHaveTextContent('já recebeu pagamento');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Desfazer lote' }));
 
@@ -466,6 +470,9 @@ describe('LegacyImportBatchPage — lote confirmado', () => {
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Desfazer lote' }));
 
     expect(await screen.findByText(/Lote desfeito em/)).toBeInTheDocument();
+    const restore = screen.getByTestId('credit-restore');
+    expect(restore).toHaveTextContent('Limite restaurado: Carla Mendes');
+    expect(restore).toHaveTextContent('Limite mantido (a ficha mudou depois da importação): Maria Silva');
     expect(keys).toHaveLength(2);
     expect(keys[0]).toBeTruthy();
     expect(keys[1]).toBe(keys[0]);

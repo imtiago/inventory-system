@@ -31,6 +31,7 @@ import {
   hasPendingSimilar,
   type LegacyBatch,
   type LegacyLimitRule,
+  type LegacyRevertResult,
   type LegacyRow,
   type UpdateLegacyRowInput,
 } from '../types';
@@ -97,6 +98,7 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
   const [confirmError, setConfirmError] = useState<ConfirmError | null>(null);
   const [revertOpen, setRevertOpen] = useState(false);
   const [revertError, setRevertError] = useState<string | null>(null);
+  const [creditRestore, setCreditRestore] = useState<LegacyRevertResult['creditRestore'] | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -149,7 +151,10 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
   function runRevert() {
     setRevertError(null);
     revert.mutate(undefined, {
-      onSuccess: () => setRevertOpen(false),
+      onSuccess: (result) => {
+        setRevertOpen(false);
+        setCreditRestore(result.creditRestore ?? null);
+      },
       onError: (error) => {
         setRevertOpen(false);
         setRevertError(parseApiErrorSync(error).message);
@@ -236,6 +241,14 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
         <div className="rounded-xl border border-border bg-surface-muted p-4 text-sm text-foreground">
           <p className="font-medium">{`Lote desfeito em ${formatDateTime(batch.revertedAt)}.`}</p>
           <p className="mt-1 text-muted">As dívidas foram canceladas; os clientes continuam cadastrados.</p>
+          {creditRestore && (creditRestore.restored.length > 0 || creditRestore.notRestored.length > 0) && (
+            <div data-testid="credit-restore" className="mt-2 flex flex-col gap-1">
+              {creditRestore.restored.length > 0 && <p>{`Limite restaurado: ${creditRestore.restored.map((c) => c.name).join(', ')}.`}</p>}
+              {creditRestore.notRestored.length > 0 && (
+                <p className="text-warning">{`Limite mantido (a ficha mudou depois da importação): ${creditRestore.notRestored.map((c) => c.name).join(', ')}. Confira na ficha de crédito.`}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -377,7 +390,10 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
           <h2 id="legacy-revert-title" className="text-lg font-semibold text-foreground">
             Desfazer
           </h2>
-          <p className="text-sm text-muted">Cancela as dívidas deste lote. Os clientes continuam cadastrados. Só é possível enquanto nenhuma dívida do lote recebeu pagamento.</p>
+          <p className="text-sm text-muted">
+            Cancela as dívidas deste lote. Os clientes continuam cadastrados; o limite e o perfil que a importação deu voltam ao de antes, se a ficha não mudou depois. Só é possível enquanto nenhuma
+            dívida do lote recebeu pagamento.
+          </p>
           {revertError && (
             <div role="alert" data-testid="revert-error" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               {revertError}
@@ -405,7 +421,7 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
       <ConfirmDialog
         open={revertOpen}
         title="Desfazer lote"
-        description="As dívidas deste lote serão canceladas. Os clientes continuam cadastrados, com o perfil e o limite que receberam. Se alguma dívida já recebeu pagamento, o sistema recusa: estorne o pagamento antes."
+        description="As dívidas deste lote serão canceladas. Os clientes continuam cadastrados (inclusive os criados por este lote). Limite e perfil que a importação aumentou ou mudou voltam ao valor de antes, se ninguém mexeu na ficha depois; os que mudaram depois ficam como estão e aparecem listados. Se alguma dívida já recebeu pagamento, o sistema recusa: estorne o pagamento antes."
         confirmText="Desfazer lote"
         loadingText="Desfazendo..."
         loading={revert.isPending}

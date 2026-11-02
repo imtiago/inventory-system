@@ -263,7 +263,11 @@ describe("Caderninho ponta a ponta (planilha bagunçada)", () => {
     const afterRevert = (await call("GET", `/customers/${maria}/credit`)).json().data;
     assert.equal(afterRevert.openBalance, 0);
     assert.equal(afterRevert.legacyOpenBalance, 0);
-    assert.equal(afterRevert.limit, 1080, "desfazer mantém perfil e limite");
+    // Limite que a importação deu volta ao de antes (300 do perfil Novo), pois ninguém mexeu na ficha depois.
+    assert.equal(afterRevert.limit, 300, "desfazer restaura o limite anterior à importação");
+    assert.ok(
+      (reverted.json().data.creditRestore.restored as { customerId: string }[]).some((c) => c.customerId === maria),
+    );
     assert.ok(await prisma.customer.findUnique({ where: { id: maria } }), "cliente criado continua");
   });
 });

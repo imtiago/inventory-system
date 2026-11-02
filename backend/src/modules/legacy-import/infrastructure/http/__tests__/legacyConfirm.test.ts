@@ -317,7 +317,7 @@ describe("Confirmar e desfazer lote do caderninho", () => {
     });
   }
 
-  test("desfazer sem pagamento → documentos CANCELED, lote REVERTED, clientes mantidos", async () => {
+  test("desfazer sem pagamento → documentos CANCELED, lote REVERTED, clientes mantidos com limite/perfil de antes", async () => {
     const batch = await upload([`${newName()};;;x;450,00;;;Novo;`, `${newName()};;;y;80,00;;;Regular;`]);
     const ok = await confirm(batch.id);
     assert.equal(ok.statusCode, 200, ok.body);
@@ -332,10 +332,17 @@ describe("Confirmar e desfazer lote do caderninho", () => {
     assert.ok(docs.every((d) => d.status === "CANCELED"));
     const customers = await prisma.customer.findMany({ where: { id: { in: customerIds } }, orderBy: { name: "asc" } });
     assert.equal(customers.length, 2);
-    // Perfil e limite ficam como a importação deixou (histórico preservado).
-    const limits = new Map(customers.map((c) => [c.id, Number(c.creditLimit)]));
-    assert.equal(limits.get(customerIds[0]), 450);
-    assert.equal(limits.get(customerIds[1]), 800);
+    // Clientes ficam; perfil e limite que a importação deu voltam ao de antes (sem mudança desde então).
+    const byId = new Map(customers.map((c) => [c.id, c]));
+    assert.equal(Number(byId.get(customerIds[0])!.creditLimit), 300);
+    assert.equal(byId.get(customerIds[0])!.creditProfileCode, "NEW");
+    assert.equal(Number(byId.get(customerIds[1])!.creditLimit), 300);
+    assert.equal(byId.get(customerIds[1])!.creditProfileCode, "NEW");
+    assert.deepEqual(
+      (res.json().data.creditRestore.restored as { customerId: string }[]).map((c) => c.customerId).sort(),
+      [...customerIds].sort(),
+    );
+    assert.deepEqual(res.json().data.creditRestore.notRestored, []);
 
     const credit = await call("GET", `/customers/${customerIds[0]}/credit`);
     assert.equal(credit.json().data.openBalance, 0);

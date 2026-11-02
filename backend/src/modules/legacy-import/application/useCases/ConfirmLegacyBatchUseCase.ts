@@ -22,6 +22,7 @@ import {
   legacyUnresolvedDuplicates,
   legacyUnresolvedSimilarNames,
 } from "../../domain/legacyErrors";
+import { legacyImportReason } from "../../domain/legacyCreditReasons";
 import type { LegacyLimitRule } from "../contracts/LegacyImportBatchRepository";
 import type { LegacyBatchDTO } from "../dto/LegacyBatchDTO";
 import { storedBatchDTO, type LegacyBatchDeps } from "./LegacyBatchUseCases";
@@ -140,7 +141,7 @@ export class ConfirmLegacyBatchUseCase extends TransactionalUseCase<ConfirmLegac
 
     // Perfil e limite por cliente (depois das dívidas: o saldo já as inclui).
     const today = todayInBusinessTz();
-    const reason = `Migração do caderninho (lote ${req.batchId.slice(0, 8)})`;
+    const reason = legacyImportReason(req.batchId);
     const initialLimits = new Map<CreditProfileCode, number>();
     const initialLimit = async (code: CreditProfileCode) => {
       if (!initialLimits.has(code)) initialLimits.set(code, (await this.deps.profiles.byCode(code)).initialLimitCents);
