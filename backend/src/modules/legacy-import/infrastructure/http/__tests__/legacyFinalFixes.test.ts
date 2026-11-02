@@ -1,0 +1,128 @@
+import "dotenv/config";
+import { after, before, describe, test } from "node:test";
+import assert from "node:assert/strict";
+import { randomBytes, randomUUID } from "node:crypto";
+import { prisma } from "@shared/prisma";
+import { app } from "../../../../../app";
+import { createTestUser, type TestUser } from "../../../../../test/authFixtures";
+import { newIdempotencyKey } from "../../../../../test/idempotency";
+import { acquireCreditTestLock } from "../../../../../test/creditTestLock";
+import { resetCreditDefaults } from "../../../../../test/creditFixtures";
+import { deleteFinancialDocuments } from "../../../../../test/cleanup";
+import { BOUNDARY, multipart } from "../../../../nfe-import/infrastructure/http/__tests__/nfeTestNotes";
+
+app.log.level = "silent";
+
+const word = () =>
+  Array.from(randomBytes(8))
+    .map((b) => String.fromCharCode(97 + (b % 26)))
+    .join("");
+const cap = (w: string) => w[0].toUpperCase() + w.slice(1);
+// Sem "E"/"De" sozinho no começo (partículas): duas palavras de 8 letras.
+const newName = () => `${cap(word())} ${cap(word())}`;
+
+const HEADER = "nome;celular;data_compra;descricao;valor_total;valor_pago;vencimentos;perfil;observacao";
+
+type Issue = { code: string; severity: string; message: string; details?: Record<string, unknown> };
+type Row = {
+  id: string;
+  line: number;
+  status: string;
+  autoLinked: boolean;
+  customerId: string | null;
+  linkedCustomerName: string | null;
+  acceptDuplicate: boolean;
+  customerAction: { kind: string; customerId?: string; confirmedNew?: boolean };
+  data: { name: string };
+  issues: Issue[];
+};
+type Batch = { id: string; rows: Row[]; sameFileAs: { id: string; confirmedAt: string } | null };
+
+describe("Caderninho: correções da revisão final (nome × vínculo, dívida repetida, limites de texto, desfazer limite)", () => {
+  let admin: TestUser;
+  let releaseCreditLock: () => Promise<void>;
+  const batchIds: string[] = [];
+  const extraCustomerIds: string[] = [];
+
+  before(async () => {
+    // Limites dependem dos perfis (globais) e o desfazer restaura limites.
+    releaseCreditLock = await acquireCreditTestLock();
+    await resetCreditDefaults();
+    admin = await createTestUser({ role: "ADMIN" });
+  });
+
+  after(async () => {
+    try {
+      const rows = await prisma.legacyImportRow.findMany({
+        where: { batchId: { in: batchIds } },
+        select: { id: true, customerId: true },
+      });
+      const customerIds = [...new Set([...rows.map((r) => r.customerId).filter((x): x is string => !!x), ...extraCustomerIds])];
+      await prisma.legacyImportBatch.deleteMany({ where: { id: { in: batchIds } } });
+      await deleteFinancialDocuments({ where: { originType: "LEGACY", originId: { in: rows.map((r) => r.id) } } });
+      await deleteFinancialDocuments({ where: { partyId: { in: customerIds } } });
+      await prisma.creditLimitChange.deleteMany({ where: { customerId: { in: customerIds } } });
+      await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
+      await admin.cleanup();
+    } finally {
+      await releaseCreditLock();
+      await app.close();
+      await prisma.$disconnect();
+    }
+  });
+
+  const call = (method: "GET" | "POST" | "PATCH", url: string, payload?: object) =>
+    app.inject({
+      method,
+      url,
+      headers: {
+        authorization: `Bearer ${admin.token}`,
+        ...(method === "POST" ? { "idempotency-key": newIdempotencyKey() } : {}),
+      },
+      payload,
+    });
+
+  const uploadRaw = async (content: string) => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/legacy-imports/csv",
+      headers: { authorization: `Bearer ${admin.token}`, "content-type": `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: multipart([{ name: "file", filename: "caderno.csv", contentType: "text/csv", content }]),
+    });
+    if (res.statusCode === 201) batchIds.push(res.json().data.id);
+    return res;
+  };
+  const upload = async (lines: string[]) => {
+    const res = await uploadRaw([HEADER, ...lines].join("\n"));
+    assert.equal(res.statusCode, 201, res.body);
+    return res.json().data as Batch;
+  };
+  const patch = async (batchId: string, rowId: string, body: object) => {
+    const res = await call("PATCH", `/legacy-imports/${batchId}/rows/${rowId}`, body);
+    assert.equal(res.statusCode, 200, res.body);
+    return res.json().data as Batch;
+  };
+  const createCustomer = async (name: string, extra: { creditLimit?: number } = {}) => {
+    const c = await prisma.customer.create({ data: { name, code: `tx-test-${randomUUID()}`, ...extra } });
+    extraCustomerIds.push(c.id);
+    return c;
+  };
+  const confirm = (id: string, body: object = {}) => call("POST", `/legacy-imports/${id}/confirm`, body);
+  const revert = (id: string) => call("POST", `/legacy-imports/${id}/revert`, {});
+
+  test("I-4: nome com 121 caracteres (CSV) → linha ERROR NAME_LENGTH; confirmar recusa e nenhum cliente é criado", async () => {
+    const longName = `${cap(word())} ${"x".repeat(112)}`;
+    assert.equal(longName.length, 121);
+    const batch = await upload([`${longName};;;Sofá;100,00;;;;`, `${newName()};;;${"d".repeat(201)};50,00;;;;`]);
+    const [first, second] = batch.rows;
+    assert.equal(first.status, "ERROR");
+    assert.ok(first.issues.some((i) => i.code === "NAME_LENGTH" && i.severity === "ERROR"));
+    assert.equal(second.status, "ERROR");
+    assert.ok(second.issues.some((i) => i.code === "TEXT_TOO_LONG"));
+    const res = await confirm(batch.id);
+    assert.equal(res.statusCode, 422, res.body);
+    assert.equal(res.json().code, "LEGACY_BATCH_HAS_ERRORS");
+    assert.deepEqual(res.json().details.lines, [2, 3]);
+    assert.equal(await prisma.customer.count({ where: { name: longName } }), 0);
+  });
+});

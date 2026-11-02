@@ -74,3 +74,16 @@ test("observação e descrição vazias viram null", () => {
   assert.equal(r.data.description, null);
   assert.equal(r.data.notes, "pagar em mãos");
 });
+
+test("limites de texto iguais aos do cadastro: nome 2–120 (depois de colapsar), descrição 200, observação 500, celular 40", () => {
+  assert.deepEqual(check({ nome: "J" }), ["ERROR:NAME_LENGTH"]);
+  assert.deepEqual(check({ nome: "A".repeat(121) }), ["ERROR:NAME_LENGTH"]);
+  assert.deepEqual(check({ nome: `  ${"A".repeat(60)}    ${"B".repeat(59)}  ` }), []);
+  assert.deepEqual(check({ descricao: "d".repeat(200) }), []);
+  assert.deepEqual(check({ descricao: "d".repeat(201) }), ["ERROR:TEXT_TOO_LONG"]);
+  assert.deepEqual(check({ observacao: "o".repeat(501) }), ["ERROR:TEXT_TOO_LONG"]);
+  const phone = validateLegacyRow(base({ celular: "1".repeat(41) }), TODAY);
+  assert.deepEqual(codes(phone), ["ERROR:TEXT_TOO_LONG"]);
+  assert.equal(phone.issues[0].field, "celular");
+  assert.equal(phone.data.phone, null);
+});

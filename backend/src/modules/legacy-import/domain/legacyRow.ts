@@ -4,6 +4,8 @@ import type { LegacyColumn } from "./legacyTemplate";
 
 export type LegacyIssueCode =
   | "NAME_REQUIRED"
+  | "NAME_LENGTH"
+  | "TEXT_TOO_LONG"
   | "INVALID_AMOUNT"
   | "ZERO_AMOUNT"
   | "PAID_EXCEEDS_TOTAL"
@@ -47,6 +49,9 @@ const PROFILES: Record<string, CreditProfileCode> = {
   excelente: CreditProfileCode.EXCELLENT,
 };
 
+/** Mesmos limites do cadastro de cliente (`createNameSchema({min:2,max:120})`) e do lançamento rápido. */
+export const LEGACY_LIMITS = { nameMin: 2, nameMax: 120, description: 200, notes: 500, phone: 40 } as const;
+
 const collapse = (s: string) => s.trim().replace(/\s+/g, " ");
 const orNull = (s: string) => (collapse(s) === "" ? null : collapse(s));
 const strip = (s: string) =>
@@ -70,6 +75,19 @@ export function validateLegacyRow(
 
   const name = collapse(raw.nome ?? "");
   if (name === "") add("NAME_REQUIRED", "ERROR", "nome", "Informe o nome do cliente.");
+  else if (name.length < LEGACY_LIMITS.nameMin || name.length > LEGACY_LIMITS.nameMax) {
+    add(
+      "NAME_LENGTH",
+      "ERROR",
+      "nome",
+      `O nome deve ter de ${LEGACY_LIMITS.nameMin} a ${LEGACY_LIMITS.nameMax} caracteres (tem ${name.length}).`,
+    );
+  }
+  const tooLong = (field: LegacyColumn, label: string, value: string, max: number) => {
+    if (value.length <= max) return false;
+    add("TEXT_TOO_LONG", "ERROR", field, `${label} deve ter no máximo ${max} caracteres (tem ${value.length}).`);
+    return true;
+  };
 
   // Valores
   const totalText = (raw.valor_total ?? "").trim();
@@ -104,7 +122,9 @@ export function validateLegacyRow(
   const phoneText = (raw.celular ?? "").trim();
   let phone: string | null = null;
   if (phoneText === "") add("NO_PHONE", "WARNING", "celular", "Sem celular.");
-  else {
+  else if (tooLong("celular", "O celular", phoneText, LEGACY_LIMITS.phone)) {
+    // phone fica null
+  } else {
     phone = normalizePhone(phoneText);
     if (!phone) add("INVALID_PHONE", "WARNING", "celular", "Celular inválido (use DDD + número).");
   }
@@ -148,18 +168,23 @@ export function validateLegacyRow(
     if (!profileCode) add("UNKNOWN_PROFILE", "ERROR", "perfil", "Perfil desconhecido. Use Novo, Regular, Bom ou Excelente.");
   }
 
+  const description = orNull(raw.descricao ?? "");
+  const notes = orNull(raw.observacao ?? "");
+  if (description) tooLong("descricao", "A descrição", description, LEGACY_LIMITS.description);
+  if (notes) tooLong("observacao", "A observação", notes, LEGACY_LIMITS.notes);
+
   return {
     data: {
       name,
       phone,
       purchaseDate,
-      description: orNull(raw.descricao ?? ""),
+      description,
       totalCents,
       paidCents,
       openCents,
       dueDates,
       profileCode,
-      notes: orNull(raw.observacao ?? ""),
+      notes,
     },
     issues,
   };
