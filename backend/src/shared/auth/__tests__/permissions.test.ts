@@ -154,6 +154,7 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["credit.manage", { method: "PUT", url: "/credit/settings", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/credit/profiles/NEW", payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "POST", url: `/receivables/${missing}/parcels/${missing}/split`, payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/settings/store", payload: {}, allowed: 400 }],
   // Dados da loja (leitura) e PDFs: quem vende lê; recibo exige finance.read.
   ["sales.read", { method: "GET", url: "/settings/store", allowed: 200 }],

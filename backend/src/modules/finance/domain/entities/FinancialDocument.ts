@@ -17,6 +17,7 @@ import { ParcelStatus } from "../enums/ParcelStatus";
 import { PaymentMethod } from "../enums/PaymentMethod";
 import { documentStatusFor } from "../services/receivableStatus";
 import { Payment } from "./Payment";
+import { fromCents } from "@shared/domain/money";
 
 export interface RegisterPaymentProps {
   parcelId: string;
@@ -195,6 +196,83 @@ export class FinancialDocument extends BaseEntity {
       );
     }
     this._status = FinancialStatus.CANCELED;
+  }
+
+  /**
+   * Parcela o saldo de uma parcela "a combinar" em parcelas com vencimento.
+   * Sem pagamento algum: a parcela some (ou, se tem pagamento só estornado, vira a 1ª nova).
+   * Com pagamento parcial: fica com o valor pago, vencimento `today`, quitada; o restante vira as novas.
+   * Exige pagamentos carregados (documento lido sob trava).
+   */
+  splitUnknownDueParcel(
+    parcelId: string,
+    parts: { amountCents: number; dueDate: string }[],
+    today: string,
+  ): { closedParcel: FinancialParcel | null; removedParcelId: string | null; newParcels: FinancialParcel[] } {
+    const parcel = this._parcels.find((p) => p.id === parcelId);
+    if (!parcel) {
+      throw new NotFoundError("Parcela não encontrada.", ErrorCodes.PARCEL_NOT_FOUND);
+    }
+    if (this._status === FinancialStatus.CANCELED || !parcel.dueDateUnknown) {
+      throw new BusinessRuleError(
+        "Só dá para parcelar o saldo de uma parcela com vencimento a combinar.",
+        ErrorCodes.PARCEL_NOT_TO_BE_AGREED,
+      );
+    }
+    const remaining = parcel.remainingCents;
+    const sum = parts.reduce((t, p) => t + p.amountCents, 0);
+    if (parts.length === 0 || sum !== remaining) {
+      throw new BusinessRuleError(
+        `A soma das parcelas deve ser igual ao saldo (R$ ${fromCents(remaining).toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}).`,
+        ErrorCodes.SPLIT_TOTAL_MISMATCH,
+      );
+    }
+    parts.forEach((part, i) => {
+      if (!Number.isInteger(part.amountCents) || part.amountCents <= 0) {
+        throw new BusinessRuleError("O valor de cada parcela deve ser maior que zero.", ErrorCodes.SPLIT_DATES_INVALID);
+      }
+      if (part.dueDate < today) {
+        throw new BusinessRuleError("O vencimento não pode ser anterior a hoje.", ErrorCodes.SPLIT_DATES_INVALID);
+      }
+      if (i > 0 && part.dueDate <= parts[i - 1].dueDate) {
+        throw new BusinessRuleError(
+          "Os vencimentos devem estar em ordem crescente, sem repetir a data.",
+          ErrorCodes.SPLIT_DATES_INVALID,
+        );
+      }
+    });
+
+    const paid = parcel.paidCents;
+    const make = (part: { amountCents: number; dueDate: string }) =>
+      new FinancialParcel({
+        amountCents: part.amountCents,
+        dueDate: part.dueDate,
+        financialDocumentId: this.id,
+      });
+
+    if (paid > 0) {
+      parcel.redefine(paid, today);
+      const newParcels = parts.map(make);
+      newParcels.forEach((p) => this._parcels.push(p));
+      this.recalculateStatus();
+      return { closedParcel: parcel, removedParcelId: null, newParcels };
+    }
+    if (parcel.hasAnyPayment) {
+      // Só pagamentos estornados: a linha fica (histórico) e vira a primeira parte.
+      parcel.redefine(parts[0].amountCents, parts[0].dueDate);
+      const newParcels = parts.slice(1).map(make);
+      newParcels.forEach((p) => this._parcels.push(p));
+      this.recalculateStatus();
+      return { closedParcel: parcel, removedParcelId: null, newParcels };
+    }
+    this._parcels = this._parcels.filter((p) => p.id !== parcelId);
+    const newParcels = parts.map(make);
+    newParcels.forEach((p) => this._parcels.push(p));
+    this.recalculateStatus();
+    return { closedParcel: null, removedParcelId: parcelId, newParcels };
   }
 
   addParcel(parcel: FinancialParcel): void {

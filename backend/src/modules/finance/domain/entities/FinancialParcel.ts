@@ -6,11 +6,11 @@ import { parcelStatus, remainingCents } from "../services/receivableStatus";
 
 export class FinancialParcel extends BaseEntity {
   private readonly _financialDocumentId: string;
-  private readonly _amountCents: number;
+  private _amountCents: number;
   /** Vencimento "YYYY-MM-DD". */
-  private readonly _dueDate: string;
+  private _dueDate: string;
   /** Vencimento "a combinar" (caderninho): nunca fica vencida. */
-  private readonly _dueDateUnknown: boolean;
+  private _dueDateUnknown: boolean;
   private readonly _payments: Payment[];
 
   constructor(props: {
@@ -78,6 +78,18 @@ export class FinancialParcel extends BaseEntity {
       },
       today,
     );
+  }
+
+  /** Reescreve valor e vencimento (parcelamento do saldo "a combinar"); a parcela passa a ter data. */
+  redefine(amountCents: number, dueDate: string): void {
+    this._amountCents = amountCents;
+    this._dueDate = dueDate;
+    this._dueDateUnknown = false;
+  }
+
+  /** Tem pagamento gravado, inclusive estornado (a linha não pode ser apagada). */
+  get hasAnyPayment(): boolean {
+    return this._payments.length > 0;
   }
 
   addPayment(payment: Payment): void {
