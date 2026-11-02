@@ -22,6 +22,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const month = pad(1 + Math.floor(Math.random() * 12));
 const D1 = `2097-${month}-10`;
 const D2 = `2097-${month}-11`;
+// Dia exclusivo das vendas com condição de pagamento (repasse, taxa absorvida, crediário).
+const D3 = `2097-${month}-20`;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 describe("GET /reports/profit", () => {
@@ -45,14 +47,25 @@ describe("GET /reports/profit", () => {
     createdAt: string,
     sellerId: string,
     items: { variantId: string; quantity: number; unitPrice: number; unitCost: number | null }[],
+    payment: {
+      paymentCondition?: "CASH" | "CREDIT_CARD" | "CREDIARIO";
+      cardFeeBps?: number;
+      cardFeePassedOn?: boolean;
+      surchargeAmount?: number;
+    } = {},
   ) => {
+    const itemsTotal = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const sale = await prisma.sale.create({
       data: {
         customerId,
         sellerId,
         status,
         createdAt: new Date(createdAt),
-        totalAmount: items.reduce((s, i) => s + i.quantity * i.unitPrice, 0),
+        totalAmount: itemsTotal + (payment.surchargeAmount ?? 0),
+        paymentCondition: payment.paymentCondition ?? "CASH",
+        cardFeeBps: payment.cardFeeBps ?? null,
+        cardFeePassedOn: payment.cardFeePassedOn ?? false,
+        surchargeAmount: payment.surchargeAmount ?? 0,
         items: {
           create: items.map((i) => ({
             productVariantId: i.variantId,
@@ -87,6 +100,24 @@ describe("GET /reports/profit", () => {
     await createSale("CANCELED", `${D1}T15:00:00-03:00`, seller.id, [
       { variantId: v1, quantity: 100, unitPrice: 10, unitCost: 1 },
     ]);
+    // D3: crédito sem repasse (taxa 3,49% absorvida pela loja) → despesa 3,49
+    await createSale("COMPLETED", `${D3}T10:00:00-03:00`, seller.id, [{ variantId: v1, quantity: 1, unitPrice: 100, unitCost: 40 }], {
+      paymentCondition: "CREDIT_CARD",
+      cardFeeBps: 349,
+      cardFeePassedOn: false,
+    });
+    // D3: crédito com repasse: acréscimo 1,81 cobrado do cliente não é receita; taxa compensada → 0
+    await createSale("COMPLETED", `${D3}T11:00:00-03:00`, seller.id, [{ variantId: v2, quantity: 1, unitPrice: 50, unitCost: 20 }], {
+      paymentCondition: "CREDIT_CARD",
+      cardFeeBps: 349,
+      cardFeePassedOn: true,
+      surchargeAmount: 1.81,
+    });
+    // D3: crediário: juros 24,56 não são receita de venda
+    await createSale("COMPLETED", `${D3}T12:00:00-03:00`, other.id, [{ variantId: v1, quantity: 2, unitPrice: 100, unitCost: 40 }], {
+      paymentCondition: "CREDIARIO",
+      surchargeAmount: 24.56,
+    });
   });
 
   after(async () => {
@@ -134,6 +165,7 @@ describe("GET /reports/profit", () => {
       assert.equal(sum("revenue"), totals.revenue, view);
       assert.equal(sum("cost"), totals.cost, view);
       assert.equal(sum("estimatedExpenses"), totals.estimatedExpenses, view);
+      assert.equal(sum("cardFees"), totals.cardFees, view);
       assert.equal(sum("profit"), totals.profit, view);
       assert.equal(totals.revenue, base.totals.revenue, view);
       assert.equal(totals.cost, base.totals.cost, view);
@@ -150,6 +182,45 @@ describe("GET /reports/profit", () => {
     const theirs = await profit(`view=period&sellerId=${other.id}`);
     assert.equal(theirs.totals.revenue, 30);
     assert.equal(theirs.totals.itemsWithoutCost, 1);
+  });
+
+  test("receita = itens (sem acréscimo de cartão nem juros do crediário); taxa de cartão só quando não repassada", async () => {
+    const bps = (await new PrismaPricingSettingsReader().getMarginSettings()).expensesBps;
+    const res = await get(admin, `/reports/profit?from=${D3}&to=${D3}&view=period`);
+    assert.equal(res.statusCode, 200, res.body);
+    const { rows, totals } = res.json().data;
+    assert.equal(rows.length, 1);
+    assert.equal(totals.revenue, 350);
+    assert.equal(totals.cost, 140);
+    assert.equal(totals.cardFees, 3.49);
+    assert.equal(rows[0].cardFees, 3.49);
+    const afterBps = (await new PrismaPricingSettingsReader().getMarginSettings()).expensesBps;
+    if (bps === afterBps) {
+      const expenses = applyBps(35_000, bps);
+      assert.equal(totals.estimatedExpenses, expenses / 100);
+      assert.equal(totals.profit, (35_000 - 14_000 - expenses - 349) / 100);
+    }
+
+    const bySale = (await get(admin, `/reports/profit?from=${D3}&to=${D3}&view=sale`)).json().data;
+    assert.deepEqual(
+      bySale.rows.map((r: any) => [r.revenue, r.cardFees]),
+      [
+        [100, 3.49],
+        [50, 0],
+        [200, 0],
+      ],
+    );
+    assert.equal(bySale.totals.cardFees, 3.49);
+    for (const view of ["variant", "category"]) {
+      const data = (await get(admin, `/reports/profit?from=${D3}&to=${D3}&view=${view}`)).json().data;
+      assert.equal(data.totals.revenue, 350, view);
+      assert.equal(data.totals.cardFees, 3.49, view);
+    }
+
+    const csv = parseCsv((await get(admin, `/reports/profit.csv?from=${D3}&to=${D3}&view=period`)).body);
+    assert.equal(csv[0][4], "Taxa de cartão");
+    assert.equal(csv.at(-1)?.[1], "350,00");
+    assert.equal(csv.at(-1)?.[4], "3,49");
   });
 
   test("período sem vendas: totais zerados, margem null", async () => {
@@ -184,6 +255,7 @@ describe("GET /reports/profit", () => {
       "Receita",
       "Custo",
       "Despesas estimadas",
+      "Taxa de cartão",
       "Lucro",
       "Margem (%)",
       "Custo não registrado",
@@ -192,9 +264,10 @@ describe("GET /reports/profit", () => {
     assert.ok(d1, res.body);
     assert.equal(d1[1], "25,50");
     assert.equal(d1[2], "9,33");
-    assert.equal(d1[6], "0");
+    assert.equal(d1[4], "0,00");
+    assert.equal(d1[7], "0");
     const d2 = rows.find((r) => r[0] === `11/${month}/2097`);
-    assert.equal(d2?.[6], "1");
+    assert.equal(d2?.[7], "1");
     assert.equal(rows.at(-1)?.[0], "Total");
     assert.equal(rows.at(-1)?.[1], "55,50");
   });

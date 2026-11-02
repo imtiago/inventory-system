@@ -6,6 +6,7 @@ export interface UserDTO {
   email: string;
   role: UserRole;
   active: boolean;
+  canApproveCredit: boolean;
   createdAt: string;
 }
 
@@ -19,12 +20,14 @@ export interface CreateUserInput {
   email: string;
   password: string;
   role: UserRole;
+  canApproveCredit?: boolean;
 }
 
 export interface UpdateUserInput {
   name?: string;
   role?: UserRole;
   active?: boolean;
+  canApproveCredit?: boolean;
 }
 
 export const ROLE_LABELS: Record<UserRole, string> = {

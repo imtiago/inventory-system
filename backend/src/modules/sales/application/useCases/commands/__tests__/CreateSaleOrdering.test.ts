@@ -26,6 +26,8 @@ function build(variantIds: string[]) {
   } as unknown as CustomerService;
   const financialService: FinancialService = {
     createSaleReceivable: async () => {},
+    createPaidSaleReceivable: async () => {},
+    createCrediarioReceivable: async () => {},
     cancelSaleReceivable: async () => {},
     createPurchasePayable: async () => {},
     cancelPurchasePayable: async () => {},
@@ -37,6 +39,8 @@ function build(variantIds: string[]) {
     new FakeCatalogService(variantIds.map((id) => makeVariant({ id }))),
     inventoryService,
     financialService,
+    { get: async () => { throw new Error("taxas só no cartão"); } },
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
   );
   return { uc, calls };
 }
@@ -48,7 +52,7 @@ test("CreateSale processa itens em ordem crescente de productVariantId", async (
     { productVariantId: "v-a", quantity: 1 },
     { productVariantId: "v-b", quantity: 2 },
   ];
-  await uc.execute({ customerId: "c-1", sellerId: "u-1", items, paymentTerms: { installments: 1 } });
+  await uc.execute({ customerId: "c-1", sellerId: "u-1", items, payment: { condition: "CASH" } });
 
   assert.deepEqual(
     calls.map((c) => [c.productVariantId, c.quantity]),
@@ -63,7 +67,7 @@ test("venda com dois itens da mesma variante conclui", async () => {
   await uc.execute({
     customerId: "c-1",
     sellerId: "u-1",
-    paymentTerms: { installments: 1 },
+    payment: { condition: "CASH" },
     items: [
       { productVariantId: "v-b", quantity: 1 },
       { productVariantId: "v-a", quantity: 2 },
@@ -81,60 +85,11 @@ test("consumeStock recebe o sellerId como userId (auditoria)", async () => {
   await uc.execute({
     customerId: "c-1",
     sellerId: "u-1",
-    paymentTerms: { installments: 1 },
+    payment: { condition: "CASH" },
     items: [{ productVariantId: "v-a", quantity: 1 }],
   });
   assert.deepEqual(
     calls.map((c) => c.userId),
     ["u-1"],
   );
-});
-
-test("total em centavos menor que o nº de parcelas → 422 INSTALLMENTS_EXCEED_TOTAL antes de mexer no estoque", async () => {
-  const calls: ConsumeStockRequest[] = [];
-  const inventoryService = {
-    consumeStock: async (req: ConsumeStockRequest) => {
-      calls.push(req);
-      return { averageCost: 0 };
-    },
-  } as unknown as InventoryService;
-  let receivables = 0;
-  const financialService = {
-    createSaleReceivable: async () => {
-      receivables++;
-    },
-  } as unknown as FinancialService;
-  const uc = new CreateSaleUseCase(
-    { create: async (s: Sale) => s } as unknown as SaleRepository,
-    new InMemoryTransactionManager(),
-    { getCustomer: async (id: string) => ({ id }) } as unknown as CustomerService,
-    new FakeCatalogService([makeVariant({ id: "v-a", salePrice: 0.01 })]),
-    inventoryService,
-    financialService,
-  );
-
-  await assert.rejects(
-    uc.execute({
-      customerId: "c-1",
-      sellerId: "u-1",
-      paymentTerms: { installments: 3, firstDueDate: new Date() },
-      items: [{ productVariantId: "v-a", quantity: 2 }],
-    }),
-    {
-      name: "BusinessRuleError",
-      code: "INSTALLMENTS_EXCEED_TOTAL",
-      message: "O valor da venda não permite esse número de parcelas.",
-    },
-  );
-  assert.equal(calls.length, 0);
-  assert.equal(receivables, 0);
-
-  // Limite: total = nº de parcelas é permitido.
-  await uc.execute({
-    customerId: "c-1",
-    sellerId: "u-1",
-    paymentTerms: { installments: 3, firstDueDate: new Date() },
-    items: [{ productVariantId: "v-a", quantity: 3 }],
-  });
-  assert.equal(calls.length, 1);
 });

@@ -70,6 +70,15 @@ enum PaymentMethod {
   BOLETO
 }
 
+enum PaymentCondition {
+  CASH
+  PIX
+  DEBIT_CARD
+  CREDIT_CARD
+  CREDIARIO
+  LEGACY_INSTALLMENTS
+}
+
 enum ParcelStatus {
   OPEN
   PARTIALLY_PAID
@@ -104,6 +113,12 @@ enum StockMovementOrigin {
 
 // PENDING não é criado por nenhum fluxo (o domínio nasce COMPLETED); o default do banco só vale para
 // inserção fora da aplicação. Mantido porque filtro, CSV e front ainda o conhecem.
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SaleStatus {
   PENDING
   COMPLETED
@@ -302,11 +317,26 @@ model Sale {
 
   status SaleStatus @default(PENDING)
 
+  /// Condição escolhida no fechamento; vendas antigas = LEGACY_INSTALLMENTS.
+  paymentCondition PaymentCondition @default(LEGACY_INSTALLMENTS)
+  cardFeePassedOn  Boolean          @default(false)
+  /// 1..12 (CHECK na migration), só CREDIT_CARD.
+  cardInstallments Int?
+  /// Taxa do cartão aplicada (snapshot), só cartão.
+  cardFeeBps       Int?
+  /// Repasse da taxa / acréscimo do crediário (CHECK >= 0). totalAmount = itens + surchargeAmount.
+  surchargeAmount  Decimal          @default(0) @db.Decimal(12, 2)
+  downPayment      Decimal          @default(0) @db.Decimal(12, 2)
+
   customer Customer @relation(fields: [customerId], references: [id])
 
   seller User? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
 
   items SaleItem[]
+
+  cancelRequests SaleCancelRequest[]
+
+  financing SaleFinancing?
 
   @@index([status, createdAt])
 
@@ -355,6 +385,15 @@ model Customer {
   address   String?
   createdAt DateTime @default(now())
   sales     Sale[]
+
+  /// Ficha de crédito (crediário). Trava: `FOR NO KEY UPDATE` (CustomerCreditRepository.lock/lockMany, ORDER BY id).
+  creditProfileCode CreditProfileCode @default(NEW)
+  /// CHECK (>= 0) na migration 20261029100200_credit_settings_profiles.
+  creditLimit       Decimal           @default(300.00) @db.Decimal(12, 2)
+  creditStatus      CreditStatus      @default(ACTIVE)
+  creditProfile     CreditProfile     @relation(fields: [creditProfileCode], references: [code], onDelete: Restrict)
+  creditChanges     CreditLimitChange[]
+  creditLimitRequests CreditLimitRequest[]
 }
 
 model User {
@@ -367,15 +406,26 @@ model User {
   createdAt           DateTime        @default(now())
   /// Última troca/redefinição de senha: tokens com `iat` anterior (em segundos) são recusados.
   passwordChangedAt   DateTime?
+  /// Pode aprovar crédito além do papel (ADMIN sempre pode).
+  canApproveCredit    Boolean         @default(false)
   stockMovements      StockMovement[]
   sales               Sale[]
   paymentsCreated     Payment[]       @relation("paymentsCreated")
   paymentsReversed    Payment[]       @relation("paymentsReversed")
+  paymentsWaived      Payment[]       @relation("paymentsWaived")
   purchasesCanceled   Purchase[]      @relation("purchasesCanceled")
   nfeImportsCreated   NfeImport[]     @relation("nfeImportsCreated")
   nfeImportsConfirmed NfeImport[]     @relation("nfeImportsConfirmed")
   pricingSettingsUpdated PricingSettings[]
   priceReviewsResolved   PriceReview[]
+  saleCancelRequested    SaleCancelRequest[] @relation("saleCancelRequested")
+  saleCancelDecided      SaleCancelRequest[] @relation("saleCancelDecided")
+  creditSettingsEnabled  CreditSettings[]    @relation("creditSettingsEnabled")
+  creditSettingsUpdated  CreditSettings[]    @relation("creditSettingsUpdated")
+  creditLimitChanges     CreditLimitChange[]
+  saleFinancingOverrides SaleFinancing[]     @relation("saleFinancingOverrides")
+  creditLimitRequested   CreditLimitRequest[] @relation("creditLimitRequested")
+  creditLimitDecided     CreditLimitRequest[] @relation("creditLimitDecided")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -392,6 +442,9 @@ model FinancialDocument {
   partyType FinancialPartyType
 
   status FinancialStatus @default(OPEN)
+
+  /// Sem multa nem juros de atraso (vendas anteriores ao crediário, parcelado antigo, caderninho).
+  noLateFees Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -449,9 +502,24 @@ model Payment {
   reversedBy     User?     @relation("paymentsReversed", fields: [reversedById], references: [id], onDelete: SetNull)
   reversalReason String?
 
+  /// Pago no fechamento da venda (estornado automaticamente no cancelamento).
+  atCheckout Boolean @default(false)
+
+  /// Encargos de atraso cobrados neste pagamento (amount = principal abatido) e a parte dispensada.
+  /// CHECKs (só na migration 20261029100600_late_fees): >= 0, waived <= fine + interest, motivo ⇔ dispensa.
+  fineAmount     Decimal @default(0) @db.Decimal(12, 2)
+  interestAmount Decimal @default(0) @db.Decimal(12, 2)
+  waivedAmount   Decimal @default(0) @db.Decimal(12, 2)
+  /// Motivo do pagamento a receber com data passada (só quem aprova crédito registra).
+  backdateReason String? @db.VarChar(200)
+  waiverReason   String? @db.VarChar(200)
+  waivedById     String?
+  waivedBy       User?   @relation("paymentsWaived", fields: [waivedById], references: [id], onDelete: SetNull)
+
   parcel FinancialParcel @relation(fields: [parcelId], references: [id], onDelete: Restrict)
 
   @@index([parcelId])
+  @@index([waivedById])
 }
 
 model NumberRange {
@@ -746,4 +814,162 @@ model PriceReview {
 
   @@index([status, createdAt])
   @@index([productVariantId])
+}
+
+/// Pedido de cancelamento de venda (vendedor pede, ADMIN decide). Único parcial
+/// "SaleCancelRequest_pending_sale_key" ON (saleId) WHERE status = 'PENDING' só na migration.
+model SaleCancelRequest {
+  id             String                 @id @default(uuid())
+  saleId         String
+  reason         String                 @db.VarChar(200)
+  status         ApprovalRequestStatus  @default(PENDING)
+  requestedById  String?
+  requestedAt    DateTime               @default(now())
+  decidedById    String?
+  decidedAt      DateTime?
+  decisionReason String?                @db.VarChar(200)
+
+  sale        Sale  @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  requestedBy User? @relation("saleCancelRequested", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy   User? @relation("saleCancelDecided", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
+}
+
+/// Plano do crediário gravado na venda (snapshot). CHECKs na migration 20261029100400_sale_financing.
+model SaleFinancing {
+  saleId            String         @id
+  /// Itens (preço à vista).
+  cashPrice         Decimal        @db.Decimal(12, 2)
+  downPayment       Decimal        @db.Decimal(12, 2)
+  /// Forma de pagamento da entrada; null sem entrada.
+  downPaymentMethod PaymentMethod?
+  financedAmount    Decimal        @db.Decimal(12, 2)
+  installments      Int
+  /// 0 até as parcelas sem acréscimo; senão a taxa mensal (Tabela Price).
+  monthlyRateBps    Int
+  /// Σ parcelas − financiado.
+  surchargeAmount   Decimal        @db.Decimal(12, 2)
+  /// Entrada + Σ parcelas (total a prazo).
+  totalAmount       Decimal        @db.Decimal(12, 2)
+  dueDay            Int?
+  firstDueDate      DateTime       @db.Date
+  overrideById      String?
+  overrideReason    String?        @db.VarChar(200)
+  /// "LIMIT" | "OVERDUE"
+  overrideKinds     String[]       @default([])
+  /// Termos de atraso contratados (snapshot de CreditSettings na venda; CHECK na migration 20261101120000).
+  fineBps            Int
+  monthlyInterestBps Int
+  graceDays          Int
+  createdAt         DateTime       @default(now())
+
+  sale       Sale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  overrideBy User? @relation("saleFinancingOverrides", fields: [overrideById], references: [id], onDelete: SetNull)
+
+  @@index([overrideById])
+}
+
+enum CreditProfileCode {
+  NEW
+  REGULAR
+  GOOD
+  EXCELLENT
+}
+
+enum CreditStatus {
+  ACTIVE
+  BLOCKED
+  SUSPENDED
+}
+
+enum CreditChangeSource {
+  MANUAL
+  AUTO_REVIEW
+  REQUEST
+  LEGACY_IMPORT
+}
+
+/// Linha única (`id = 'default'`, CHECK na migration), criada pela migration com os valores iniciais da spec.
+model CreditSettings {
+  id               String    @id
+  crediarioEnabled Boolean   @default(false)
+  /// CreditRules em centavos/bps; validado por `creditRulesSchema` na escrita e na leitura.
+  rules            Json
+  enabledAt        DateTime?
+  enabledById      String?
+  updatedAt        DateTime  @default(now())
+  updatedById      String?
+
+  enabledBy User? @relation("creditSettingsEnabled", fields: [enabledById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("creditSettingsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/// Perfis de crédito (4 linhas da migration). CHECKs de faixa na migration.
+model CreditProfile {
+  code              CreditProfileCode @id
+  name              String
+  initialLimit      Decimal           @db.Decimal(12, 2)
+  minDownPaymentBps Int
+  maxInstallments   Int
+  position          Int
+
+  customers Customer[]
+}
+
+/// Histórico da ficha de crédito: uma linha por mudança efetiva.
+model CreditLimitChange {
+  id          String             @id @default(uuid())
+  customerId  String
+  fromProfile CreditProfileCode
+  toProfile   CreditProfileCode
+  fromLimit   Decimal            @db.Decimal(12, 2)
+  toLimit     Decimal            @db.Decimal(12, 2)
+  fromStatus  CreditStatus
+  toStatus    CreditStatus
+  reason      String             @db.VarChar(300)
+  source      CreditChangeSource
+  changedById String?
+  createdAt   DateTime           @default(now())
+
+  customer  Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  changedBy User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+}
+
+/// Pedido de aumento de limite. Um PENDING por cliente (único parcial na migration 20261029100500). Trava: o pedido
+/// (`FOR UPDATE`) vem antes da ficha do cliente. `autoApproved`: nasce APPROVED sem decisor.
+model CreditLimitRequest {
+  id             String                @id @default(uuid())
+  customerId     String
+  currentLimit   Decimal               @db.Decimal(12, 2)
+  requestedLimit Decimal               @db.Decimal(12, 2)
+  approvedLimit  Decimal?              @db.Decimal(12, 2)
+  reason         String                @db.VarChar(300)
+  status         ApprovalRequestStatus @default(PENDING)
+  autoApproved   Boolean               @default(false)
+  requestedById  String?
+  requestedAt    DateTime              @default(now())
+  decidedById    String?
+  decidedAt      DateTime?
+  decisionReason String?               @db.VarChar(300)
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  requestedBy User?    @relation("creditLimitRequested", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy   User?    @relation("creditLimitDecided", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
+  @@index([customerId, requestedAt])
+}
+
+/// Dados da loja para carnê e recibo. Linha única (`id = 'default'`, CHECK na migration
+/// 20261029100700_store_settings), sem linha inicial: ausente = não preenchido.
+model StoreSettings {
+  id        String   @id
+  name      String   @db.VarChar(120)
+  cnpj      String   @db.VarChar(20)
+  address   String   @db.VarChar(250)
+  phone     String   @db.VarChar(20)
+  updatedAt DateTime @updatedAt
 }

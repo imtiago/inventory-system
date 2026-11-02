@@ -12,6 +12,7 @@ import { Can } from '@/shared/auth/Can';
 import { CustomerEditModal } from '../components/CustomerEditModal';
 import { maskDocument } from '@/modules/suppliers/utils/formatDocument';
 import { formatPhone } from '@/shared/utils/formatPhone';
+import { CustomerCreditCard } from '@/modules/credit/components/CustomerCreditCard';
 import { LoadingState } from '@/shared/components/LoadingState';
 
 export function CustomerDetailsPage() {
@@ -99,6 +100,10 @@ export function CustomerDetailsPage() {
           </div>
         </div>
       </Section>
+
+      <Can permission="customers.read">
+        <CustomerCreditCard customerId={customer.id} />
+      </Can>
 
       <CustomerEditModal customer={editing ? customer : null} onClose={() => setEditing(false)} />
     </Page>

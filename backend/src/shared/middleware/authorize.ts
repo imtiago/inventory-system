@@ -1,7 +1,7 @@
 // src/shared/middleware/authorize.ts
 import { FastifyRequest } from "fastify";
 import { ForbiddenError, UnauthorizedError } from "../domain/errors";
-import { Permission, hasPermission } from "../auth/permissions";
+import { Permission, hasUserPermission } from "../auth/permissions";
 
 /** Marca os handlers criados por `authorize` (usado pelo teste de cobertura das rotas). */
 const AUTHORIZE_PERMISSION = Symbol("authorize.permission");
@@ -11,7 +11,7 @@ type AuthorizeHandler = ((request: FastifyRequest) => Promise<void>) & {
 };
 
 /**
- * Exige a permissão no papel do usuário autenticado. O papel em
+ * Exige a permissão no papel (ou marca) do usuário autenticado. O papel em
  * `request.user.role` vem do banco (definido por `authenticate`).
  */
 export function authorize(permission: Permission) {
@@ -25,7 +25,7 @@ export function authorize(permission: Permission) {
       throw new UnauthorizedError("Token inválido.", "UNAUTHENTICATED");
     }
 
-    if (!hasPermission(role, permission)) {
+    if (!hasUserPermission({ role, canApproveCredit: request.user.canApproveCredit === true }, permission)) {
       throw new ForbiddenError();
     }
   };

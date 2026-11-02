@@ -4,7 +4,12 @@ import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { CreateFinancialDocumentUseCase } from "../useCases/commands/CreateFinancialDocumentUseCase";
 import { CancelSaleReceivableUseCase } from "../useCases/commands/CancelSaleReceivableUseCase";
 import { CancelPurchasePayableUseCase } from "../useCases/commands/CancelPurchasePayableUseCase";
+import { CreatePaidSaleReceivableUseCase } from "../useCases/commands/CreatePaidSaleReceivableUseCase";
+import { CreateCrediarioReceivableUseCase } from "../useCases/commands/CreateCrediarioReceivableUseCase";
 import {
+  CancelSaleReceivableInput,
+  CreateCrediarioReceivableInput,
+  CreatePaidSaleReceivableInput,
   CreatePurchasePayableInput,
   CreateSaleReceivableInput,
   FinancialService,
@@ -15,6 +20,8 @@ export class FinancialApplicationService implements FinancialService {
     private readonly createDocumentUseCase: Pick<CreateFinancialDocumentUseCase, "execute">,
     private readonly cancelSaleReceivableUseCase: Pick<CancelSaleReceivableUseCase, "execute">,
     private readonly cancelPurchasePayableUseCase: Pick<CancelPurchasePayableUseCase, "execute">,
+    private readonly createPaidSaleReceivableUseCase: Pick<CreatePaidSaleReceivableUseCase, "execute">,
+    private readonly createCrediarioReceivableUseCase: Pick<CreateCrediarioReceivableUseCase, "execute">,
   ) {}
 
   async createSaleReceivable(input: CreateSaleReceivableInput): Promise<void> {
@@ -25,11 +32,21 @@ export class FinancialApplicationService implements FinancialService {
       partyType: FinancialPartyType.CUSTOMER,
       partyId: input.customerId,
       parcels: input.parcels,
+      // Parcelado antigo (LEGACY_INSTALLMENTS): sem multa/juros; só o crediário cobra encargos.
+      noLateFees: true,
     });
   }
 
-  async cancelSaleReceivable(saleId: string): Promise<void> {
-    await this.cancelSaleReceivableUseCase.execute({ saleId });
+  async createPaidSaleReceivable(input: CreatePaidSaleReceivableInput): Promise<void> {
+    await this.createPaidSaleReceivableUseCase.execute(input);
+  }
+
+  async createCrediarioReceivable(input: CreateCrediarioReceivableInput): Promise<void> {
+    await this.createCrediarioReceivableUseCase.execute(input);
+  }
+
+  async cancelSaleReceivable(input: CancelSaleReceivableInput): Promise<void> {
+    await this.cancelSaleReceivableUseCase.execute(input);
   }
 
   async createPurchasePayable(input: CreatePurchasePayableInput): Promise<void> {

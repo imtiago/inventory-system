@@ -81,9 +81,51 @@ Nenhum desses itens afeta dados nem segurança; o usuário recebeu a oferta de u
 Baixos da revisão e menores adiados: senha limitada a 72 bytes, replay de idempotência com cabeçalhos, custos `Decimal(14,4)`, FKs restritivas no histórico financeiro, nome/busca padronizados, ajuste por lote, dashboard de estoque em SQL, limite de 200 itens por venda, NF-e de bonificação (total zero, confirmável pela tela), data de emissão declarada, encoding do XML, a11y dos campos, datas/horas em São Paulo, revisão da NF-e com MoneyInput, dependências mortas removidas, `tools/visual-qa/` versionado. Ainda abertos: status `PENDING` da venda (só documentado), exclusão de produto apaga mapeamentos em cascata, M4 (duplicatas descartadas em nota de total zero), resíduo do custo médio ao desfazer entrada (limite documentado).
 
 ### Próximo: precificação, crediário e caderninho (planejado, não implementado)
-Desenhos e planos aprovados para planejamento em 2026-10-26 — implementação só quando o usuário liberar. Ordem e decisões pendentes: `docs/ROADMAP.md`. Specs: `docs/superpowers/specs/2026-10-26-{pricing,credit,notebook-import}-design.md`; planos em `docs/superpowers/plans/` com os mesmos nomes. Decididos: vendedor só pede cancelamento de venda (ADMIN aprova); venda no crediário com parcela paga continua sem cancelamento. Aguardando o usuário: estorno automático do pagamento ao cancelar venda à vista; dívida do caderninho não bloquear por atraso; valores iniciais do crediário (sai desligado até confirmar).
+Desenhos e planos aprovados para planejamento em 2026-10-26 — implementação só quando o usuário liberar. Ordem e decisões pendentes: `docs/ROADMAP.md`. Specs: `docs/superpowers/specs/2026-10-26-{pricing,credit,notebook-import}-design.md`; planos em `docs/superpowers/plans/` com os mesmos nomes. Decididos: vendedor só pede cancelamento de venda (ADMIN aprova); venda no crediário com parcela paga continua sem cancelamento. Depois decididos pelo usuário (2026-10-26, spec do crediário §10): estorno automático do pagamento à vista até 7 dias; dívida do caderninho não bloqueia por atraso nem pontua; crediário sai desligado até a dona conferir os valores.
 
 ### Precificação e lucro (2026-10-27)
 Implementada (branch `feat/pricing`): preço sugerido a partir do custo médio completo + despesas + margem, margem por categoria/produto/variante, preço da revista do fornecedor, simulador por forma de pagamento (cartão com/sem repasse), lista "Preços para revisar" (gatilhos em estoque/configuração), custo gravado em cada venda, relatório de lucro (JSON/CSV) e cartões no painel (só ADMIN), frete/despesas da compra no custo. Decisão: VENDEDOR não vê custo; ESTOQUISTA vê custo, não vê margem/lucro. Pendente do operador: preencher Configurações de preço (margem, despesas, taxas de cartão) e conferir "Preços para revisar". Ficaram abertos (menores): devolução de venda muda custo médio sem abrir revisão; recálculo de todo o catálogo ao salvar configurações segura a trava exclusiva; sem teto de valor em alguns cálculos (500 em vez de 4xx).
 
 **Nota (2026-10-27):** o CI do backend falhou uma vez em `2468b91` (merge da precificação) e passou em `228c536` sem mudança de código de produção; não reproduziu localmente (banco novo, `CI=true`, 2 CPUs, 3 rodadas). Suspeita: teste sensível a tempo/paralelismo. O CI agora publica os testes que falharem como anotações (`ci.yml`); se voltar a falhar, ler o nome ali e estabilizar o teste.
+
+### Crediário (2026-11)
+Implementado na branch `feat/credit` (14 tarefas do plano `docs/superpowers/plans/2026-10-26-credit.md`; spec `docs/superpowers/specs/2026-10-26-credit-design.md`). Aguardando a revisão final e o merge na `main`.
+
+**Entregue**
+- Cancelamento por pedido: VENDEDOR pede, ADMIN aprova/recusa (tela "Pedidos de cancelamento"); o vendedor vê o motivo da recusa no detalhe da venda.
+- Permissão por usuário "Pode aprovar crédito" (`canApproveCredit`) e permissões `credit.manage`/`credit.approve`/`credit.request`/`sales.cancel.request`.
+- Configurações do crédito (faixas de parcelas, parcela mínima, taxa, vencimento, bloqueio por atraso, multa/juros/carência, aprovação automática) e perfis Novo/Regular/Bom/Excelente; ficha de crédito do cliente com histórico de mudanças.
+- Fechamento da venda com condição de pagamento: dinheiro, PIX, débito, crédito 1–12x (repasse da taxa opcional, padrão sim) e crediário (entrada, parcelas Price, dia de vencimento), com simulação ao vivo e autorização de exceção (limite/atraso) por aprovador com senha.
+- Pedidos de aumento de limite (com aprovação automática para perfis Bom/Excelente com bom histórico).
+- Multa (até 2%) e juros pró-rata no pagamento em atraso, com dispensa por aprovador; vendas e documentos antigos ficam sem encargos (`noLateFees`).
+- Revisão periódica do crédito (tela com prévia e aplicação por seleção; script `npm run credit-review`, **cron desligado**).
+- Dados da loja, carnê e recibo em PDF, botão de WhatsApp (`wa.me`) com o resumo.
+- Verificação final (Task 14): backend 1036 testes (5 rodadas verdes, mais 1 num banco novo com as 37 migrations), frontend 895 (2 rodadas), lint/tipos/build limpos; QA visual em 375/768/1280 nos dois temas sem rolagem horizontal e contraste sem falhas; carnê e recibo conferidos em PDF. O teste instável do painel ("vencido"/"a pagar") vinha do usuário de teste compartilhado reescrito a cada chamada (`getTestUserId`), que abortava as transações REPEATABLE READ do teste: corrigido.
+- Relatórios honestos (Task 14): receita de venda = itens (acréscimo do cartão e juros do crediário fora); taxa de cartão absorvida desconta do lucro (coluna "Taxa de cartão"); `sales.csv`/`sale-items.csv` ganharam "Acréscimo" e "Forma de pagamento" no fim; multa/juros recebidos não entram em vendas nem lucro.
+
+**Decisões**
+- Cancelar venda é só do ADMIN; o vendedor pede.
+- Venda paga no ato (dinheiro/PIX/cartão/entrada do crediário): o cancelamento estorna o pagamento automaticamente só até **7 dias corridos** da venda; depois, 409.
+- Venda no crediário com parcela paga continua sem cancelamento (`SALE_HAS_PAYMENTS`).
+- Dívidas do caderninho contam no saldo e no limite, mas não bloqueiam por atraso nem pioram perfil/pontuação.
+- O crediário nasce **desligado**; ativar exige dados da loja completos e ao menos um aprovador marcado.
+- Cron da revisão mensal fica desligado até a dona aprovar os pesos da pontuação.
+- Taxa de cartão é gravada na venda mesmo sem repasse (para o lucro); acréscimo e juros não são receita de venda.
+
+**Ficou aberto (menores)**
+- Bloqueio por atraso ainda conta dívida vencida do caderninho: a importação do caderninho precisa filtrar (anotado no `CLAUDE.md`).
+- Carnê usa multa/juros/carência atuais (não o retrato da venda); recibo sem valor por extenso; nomes com caracteres fora do WinAnsi saem com "?" no PDF.
+- A senha do aprovador é conferida (bcrypt, ~100 ms) com a ficha do cliente travada.
+- Detalhe da venda sem margem (a API não traz); prévia da revisão percorre todos os clientes ativos a cada carga.
+- Na visão por produto/categoria do lucro, a taxa de cartão de uma venda dividida em várias linhas pode variar ±1 centavo em relação à visão por venda.
+- Carnê escreve "Venda #3F9A12BC" e o recibo "Venda 3F9A12BC" (cosmético).
+- QA visual: o fluxo `sale-request-cancel` do `interact.mjs` não abre (o mock entra como ADMIN, que cancela direto).
+- Testes do front sensíveis a tempo (`InitialInventoryPage` com esperas reais, `RouteGuard`, clique duplo do `ProductForm`) não reproduziram falha nesta etapa; ficam em observação.
+
+**Ações do operador**
+1. Preencher **Configurações de preço** (margem, despesas, taxas da maquininha): sem elas a taxa do cartão é 0.
+2. Preencher **Dados da loja** (nome, CNPJ, endereço, telefone) — exigido pelo carnê, pelo recibo e para ativar o crediário.
+3. Marcar em Usuários quem "Pode aprovar crédito".
+4. Conferir os valores das **Configurações do crédito** e dos perfis (faixas, parcela mínima R$ 30, taxa 3,99% a.m., limites, entrada mínima, multa/juros/carência) e **ativar o crediário**.
+5. Aprovar os pesos da revisão mensal antes de ligar o cron do `npm run credit-review`.
+6. Testar em aparelho real (celular e tablet): fechamento da venda em cada condição, autorização de exceção, carnê/recibo (baixar e compartilhar) e o botão de WhatsApp.

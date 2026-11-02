@@ -282,6 +282,8 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     } as unknown as CustomerService;
     const financialService: FinancialService = {
       createSaleReceivable: async () => {},
+      createPaidSaleReceivable: async () => {},
+      createCrediarioReceivable: async () => {},
       cancelSaleReceivable: async () => {},
       createPurchasePayable: async () => {},
       cancelPurchasePayable: async () => {},
@@ -293,6 +295,8 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       new FakeCatalogService(variantIds.map((id) => makeVariant({ id }))),
       inventoryService,
       financialService,
+      { get: async () => { throw new Error("taxas não usadas no parcelado antigo"); } },
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
     );
   }
 
@@ -304,7 +308,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
     await sale.execute({
       customerId: "c-1",
       sellerId: userId,
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
       items: [
         { productVariantId: variantId, quantity: 2 },
         { productVariantId: variantId, quantity: 1 },
@@ -344,7 +348,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       sale1.execute({
         customerId: "c-1",
         sellerId: userId,
-        paymentTerms: { installments: 1 },
+        payment: { condition: "CASH" },
         items: [
           { productVariantId: a, quantity: 1 },
           { productVariantId: b, quantity: 1 },
@@ -353,7 +357,7 @@ describe("concorrência de estoque (use cases reais + Postgres)", () => {
       sale2.execute({
         customerId: "c-1",
         sellerId: userId,
-        paymentTerms: { installments: 1 },
+        payment: { condition: "CASH" },
         items: [
           { productVariantId: b, quantity: 1 },
           { productVariantId: a, quantity: 1 },

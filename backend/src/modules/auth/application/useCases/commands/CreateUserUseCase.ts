@@ -21,7 +21,7 @@ export class CreateUserUseCase extends TransactionalUseCase<
   }
 
   protected async handle(
-    { email, password, name, role }: ICreateUserInput,
+    { email, password, name, role, canApproveCredit }: ICreateUserInput,
   ): Promise<UserDTO> {
     const normalizedEmail = normalizeEmail(email);
     const existing = await this.userRepo.findByEmail(normalizedEmail);
@@ -34,6 +34,7 @@ export class CreateUserUseCase extends TransactionalUseCase<
       email: normalizedEmail,
       password: hashedPassword,
       role,
+      canApproveCredit: canApproveCredit ?? false,
     });
 
     const created = await this.userRepo.create(user);

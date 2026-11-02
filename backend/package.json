@@ -14,6 +14,7 @@
     "dev": "tsx watch src/server.ts",
     "create-admin": "tsx src/scripts/createAdmin.ts",
     "purge-idempotency": "tsx src/scripts/purgeIdempotency.ts",
+    "credit-review": "tsx src/scripts/creditReview.ts",
     "fix-box-stock": "tsx src/scripts/fixBoxStock.ts",
     "merge-count-lots": "tsx src/scripts/mergeCountLots.ts",
     "projesctStructure": "tree -I 'node_modules'"

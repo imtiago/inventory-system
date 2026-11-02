@@ -7,8 +7,9 @@
         "revenue": 1250.5,
         "cost": 700.25,
         "estimatedExpenses": 125.05,
-        "profit": 425.2,
-        "marginPercent": 34,
+        "cardFees": 12.5,
+        "profit": 412.7,
+        "marginPercent": 33,
         "itemsWithoutCost": 2
       }
     ],
@@ -18,8 +19,9 @@
       "revenue": 1250.5,
       "cost": 700.25,
       "estimatedExpenses": 125.05,
-      "profit": 425.2,
-      "marginPercent": 34,
+      "cardFees": 12.5,
+      "profit": 412.7,
+      "marginPercent": 33,
       "itemsWithoutCost": 2
     }
   }

@@ -11,7 +11,7 @@ export function makeCreateSaleController() {
     const body = parseInput(createSaleSchema, request.body);
 
     // Vendedor = usuário autenticado (rota protegida por authorize).
-    const sale = await createSale.execute({ ...body, sellerId: request.user!.sub });
+    const sale = await createSale.execute({ ...body, sellerId: request.user!.sub, ip: request.ip });
 
     return reply.status(201).send({ data: await getSale.execute(sale.id) });
   };

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
 import { app } from "../../../app";
 import { createTestUser, TestUser } from "../../../test/authFixtures";
-import { hasPermission, Permission, PERMISSIONS, ROLE_PERMISSIONS } from "../permissions";
+import { hasPermission, hasUserPermission, Permission, PERMISSIONS, ROLE_PERMISSIONS } from "../permissions";
 import { canSeeStockCost } from "../costVisibility";
 import { withIdempotencyKey } from "../../../test/idempotency";
 
@@ -25,7 +25,8 @@ const MATRIX: Record<Permission, Role[]> = {
   "customers.write": ["ADMIN", "VENDEDOR"],
   "sales.read": ["ADMIN", "VENDEDOR"],
   "sales.create": ["ADMIN", "VENDEDOR"],
-  "sales.cancel": ["ADMIN", "VENDEDOR"],
+  "sales.cancel": ["ADMIN"],
+  "sales.cancel.request": ["ADMIN", "VENDEDOR"],
   "inventory.read": ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
   "inventory.write": ["ADMIN", "ESTOQUISTA"],
   "finance.read": ["ADMIN", "VENDEDOR"],
@@ -40,6 +41,9 @@ const MATRIX: Record<Permission, Role[]> = {
   "payables.reverse": ["ADMIN"],
   "pricing.manage": ["ADMIN"],
   "reports.profit": ["ADMIN"],
+  "credit.approve": ["ADMIN"],
+  "credit.manage": ["ADMIN"],
+  "credit.request": ["ADMIN", "VENDEDOR"],
   self: ["ADMIN", "VENDEDOR", "ESTOQUISTA"],
 };
 
@@ -70,6 +74,7 @@ const ROUTES: Record<Permission, RouteProbe> = {
   "sales.read": { method: "GET", url: "/sales?limit=1", allowed: 200 },
   "sales.create": { method: "POST", url: "/sales", payload: {}, allowed: 400 },
   "sales.cancel": { method: "POST", url: `/sales/${missing}/cancel`, payload: {}, allowed: 404 },
+  "sales.cancel.request": { method: "POST", url: `/sales/${missing}/cancel-requests`, payload: {}, allowed: 400 },
   "inventory.read": { method: "GET", url: "/inventory/dashboard", allowed: 200 },
   "inventory.write": { method: "POST", url: "/inventory/receive", payload: {}, allowed: 400 },
   "finance.read": { method: "GET", url: "/receivables?limit=1", allowed: 200 },
@@ -104,6 +109,9 @@ const ROUTES: Record<Permission, RouteProbe> = {
   },
   "pricing.manage": { method: "GET", url: "/pricing/settings", allowed: 200 },
   "reports.profit": { method: "GET", url: "/reports/profit?from=2095-01-01&to=2095-01-02", allowed: 200 },
+  "credit.approve": { method: "GET", url: "/credit/approvers/me", allowed: 200 },
+  "credit.manage": { method: "GET", url: "/credit/settings", allowed: 200 },
+  "credit.request": { method: "POST", url: "/credit/limit-requests", payload: {}, allowed: 400 },
   self: { method: "GET", url: "/users/me", allowed: 200 },
 };
 
@@ -131,6 +139,26 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["inventory.write", { method: "POST", url: `/inventory/boxes/${missing}/items/remove`, payload: {}, allowed: 400 }],
   ["finance.read", { method: "GET", url: `/reports/receivables.csv?customerId=${missing}`, allowed: 200 }],
   ["payables.read", { method: "GET", url: `/reports/payables.csv?supplierId=${missing}`, allowed: 200 }],
+  // Crédito (crediário): perfis e ficha para quem vê clientes; ajustes só credit.manage (corpo inválido → 400).
+  ["customers.read", { method: "GET", url: "/credit/profiles", allowed: 200 }],
+  ["customers.read", { method: "GET", url: `/customers/${missing}/credit`, allowed: 404 }],
+  // Simulação do fechamento (só leitura): corpo inválido → 400.
+  ["sales.create", { method: "POST", url: "/sales/simulate", payload: {}, allowed: 400 }],
+  // Pedidos de aumento: listar/decidir só quem aprova (id inexistente → 404; corpo inválido → 400).
+  ["credit.approve", { method: "GET", url: "/credit/limit-requests?limit=1", allowed: 200 }],
+  ["credit.approve", { method: "GET", url: "/credit/limit-requests/count", allowed: 200 }],
+  ["credit.approve", { method: "POST", url: `/credit/limit-requests/${missing}/approve`, payload: {}, allowed: 404 }],
+  ["credit.approve", { method: "POST", url: `/credit/limit-requests/${missing}/reject`, payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "GET", url: "/credit/review/preview", allowed: 200 }],
+  ["credit.manage", { method: "POST", url: "/credit/review/apply", payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "PUT", url: "/credit/settings", payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "PUT", url: "/credit/profiles/NEW", payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],
+  ["credit.manage", { method: "PUT", url: "/settings/store", payload: {}, allowed: 400 }],
+  // Dados da loja (leitura) e PDFs: quem vende lê; recibo exige finance.read.
+  ["sales.read", { method: "GET", url: "/settings/store", allowed: 200 }],
+  ["sales.read", { method: "GET", url: `/sales/${missing}/carne.pdf`, allowed: 404 }],
+  ["finance.read", { method: "GET", url: `/receivables/payments/${missing}/receipt.pdf`, allowed: 404 }],
 ];
 
 describe("hasPermission (matriz)", () => {
@@ -161,6 +189,28 @@ describe("hasPermission (matriz)", () => {
     assert.equal(hasPermission("CLIENTE", "self"), false);
     for (const odd of ["constructor", "__proto__", "toString", "hasOwnProperty", ""]) {
       assert.equal(hasPermission(odd, "self"), false, odd);
+    }
+  });
+});
+
+describe("hasUserPermission (marca por usuário)", () => {
+  test("VENDEDOR com canApproveCredit → credit.approve true; sem → false; ADMIN sempre true", () => {
+    assert.equal(hasUserPermission({ role: "VENDEDOR", canApproveCredit: true }, "credit.approve"), true);
+    assert.equal(hasUserPermission({ role: "VENDEDOR", canApproveCredit: false }, "credit.approve"), false);
+    assert.equal(hasUserPermission({ role: "ADMIN", canApproveCredit: false }, "credit.approve"), true);
+  });
+
+  test("ESTOQUISTA marcado → credit.approve true, mas users.manage/catalog.price false", () => {
+    const s = { role: "ESTOQUISTA", canApproveCredit: true };
+    assert.equal(hasUserPermission(s, "credit.approve"), true);
+    assert.equal(hasUserPermission(s, "users.manage"), false);
+    assert.equal(hasUserPermission(s, "catalog.price"), false);
+  });
+
+  test("não aceita chaves de protótipo como papel, nem com a marca", () => {
+    for (const odd of ["constructor", "__proto__", "toString", ""]) {
+      assert.equal(hasUserPermission({ role: odd, canApproveCredit: false }, "self"), false, odd);
+      assert.equal(hasUserPermission({ role: odd, canApproveCredit: true }, "credit.approve"), false, odd);
     }
   });
 });

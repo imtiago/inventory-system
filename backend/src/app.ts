@@ -26,6 +26,8 @@ import { productVariantsRoutes } from "@catalog/infrastructure/http/routes/produ
 import { hideTargetMarginFromNonAdmins } from "@catalog/infrastructure/http/targetMarginVisibility";
 import { hideCostFromNonStockRoles } from "@shared/http/costVisibility";
 import { pricingRoutes } from "@pricing/infrastructure/http/routes/pricingRoutes";
+import { creditRoutes } from "@credit/infrastructure/http/routes/creditRoutes";
+import { creditDocumentRoutes } from "@credit/infrastructure/http/routes/creditDocumentRoutes";
 
 export type BuildAppOptions = {
   logger?: FastifyServerOptions["logger"];
@@ -152,6 +154,8 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(dashboardRoutes, { prefix: "/dashboard" });
   app.register(reportRoutes, { prefix: "/reports" });
   app.register(pricingRoutes, { prefix: "/pricing" });
+  app.register(creditRoutes, { prefix: "/credit" });
+  app.register(creditDocumentRoutes);
 
   return app;
 }

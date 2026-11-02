@@ -31,6 +31,14 @@ export class PrismaFinancialDocumentRepository implements FinancialDocumentRepos
     return document ? FinancialDocumentMapper.toDomain(document) : null;
   }
 
+  async findById(id: string): Promise<FinancialDocument | null> {
+    const document = await getDb().financialDocument.findUnique({
+      where: { id },
+      include: { parcels: { include: { payments: true } } },
+    });
+    return document ? FinancialDocumentMapper.toDomain(document) : null;
+  }
+
   private assertTransaction(): void {
     if (!hasActiveTransaction()) {
       throw new InternalInvariantError(
@@ -56,7 +64,7 @@ export class PrismaFinancialDocumentRepository implements FinancialDocumentRepos
 
     const documents = await db.financialDocument.findMany({
       where: { id: { in: rows.map((r) => r.id) } },
-      include: { parcels: true },
+      include: { parcels: { include: { payments: true } } },
       orderBy: { id: "asc" },
     });
 

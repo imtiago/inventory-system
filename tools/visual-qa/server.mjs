@@ -27,7 +27,8 @@ function grow(list, n = 8) {
   }
   return { ...list, data: out, pagination: { page: 1, limit: 10, total: 23, totalPages: 3 } };
 }
-const me = { data: { id: 'u-admin', name: 'Tiago Oliveira', email: 'tiago@example.com', role: 'ADMIN' } };
+// --role VENDEDOR simula o vendedor; --pending mostra a venda com pedido de cancelamento em aberto.
+const me = { data: { id: 'u-admin', name: 'Tiago Oliveira', email: 'tiago@example.com', role: flag('role') || 'ADMIN' } };
 const categories = { data: [{ id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', name: 'Perfumes', productsCount: 8 }, { id: 'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f80', name: 'Maquiagens', productsCount: 15 }, { id: 'c1', name: 'Cuidados com a pele', productsCount: 0 }], pagination: { page: 1, limit: 10, total: 3, totalPages: 1 } };
 
 /** A fixture traz uma simulação só (contrato); a tela precisa das 27 linhas (à vista, débito e crédito 1x-12x). */
@@ -46,11 +47,23 @@ function pricingWithSimulations() {
   return { ...base, simulations: sims };
 }
 
+/** Simulação com 4 opções do crediário; disponível baixo para mostrar opções que pedem autorização. */
+function saleSimulation() {
+  const sim = j('sales/saleSimulation.json');
+  const c = sim.data.crediario;
+  const opt = (n, parcel, last, surcharge, pct) => ({ installments: n, downPayment: 47.91, installmentAmount: parcel, lastInstallmentAmount: last, total: Number((47.91 + parcel * (n - 1) + last).toFixed(2)), surcharge, surchargePercent: pct, margin: n === 4 ? null : { amount: Number((62.4 + surcharge).toFixed(2)), percent: 39.07 } });
+  c.available = 120;
+  c.maxInstallments = 4;
+  c.options = [opt(1, 111.79, 111.79, 0, 0), opt(2, 55.9, 55.89, 0, 0), opt(3, 40.24, 40.25, 8.94, 8), opt(4, 30.69, 30.7, 10.98, 9.82)];
+  return sim;
+}
+
 function route(method, url) {
   const u = new URL(url, 'http://x');
   const p = u.pathname.replace(/^\/api/, '');
   const s = p.split('/').filter(Boolean);
   if (method !== 'GET') {
+    if (p === '/sales/simulate') return saleSimulation();
     if (p === '/auth/login') return { token: 'fake', user: me.data, data: { token: 'fake', user: me.data } };
     return { data: {} };
   }
@@ -82,9 +95,32 @@ function route(method, url) {
     g.data.forEach((r, i) => { if (r.customer) r.customer.name = names[i]; r.totalAmount = [159.7, 25, 1289.9, 74.5, 3420, 12.9, 560.4, 89.99][i]; });
     return g;
   }
-  if (s[0] === 'sales') return j('sales/saleDetail.json');
+  if (p === '/sales/cancel-requests/count') return j('sales/cancelRequestCount.json');
+  if (p === '/sales/cancel-requests') return j('sales/cancelRequests.json');
+  if (s[0] === 'sales' && s[1] === j('sales/saleDetailCrediario.json').data.id) return j('sales/saleDetailCrediario.json');
+  if (s[0] === 'sales') {
+    const detail = j('sales/saleDetail.json');
+    if (flag('pending')) detail.data.pendingCancelRequest = j('sales/cancelRequests.json').data[0];
+    return detail;
+  }
+  if (p === '/credit/review/preview') {
+    const d = j('credit/creditReviewItems.json');
+    const up = d.data[0];
+    d.data.push(
+      { ...up, customerId: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', customerName: 'Carlos Souza', fromProfile: 'GOOD', toProfile: 'REGULAR', fromLimit: 2500, toLimit: 800, action: 'DOWN', reason: 'desceu para Regular: atraso de 31 dias no período', score: 30 },
+      { ...up, customerId: 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f', customerName: 'Ana Lima', fromProfile: 'REGULAR', toProfile: 'REGULAR', fromLimit: 900, toLimit: 900, toStatus: 'SUSPENDED', action: 'SUSPEND', reason: 'suspenso: parcela vencida há 61 dias', score: 5 },
+    );
+    return d;
+  }
+  if (p === '/credit/limit-requests/count') return j('credit/creditLimitRequestCount.json');
+  if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
+  if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
+  if (p === '/settings/store') return j('credit/storeSettings.json');
+  if (p === '/credit/approvers') return j('credit/creditApprovers.json');
+  if (p === '/credit/settings') return j('credit/creditSettings.json');
+  if (p === '/credit/profiles') return j('credit/creditProfiles.json');
   if (p === '/customers') { const g = grow(j('customers/customerList.json')); g.data.forEach((r, i) => { if (i >= 2) r.name = names[i]; }); return g; }
-  if (s[0] === 'customers') return j('customers/customer.json');
+  if (s[0] === 'customers') { const c = j('customers/customer.json'); if (flag('nophone')) c.data.phone = null; return c; }
   if (p === '/suppliers') return grow(j('purchases/supplierList.json'));
   if (s[0] === 'suppliers') return j('purchases/supplier.json');
   if (p === '/purchases') return grow(j('purchases/purchaseList.json'));
@@ -92,6 +128,8 @@ function route(method, url) {
   if (p === '/nfe-imports') return grow(j('nfe/nfeImportList.json'), 4);
   if (s[0] === 'nfe-imports') return j('nfe/nfeImport.json');
   if (p === '/receivables') return grow(j('finance/receivableList.json'));
+  if (s[0] === 'receivables' && s[4] === 'late-fees') return j('finance/lateFeeQuote.json');
+  if (s[0] === 'receivables' && s[1] === 'fees1') return j('finance/receivableDetailLateFees.json');
   if (s[0] === 'receivables') return j('finance/receivableDetail.json');
   if (p === '/payables') return grow(j('finance/payableList.json'));
   if (s[0] === 'payables') return j('finance/payableDetail.json');

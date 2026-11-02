@@ -1,0 +1,9 @@
+{
+  "data": {
+    "principalRemaining": 53.23,
+    "daysLate": 10,
+    "fine": 1.06,
+    "interest": 0.18,
+    "totalDue": 54.47
+  }
+}

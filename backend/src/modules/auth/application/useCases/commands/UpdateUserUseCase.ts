@@ -14,7 +14,7 @@ export class UpdateUserUseCase extends TransactionalUseCase<IUpdateUserInput, Us
     super(transactionManager);
   }
 
-  protected async handle({ actorId, id, name, role, active }: IUpdateUserInput): Promise<UserDTO> {
+  protected async handle({ actorId, id, name, role, active, canApproveCredit }: IUpdateUserInput): Promise<UserDTO> {
     // Só um pedido que desativa ou define papel não-ADMIN pode tirar um admin.
     // Nesse caso trava primeiro os admins ativos (ordem de id) e depois o alvo:
     // ordem fixa de locks, sem deadlock entre dois rebaixamentos concorrentes.
@@ -50,6 +50,7 @@ export class UpdateUserUseCase extends TransactionalUseCase<IUpdateUserInput, Us
     if (name !== undefined) changes.name = name;
     if (role !== undefined) changes.role = role;
     if (active !== undefined) changes.active = active;
+    if (canApproveCredit !== undefined) changes.canApproveCredit = canApproveCredit;
 
     const saved = await this.userRepo.updateAccess(id, changes);
     return UserReadMapper.fromEntity(saved);

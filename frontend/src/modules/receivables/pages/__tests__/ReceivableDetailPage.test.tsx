@@ -5,6 +5,8 @@ import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 
 import { ReceivableDetailPage } from '../ReceivableDetailPage';
+import { FinanceDetailPage } from '@/modules/finance/pages/FinanceDetailPage';
+import payableDetail from '@/test/fixtures/finance/payableDetail.json';
 import { SaleDetailPage } from '@/modules/sales/pages/SaleDetailPage';
 import { todayInBusinessTz } from '@/shared/utils/businessDate';
 import { renderWithProviders } from '@/test/render';
@@ -58,6 +60,48 @@ describe('ReceivableDetailPage', () => {
     expect(within(active).getByText(/PIX/)).toBeInTheDocument();
     expect(within(active).getByText(/PIX 123456/)).toBeInTheDocument();
     expect(within(active).getByRole('button', { name: 'Estornar' })).toBeInTheDocument();
+  });
+
+  test('Recibo: baixa o PDF do pagamento ativo; estornado não tem recibo', async () => {
+    const downloads: string[] = [];
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, writable: true, value: vi.fn(() => 'blob:fake') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, writable: true, value: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(this.download);
+    });
+    let requested = '';
+    server.use(
+      http.get(`${API_URL}/receivables/payments/:paymentId/receipt.pdf`, ({ params }) => {
+        requested = String(params.paymentId);
+        return new HttpResponse('%PDF-1.3 fake', { headers: { 'Content-Type': 'application/pdf' } });
+      }),
+    );
+    try {
+      renderDetail();
+      await screen.findByText('Maria Oliveira');
+
+      const reversed = screen.getByTestId(`payment-${receivableDetail.data.parcels[0].payments[0].id}`);
+      expect(within(reversed).queryByRole('button', { name: /Recibo/ })).toBeNull();
+
+      const active = screen.getByTestId(`payment-${activePaymentId}`);
+      await userEvent.click(within(active).getByRole('button', { name: /^Recibo do pagamento de/ }));
+      await waitFor(() => expect(downloads).toEqual([`recibo-${activePaymentId.slice(0, 8).toUpperCase()}.pdf`]));
+      expect(requested).toBe(activePaymentId);
+    } finally {
+      click.mockRestore();
+    }
+  });
+
+  test('contas a pagar não tem Recibo', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/payables/:id" element={<FinanceDetailPage kind="payable" />} />
+      </Routes>,
+      { route: `/payables/${payableDetail.data.id}` },
+    );
+    await screen.findByText(/Conta a pagar #/);
+    await screen.findAllByRole('button', { name: /Estornar|Registrar pagamento/ });
+    expect(screen.queryByRole('button', { name: /Recibo/ })).toBeNull();
   });
 
   test('data padrão do pagamento usa o dia de São Paulo, não o do navegador', async () => {
@@ -188,5 +232,46 @@ describe('ReceivableDetailPage', () => {
     const link = await screen.findByRole('link', { name: 'Ver contas a receber' });
     expect(link).toHaveAttribute('href', `/receivables/${saleDetail.data.receivable!.id}`);
   });
-});
 
+  test('pagamento com encargos mostra multa, juros, dispensa e o recebido em caixa; parcela vencida mostra encargos de hoje', async () => {
+    const withFees = structuredClone(receivableDetail);
+    const payment = withFees.data.parcels[0].payments[1] as Record<string, unknown>;
+    Object.assign(payment, {
+      fineAmount: 1.06,
+      interestAmount: 0.35,
+      waivedAmount: 0.41,
+      waiverReason: 'Cliente antigo',
+      waivedBy: { id: 'u-1', name: 'Ana Gerente' },
+      receivedAmount: 54.23,
+    });
+    server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json(withFees)));
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+
+    const active = screen.getByTestId(`payment-${activePaymentId}`);
+    expect(within(active).getByText(/Multa R\$\s1,06/)).toBeInTheDocument();
+    expect(within(active).getByText(/Juros R\$\s0,35/)).toBeInTheDocument();
+    expect(within(active).getByText(/Dispensado R\$\s0,41 por Ana Gerente: Cliente antigo/)).toBeInTheDocument();
+    expect(within(active).getByText(/Recebido em caixa R\$\s54,23/)).toBeInTheDocument();
+
+    const overdue = screen.getByTestId(`parcel-${parcel2.number}`);
+    expect(within(overdue).getByText(/Se paga hoje: multa R\$\s1,06 · juros R\$\s0,18 · total R\$\s54,47/)).toBeInTheDocument();
+    expect(within(screen.getByTestId('parcel-3')).queryByText(/Se paga hoje/)).toBeNull();
+  });
+
+  test('pagamento lançado com data passada mostra o motivo', async () => {
+    const backdated = structuredClone(receivableDetail);
+    Object.assign(backdated.data.parcels[0].payments[1] as Record<string, unknown>, { backdateReason: 'Pagou no balcão, lançado hoje' });
+    server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json(backdated)));
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+    const active = screen.getByTestId(`payment-${activePaymentId}`);
+    expect(within(active).getByText('Data passada: Pagou no balcão, lançado hoje')).toBeInTheDocument();
+  });
+
+  test('documento sem encargos (venda antiga) avisa que não cobra multa nem juros', async () => {
+    server.use(http.get(`${API_URL}/receivables/:id`, () => HttpResponse.json({ data: { ...receivableDetail.data, noLateFees: true } })));
+    renderDetail();
+    expect(await screen.findByText(/Sem multa nem juros de atraso/)).toBeInTheDocument();
+  });
+});

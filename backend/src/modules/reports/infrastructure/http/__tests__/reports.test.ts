@@ -82,7 +82,12 @@ describe("Relatórios CSV", () => {
       });
     // 02:30Z do dia 10 = 23:30 BRT do dia 09.
     saleA = (await mkSale("2095-03-10T02:30:00.000Z", "COMPLETED", 1272)).id;
-    saleB = (await mkSale("2095-03-10T12:00:00.000Z", "COMPLETED", 1272)).id;
+    saleB = (await mkSale("2095-03-10T12:00:00.000Z", "COMPLETED", 1322)).id;
+    // B: crédito 3x com repasse; total cobrado 1322,00 = itens 1272,00 + acréscimo 50,00.
+    await prisma.sale.update({
+      where: { id: saleB },
+      data: { paymentCondition: "CREDIT_CARD", cardInstallments: 3, cardFeeBps: 380, cardFeePassedOn: true, surchargeAmount: 50 },
+    });
     saleC = (await mkSale("2095-03-11T15:00:00.000Z", "CANCELED", 1272)).id;
     await mkSale("2095-04-20T15:00:00.000Z", "COMPLETED", 1272); // fora da janela
 
@@ -155,7 +160,7 @@ describe("Relatórios CSV", () => {
     assert.equal(res.headers["content-type"], "text/csv; charset=utf-8");
     assert.equal(res.body.charCodeAt(0), 0xfeff);
     assert.ok(res.body.includes("\r\n"));
-    assert.deepEqual(rows[0], ["Venda", "Data", "Cliente", "Status", "Itens", "Total"]);
+    assert.deepEqual(rows[0], ["Venda", "Data", "Cliente", "Status", "Itens", "Total", "Acréscimo", "Forma de pagamento"]);
     const mine = rows.filter((r) => r[2] === `'${customerName}`);
     assert.equal(mine.length, 3); // A, B, C; a de abril fica de fora
     const byId = new Map(mine.map((r) => [r[0], r]));
@@ -164,6 +169,12 @@ describe("Relatórios CSV", () => {
     assert.equal(byId.get(saleC)![1], "11/03/2095");
     assert.equal(byId.get(saleA)![4], "2");
     assert.equal(byId.get(saleA)![5], "1272,00");
+    assert.equal(byId.get(saleA)![6], "0,00");
+    assert.equal(byId.get(saleA)![7], "Parcelado (antigo)"); // padrão do banco = venda antiga
+    // Total = o que o cliente pagou; o acréscimo (repasse da taxa) vem à parte.
+    assert.equal(byId.get(saleB)![5], "1322,00");
+    assert.equal(byId.get(saleB)![6], "50,00");
+    assert.equal(byId.get(saleB)![7], "Crédito 3x");
     assert.ok(res.body.includes(`"'=HYP;""${tag}"""`));
   });
 
@@ -210,6 +221,7 @@ describe("Relatórios CSV", () => {
     const { rows } = await csv(`/reports/sale-items.csv?from=${WIN_FROM}&to=${WIN_TO}`);
     assert.deepEqual(rows[0], [
       "Venda", "Data", "Cliente", "Produto", "Variante", "Código", "Quantidade", "Preço unitário", "Total",
+      "Acréscimo", "Forma de pagamento",
     ]);
     const mine = rows.filter((r) => r[2] === `'${customerName}`);
     assert.equal(mine.length, 4); // 2 itens × (A, B)
@@ -226,9 +238,18 @@ describe("Relatórios CSV", () => {
     assert.equal(first[6], "3");
     assert.equal(first[7], "12,50");
     assert.equal(first[8], "37,50");
+    assert.equal(first[9], "0,00");
+    assert.equal(first[10], "Parcelado (antigo)");
     const second = mine.find((r) => r[0] === saleA && r[4] === `Outro, "x"`)!;
     assert.equal(second[7], "1234,50");
     assert.equal(second[8], "1234,50");
+    // Acréscimo da venda B rateado pelos itens (proporcional ao total da linha; resto na última).
+    const ofB = mine.filter((r) => r[0] === saleB);
+    const cents = (v: string) => Math.round(Number(v.replace(",", ".")) * 100);
+    assert.equal(ofB.reduce((s, r) => s + cents(r[9]), 0), 5000);
+    const small = ofB.find((r) => r[4] === `Prod ${tag}`)!;
+    assert.ok([147, 148].includes(cents(small[9])), small[9]);
+    assert.ok(ofB.every((r) => r[10] === "Crédito 3x"));
   });
 
   test("estoque: colunas, disponível e valor em estoque", async () => {

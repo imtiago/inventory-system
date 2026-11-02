@@ -6,7 +6,7 @@ export interface FinancialDocumentRepository {
   create(document: FinancialDocument): Promise<FinancialDocument>;
   /**
    * Trava (FOR UPDATE, em ordem de id) e lê todos os documentos de uma origem
-   * (ex.: RECEIVABLE de SALE + id da venda). Exige transação.
+   * (ex.: RECEIVABLE de SALE + id da venda), com parcelas e pagamentos. Exige transação.
    */
   lockByOrigin(
     type: FinancialType,

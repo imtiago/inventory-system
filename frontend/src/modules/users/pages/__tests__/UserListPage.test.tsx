@@ -208,4 +208,65 @@ describe('UserListPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(bodies).toEqual([{ password: 'NovaSenha123' }]);
   });
+
+  test('lista mostra selo "Aprova crédito" só em quem tem a marca', async () => {
+    server.use(
+      http.get(`${API_URL}/users`, () =>
+        HttpResponse.json({ data: [{ ...maria, canApproveCredit: true }, { ...joao, canApproveCredit: false }], pagination: userList.pagination }),
+      ),
+    );
+    await openList();
+    expect(within(row('Maria Estoque')).getByText('Aprova crédito')).toBeInTheDocument();
+    expect(within(row('João Vendas')).queryByText('Aprova crédito')).not.toBeInTheDocument();
+  });
+
+  test('editar envia canApproveCredit só quando mudou', async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.patch(`${API_URL}/users/${joao.id}`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ data: { ...joao, canApproveCredit: true } });
+      }),
+    );
+    await openList();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar João Vendas' }));
+    let dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Pode aprovar crédito')).not.toBeChecked();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar João Vendas' }));
+    dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByLabelText('Pode aprovar crédito'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(bodies).toHaveLength(2));
+
+    expect(bodies[0]).not.toHaveProperty('canApproveCredit');
+    expect(bodies[1]).toMatchObject({ canApproveCredit: true });
+  });
+
+  test('o interruptor some para papel ADMIN (sempre pode) e criar envia a marca quando ligada', async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(`${API_URL}/users`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ data: { ...maria, id: 'new' } }, { status: 201 });
+      }),
+    );
+    await openList();
+    await userEvent.click(screen.getByRole('button', { name: /Novo usuário/ }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText(/Nome/), 'Ana Nova');
+    await userEvent.type(within(dialog).getByLabelText(/E-mail/), 'ana@example.com');
+    await userEvent.type(within(dialog).getByLabelText(/Senha/), 'SenhaForte123');
+    await userEvent.selectOptions(within(dialog).getByLabelText(/Papel/), 'ADMIN');
+    expect(within(dialog).queryByLabelText('Pode aprovar crédito')).not.toBeInTheDocument();
+    await userEvent.selectOptions(within(dialog).getByLabelText(/Papel/), 'VENDEDOR');
+    await userEvent.click(within(dialog).getByLabelText('Pode aprovar crédito'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Criar usuário' }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({ role: 'VENDEDOR', canApproveCredit: true });
+  });
 });

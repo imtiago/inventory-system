@@ -11,7 +11,9 @@ import { renderWithProviders } from '@/test/render';
 import { server } from '@/test/server';
 import { API_URL } from '@/test/handlers/inventory';
 import saleDetail from '@/test/fixtures/sales/saleDetail.json';
+import saleDetailCrediario from '@/test/fixtures/sales/saleDetailCrediario.json';
 import { setViewport } from '@/test/viewport';
+import { loginAs } from '@/test/auth';
 
 const id = saleDetail.data.id;
 
@@ -198,5 +200,209 @@ describe('SaleDetailPage no celular', () => {
 
     await screen.findByText('Maria Oliveira');
     expect(screen.getAllByRole('table')).toHaveLength(2);
+  });
+});
+
+describe('SaleDetailPage: pedido de cancelamento', () => {
+  const pending = {
+    id: 'req-1',
+    saleId: id,
+    customerName: 'Maria Oliveira',
+    total: 159.7,
+    reason: 'Cliente desistiu',
+    status: 'PENDING',
+    requestedBy: { id: 'u1', name: 'João Vendedor' },
+    requestedAt: '2026-10-26T13:10:00.000Z',
+    decidedBy: null,
+    decidedAt: null,
+    decisionReason: null,
+  };
+
+  test('VENDEDOR vê "Pedir cancelamento" e não "Cancelar venda"', async () => {
+    loginAs('VENDEDOR');
+    renderDetail();
+
+    expect(await screen.findByRole('button', { name: 'Pedir cancelamento' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar venda' })).not.toBeInTheDocument();
+  });
+
+  test('VENDEDOR envia o motivo (mín. 3), vê o selo e o botão some', async () => {
+    loginAs('VENDEDOR');
+    let body: unknown = null;
+    server.use(
+      http.post(`${API_URL}/sales/:id/cancel-requests`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ data: pending }, { status: 201 });
+      }),
+    );
+    renderDetail();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pedir cancelamento' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Motivo'), 'ab');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar pedido' }));
+    expect(await within(dialog).findByText(/3 a 200 caracteres/)).toBeInTheDocument();
+    expect(body).toBeNull();
+
+    await userEvent.type(within(dialog).getByLabelText('Motivo'), 'c');
+    // O detalhe recarregado já traz o pedido pendente.
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ data: { ...saleDetail.data, pendingCancelRequest: pending } })));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar pedido' }));
+
+    await waitFor(() => expect(body).toEqual({ reason: 'abc' }));
+    expect(await screen.findByText('Cancelamento pedido')).toBeInTheDocument();
+    expect(screen.getByText(/Cliente desistiu/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument());
+  });
+
+  test('409 ao pedir mostra a mensagem da API no modal', async () => {
+    loginAs('VENDEDOR');
+    server.use(
+      http.post(`${API_URL}/sales/:id/cancel-requests`, () =>
+        HttpResponse.json({ message: 'Já existe um pedido de cancelamento em aberto para esta venda.', code: 'CANCEL_REQUEST_ALREADY_PENDING' }, { status: 409 }),
+      ),
+    );
+    renderDetail();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pedir cancelamento' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Motivo'), 'Cliente desistiu');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar pedido' }));
+
+    expect(await within(dialog).findByText('Já existe um pedido de cancelamento em aberto para esta venda.')).toBeInTheDocument();
+  });
+
+  test('com pedido pendente mostra o selo e o motivo; VENDEDOR não pode pedir de novo', async () => {
+    loginAs('VENDEDOR');
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ data: { ...saleDetail.data, pendingCancelRequest: pending } })));
+    renderDetail();
+
+    expect(await screen.findByText('Cancelamento pedido')).toBeInTheDocument();
+    expect(screen.getByText(/Cliente desistiu/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument();
+  });
+
+  test('pedido recusado aparece com o motivo da recusa; o vendedor pode pedir de novo', async () => {
+    loginAs('VENDEDOR');
+    const rejected = {
+      ...pending,
+      status: 'REJECTED',
+      decidedBy: { id: 'a1', name: 'Ana Admin' },
+      decidedAt: '2026-10-26T15:00:00.000Z',
+      decisionReason: 'Venda correta',
+    };
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json({ data: { ...saleDetail.data, latestDecidedCancelRequest: rejected } })));
+    renderDetail();
+
+    const notice = await screen.findByTestId('cancel-request-rejected');
+    expect(notice).toHaveTextContent('Pedido de cancelamento recusado: Venda correta');
+    expect(notice).toHaveTextContent('Ana Admin');
+    expect(screen.getByRole('button', { name: 'Pedir cancelamento' })).toBeInTheDocument();
+  });
+
+  test('pedido aprovado (venda cancelada) não mostra aviso de recusa', async () => {
+    loginAs('VENDEDOR');
+    const approved = { ...pending, status: 'APPROVED', decidedAt: '2026-10-26T15:00:00.000Z' };
+    server.use(
+      http.get(`${API_URL}/sales/:id`, () =>
+        HttpResponse.json({ data: { ...saleDetail.data, status: 'CANCELED', latestDecidedCancelRequest: approved } }),
+      ),
+    );
+    renderDetail();
+
+    expect(await screen.findByText('Cancelada')).toBeInTheDocument();
+    expect(screen.queryByTestId('cancel-request-rejected')).not.toBeInTheDocument();
+  });
+
+  test('ADMIN mantém "Cancelar venda" e não vê "Pedir cancelamento"', async () => {
+    renderDetail();
+
+    expect(await screen.findByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pedir cancelamento' })).not.toBeInTheDocument();
+  });
+
+  test('venda no crediário mostra Carnê (PDF) e WhatsApp; venda comum não', async () => {
+    server.use(http.get(`${API_URL}/sales/${saleDetailCrediario.data.id}`, () => HttpResponse.json(saleDetailCrediario)));
+    const crediario = renderWithProviders(
+      <Routes>
+        <Route path="/sales/:id" element={<SaleDetailPage />} />
+      </Routes>,
+      { route: `/sales/${saleDetailCrediario.data.id}` },
+    );
+    expect(await screen.findByRole('button', { name: 'Carnê (PDF)' })).toBeInTheDocument();
+    expect(screen.getByText(/Enviar pelo WhatsApp/)).toBeInTheDocument();
+    crediario.unmount();
+
+    renderDetail();
+    await screen.findByText('Maria Oliveira');
+    expect(screen.queryByRole('button', { name: 'Carnê (PDF)' })).not.toBeInTheDocument();
+  });
+});
+
+describe('SaleDetailPage: condição de pagamento', () => {
+  const paidParcel = (amount: number) => ({ id: 'p-1', amount, dueDate: '2026-10-22', paidAmount: amount, remainingAmount: 0, status: 'PAID' });
+
+  test('crediário: condição, entrada, parcelas, taxa, acréscimo, total a prazo e a autorização gravada', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetailCrediario)));
+    renderDetail();
+
+    const payment = await screen.findByTestId('sale-payment');
+    expect(within(payment).getByText('Crediário')).toBeInTheDocument();
+    expect(within(payment).getByText(/300,00/)).toBeInTheDocument(); // à vista
+    expect(within(payment).getByText(/90,00 · PIX/)).toBeInTheDocument(); // entrada
+    expect(within(payment).getByText(/210,00/)).toBeInTheDocument(); // financiado
+    expect(within(payment).getByText(/3x de R\$\s75,66/)).toBeInTheDocument();
+    expect(within(payment).getByText(/3,99% ao mês/)).toBeInTheDocument();
+    expect(within(payment).getByText(/^R\$\s16,97/)).toBeInTheDocument();
+    expect(within(payment).getByText(/^R\$\s316,97/)).toBeInTheDocument();
+
+    const auth = within(payment).getByTestId('sale-override');
+    expect(auth).toHaveTextContent('Ana Aprovadora');
+    expect(auth).toHaveTextContent('Cliente antigo, pagou ontem');
+    expect(auth).toHaveTextContent('Atraso');
+  });
+
+  test('crediário tem o botão "Carnê" (download ligado depois)', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetailCrediario)));
+    renderDetail();
+    expect(await screen.findByRole('button', { name: 'Carnê' })).toBeInTheDocument();
+  });
+
+  test('crediário com só a entrada paga (no ato) mantém "Cancelar venda"', async () => {
+    server.use(http.get(`${API_URL}/sales/:id`, () => HttpResponse.json(saleDetailCrediario)));
+    renderDetail();
+    expect(await screen.findByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
+  });
+
+  test('cartão de crédito com repasse: condição, parcelas e taxa repassada', async () => {
+    server.use(
+      http.get(`${API_URL}/sales/:id`, () =>
+        HttpResponse.json({
+          data: {
+            ...saleDetail.data,
+            paymentCondition: 'CREDIT_CARD',
+            cardInstallments: 3,
+            cardFeePassedOn: true,
+            surchargeAmount: 8.39,
+            totalAmount: 168.09,
+            receivable: { id: 'r-1', status: 'PAID', parcels: [paidParcel(168.09)] },
+          },
+        }),
+      ),
+    );
+    renderDetail();
+
+    const payment = await screen.findByTestId('sale-payment');
+    expect(within(payment).getByText('Crédito 3x')).toBeInTheDocument();
+    expect(within(payment).getByText(/Repassada ao cliente: R\$\s8,39/)).toBeInTheDocument();
+    // Pago no ato não bloqueia o cancelamento (o backend estorna em até 7 dias).
+    expect(screen.getByRole('button', { name: 'Cancelar venda' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Carnê' })).not.toBeInTheDocument();
+  });
+
+  test('venda antiga parcelada aparece como "Parcelado (antigo)"', async () => {
+    renderDetail();
+    const payment = await screen.findByTestId('sale-payment');
+    expect(within(payment).getByText('Parcelado (antigo)')).toBeInTheDocument();
   });
 });

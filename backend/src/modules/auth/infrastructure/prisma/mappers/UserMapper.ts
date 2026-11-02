@@ -13,6 +13,7 @@ export class UserMapper {
       password: prisma.password,
       role: UserRole[prisma.role],
       active: prisma.active,
+      canApproveCredit: prisma.canApproveCredit,
       createdAt: prisma.createdAt,
     });
   }
@@ -25,6 +26,7 @@ export class UserMapper {
       password: user.password,
       role: user.role,
       active: user.active,
+      canApproveCredit: user.canApproveCredit,
       createdAt: user.createdAt,
     };
   }
@@ -36,6 +38,7 @@ export class UserMapper {
       password: user.password,
       role: user.role,
       active: user.active,
+      canApproveCredit: user.canApproveCredit,
     };
   }
 }

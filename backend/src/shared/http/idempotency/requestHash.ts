@@ -14,6 +14,9 @@ export function canonicalJson(value: unknown): string {
   return `{${entries.join(",")}}`;
 }
 
+/** Valor que substitui segredos (senhas) no corpo antes do hash. */
+export const REDACTED_SECRET = "[redacted]";
+
 export interface RequestFingerprint {
   method: string;
   route: string;
@@ -21,9 +24,27 @@ export interface RequestFingerprint {
   body: unknown;
 }
 
-/** SHA-256 (hex) de método + padrão da rota + params + corpo em JSON canônico. */
+/** Chaves com segredo (ex.: `payment.override.approverPassword`): nunca entram no hash. */
+const SECRET_KEY = /password/i;
+
+/**
+ * Cópia do corpo com o valor de toda chave de segredo trocado por `REDACTED_SECRET` (em qualquer nível).
+ * O hash fica no banco (e nos backups) até o purge: um SHA-256 sem sal da senha seria quebrável offline.
+ * Efeito desejado: o retry com a senha redigitada (outra string) é o mesmo pedido e recebe o replay.
+ */
+export function redactSecrets(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(redactSecrets);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    out[k] = SECRET_KEY.test(k) && v !== undefined ? REDACTED_SECRET : redactSecrets(v);
+  }
+  return out;
+}
+
+/** SHA-256 (hex) de método + padrão da rota + params + corpo (sem segredos) em JSON canônico. */
 export function requestHash({ method, route, params, body }: RequestFingerprint): string {
   return createHash("sha256")
-    .update(canonicalJson([method.toUpperCase(), route, params ?? {}, body ?? null]))
+    .update(canonicalJson([method.toUpperCase(), route, params ?? {}, redactSecrets(body ?? null)]))
     .digest("hex");
 }

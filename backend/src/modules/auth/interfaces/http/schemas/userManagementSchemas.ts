@@ -15,9 +15,11 @@ export const updateUserSchema = z
     name: nameSchema.optional(),
     role: userRoleSchema.optional(),
     active: z.boolean({ error: "Informe verdadeiro ou falso." }).optional(),
+    canApproveCredit: z.boolean({ error: "Informe verdadeiro ou falso." }).optional(),
   })
   .refine(
-    (data) => data.name !== undefined || data.role !== undefined || data.active !== undefined,
+    (data) => data.name !== undefined || data.role !== undefined || data.active !== undefined ||
+      data.canApproveCredit !== undefined,
     { message: "Informe ao menos um campo para alterar." },
   );
 

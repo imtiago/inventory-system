@@ -2,6 +2,7 @@ import { readTogether } from "@shared/infrastructure/database/readTogether";
 import { Prisma } from "@prisma/client";
 import { SaleListFilter, SaleReadRepository } from "@sales/application/contracts/SaleReadRepository";
 import { SaleDetailDTO, SaleListItemDTO } from "@sales/application/dto/SaleDTO";
+import { PrismaSaleCancelRequestRepository } from "../repositories/PrismaSaleCancelRequestRepository";
 import { SaleReadMapper } from "@sales/application/mappers/SaleReadMapper";
 import { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
@@ -52,6 +53,7 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       include: {
         customer: personSelect,
         seller: personSelect,
+        financing: { include: { overrideBy: personSelect } },
         items: {
           include: { productVariant: { select: { code: true } } },
           orderBy: { id: "asc" },
@@ -82,6 +84,19 @@ export class PrismaSaleReadRepository implements SaleReadRepository {
       orderBy: { createdAt: "asc" },
     });
 
-    return SaleReadMapper.toDetailDTO(sale, receivable);
+    const requests = new PrismaSaleCancelRequestRepository();
+    const [pending, decided] = await readTogether([
+      getDb().saleCancelRequest.findFirst({ where: { saleId: id, status: "PENDING" }, select: { id: true } }),
+      // Último decidido (aprovado ou recusado): o vendedor vê "pedido recusado: <motivo>".
+      getDb().saleCancelRequest.findFirst({
+        where: { saleId: id, status: { not: "PENDING" } },
+        select: { id: true },
+        orderBy: [{ decidedAt: { sort: "desc", nulls: "last" } }, { requestedAt: "desc" }, { id: "desc" }],
+      }),
+    ]);
+    const pendingCancelRequest = pending ? await requests.findDtoById(pending.id) : null;
+    const latestDecidedCancelRequest = decided ? await requests.findDtoById(decided.id) : null;
+
+    return SaleReadMapper.toDetailDTO(sale, receivable, new Date(), pendingCancelRequest, latestDecidedCancelRequest);
   }
 }

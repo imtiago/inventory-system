@@ -177,6 +177,7 @@ describe("POST /auth/login", () => {
         name: user.name,
         email: user.email,
         role: "VENDEDOR",
+        canApproveCredit: false,
       });
 
       // o token emitido é aceito pelo authenticate

@@ -7,6 +7,7 @@ export type UserAccessChanges = {
   name?: string;
   role?: UserRole;
   active?: boolean;
+  canApproveCredit?: boolean;
 };
 
 export interface UserRepository extends ICrudRepository<User> {

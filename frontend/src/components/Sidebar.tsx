@@ -11,11 +11,29 @@ import { allRoutes } from "@/routes/routes";
 import type { AppRoute } from "@/routes/types";
 import { usePriceReviewCount } from "@/modules/pricing/hooks/usePriceReviews";
 
+import { useSaleCancelRequestCount } from "@/modules/sales/hooks/useSaleCancelRequests";
+import { useCreditRequestCount } from "@/modules/credit/hooks/useCredit";
+
 const PRICE_REVIEWS_PATH = "/catalog/price-reviews";
+const CANCEL_REQUESTS_PATH = "/sales/cancel-requests";
+const CREDIT_REQUESTS_PATH = "/credit/requests";
 
 /** Pendentes de revisão de preço; o hook só consulta quem tem `catalog.price`. */
 function PriceReviewBadge() {
-  const { data } = usePriceReviewCount();
+  return <PendingBadge count={usePriceReviewCount().data} />;
+}
+
+/** Pedidos de cancelamento pendentes; o hook só consulta quem tem `sales.cancel`. */
+function CancelRequestBadge() {
+  return <PendingBadge count={useSaleCancelRequestCount().data} />;
+}
+
+/** Pedidos de aumento de limite pendentes; o hook só consulta quem tem `credit.approve` (papel ou marca). */
+function CreditRequestBadge() {
+  return <PendingBadge count={useCreditRequestCount().data} />;
+}
+
+function PendingBadge({ count: data }: { count: number | undefined }) {
   if (!data) return null;
 
   return (
@@ -53,6 +71,8 @@ function renderItem(item: AppRoute, onNavigate?: () => void) {
       <span>{item.label}</span>
 
       {item.path === PRICE_REVIEWS_PATH && <PriceReviewBadge />}
+      {item.path === CANCEL_REQUESTS_PATH && <CancelRequestBadge />}
+      {item.path === CREDIT_REQUESTS_PATH && <CreditRequestBadge />}
     </NavLink>
   );
 }
@@ -68,9 +88,9 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const logout = useLogout();
   const [changingPassword, setChangingPassword] = useState(false);
-  const role = useAuthStore((state) => state.user?.role);
+  const user = useAuthStore((state) => state.user);
 
-  const items = allRoutes.filter((route) => route.showInMenu && (!route.permission || can(role, route.permission)));
+  const items = allRoutes.filter((route) => route.showInMenu && (!route.permission || can(user, route.permission)));
   const ungrouped = items.filter((item) => !item.group);
   const groups = [...new Set(items.flatMap((item) => (item.group ? [item.group] : [])))];
 

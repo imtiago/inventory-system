@@ -13,7 +13,7 @@ import { ROLES, ROLE_LABELS, type UserDTO } from '../types';
 
 import { FieldError, fieldA11y } from '@/shared/components/form';
 import { passwordBytesRule } from '@/shared/utils/password';
-type Values = { name: string; email: string; password: string; role: UserRole | ''; active: boolean };
+type Values = { name: string; email: string; password: string; role: UserRole | ''; active: boolean; canApproveCredit: boolean };
 
 const FIELDS = ['name', 'email', 'password', 'role'] as const;
 const inputClass = 'w-full rounded-lg border border-input bg-surface text-foreground p-3 outline-none focus:ring-2 focus:ring-ring/20 disabled:bg-surface-muted';
@@ -35,10 +35,21 @@ function UserForm({ user, onClose }: FormProps) {
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
-    defaultValues: { name: user?.name ?? '', email: '', password: '', role: user?.role ?? '', active: user?.active ?? true },
+    defaultValues: {
+      name: user?.name ?? '',
+      email: '',
+      password: '',
+      role: user?.role ?? '',
+      active: user?.active ?? true,
+      canApproveCredit: user?.canApproveCredit ?? false,
+    },
   });
+  // ADMIN sempre pode aprovar crédito: o interruptor só existe para os demais papéis.
+  const selectedRole = watch('role');
+  const showCreditSwitch = selectedRole !== 'ADMIN';
 
   const once = useSingleSubmit();
   useModalBusy(isSubmitting);
@@ -49,9 +60,21 @@ function UserForm({ user, onClose }: FormProps) {
     try {
       if (isEdit) {
         // Own access cannot be changed (the backend enforces it as well): send only the name.
-        await update.mutateAsync(isSelf ? { name } : { name, role: values.role as UserRole, active: values.active });
+        const creditChanged = values.role !== 'ADMIN' && values.canApproveCredit !== user.canApproveCredit;
+        await update.mutateAsync(
+          isSelf
+            ? { name }
+            : {
+                name,
+                role: values.role as UserRole,
+                active: values.active,
+                ...(creditChanged ? { canApproveCredit: values.canApproveCredit } : {}),
+              },
+        );
       } else {
-        await create.mutateAsync({ name, email: values.email.trim(), password: values.password, role: values.role as UserRole });
+        await create.mutateAsync({ name, email: values.email.trim(), password: values.password, role: values.role as UserRole,
+          ...(values.role !== 'ADMIN' && values.canApproveCredit ? { canApproveCredit: true } : {}),
+        });
       }
 
       onClose();
@@ -146,6 +169,16 @@ function UserForm({ user, onClose }: FormProps) {
         </select>
         <FieldError id="user-role" message={errors.role?.message} />
       </div>
+
+      {showCreditSwitch && (
+        <div>
+          <label htmlFor="user-credit" className="flex items-center gap-2 font-medium">
+            <input id="user-credit" type="checkbox" disabled={isSelf} {...register('canApproveCredit')} />
+            Pode aprovar crédito
+          </label>
+          <p className="mt-1 text-sm text-muted">Autoriza vendas no crediário acima do limite. Administradores sempre podem.</p>
+        </div>
+      )}
 
       {isEdit && (
         <div>

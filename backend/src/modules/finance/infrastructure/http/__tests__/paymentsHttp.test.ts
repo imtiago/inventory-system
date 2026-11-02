@@ -11,6 +11,7 @@ import { app } from "../../../../../app";
 import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
 import { signTestToken } from "../../../../../test/authFixtures";
 import { withIdempotencyKey } from "../../../../../test/idempotency";
+import { convertToLegacyInstallments } from "../../../../../test/legacySaleFixtures";
 
 app.log.level = "silent";
 
@@ -53,15 +54,13 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
     const res = await request("POST", "/sales", {
       customerId,
       items: [{ productVariantId: variantId, quantity }],
-      paymentTerms: { installments, firstDueDate: addDays(30) },
+      payment: { condition: "CASH" },
     });
     assert.equal(res.statusCode, 201, res.body);
     const saleId = res.json().data.id as string;
-    const doc = await prisma.financialDocument.findFirstOrThrow({
-      where: { originId: saleId },
-      include: { parcels: { orderBy: { dueDate: "asc" } } },
-    });
-    return { saleId, documentId: doc.id, parcelIds: doc.parcels.map((p) => p.id) };
+    // Parcelas em aberto: venda parcelada antiga (o parcelado saiu da API).
+    const { documentId, parcelIds } = await convertToLegacyInstallments(saleId, installments, addDays(30));
+    return { saleId, documentId, parcelIds };
   };
 
   const postPayment = (documentId: string, parcelId: string, body: Record<string, unknown>) =>
@@ -204,6 +203,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
       amount: 1,
       method: "PIX",
       paymentDate: addDays(-1),
+      backdateReason: "Pago antes, lançado hoje",
     });
     assert.equal(before.statusCode, 400, before.body);
     assert.equal(before.json().code, "VALIDATION_ERROR");
@@ -236,6 +236,7 @@ describe("Pagamentos de contas a receber (POST payments / reverse)", () => {
       amount: 1,
       method: "DEBIT_CARD",
       paymentDate: addDays(-3),
+      backdateReason: "Pago no débito, lançado depois",
     });
     assert.equal(past.statusCode, 201, past.body);
     assert.equal(past.json().data.parcels[0].payments[0].paymentDate, addDays(-3));

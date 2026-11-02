@@ -5,6 +5,9 @@ import { makeInventoryService } from "@inventory/infrastructure/http/factories/I
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
+import { makeCrediarioCheckoutService } from "@credit/infrastructure/factories/creditFactories";
+import { PrismaSaleFinancingRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleFinancingRepository";
 
 export function makeCreateSaleUseCase() {
   const saleRepository = new PrismaSaleRepository();
@@ -26,5 +29,7 @@ export function makeCreateSaleUseCase() {
     catalogService,
     inventoryService,
     financialService,
+    new PrismaPricingSettingsReader(),
+    { checkout: makeCrediarioCheckoutService(), financings: new PrismaSaleFinancingRepository() },
   );
 }

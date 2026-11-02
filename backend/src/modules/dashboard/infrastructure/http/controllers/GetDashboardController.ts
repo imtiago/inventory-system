@@ -7,6 +7,6 @@ export function makeGetDashboardController() {
   return async function GetDashboardController(req: FastifyRequest, reply: FastifyReply) {
     const role = req.user?.role;
     if (typeof role !== "string") throw new UnauthorizedError("Token inválido.", "UNAUTHENTICATED");
-    return reply.send({ data: await useCase.execute(role) });
+    return reply.send({ data: await useCase.execute({ role, canApproveCredit: req.user?.canApproveCredit === true }) });
   };
 }

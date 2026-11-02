@@ -12,6 +12,7 @@ import { makeInventoryService } from "@inventory/infrastructure/http/factories/I
 import { FinancialService } from "@finance/application/services/FinancialService";
 import { CreateSaleUseCase } from "@sales/application/useCases/commands/CreateSaleUseCase";
 import { PrismaSaleRepository } from "@sales/infrastructure/prisma/repositories/PrismaSaleRepository";
+import { PrismaPricingSettingsReader } from "@pricing/infrastructure/prisma/PrismaPricingSettingsReader";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
@@ -113,7 +114,7 @@ describe("HTTP de vendas", () => {
         { productVariantId: v1, quantity: 3 },
         { productVariantId: v2, quantity: 3 },
       ],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
 
     assert.equal(res.statusCode, 201, res.body);
@@ -136,59 +137,25 @@ describe("HTTP de vendas", () => {
     assert.equal(await inventoryQty(v1), 7);
   });
 
-  test("POST /sales gera contas a receber com parcelas que somam o total", async () => {
-    const v1 = await createPricedVariant(33.33);
-    const first = addDaysUtc(30);
-
-    const res = await request("POST", "/sales", {
-      customerId,
-      items: [{ productVariantId: v1, quantity: 3 }],
-      paymentTerms: { installments: 3, firstDueDate: first },
-    });
-
-    assert.equal(res.statusCode, 201, res.body);
-    const sale = res.json().data;
-    assert.equal(sale.totalAmount, 99.99);
-    assert.equal(sale.receivable.status, "OPEN");
-    assert.deepEqual(
-      sale.receivable.parcels.map((p: any) => p.amount),
-      [33.33, 33.33, 33.33],
-    );
-    assert.equal(sale.receivable.parcels[0].dueDate, first);
-    assert.equal(sale.receivable.parcels[0].status, "OPEN");
-    assert.equal(sale.receivable.parcels[0].paidAmount, 0);
-    assert.equal(sale.receivable.parcels[0].remainingAmount, 33.33);
-
-    const doc = await prisma.financialDocument.findFirstOrThrow({
-      where: { originId: sale.id },
-      include: { parcels: true },
-    });
-    assert.equal(doc.type, "RECEIVABLE");
-    assert.equal(doc.originType, "SALE");
-    assert.equal(doc.partyId, customerId);
-    assert.equal(doc.partyType, "CUSTOMER");
-    const sumCents = doc.parcels.reduce((s, p) => s + Math.round(Number(p.amount) * 100), 0);
-    assert.equal(sumCents, 9999);
-  });
-
-  test("POST /sales 1x sem firstDueDate → vencimento hoje", async () => {
+  test("POST /sales CASH → contas a receber PAID com uma parcela de hoje (pago no ato)", async () => {
     const v1 = await createPricedVariant(10);
     const res = await request("POST", "/sales", {
       customerId,
       items: [{ productVariantId: v1, quantity: 1 }],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     assert.equal(res.statusCode, 201, res.body);
     const parcels = res.json().data.receivable.parcels;
     assert.equal(parcels.length, 1);
     assert.equal(parcels[0].amount, 10);
     assert.equal(parcels[0].dueDate, todayUtc());
-    assert.equal(parcels[0].status, "OPEN");
+    assert.equal(parcels[0].status, "PAID");
+    assert.equal(parcels[0].paidAmount, 10);
 
-    // GET /sales/:id: parcela que vence hoje → OPEN (mesma regra de contas a receber).
     const detail = await request("GET", `/sales/${res.json().data.id}`);
     assert.equal(detail.statusCode, 200, detail.body);
-    assert.equal(detail.json().data.receivable.parcels[0].status, "OPEN");
+    assert.equal(detail.json().data.paymentCondition, "CASH");
+    assert.equal(detail.json().data.receivable.status, "PAID");
   });
 
   test("POST /sales variante com preço 0 → 422 VARIANT_WITHOUT_PRICE; nada gravado", async () => {
@@ -204,7 +171,7 @@ describe("HTTP de vendas", () => {
         { productVariantId: priced, quantity: 1 },
         { productVariantId: free, quantity: 1 },
       ],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
 
     assert.equal(res.statusCode, 422, res.body);
@@ -219,62 +186,17 @@ describe("HTTP de vendas", () => {
     );
   });
 
-  test("POST /sales total R$ 0,02 em 3x → 422 INSTALLMENTS_EXCEED_TOTAL; nada gravado", async () => {
-    const v1 = await createPricedVariant(0.01);
+  test("POST /sales sem payment (paymentTerms antigo foi removido) → 400 no campo payment", async () => {
+    const v1 = await createPricedVariant(10);
     const res = await request("POST", "/sales", {
       customerId,
-      items: [{ productVariantId: v1, quantity: 2 }],
-      paymentTerms: { installments: 3, firstDueDate: addDaysUtc(30) },
-    });
-    assert.equal(res.statusCode, 422, res.body);
-    assert.equal(res.json().code, "INSTALLMENTS_EXCEED_TOTAL");
-    assert.equal(res.json().message, "O valor da venda não permite esse número de parcelas.");
-    assert.equal(await prisma.sale.count({ where: { customerId } }), 0);
-    assert.equal(await inventoryQty(v1), 10);
-  });
-
-  test("POST /sales 3x sem firstDueDate → 400 VALIDATION_ERROR field paymentTerms.firstDueDate", async () => {
-    const res = await request("POST", "/sales", {
-      customerId,
-      items: [{ productVariantId: randomUUID(), quantity: 1 }],
-      paymentTerms: { installments: 3 },
+      items: [{ productVariantId: v1, quantity: 1 }],
+      paymentTerms: { installments: 1 },
     });
     assert.equal(res.statusCode, 400, res.body);
     assert.equal(res.json().code, "VALIDATION_ERROR");
-    assert.ok(
-      res.json().errors.some((e: any) => e.field === "paymentTerms.firstDueDate"),
-      res.body,
-    );
-  });
-
-  test("POST /sales firstDueDate no passado → 400", async () => {
-    const res = await request("POST", "/sales", {
-      customerId,
-      items: [{ productVariantId: randomUUID(), quantity: 1 }],
-      paymentTerms: { installments: 2, firstDueDate: addDaysUtc(-1) },
-    });
-    assert.equal(res.statusCode, 400, res.body);
-    assert.equal(res.json().code, "VALIDATION_ERROR");
-    assert.ok(
-      res.json().errors.some((e: any) => e.field === "paymentTerms.firstDueDate"),
-      res.body,
-    );
-  });
-
-  test("POST /sales installments fora de 1..12 ou data inválida → 400", async () => {
-    for (const paymentTerms of [
-      { installments: 0 },
-      { installments: 13, firstDueDate: addDaysUtc(1) },
-      { installments: 2, firstDueDate: "2026-02-30" },
-      { installments: 2, firstDueDate: "30/11/2026" },
-    ]) {
-      const res = await request("POST", "/sales", {
-        customerId,
-        items: [{ productVariantId: randomUUID(), quantity: 1 }],
-        paymentTerms,
-      });
-      assert.equal(res.statusCode, 400, `${JSON.stringify(paymentTerms)} → ${res.body}`);
-    }
+    assert.ok(res.json().errors.some((e: any) => e.field === "payment"), res.body);
+    assert.equal(await prisma.sale.count({ where: { customerId, items: { some: { productVariantId: v1 } } } }), 0);
   });
 
   test("falha ao criar o financeiro desfaz venda e estoque", async () => {
@@ -284,6 +206,10 @@ describe("HTTP de vendas", () => {
       createSaleReceivable: async () => {
         throw new Error("financeiro indisponível");
       },
+      createPaidSaleReceivable: async () => {
+        throw new Error("financeiro indisponível");
+      },
+      createCrediarioReceivable: async () => {},
       cancelSaleReceivable: async () => {},
       createPurchasePayable: async () => {},
       cancelPurchasePayable: async () => {},
@@ -295,6 +221,8 @@ describe("HTTP de vendas", () => {
       makeCatalogService(),
       makeInventoryService(),
       failingFinance,
+      new PrismaPricingSettingsReader(),
+      { checkout: { plan: async () => { throw new Error("crediário não usado aqui"); } }, financings: { create: async () => {} } },
     );
 
     await assert.rejects(
@@ -302,7 +230,7 @@ describe("HTTP de vendas", () => {
         customerId,
         sellerId: userId,
         items: [{ productVariantId: v1, quantity: 4 }],
-        paymentTerms: { installments: 1 },
+        payment: { condition: "CASH" },
       }),
       /financeiro indisponível/,
     );
@@ -319,7 +247,7 @@ describe("HTTP de vendas", () => {
     const res = await request("POST", "/sales", {
       customerId,
       items: [{ productVariantId: v1, quantity: 2 }],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     assert.equal(res.statusCode, 201, res.body);
     const saleId = res.json().data.id;
@@ -338,7 +266,7 @@ describe("HTTP de vendas", () => {
     const created = await request("POST", "/sales", {
       customerId,
       items: [{ productVariantId: v1, quantity: 2 }],
-      paymentTerms: { installments: 2, firstDueDate: addDaysUtc(30) },
+      payment: { condition: "CASH" },
     });
     assert.equal(created.statusCode, 201, created.body);
     const id = created.json().data.id;
@@ -368,7 +296,7 @@ describe("HTTP de vendas", () => {
         { productVariantId: v1, quantity: 1 },
         { productVariantId: v2, quantity: 2 },
       ],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     assert.equal(created.statusCode, 201, created.body);
     const id = created.json().data.id;

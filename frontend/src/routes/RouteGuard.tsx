@@ -42,7 +42,7 @@ export function RouteGuard({ guard, permission, children }: Props) {
       if (!isAuthenticated) {
         return <Navigate to={sessionExpired ? "/login?expired=1" : "/login"} replace />;
       }
-      if (permission && !can(user?.role, permission)) {
+      if (permission && !can(user, permission)) {
         return <ForbiddenPage />;
       }
       return <>{children}</>;

@@ -29,7 +29,7 @@ describe("Erros HTTP de vendas", () => {
       payload: {
         customerId: randomUUID(),
         items: [{ productVariantId: randomUUID(), quantity: 1 }],
-        paymentTerms: { installments: 1 },
+        payment: { condition: "CASH" },
       },
     });
     assert.equal(res.statusCode, 404, res.body);

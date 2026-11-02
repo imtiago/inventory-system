@@ -11,14 +11,23 @@ const H = `window.__h = {
 };1`;
 // [rota, [passo, espera em ms, passo, espera, ...]]
 const scan = (code) => `(async()=>{ const i=document.querySelector('input[placeholder="Código de barras"]'); __h.setVal(i,'${code}'); __h.click('button','Adicionar'); })()`;
+const saleItems = [
+  `(async()=>{ const i=document.querySelector('input[placeholder*="nome do cliente"]'); i.focus(); __h.setVal(i,'Ana'); })()`, 1200,
+  `(async()=>{ const o=document.querySelector('[role=option] button') || document.querySelector('[role=option]'); if(o){ o.dispatchEvent(new MouseEvent('mousedown',{bubbles:true})); o.click(); } return !!o })()`, 600,
+  scan('7890'), 900, scan('7891'), 900, scan('7890'), 900,
+];
+// Fechamento: rola até a seção para a captura mostrar a condição escolhida.
+const toCheckout = `(()=>{ const m=document.querySelector('main'); const t=document.querySelector('#checkout-title'); if (m && t) m.scrollTop += t.getBoundingClientRect().top - m.getBoundingClientRect().top - 8; })()`;
 const flows = {
-  'sale-new-items': ['/sales/new', [
-    `(async()=>{ const i=document.querySelector('input[placeholder*="nome do cliente"]'); i.focus(); __h.setVal(i,'Ana'); })()`, 1200,
-    `(async()=>{ const o=document.querySelector('[role=option]'); if(o){ o.dispatchEvent(new MouseEvent('mousedown',{bubbles:true})); o.click(); } return !!o })()`, 600,
-    scan('7890'), 900, scan('7891'), 900, scan('7890'), 900,
-  ]],
+  'sale-new-items': ['/sales/new', saleItems],
+  'sale-close-cash': ['/sales/new', [...saleItems, toCheckout, 600]],
+  'sale-close-debit': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='DEBIT_CARD').click()`, 600, toCheckout, 600]],
+  'sale-close-credit': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='CREDIT_CARD').click()`, 400, `(()=>{ const s=document.querySelector('#card-installments'); __h.setVal(s,'3'); })()`, 600, toCheckout, 600]],
+  'sale-close-crediario': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='CREDIARIO').click()`, 1200, `document.querySelector('input[aria-label^="2x"]').click()`, 600, toCheckout, 600]],
+  'sale-close-override': ['/sales/new', [...saleItems, `[...document.querySelectorAll('input[name=payment-condition]')].find(i=>i.value==='CREDIARIO').click()`, 1200, `document.querySelector('input[aria-label^="3x"]').click()`, 600, `__h.click('button','Pedir autorização')`, 1000]],
   'purchase-new-items': ['/purchases/new', [scan('7890'), 900, scan('7891'), 900]],
   'payment-modal': ['/receivables/x1', [`[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('Registrar pagamento')&&!b.disabled)[0].click()`, 900]],
+  'payment-modal-fees': ['/receivables/fees1', [`[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('Registrar pagamento')&&!b.disabled)[0].click()`, 1200, `(async()=>{ const i=document.getElementById('payment-waive'); if(i){ __h.setVal(i,'0,50'); __h.setVal(document.getElementById('payment-waiver-reason'),'Cliente antigo'); } return !!i })()`, 600]],
   'reverse-modal': ['/receivables/x1', [`__h.click('button','Estornar')`, 900]],
   'change-password': ['/', [`__h.click('button','Alterar senha')`, 900]],
   'brand-create': ['/brands', [`__h.click('button','Nova marca')`, 900]],
@@ -28,6 +37,15 @@ const flows = {
   'user-create': ['/users', [`__h.click('button','Novo usuário')`, 900]],
   'product-delete': ['/products', [`document.querySelector('button[aria-label*="xcluir"], button[title*="xcluir"]').click()`, 900]],
   'sale-cancel': ['/sales/0b6f3c2e-8a4d-4f1b-9c7e-2d5a8f1e3b40', [`__h.click('button','Cancelar venda')`, 900]],
+  'sale-request-cancel': ['/sales/0b6f3c2e-8a4d-4f1b-9c7e-2d5a8f1e3b40', [`__h.click('button','Pedir cancelamento')`, 900]],
+  'cancel-request-approve': ['/sales/cancel-requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Aprovar')`, 900]],
+  'cancel-request-reject': ['/sales/cancel-requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Recusar')`, 900]],
+  'credit-request-approve': ['/credit/requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Aprovar')`, 900]],
+  'credit-request-reject': ['/credit/requests', [`document.querySelector('[data-card-actions] button')?.click()`, 400, `__h.click('button','Recusar')`, 900]],
+  'credit-review-confirm': ['/credit/review', [`document.querySelector('input[aria-label="Selecionar Maria Oliveira"]')?.click()`, 300, `__h.click('button','Aplicar selecionados')`, 900]],
+  'credit-limit-request': ['/customers/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', [`__h.click('button','Pedir aumento de limite')`, 900]],
+  'credit-sidebar-drawer': ['/credit/requests', [`document.querySelector('button[aria-label="Abrir menu"]')?.click()`, 900]],
+  'sidebar-drawer': ['/sales/cancel-requests', [`document.querySelector('button[aria-label="Abrir menu"]')?.click()`, 900]],
   'purchase-receipt': ['/purchases/x1', [`__h.click('button','Registrar recebimento')`, 900]],
   'inventory-initial-nobarcode': ['/inventory/initial', [`__h.click('button','Cadastrar sem código')`, 1200]],
   'nfe-upload': ['/nfe-imports', [`__h.click('button','Enviar XML')`, 900]],

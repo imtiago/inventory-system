@@ -54,6 +54,21 @@ PATH=/usr/local/bin:/usr/bin:/bin  # inclua o diretório do node/npm (ex.: ~/.nv
 0 2 * * * mkdir -p $HOME/backups/inventory && cd /caminho/inventory-system/backend && PGCONTAINER=api_db_1 npm run backup-db >> $HOME/backups/inventory/cron.log 2>&1
 ```
 
+## Revisão periódica do crédito
+
+```
+npm run credit-review                  # aplica direto: sobe/desce perfil e suspende; imprime "N clientes revisados: X subiram, Y desceram, Z suspensos"
+npm run credit-review -- --allow-test  # só para banco *_test (sem a opção, recusa)
+```
+
+Regras (spec do crediário §5): pontuação dos últimos 12 meses; sobe um perfil se a pontuação passa do patamar e não há parcela vencida em aberto; desce um perfil se houve atraso acima de 30 dias no período; suspende se há parcela vencida há mais de 60 dias. Baixar limite nunca mexe na dívida existente, só bloqueia compra nova. Cada mudança entra no histórico da ficha com o motivo (ex.: "subiu para Bom: 9 parcelas em dia, 0 atrasos"). Quem já foi revisado hoje não é revisado de novo; clientes `BLOCKED` (manual) e `SUSPENDED` não são tocados (sair de suspenso é manual). Dívida do caderninho (origem LEGACY com `noLateFees`) não conta como atraso.
+
+**A rotina está DESLIGADA: nada é agendado.** Só agende depois que a dona aprovar os pesos da pontuação (tela Configurações > Crediário). Os ADMIN podem ver a prévia e aplicar clientes escolhidos em Vendas > Revisão de crédito ("Rodar revisão agora"). Quando liberar, exemplo de cron mensal (dia 1, 03:00), junto do backup:
+
+```
+0 3 1 * * cd /caminho/inventory-system/backend && npm run credit-review >> $HOME/backups/inventory/credit-review.log 2>&1
+```
+
 ## Produção
 
 ```bash

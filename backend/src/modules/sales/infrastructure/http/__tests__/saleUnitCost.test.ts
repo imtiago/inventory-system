@@ -47,7 +47,7 @@ describe("Custo unitário gravado na venda", () => {
     const res = await request("POST", "/sales", {
       customerId,
       items: [{ productVariantId: variantId, quantity }],
-      paymentTerms: { installments: 1 },
+      payment: { condition: "CASH" },
     });
     assert.equal(res.statusCode, 201, res.body);
     return res.json().data.id as string;

@@ -26,6 +26,16 @@ export interface RegisterPaymentProps {
   paymentDate: string;
   reference: string | null;
   createdById: string;
+  /** Pago no fechamento da venda. */
+  atCheckout?: boolean;
+  /** Encargos de atraso cobrados neste pagamento (centavos). */
+  fineCents?: number;
+  interestCents?: number;
+  /** Dispensa (≤ multa + juros), com motivo; autor = `createdById`. */
+  waivedCents?: number;
+  waiverReason?: string | null;
+  /** Motivo da data passada (a receber, só quem aprova crédito). */
+  backdateReason?: string | null;
 }
 
 export class FinancialDocument extends BaseEntity {
@@ -38,6 +48,9 @@ export class FinancialDocument extends BaseEntity {
 
   private _status: FinancialStatus;
 
+  /** Sem multa nem juros de atraso (vendas anteriores ao crediário, parcelado antigo, caderninho). */
+  private readonly _noLateFees: boolean;
+
   private _parcels: FinancialParcel[];
 
   constructor(props: {
@@ -47,6 +60,8 @@ export class FinancialDocument extends BaseEntity {
     originType: FinancialOriginType;
 
     status?: FinancialStatus;
+
+    noLateFees?: boolean;
 
     partyId: string;
     partyType: FinancialPartyType;
@@ -71,6 +86,11 @@ export class FinancialDocument extends BaseEntity {
     this._parcels = props.parcels ?? [];
 
     this._status = props.status ?? FinancialStatus.OPEN;
+    this._noLateFees = props.noLateFees ?? false;
+  }
+
+  get noLateFees(): boolean {
+    return this._noLateFees;
   }
 
   get type(): FinancialType {
@@ -137,14 +157,15 @@ export class FinancialDocument extends BaseEntity {
         ErrorCodes.PAYMENT_EXCEEDS_REMAINING,
       );
     }
-    const payment = new Payment({ ...props, parcelId: parcel.id });
+    const waived = (props.waivedCents ?? 0) > 0;
+    const payment = new Payment({ ...props, parcelId: parcel.id, waivedById: waived ? props.createdById : null });
     parcel.addPayment(payment);
     this.recalculateStatus();
     return payment;
   }
 
   /** Estorna um pagamento de uma parcela deste documento e recalcula o status. */
-  reversePayment(paymentId: string, userId: string, reason: string, now: Date = new Date()): Payment {
+  reversePayment(paymentId: string, userId: string | null, reason: string, now: Date = new Date()): Payment {
     const payment = this._parcels.flatMap((p) => p.payments).find((p) => p.id === paymentId);
     if (!payment) {
       throw new NotFoundError("Pagamento não encontrado.", ErrorCodes.PAYMENT_NOT_FOUND);

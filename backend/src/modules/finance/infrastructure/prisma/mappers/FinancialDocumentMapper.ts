@@ -25,6 +25,7 @@ export class FinancialDocumentMapper {
       partyId: prisma.partyId,
       partyType: prisma.partyType as FinancialPartyType,
       status: prisma.status as FinancialStatus,
+      noLateFees: prisma.noLateFees,
       createdAt: prisma.createdAt,
       parcels: prisma.parcels?.map((p) => FinancialParcelMapper.toDomain(p)) ?? [],
     });
@@ -41,6 +42,7 @@ export class FinancialDocumentMapper {
       originType: document.originType,
       partyId: document.partyId,
       partyType: document.partyType,
+      noLateFees: document.noLateFees,
     };
   }
 

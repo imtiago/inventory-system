@@ -15,6 +15,7 @@ import { FINANCE_KINDS, partyOf, type FinanceKind } from '../config';
 import { useFinanceDocument } from '../hooks/useFinanceDocument';
 import { PAYMENT_METHOD_LABELS, FINANCE_STATUS_LABELS, type IFinancePayment } from '../types';
 import { Can } from '@/shared/auth/Can';
+import { PdfDocumentButton } from '@/modules/credit/components/PdfDocumentButton';
 import { LoadingState } from '@/shared/components/LoadingState';
 import { formatDateTime } from '@/shared/utils/formatDateTime';
 
@@ -76,6 +77,10 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
             </dl>
           </Section>
 
+          {kind === 'receivable' && document.noLateFees && (
+            <p className="rounded-xl border border-border bg-surface-muted p-3 text-sm text-muted">Sem multa nem juros de atraso: conta anterior ao crediário.</p>
+          )}
+
           <Section title="Parcelas">
             <div className="flex flex-col gap-4 p-4 sm:p-6">
               {document.parcels.map((parcel) => (
@@ -87,6 +92,12 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                         Vencimento {formatDateOnly(parcel.dueDate)} · Valor {formatCurrency(parcel.amount)} · Pago {formatCurrency(parcel.paidAmount)} · Restante{' '}
                         {formatCurrency(parcel.remainingAmount)}
                       </p>
+                      {!canceled && parcel.remainingAmount > 0 && parcel.lateFeesToday && parcel.lateFeesToday.fine + parcel.lateFeesToday.interest > 0 && (
+                        <p className="text-sm font-medium text-warning">
+                          Se paga hoje: multa {formatCurrency(parcel.lateFeesToday.fine)} · juros {formatCurrency(parcel.lateFeesToday.interest)} · total{' '}
+                          {formatCurrency(parcel.lateFeesToday.totalDue)}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <StatusBadge status={parcel.status}>{FINANCE_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge>
@@ -116,18 +127,27 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                                 {payment.reference ? ` · ${payment.reference}` : ''}
                                 {payment.createdBy ? ` · por ${payment.createdBy.name}` : ''}
                               </p>
+                              {payment.backdateReason && <p className="text-xs text-muted">Data passada: {payment.backdateReason}</p>}
+                              <PaymentFees payment={payment} />
                               {reversed && (
                                 <p className="text-xs text-danger">
                                   Estornado em {formatDateTime(payment.reversedAt)} por {payment.reversedBy?.name ?? '—'}: {payment.reversalReason ?? '—'}
                                 </p>
                               )}
                             </div>
-                            {!reversed && !canceled && (
-                              <Can permission={config.reverse}>
-                                <button type="button" className="rounded-lg border px-3 py-1 text-sm hover:bg-surface-muted" onClick={() => setReversing(payment)}>
-                                  Estornar
-                                </button>
-                              </Can>
+                            {!reversed && (
+                              <div className="flex flex-wrap items-start gap-2">
+                                {kind === 'receivable' && (
+                                  <PdfDocumentButton label="Recibo" ariaLabel={`Recibo do pagamento de ${formatCurrency(payment.amount)}`} url={`/receivables/payments/${payment.id}/receipt.pdf`} fileName={`recibo-${payment.id.slice(0, 8).toUpperCase()}.pdf`} />
+                                )}
+                                {!canceled && (
+                                  <Can permission={config.reverse}>
+                                    <button type="button" className="rounded-lg border px-3 py-1 text-sm hover:bg-surface-muted" onClick={() => setReversing(payment)}>
+                                      Estornar
+                                    </button>
+                                  </Can>
+                                )}
+                              </div>
                             )}
                           </li>
                         );
@@ -144,5 +164,28 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
       {document && payingParcel && <RegisterPaymentModal kind={kind} key={payingParcel.id} documentId={document.id} parcel={payingParcel} onClose={() => setPayingParcelId(null)} />}
       {document && reversing && <ReversePaymentModal kind={kind} key={reversing.id} documentId={document.id} payment={reversing} onClose={() => setReversing(null)} />}
     </Page>
+  );
+}
+
+/** Multa, juros, dispensa e recebido em caixa de um pagamento com encargos. */
+function PaymentFees({ payment }: { payment: IFinancePayment }) {
+  const fine = payment.fineAmount ?? 0;
+  const interest = payment.interestAmount ?? 0;
+  if (fine + interest <= 0) return null;
+  const waived = payment.waivedAmount ?? 0;
+  const parts = [`Multa ${formatCurrency(fine)}`, `Juros ${formatCurrency(interest)}`];
+
+  return (
+    <div className={`mt-0.5 text-xs ${payment.reversedAt ? 'text-muted line-through' : 'text-muted'}`}>
+      <p>
+        {parts.join(' · ')} · <span className="font-medium text-foreground">Recebido em caixa {formatCurrency(payment.receivedAmount)}</span>
+      </p>
+      {waived > 0 && (
+        <p>
+          Dispensado {formatCurrency(waived)}
+          {payment.waivedBy ? ` por ${payment.waivedBy.name}` : ''}: {payment.waiverReason ?? '—'}
+        </p>
+      )}
+    </div>
   );
 }

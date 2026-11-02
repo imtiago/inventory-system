@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "customerId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "customerName": "Maria Oliveira",
+      "fromProfile": "NEW",
+      "toProfile": "REGULAR",
+      "fromLimit": 300,
+      "toLimit": 800,
+      "fromStatus": "ACTIVE",
+      "toStatus": "ACTIVE",
+      "action": "UP",
+      "reason": "subiu para Regular: 9 parcelas em dia, 0 atrasos",
+      "score": 126
+    }
+  ]
+}

@@ -13,7 +13,8 @@ import { app } from "../../../../../app";
 import { keyShape } from "../../../../../test/keyShape";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { makeGetDashboardUseCase } from "../factories/GetDashboardFactory";
-import { createTestVariant, getTestUserId } from "../../../../../test/inventoryFixtures";
+import { createTestVariant } from "../../../../../test/inventoryFixtures";
+import { retryOnDeadlock } from "../../../../../test/retryOnDeadlock";
 
 const FIXTURE = new URL("../../../../../../../frontend/src/test/fixtures/dashboard/dashboard.json", import.meta.url);
 
@@ -40,19 +41,25 @@ class Rollback extends Error {}
  * leitura e não enxerga o que outras suítes gravam em paralelo; as escritas do próprio teste, na
  * mesma transação, aparecem. Por isso a diferença entre duas leituras é exatamente o que o teste
  * criou (asserções com `===`, sem `>=`), e nada sobra no banco.
+ * As FKs gravadas apontam só para linhas deste arquivo (usuário admin próprio, nunca o usuário
+ * compartilhado de `getTestUserId`): em REPEATABLE READ, FK para linha que outro arquivo
+ * atualizou depois do snapshot aborta com 40001/P2034. Se ainda assim o banco abortar
+ * (deadlock/serialização), a transação inteira é repetida: ela é sempre desfeita.
  */
 async function isolated(work: () => Promise<void>): Promise<void> {
-  try {
-    await prisma.$transaction(
-      async (tx) => {
-        await runInTransactionContext(tx, work);
-        throw new Rollback();
-      },
-      { isolationLevel: "RepeatableRead", timeout: 30_000, maxWait: 10_000 },
-    );
-  } catch (error) {
-    if (!(error instanceof Rollback)) throw error;
-  }
+  await retryOnDeadlock(async () => {
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          await runInTransactionContext(tx, work);
+          throw new Rollback();
+        },
+        { isolationLevel: "RepeatableRead", timeout: 30_000, maxWait: 10_000 },
+      );
+    } catch (error) {
+      if (!(error instanceof Rollback)) throw error;
+    }
+  });
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -81,19 +88,24 @@ describe("Dashboard (GET /dashboard)", () => {
   };
 
   // Leitura com "agora" injetado na janela de 2099.
-  const readWindow = (): Promise<Dash> => makeGetDashboardUseCase().execute("ADMIN", NOW);
+  const readWindow = (): Promise<Dash> => makeGetDashboardUseCase().execute({ role: "ADMIN", canApproveCredit: false }, NOW);
 
   const createSale = async (
     status: "COMPLETED" | "CANCELED",
     createdAt: Date,
     items: { variantId: string; quantity: number; unitPrice: number; unitCost?: number | null }[],
+    payment: { paymentCondition?: "CASH" | "CREDIT_CARD" | "CREDIARIO"; cardFeeBps?: number; surchargeAmount?: number } = {},
   ) => {
     const total = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const sale = await prisma.sale.create({
       data: {
         customerId,
         status,
-        totalAmount: total,
+        totalAmount: total + (payment.surchargeAmount ?? 0),
+        paymentCondition: payment.paymentCondition ?? "CASH",
+        cardFeeBps: payment.cardFeeBps ?? null,
+        cardFeePassedOn: (payment.surchargeAmount ?? 0) > 0 && payment.paymentCondition === "CREDIT_CARD",
+        surchargeAmount: payment.surchargeAmount ?? 0,
         createdAt,
         items: {
           create: items.map((i) => ({
@@ -151,7 +163,7 @@ describe("Dashboard (GET /dashboard)", () => {
     admin = await createTestUser({ role: "ADMIN" });
     vendedor = await createTestUser({ role: "VENDEDOR" });
     estoquista = await createTestUser({ role: "ESTOQUISTA" });
-    userId = await getTestUserId();
+    userId = admin.id; // usuário próprio: ver `isolated`
     customerId = (await prisma.customer.create({ data: { name: "tx-test", code: `tx-${randomUUID()}` } })).id;
     supplierId = (await prisma.supplier.create({ data: { name: "tx-test", document: `tx-${randomUUID()}` } })).id;
     for (let i = 0; i < 4; i++) variants.push(await createTestVariant());
@@ -233,6 +245,40 @@ describe("Dashboard (GET /dashboard)", () => {
     assert.equal(top[1].quantity, 500_000 + (yesterdayInMonth ? 2 : 0));
     assert.equal(top[1].total, round2(50_000 + (yesterdayInMonth ? 20 : 0)));
     assert.ok(!top.some((t: Dash) => t.productVariantId === vc.variantId), "venda de amanhã fora do top");
+  });
+
+  test("vendas e lucro: acréscimo (repasse do cartão, juros do crediário) não é receita; taxa absorvida desconta do lucro", async () => {
+    const bps = (await new PrismaPricingSettingsReader().get()).expensesBps;
+    const before = await readWindow();
+    const at = new Date(`${TODAY}T13:00:00-03:00`);
+    const v = variants[3].variantId;
+    await createSale("COMPLETED", at, [{ variantId: v, quantity: 1, unitPrice: 50, unitCost: 10 }], {
+      paymentCondition: "CREDIT_CARD",
+      cardFeeBps: 349,
+      surchargeAmount: 1.81,
+    });
+    await createSale("COMPLETED", at, [{ variantId: v, quantity: 2, unitPrice: 100, unitCost: 40 }], {
+      paymentCondition: "CREDIARIO",
+      surchargeAmount: 24.56,
+    });
+    await createSale("COMPLETED", at, [{ variantId: v, quantity: 1, unitPrice: 100, unitCost: 40 }], {
+      paymentCondition: "CREDIT_CARD",
+      cardFeeBps: 349,
+    });
+    const after = await readWindow();
+    assert.equal(round2(after.sales.today.total - before.sales.today.total), 350);
+    assert.equal(round2(after.sales.month.total - before.sales.month.total), 350);
+    assert.equal(round2(after.sales.last7Days[6].total - before.sales.last7Days[6].total), 350);
+    assert.equal(round2(after.profit.month.revenue - before.profit.month.revenue), 350);
+    if (bps === (await new PrismaPricingSettingsReader().get()).expensesBps) {
+      // Custo 130,00 (10 + 80 + 40); taxa absorvida 3,49 (só a venda sem repasse); despesas sobre os itens do dia.
+      const expenses = (total: number) => applyBps(Math.round(total * 100), bps) / 100;
+      const dayExpenses = expenses(after.sales.last7Days[6].total) - expenses(before.sales.last7Days[6].total);
+      assert.equal(
+        round2(after.profit.month.profit - before.profit.month.profit),
+        round2(350 - 130 - dayExpenses - 3.49),
+      );
+    }
   });
 
   test("last7Days: sempre 7 datas consecutivas terminando hoje, com 0 onde não há venda", async () => {

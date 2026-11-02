@@ -6,6 +6,7 @@
       "email": "maria@example.com",
       "role": "ESTOQUISTA",
       "active": true,
+      "canApproveCredit": true,
       "createdAt": "2026-10-23T12:00:00.000Z"
     },
     {
@@ -14,6 +15,7 @@
       "email": "joao@example.com",
       "role": "VENDEDOR",
       "active": false,
+      "canApproveCredit": false,
       "createdAt": "2026-10-22T09:30:00.000Z"
     }
   ],

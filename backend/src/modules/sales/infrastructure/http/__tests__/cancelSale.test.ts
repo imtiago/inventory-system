@@ -3,6 +3,7 @@ import { after, afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@shared/prisma";
+import { convertToLegacyInstallments } from "../../../../../test/legacySaleFixtures";
 import { deleteFinancialDocuments } from "../../../../../test/cleanup";
 import { InternalInvariantError } from "@shared/domain/errors";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
@@ -62,11 +63,14 @@ describe("POST /sales/:id/cancel", () => {
 
   const createSale = async (
     items: { productVariantId: string; quantity: number }[],
-    paymentTerms: { installments: number; firstDueDate?: string } = { installments: 1 },
+    legacy: { installments: number; firstDueDate?: string } = { installments: 1 },
   ) => {
-    const res = await request("POST", "/sales", { customerId, items, paymentTerms });
+    const res = await request("POST", "/sales", { customerId, items, payment: { condition: "CASH" } });
     assert.equal(res.statusCode, 201, res.body);
-    return res.json().data.id as string;
+    const saleId = res.json().data.id as string;
+    // Conta a receber em aberto: venda parcelada antiga (o parcelado saiu da API).
+    await convertToLegacyInstallments(saleId, legacy.installments, legacy.firstDueDate);
+    return saleId;
   };
 
   const inventoryQty = async (variantId: string) =>

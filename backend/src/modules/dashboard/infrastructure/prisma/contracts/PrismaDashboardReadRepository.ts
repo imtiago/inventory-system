@@ -25,6 +25,12 @@ import {
  */
 const businessDay = Prisma.sql`("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`;
 
+/**
+ * Receita de venda = itens: o acréscimo cobrado do cliente (repasse da taxa do cartão, juros do
+ * crediário) fica em `surchargeAmount` e não entra (mesma regra do relatório de lucro).
+ */
+const saleRevenue = Prisma.sql`("totalAmount" - "surchargeAmount")`;
+
 const money = (value: string | null): number => Math.round(Number(value ?? 0) * 100) / 100;
 
 interface SalesSummaryRow {
@@ -89,11 +95,11 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
       db.$queryRaw<SalesSummaryRow[]>`
         SELECT
           (COUNT(*) FILTER (WHERE d = ${today}::date))::int AS today_count,
-          COALESCE(SUM("totalAmount") FILTER (WHERE d = ${today}::date), 0)::text AS today_total,
+          COALESCE(SUM(revenue) FILTER (WHERE d = ${today}::date), 0)::text AS today_total,
           COUNT(*)::int AS month_count,
-          COALESCE(SUM("totalAmount"), 0)::text AS month_total
+          COALESCE(SUM(revenue), 0)::text AS month_total
         FROM (
-          SELECT "totalAmount", ${businessDay} AS d
+          SELECT ${saleRevenue} AS revenue, ${businessDay} AS d
           FROM "Sale"
           WHERE status <> 'CANCELED'
             AND "createdAt" >= (date_trunc('month', ${today}::date)::timestamp AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'UTC'
@@ -105,9 +111,9 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
                COALESCE(a.total, 0)::text AS total
         FROM generate_series(${today}::date - 6, ${today}::date, interval '1 day') AS g(day)
         LEFT JOIN (
-          SELECT d, COUNT(*) AS count, SUM("totalAmount") AS total
+          SELECT d, COUNT(*) AS count, SUM(revenue) AS total
           FROM (
-            SELECT "totalAmount", ${businessDay} AS d
+            SELECT ${saleRevenue} AS revenue, ${businessDay} AS d
             FROM "Sale"
             WHERE status <> 'CANCELED'
               AND "createdAt" >= ((${today}::date - 6)::timestamp AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'UTC'

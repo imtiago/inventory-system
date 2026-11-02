@@ -8,8 +8,8 @@ Ordem das próximas etapas, o que cada uma precisa e o que depende de você. His
 |---|---|---|---|---|
 | 0 | Onda 9 — acabamento (em andamento) | `plans/2026-10-26-wave9-polish.md` | — | — |
 | 1 | Precificação e lucro | `plans/2026-10-26-pricing.md` | 10 tarefas · médio | onda 9 mergeada (custos `Decimal(14,4)`) |
-| 2 | Crediário | `plans/2026-10-26-credit.md` | 14 tarefas · grande (o maior dos três) | precificação (taxas de cartão, custo na venda) |
-| 3 | Migração do caderninho | `plans/2026-10-26-notebook-import.md` | 9 tarefas · médio | crediário (perfil, limite, `noLateFees`) |
+| 2 | Crediário — **feito** (branch `feat/credit`, aguardando revisão final e merge) | `plans/2026-10-26-credit.md` | 14 tarefas · grande | — |
+| 3 | Migração do caderninho — **próxima** | `plans/2026-10-26-notebook-import.md` | 9 tarefas · médio | crediário mergeado (perfil, limite, `noLateFees`); ver "Pendências para a importação do caderninho" no `CLAUDE.md` |
 | 4 | WhatsApp fase 2 (lembrete automático) | **não planejado** | — | crediário em uso |
 
 Dentro do crediário:
@@ -26,7 +26,7 @@ Paralelismo entre planos: as Tasks 1–3 do crediário (cancelamento por pedido 
 - Nada bloqueia o início. Depois de pronta, preencha na tela: margem padrão, despesas da venda (aluguel, embalagem, comissão, imposto), taxas da maquininha (débito, crédito 1x a 12x).
 - Confirmar: o preço com repasse da taxa do cartão sobe só até o centavo, sem a tabela de arredondamento (decisão provisória do plano).
 
-**Antes do crediário**
+**Para usar o crediário (pronto; depende de você)**
 - **Decidido:** cancelar venda paga no ato estorna o pagamento automaticamente, só até 7 dias da venda; parcelas do crediário pagas continuam bloqueando.
 - Crediário nasce desligado (decidido): conferir os valores iniciais e ativar na tela (exige dados da loja e um aprovador): faixas de parcelas, parcela mínima R$ 30, taxa 3,99% a.m., perfis (Novo R$ 300, Regular R$ 800, Bom R$ 2.000, Excelente R$ 5.000) e entrada mínima.
 - Aprovar os pesos da pontuação da revisão mensal antes de ligar o cron.
@@ -34,7 +34,7 @@ Paralelismo entre planos: as Tasks 1–3 do crediário (cancelamento por pedido 
 - Preencher os dados da loja (nome, CNPJ, endereço, telefone) para o carnê.
 
 **Antes do caderninho**
-- Dívida anotada com vencimento já passado: conta como atraso (bloqueia novas compras no crediário) ou entra como "a combinar"? O plano segue a spec (conta).
+- **Decidido (2026-10-26):** dívida anotada com vencimento já passado conta no saldo e no limite, mas não bloqueia por atraso nem piora o perfil. Hoje o bloqueio ainda a contaria: a importação precisa filtrar (Task 3 do plano).
 - Separar o caderno e escolher como entrar: planilha, lançamento rápido no celular ou fotos para o Claude transcrever.
 
 ## Ações do operador pendentes
@@ -44,6 +44,6 @@ Do `docs/HISTORICO.md`:
 2. Definir `COMPANY_CNPJ` no `backend/.env`.
 3. Rodar `npm run merge-count-lots` (simulação), conferir e aplicar com `-- --apply`.
 4. Testar em aparelho real (iPhone/Safari, Android/Chrome, tablet) com `npm run dev:https`.
-5. Backup diário no cron: `PGCONTAINER=api_db_1 npm run backup-db`. O crediário acrescenta `npm run credit-review` mensal.
+5. Backup diário no cron: `PGCONTAINER=api_db_1 npm run backup-db`. O crediário acrescenta `npm run credit-review` mensal (só depois de aprovar os pesos; até lá o cron fica desligado). Antes de ativar o crediário: dados da loja, aprovador marcado e conferência das configurações do crédito.
 6. Produção: `NODE_ENV=production`, `CORS_ORIGINS`, `JWT_SECRET` ≥ 32, `TRUST_PROXY`, `COMPANY_CNPJ`, nginx com HTTPS.
 7. Recadastrar os produtos com preço de venda.

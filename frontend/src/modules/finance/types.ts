@@ -67,6 +67,35 @@ export interface IFinancePayment {
   reversedAt: string | null;
   reversedBy: { id: string; name: string } | null;
   reversalReason: string | null;
+  /** Encargos de atraso cobrados neste pagamento (`amount` = principal abatido). */
+  fineAmount: number;
+  interestAmount: number;
+  /** Parte dos encargos dispensada, com motivo e autor. */
+  waivedAmount: number;
+  waiverReason: string | null;
+  waivedBy: { id: string; name: string } | null;
+  /** Motivo do pagamento a receber lançado com data passada (null = data do dia). */
+  backdateReason: string | null;
+  /** Recebido em caixa = amount + fineAmount + interestAmount − waivedAmount. */
+  receivedAmount: number;
+}
+
+/** Multa e juros se a parcela fosse paga hoje (só contas a receber). */
+export interface IParcelLateFeesToday {
+  daysLate: number;
+  fine: number;
+  interest: number;
+  /** Restante + multa + juros. */
+  totalDue: number;
+}
+
+/** Prévia de encargos de uma parcela a receber numa data (GET …/late-fees). */
+export interface ILateFeeQuote {
+  principalRemaining: number;
+  daysLate: number;
+  fine: number;
+  interest: number;
+  totalDue: number;
 }
 
 export interface IFinanceParcel {
@@ -78,6 +107,8 @@ export interface IFinanceParcel {
   remainingAmount: number;
   status: FinanceStatus;
   payments: IFinancePayment[];
+  /** Contas a pagar → null. */
+  lateFeesToday: IParcelLateFeesToday | null;
 }
 
 export interface IFinanceDetail {
@@ -94,6 +125,8 @@ export interface IFinanceDetail {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  /** Sem multa nem juros de atraso (venda anterior ao crediário, parcelado antigo). */
+  noLateFees: boolean;
   parcels: IFinanceParcel[];
 }
 
@@ -102,4 +135,9 @@ export interface IRegisterPaymentInput {
   method: PaymentMethod;
   paymentDate: string;
   reference?: string;
+  /** Só contas a receber, com `credit.approve`. */
+  waiveAmount?: number;
+  waiverReason?: string;
+  /** Só contas a receber com data passada (exige `credit.approve`). */
+  backdateReason?: string;
 }

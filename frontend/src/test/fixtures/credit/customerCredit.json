@@ -1,0 +1,26 @@
+{
+  "data": {
+    "profileCode": "GOOD",
+    "profileName": "Bom",
+    "limit": 2000,
+    "openBalance": 120,
+    "available": 1880,
+    "status": "ACTIVE",
+    "currentMaxOverdueDays": 0,
+    "history": [
+      {
+        "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "fromProfile": "NEW",
+        "toProfile": "GOOD",
+        "fromLimit": 300,
+        "toLimit": 2000,
+        "fromStatus": "ACTIVE",
+        "toStatus": "ACTIVE",
+        "reason": "Cliente antiga, sempre pagou em dia",
+        "source": "MANUAL",
+        "changedBy": { "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e", "name": "Maria" },
+        "createdAt": "2026-10-29T13:00:00.000Z"
+      }
+    ]
+  }
+}

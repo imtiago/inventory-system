@@ -15,6 +15,7 @@ const USER_DTO_SELECT = {
   email: true,
   role: true,
   active: true,
+  canApproveCredit: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
 

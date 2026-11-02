@@ -8,53 +8,64 @@ import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Page } from '@/shared/components/layout/Page';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
-import { FormAutocomplete, QuantityInput, FieldError, fieldA11y } from '@/shared/components/form';
+import { FormAutocomplete, QuantityInput } from '@/shared/components/form';
 import { useBreakpoint } from '@/shared/hooks/useMediaQuery';
+import { useCan } from '@/shared/auth/useCan';
 
 import type { ICustomer } from '@/modules/customers/types';
 import { useCustomerSearch } from '@/modules/customers/hooks/useCustomerSearch';
 import { useProductByBarcode } from '@/modules/inventory/hooks/useProductByBarcode';
 
 import { SaleBarcodeInput } from '../components/SaleBarcodeInput';
+import { PaymentConditionPicker } from '../components/checkout/PaymentConditionPicker';
+import { CardOptions } from '../components/checkout/CardOptions';
+import { CrediarioCheckout } from '../components/checkout/CrediarioCheckout';
+import { CheckoutSummary } from '../components/checkout/CheckoutSummary';
+import { CreditOverrideModal } from '../components/checkout/CreditOverrideModal';
 import { isQuantityValid, useSaleCart } from '../hooks/useSaleCart';
 import { useCreateSale } from '../hooks/useCreateSale';
-import { addDaysToDateOnly, buildInstallments } from '../utils/installments';
-import { formatCents, formatCurrency } from '@/shared/utils/money';
-import { todayInBusinessTz } from '@/shared/utils/businessDate';
-import { formatDateOnly } from '@/shared/utils/formatDateOnly';
+import { useSaleSimulation } from '../hooks/useSaleSimulation';
+import { formatCents, formatCurrency, fromCents, parseMoneyToCents, toCents } from '@/shared/utils/money';
+import type { CheckoutPaymentMethod, CreditOverrideKind, ICreditOverrideInput, SalePaymentCondition } from '../types';
+import { buildPayment, CONDITION_LABELS, crediarioHardBlock, findCondition, isCard, overrideKindsFor } from '../utils/checkout';
 
 type SaleFormValues = {
   customerId: string;
-  firstDueDate: string;
 };
 
-type PaymentMode = 'cash' | 'installments';
+/** Erros do crediário que só passam com autorização de quem aprova crédito. */
+const OVERRIDE_CODES: Record<string, CreditOverrideKind> = { CREDIT_LIMIT_EXCEEDED: 'LIMIT', CREDIT_OVERDUE_BLOCK: 'OVERDUE' };
 
-const MAX_INSTALLMENTS = 12;
-const DEFAULT_FIRST_DUE_DAYS = 30;
+/** Respostas que ficam no modal de autorização (senha errada, tentativas demais, dados inválidos). */
+const OVERRIDE_MODAL_CODES = new Set(['CREDIT_OVERRIDE_DENIED', 'TOO_MANY_REQUESTS', 'VALIDATION_ERROR']);
+
+type OverrideState = { open: boolean; reasons: CreditOverrideKind[]; notice: string | null; error: string | null };
+
+const CLOSED_OVERRIDE: OverrideState = { open: false, reasons: [], notice: null, error: null };
 
 export function SaleCreatePage() {
   const navigate = useNavigate();
   const isWide = useBreakpoint('md');
+  const canSeeMargin = useCan('reports.profit');
 
-  const {
-    control,
-    setError,
-    clearErrors,
-    register,
-    formState: { errors },
-  } = useForm<SaleFormValues>({
+  const { control, setError } = useForm<SaleFormValues>({
     defaultValues: {
       customerId: '',
-      firstDueDate: addDaysToDateOnly(todayInBusinessTz(), DEFAULT_FIRST_DUE_DAYS),
     },
   });
 
   const customerId = useWatch({ control, name: 'customerId' });
-  const firstDueDate = useWatch({ control, name: 'firstDueDate' });
 
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('cash');
-  const [installments, setInstallments] = useState(2);
+  // Fechamento: condição e detalhes de cada uma.
+  const [condition, setCondition] = useState<SalePaymentCondition>('CASH');
+  const [passCardFee, setPassCardFee] = useState(true);
+  const [cardInstallments, setCardInstallments] = useState(1);
+  const [crediarioInstallments, setCrediarioInstallments] = useState<number | null>(null);
+  const [downPaymentText, setDownPaymentText] = useState('');
+  const [downPaymentError, setDownPaymentError] = useState<string | undefined>();
+  const [downPaymentMethod, setDownPaymentMethod] = useState<CheckoutPaymentMethod>('CASH');
+  const [dueDay, setDueDay] = useState('');
+  const [override, setOverride] = useState<OverrideState>(CLOSED_OVERRIDE);
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
@@ -62,10 +73,12 @@ export function SaleCreatePage() {
   // Stock refusal of one item (409 EXPIRED_STOCK_ONLY / 422 INSUFFICIENT_STOCK with details.productVariantId).
   const [itemError, setItemError] = useState<{ productVariantId: string; message: string } | null>(null);
 
+  // Barcode lookups (success/error) near the scanner; submit errors near the checkout actions.
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data: customerData, isFetching: customersLoading, isError: customersError } = useCustomerSearch(customerSearch);
 
@@ -79,7 +92,42 @@ export function SaleCreatePage() {
 
   const createSaleMutation = useCreateSale();
 
-  const isInstallments = paymentMode === 'installments';
+  const hasUnpricedItems = cart.itemsWithoutPrice.length > 0;
+
+  const saleItems = cart.items.map((item) => ({ productVariantId: item.productVariantId, quantity: item.quantity as number }));
+
+  const isCrediario = condition === 'CREDIARIO';
+
+  // Entrada digitada (centavos) ou null (vazia/inválida): vazia = mínima do perfil.
+  const typedDownPaymentCents = parseMoneyToCents(downPaymentText);
+
+  const canSimulate = Boolean(customerId) && cart.items.length > 0 && !cart.hasInvalidQuantity && !hasUnpricedItems;
+
+  const simulation = useSaleSimulation(
+    canSimulate
+      ? {
+          customerId,
+          items: saleItems,
+          ...(isCrediario && typedDownPaymentCents !== null ? { downPayment: fromCents(typedDownPaymentCents) } : {}),
+        }
+      : null,
+  );
+
+  const crediario = simulation.data?.crediario;
+  const crediarioOption = crediario?.options.find((option) => option.installments === crediarioInstallments) ?? null;
+  const crediarioBlocked = crediario ? crediarioHardBlock(crediario) : null;
+  const neededOverride = isCrediario && crediario && crediarioOption ? overrideKindsFor(crediario, crediarioOption) : [];
+  const downPaymentCents = typedDownPaymentCents ?? (crediario ? toCents(crediario.minDownPayment) : 0);
+
+  const conditionRow = findCondition(simulation.data, { condition, cardInstallments, passCardFee });
+  const cashPrice = simulation.data?.itemsTotal ?? fromCents(cart.totalCents);
+  const checkoutTotal = isCrediario ? (crediarioOption?.total ?? null) : (conditionRow?.total ?? (simulation.data ? null : cashPrice));
+  const checkoutMargin = canSeeMargin ? (isCrediario ? crediarioOption?.margin : conditionRow?.margin) : undefined;
+  const conditionLabel = isCrediario
+    ? `Crediário${crediarioOption ? ` ${crediarioOption.installments}x` : ''}`
+    : condition === 'CREDIT_CARD'
+      ? `Crédito ${cardInstallments}x`
+      : CONDITION_LABELS[condition];
 
   async function handleBarcodeSubmit(barcode: string) {
     setFeedback(null);
@@ -103,68 +151,71 @@ export function SaleCreatePage() {
     );
   }
 
+  /** Confere o carrinho e o fechamento: mensagem para o alerta, '' quando o erro já está no campo, null = ok. */
+  function validate(): string | null {
+    if (!customerId) return 'Selecione um cliente antes de registrar a venda.';
+    if (cart.items.length === 0) return 'Adicione pelo menos um produto à venda.';
+    if (cart.hasInvalidQuantity) return 'Informe uma quantidade válida (número inteiro maior que zero) para todos os itens.';
+    if (hasUnpricedItems) return 'Há itens sem preço de venda. Cadastre o preço da variante antes de registrar a venda.';
+    if (!isCrediario) return null;
+
+    if (!crediario) return 'Aguarde a simulação do crediário.';
+    if (downPaymentText.trim() !== '' && typedDownPaymentCents === null) {
+      setDownPaymentError('Informe um valor válido (ex.: 50,00).');
+      return '';
+    }
+    if (downPaymentCents < toCents(crediario.minDownPayment)) {
+      setDownPaymentError(`A entrada mínima é ${formatCurrency(crediario.minDownPayment)}.`);
+      return '';
+    }
+    if (downPaymentCents >= toCents(cashPrice)) {
+      setDownPaymentError('A entrada deve ser menor que o total da venda.');
+      return '';
+    }
+    if (!crediarioOption) return 'Escolha o número de parcelas do crediário.';
+
+    return null;
+  }
+
   function handleRegisterSale() {
     setFeedback(null);
+    setSubmitError(null);
+    setDownPaymentError(undefined);
 
-    if (!customerId) {
-      setFeedback({
-        type: 'error',
-        message: 'Selecione um cliente antes de registrar a venda.',
-      });
+    const problem = validate();
+    if (problem !== null) {
+      if (problem) setSubmitError(problem);
       return;
     }
 
-    if (cart.items.length === 0) {
-      setFeedback({
-        type: 'error',
-        message: 'Adicione pelo menos um produto à venda.',
-      });
+    if (neededOverride.length > 0) {
+      setOverride({ open: true, reasons: neededOverride, notice: null, error: null });
       return;
     }
 
-    if (cart.hasInvalidQuantity) {
-      setFeedback({
-        type: 'error',
-        message: 'Informe uma quantidade válida (número inteiro maior que zero) para todos os itens.',
-      });
-      return;
-    }
+    submit();
+  }
 
-    if (cart.itemsWithoutPrice.length > 0) {
-      setFeedback({
-        type: 'error',
-        message: 'Há itens sem preço de venda. Cadastre o preço da variante antes de registrar a venda.',
-      });
-      return;
-    }
-
-    if (isInstallments && !/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) {
-      setError('firstDueDate', { type: 'validate', message: 'Informe a data do primeiro vencimento.' });
-      return;
-    }
-
-    if (isInstallments && firstDueDate < todayInBusinessTz()) {
-      setError('firstDueDate', { type: 'validate', message: 'O primeiro vencimento não pode ser anterior a hoje.' });
-      return;
-    }
-
-    if (createSaleMutation.isPending) {
-      return;
-    }
+  function submit(authorization?: ICreditOverrideInput) {
+    if (createSaleMutation.isPending) return;
 
     setItemError(null);
 
+    const payment = buildPayment({
+      condition,
+      cardInstallments,
+      passCardFee,
+      crediario:
+        isCrediario && crediarioOption
+          ? { installments: crediarioOption.installments, downPaymentCents, downPaymentMethod, dueDay: dueDay ? Number(dueDay) : null }
+          : undefined,
+    });
+
     createSaleMutation.mutate(
-      {
-        customerId,
-        items: cart.items.map((item) => ({
-          productVariantId: item.productVariantId,
-          quantity: item.quantity as number,
-        })),
-        paymentTerms: isInstallments ? { installments, firstDueDate } : { installments: 1 },
-      },
+      { customerId, items: saleItems, payment: authorization ? { ...payment, override: authorization } : payment },
       {
         onSuccess: (sale) => {
+          setOverride(CLOSED_OVERRIDE);
           navigate(`/sales/${sale.id}`);
         },
         onError: (error) => {
@@ -172,6 +223,20 @@ export function SaleCreatePage() {
 
           // The axios interceptor already redirects to /login on 401.
           if (status === 401) return;
+
+          // Limite/atraso: só com autorização de quem aprova crédito.
+          const kind = OVERRIDE_CODES[code];
+          if (kind && !authorization) {
+            setOverride({ open: true, reasons: [kind], notice: message, error: null });
+            return;
+          }
+
+          if (authorization && (OVERRIDE_MODAL_CODES.has(code) || kind)) {
+            setOverride((current) => ({ ...current, error: message }));
+            return;
+          }
+
+          setOverride(CLOSED_OVERRIDE);
 
           // Stock refusals name the sale item: shown on that item instead of the generic alert.
           if ((code === 'EXPIRED_STOCK_ONLY' || code === 'INSUFFICIENT_STOCK') && typeof details?.productVariantId === 'string') {
@@ -182,35 +247,32 @@ export function SaleCreatePage() {
             }
           }
 
-          // customerId / firstDueDate render inline; other paths (e.g. items.0.quantity) have no input.
-          const mapped: Record<string, string> = {};
-          for (const [field, text] of Object.entries(fieldErrors)) {
-            mapped[field === 'paymentTerms.firstDueDate' ? 'firstDueDate' : field] = text;
+          if (code === 'DOWN_PAYMENT_TOO_LOW') {
+            setDownPaymentError(message);
+            return;
           }
 
-          const { applied, unmatched } = applyFieldErrors(setError, mapped, ['customerId', 'firstDueDate']);
+          // customerId renders inline; the down payment below its field; other paths have no input.
+          const { 'payment.crediario.downPayment': downPaymentField, ...rest } = fieldErrors;
+          if (downPaymentField) setDownPaymentError(downPaymentField);
+
+          const { applied, unmatched } = applyFieldErrors(setError, rest, ['customerId']);
 
           const detail = Object.values(unmatched)[0];
 
           // Shown once: inline when fully mapped to a field, otherwise as the alert (never both).
-          if (applied.length > 0 && !detail) return;
+          if ((applied.length > 0 || downPaymentField) && !detail) return;
 
-          setFeedback({
-            type: 'error',
-            message: code === 'UNKNOWN_ERROR' ? 'Não foi possível registrar a venda. Verifique os dados e tente novamente.' : detail ? `${message} ${detail}` : message,
-          });
+          setSubmitError(code === 'UNKNOWN_ERROR' ? 'Não foi possível registrar a venda. Verifique os dados e tente novamente.' : detail ? `${message} ${detail}` : message);
         },
       },
     );
   }
 
-  const hasUnpricedItems = cart.itemsWithoutPrice.length > 0;
+  const isRegisterDisabled =
+    !customerId || cart.items.length === 0 || hasUnpricedItems || createSaleMutation.isPending || (isCrediario && (!crediario || crediarioBlocked !== null || simulation.isFetching)); // crediário: não envia plano/exceção de uma simulação desatualizada
 
-  const isRegisterDisabled = !customerId || cart.items.length === 0 || hasUnpricedItems || createSaleMutation.isPending;
-
-  const canPreview = isInstallments && cart.totalCents > 0 && !cart.hasInvalidQuantity && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate);
-
-  const preview = canPreview ? buildInstallments(cart.totalCents, installments, firstDueDate) : [];
+  const registerLabel = createSaleMutation.isPending ? 'Registrando venda...' : neededOverride.length > 0 ? 'Pedir autorização' : 'Registrar venda';
 
   return (
     <Page width="narrow">
@@ -396,8 +458,8 @@ export function SaleCreatePage() {
             )}
 
             <div className="mt-5 flex flex-col gap-2 border-t pt-4 sm:items-end">
-              <p className="text-sm text-muted">Total</p>
-              <p data-testid="sale-total" className="text-2xl font-semibold">
+              <p className="text-sm text-muted">Total dos itens (à vista)</p>
+              <p data-testid="sale-total" className="text-xl font-semibold tabular-nums">
                 {formatCents(cart.totalCents)}
               </p>
               <p data-testid="sale-total-estimate" className="text-xs text-muted">
@@ -405,77 +467,105 @@ export function SaleCreatePage() {
               </p>
             </div>
 
-            {/* Condição de pagamento */}
-            <fieldset className="mt-6 border-t pt-5">
-              <legend className="text-lg font-semibold">Condição de pagamento</legend>
+          </section>
 
-              <div className="mt-3 flex flex-wrap gap-6">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="radio" name="paymentMode" checked={!isInstallments} onChange={() => { setPaymentMode('cash'); clearErrors('firstDueDate'); }} />
-                  À vista
-                </label>
+          {/* Fechamento: condição de pagamento */}
+          {cart.items.length > 0 && (
+            <section aria-labelledby="checkout-title" className="flex flex-col gap-5 rounded-xl border bg-surface p-5 shadow sm:p-6">
+              <h2 id="checkout-title" className="text-lg font-semibold">
+                Fechamento
+              </h2>
 
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="radio" name="paymentMode" checked={isInstallments} onChange={() => setPaymentMode('installments')} />
-                  Parcelado
-                </label>
-              </div>
+              <PaymentConditionPicker
+                value={condition}
+                disabled={createSaleMutation.isPending}
+                onChange={(next) => {
+                  setCondition(next);
+                  setSubmitError(null);
+                }}
+              />
 
-              {isInstallments && (
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="sale-installments" className="mb-1 block text-sm font-medium">
-                      Número de parcelas
-                    </label>
-                    <select
-                      id="sale-installments"
-                      value={installments}
-                      onChange={(event) => setInstallments(Number(event.target.value))}
-                      className="w-full rounded-lg border px-3 py-2"
-                    >
-                      {Array.from({ length: MAX_INSTALLMENTS - 1 }, (_, i) => i + 2).map((n) => (
-                        <option key={n} value={n}>
-                          {n}x
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="sale-first-due" className="mb-1 block text-sm font-medium">
-                      Primeiro vencimento
-                    </label>
-                    <input id="sale-first-due" {...fieldA11y("sale-first-due", errors.firstDueDate?.message)} type="date" {...register('firstDueDate')} className="w-full rounded-lg border px-3 py-2" />
-                    <FieldError id="sale-first-due" message={errors.firstDueDate?.message} />
-                  </div>
-                </div>
+              {isCard(condition) && (
+                <CardOptions
+                  condition={condition as 'DEBIT_CARD' | 'CREDIT_CARD'}
+                  passCardFee={passCardFee}
+                  onPassCardFeeChange={setPassCardFee}
+                  cardInstallments={cardInstallments}
+                  onCardInstallmentsChange={setCardInstallments}
+                  simulation={simulation.data}
+                  disabled={createSaleMutation.isPending}
+                />
               )}
 
-              {isInstallments && preview.length > 0 && (
-                <ul data-testid="installments-preview" className="mt-4 divide-y rounded-lg border text-sm">
-                  {preview.map((parcel, index) => (
-                    <li key={index} className="flex justify-between px-3 py-2">
-                      <span>
-                        {index + 1}/{preview.length} · {formatDateOnly(parcel.dueDate)}
-                      </span>
-                      <span className="font-medium">{formatCents(parcel.amountCents)}</span>
-                    </li>
-                  ))}
-                </ul>
+              {isCrediario && (
+                <CrediarioCheckout
+                  customerId={customerId}
+                  crediario={canSimulate ? crediario : undefined}
+                  loading={simulation.isLoading}
+                  downPaymentText={downPaymentText}
+                  onDownPaymentTextChange={(text) => {
+                    setDownPaymentText(text);
+                    setDownPaymentError(undefined);
+                  }}
+                  downPaymentError={downPaymentError}
+                  hasDownPayment={downPaymentCents > 0}
+                  downPaymentMethod={downPaymentMethod}
+                  onDownPaymentMethodChange={setDownPaymentMethod}
+                  dueDay={dueDay}
+                  onDueDayChange={setDueDay}
+                  selected={crediarioInstallments}
+                  onSelect={(installments) => {
+                    setCrediarioInstallments(installments);
+                    setSubmitError(null);
+                  }}
+                  showMargin={canSeeMargin}
+                  disabled={createSaleMutation.isPending}
+                />
               )}
-            </fieldset>
 
-            {/* Ações da venda */}
-            <div className="mt-6 flex flex-col-reverse justify-end gap-3 border-t pt-5 sm:flex-row">
-              <Button type="button" variant="outline" disabled={createSaleMutation.isPending} onClick={() => navigate('/sales')}>
+              {simulation.isError && (
+                <p role="alert" className="text-sm text-danger">
+                  Não foi possível simular os valores. O servidor calcula o total ao registrar.
+                </p>
+              )}
+            </section>
+          )}
+
+          {submitError && (
+            <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+              {submitError}
+            </div>
+          )}
+
+          {/* Total e ações: barra fixa no celular, cartão no fim da página a partir de md */}
+          <div
+            data-testid="checkout-bar"
+            className="sticky bottom-0 z-20 -mx-3 flex flex-col gap-3 border-t bg-surface px-3 py-3 shadow-lg sm:-mx-4 sm:px-4 md:static md:mx-0 md:rounded-xl md:border md:p-6 md:shadow"
+          >
+            <CheckoutSummary cashPrice={cashPrice} total={cart.items.length > 0 ? checkoutTotal : null} conditionLabel={conditionLabel} margin={checkoutMargin} />
+
+            <div className="flex flex-row-reverse gap-3 md:justify-start">
+              <Button type="button" className="min-h-11 flex-1 md:flex-none" disabled={isRegisterDisabled} onClick={handleRegisterSale}>
+                {registerLabel}
+              </Button>
+              <Button type="button" variant="outline" className="min-h-11" disabled={createSaleMutation.isPending} onClick={() => navigate('/sales')}>
                 Cancelar
               </Button>
-
-              <Button type="button" disabled={isRegisterDisabled} onClick={handleRegisterSale}>
-                {createSaleMutation.isPending ? 'Registrando venda...' : 'Registrar venda'}
-              </Button>
             </div>
-          </section>
+          </div>
+
+          <CreditOverrideModal
+            open={override.open}
+            reasons={override.reasons}
+            notice={override.notice}
+            error={override.error}
+            pending={createSaleMutation.isPending}
+            onSubmit={(authorization) => {
+              setOverride((current) => ({ ...current, error: null }));
+              submit(authorization);
+            }}
+            onClose={() => setOverride(CLOSED_OVERRIDE)}
+          />
     </Page>
   );
 }

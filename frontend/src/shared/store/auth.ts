@@ -8,6 +8,8 @@ export type SessionUser = {
   name: string;
   email: string;
   role: UserRole;
+  /** Marca "pode aprovar crédito" (ADMIN sempre pode, pelo papel). */
+  canApproveCredit?: boolean;
 };
 
 type AuthState = {

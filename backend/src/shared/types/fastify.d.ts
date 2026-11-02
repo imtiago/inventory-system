@@ -6,6 +6,7 @@ declare module "fastify" {
     user?: {
       sub: string;
       role: string;
+      canApproveCredit: boolean;
     };
   }
 }

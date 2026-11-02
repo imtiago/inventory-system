@@ -30,7 +30,7 @@ describe('ProfitReportPage', () => {
     expect(await screen.findByText('23/10/2026')).toBeInTheDocument();
     expect(screen.getByText('Total')).toBeInTheDocument();
     expect(screen.getAllByText(/1\.250,50/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/34,00%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/33,00%/).length).toBeGreaterThan(0);
     expect(screen.getByRole('status')).toHaveTextContent('2 itens sem custo registrado');
     expect(calls[0].get('view')).toBe('period');
     expect(calls[0].get('from')).toMatch(/^\d{4}-\d{2}-01$/);
@@ -46,7 +46,7 @@ describe('ProfitReportPage', () => {
   });
 
   test('período sem vendas: estado vazio e nenhuma linha de totais', async () => {
-    const zero = { ...fixture.data.totals, revenue: 0, cost: 0, estimatedExpenses: 0, profit: 0, itemsWithoutCost: 0, marginPercent: null };
+    const zero = { ...fixture.data.totals, revenue: 0, cost: 0, estimatedExpenses: 0, cardFees: 0, profit: 0, itemsWithoutCost: 0, marginPercent: null };
     serveProfit({ data: { rows: [], totals: zero } });
     renderWithProviders(<ProfitReportPage />);
 
@@ -97,8 +97,19 @@ describe('ProfitReportPage', () => {
 
     const title = await screen.findByText('23/10/2026');
     const card = title.closest('li, article') ?? title.parentElement!.parentElement!;
-    expect(card).toHaveTextContent(/425,20/);
-    expect(card).toHaveTextContent(/34,00%/);
+    expect(card).toHaveTextContent(/412,70/);
+    expect(card).toHaveTextContent(/33,00%/);
+    expect(card).toHaveTextContent(/Taxa de cartão/);
+  });
+
+  test('taxa de cartão absorvida: coluna, resumo e explicação de que acréscimo não é receita', async () => {
+    serveProfit();
+    renderWithProviders(<ProfitReportPage />);
+    await screen.findByText('23/10/2026');
+
+    expect(screen.getByRole('columnheader', { name: 'Taxa de cartão' })).toBeInTheDocument();
+    expect(screen.getByTestId('profit-card-fees')).toHaveTextContent(/12,50/);
+    expect(screen.getByText(/acréscimo cobrado do cliente/i)).toBeInTheDocument();
   });
 
   test('erro da consulta mostra mensagem', async () => {

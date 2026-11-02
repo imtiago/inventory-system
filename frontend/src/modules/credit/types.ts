@@ -1,0 +1,173 @@
+export type CreditProfileCode = 'NEW' | 'REGULAR' | 'GOOD' | 'EXCELLENT';
+export type CreditStatus = 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
+export type CreditChangeSource = 'MANUAL' | 'AUTO_REVIEW' | 'REQUEST' | 'LEGACY_IMPORT';
+
+export const CREDIT_STATUS_LABELS: Record<CreditStatus, string> = { ACTIVE: 'Ativo', BLOCKED: 'Bloqueado', SUSPENDED: 'Suspenso' };
+export const CREDIT_SOURCE_LABELS: Record<CreditChangeSource, string> = {
+  MANUAL: 'Ajuste manual',
+  AUTO_REVIEW: 'Revisão automática',
+  REQUEST: 'Pedido de limite',
+  LEGACY_IMPORT: 'Importação do caderno',
+};
+export const CREDIT_PROFILE_NAMES: Record<CreditProfileCode, string> = { NEW: 'Novo', REGULAR: 'Regular', GOOD: 'Bom', EXCELLENT: 'Excelente' };
+
+export interface CreditReviewRules {
+  weights: {
+    paidOnTime: number;
+    relationshipMonth: number;
+    relationshipMonthsCap: number;
+    per100Paid: number;
+    per100PaidCap: number;
+    dayLate: number;
+    paidLate30: number;
+    renegotiation: number;
+  };
+  promoteAt: { NEW: number; REGULAR: number; GOOD: number };
+  demoteIfDaysLateOver: number;
+  suspendIfOverdueOver: number;
+}
+
+/** Regras na API: dinheiro em reais, percentuais em %. */
+export interface CreditRules {
+  bands: { upTo: number | null; maxInstallments: number }[];
+  minInstallment: number;
+  interestFreeInstallments: number;
+  monthlyRatePercent: number;
+  defaultDueDay: number | null;
+  overdueBlockDays: number;
+  finePercent: number;
+  monthlyInterestPercent: number;
+  graceDays: number;
+  autoApproval: { profiles: CreditProfileCode[]; maxDaysLate: number; minPaidInstallments: number; maxIncreasePercent: number };
+  review: CreditReviewRules;
+}
+
+export interface UserRef {
+  id: string;
+  name: string;
+}
+
+export interface CreditSettings {
+  crediarioEnabled: boolean;
+  enabledAt: string | null;
+  enabledBy: UserRef | null;
+  updatedAt: string;
+  updatedBy: UserRef | null;
+  rules: CreditRules;
+}
+
+export interface UpdateCreditSettingsInput {
+  crediarioEnabled?: boolean;
+  rules?: CreditRules;
+}
+
+export interface CreditProfile {
+  code: CreditProfileCode;
+  name: string;
+  initialLimit: number;
+  minDownPaymentPercent: number;
+  maxInstallments: number;
+  position: number;
+}
+
+export interface UpdateCreditProfileInput {
+  initialLimit: number;
+  minDownPaymentPercent: number;
+  maxInstallments: number;
+}
+
+export interface CreditHistoryEntry {
+  id: string;
+  fromProfile: CreditProfileCode;
+  toProfile: CreditProfileCode;
+  fromLimit: number;
+  toLimit: number;
+  fromStatus: CreditStatus;
+  toStatus: CreditStatus;
+  reason: string;
+  source: CreditChangeSource;
+  changedBy: UserRef | null;
+  createdAt: string;
+}
+
+export interface CustomerCredit {
+  profileCode: CreditProfileCode;
+  profileName: string;
+  limit: number;
+  openBalance: number;
+  available: number;
+  status: CreditStatus;
+  currentMaxOverdueDays: number;
+  history: CreditHistoryEntry[];
+}
+
+export interface UpdateCustomerCreditInput {
+  profileCode?: CreditProfileCode;
+  limit?: number;
+  status?: CreditStatus;
+  reason: string;
+}
+
+export type CreditRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface CreditLimitRequest {
+  id: string;
+  customer: UserRef;
+  currentLimit: number;
+  requestedLimit: number;
+  approvedLimit: number | null;
+  reason: string;
+  status: CreditRequestStatus;
+  autoApproved: boolean;
+  requestedBy: UserRef | null;
+  requestedAt: string;
+  decidedBy: UserRef | null;
+  decidedAt: string | null;
+  decisionReason: string | null;
+}
+
+export interface CreditLimitRequestsResponse {
+  data: CreditLimitRequest[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface CreateLimitRequestInput {
+  customerId: string;
+  requestedLimit: number;
+  reason: string;
+}
+
+export interface ApproveLimitRequestInput {
+  id: string;
+  approvedLimit?: number;
+  reason?: string;
+}
+
+export type CreditReviewAction = 'UP' | 'DOWN' | 'SUSPEND';
+
+/** Mudança proposta pela revisão periódica (limites em reais). */
+export interface CreditReviewItem {
+  customerId: string;
+  customerName: string;
+  fromProfile: CreditProfileCode;
+  toProfile: CreditProfileCode;
+  fromLimit: number;
+  toLimit: number;
+  fromStatus: CreditStatus;
+  toStatus: CreditStatus;
+  action: CreditReviewAction;
+  reason: string;
+  score: number;
+}
+
+/** Dados da loja (carnê e recibo). `configured` = nome, CNPJ, endereço e telefone preenchidos. */
+export interface StoreSettings {
+  name: string;
+  cnpj: string;
+  address: string;
+  phone: string;
+  configured: boolean;
+  updatedAt: string | null;
+}
+
+export type StoreSettingsInput = Pick<StoreSettings, 'name' | 'cnpj' | 'address' | 'phone'>;

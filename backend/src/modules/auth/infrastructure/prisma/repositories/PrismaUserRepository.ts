@@ -61,6 +61,7 @@ export class PrismaUserRepository implements UserRepository {
         ...(changes.name !== undefined ? { name: changes.name } : {}),
         ...(changes.role !== undefined ? { role: changes.role } : {}),
         ...(changes.active !== undefined ? { active: changes.active } : {}),
+        ...(changes.canApproveCredit !== undefined ? { canApproveCredit: changes.canApproveCredit } : {}),
       },
     });
     return UserMapper.toDomain(updated);

@@ -4,6 +4,10 @@ import { makeGetCustomerController } from "../controllers/GetCustomerController"
 import { authorize } from "../../../../../shared/middleware/authorize";
 import { makeCreateCustomerController } from "../controllers/CreateCustomerController";
 import { makeUpdateCustomerController } from "../controllers/UpdateCustomerController";
+import {
+  makeGetCustomerCreditController,
+  makeUpdateCustomerCreditController,
+} from "@credit/infrastructure/http/controllers/customerCreditControllers";
 
 export async function customerRoutes(app: FastifyInstance) {
   app.post(
@@ -20,6 +24,17 @@ export async function customerRoutes(app: FastifyInstance) {
     "/:id",
     { preHandler: [authorize("customers.read")] },
     makeGetCustomerController(),
+  );
+  // Ficha de crédito: leitura para quem vê clientes; ajuste manual só com credit.manage.
+  app.get(
+    "/:id/credit",
+    { preHandler: [authorize("customers.read")] },
+    makeGetCustomerCreditController(),
+  );
+  app.put(
+    "/:id/credit",
+    { preHandler: [authorize("credit.manage")] },
+    makeUpdateCustomerCreditController(),
   );
   app.get(
     "/",
