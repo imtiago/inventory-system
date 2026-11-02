@@ -1,5 +1,5 @@
 import { todayInBusinessTz } from "@shared/domain/businessDate";
-import { reviewBatch, type BatchSummary, type ReviewedRow } from "../../domain/legacyBatchReview";
+import { flagDuplicateDebts, reviewBatch, targetCustomerId, type BatchSummary, type ReviewedRow } from "../../domain/legacyBatchReview";
 import type {
   NewRow,
   LegacyCustomerLookup,
@@ -31,7 +31,7 @@ export class LegacyBatchReviewer {
     const linked = rows.flatMap((r) => (r.customerAction.kind === "LINK" ? [r.customerAction.customerId] : []));
     const present = await this.customers.namesOf(linked);
     const missing = new Set(linked.filter((id) => !present.has(id)));
-    const result = reviewBatch(
+    const reviewed = reviewBatch(
       rows.map((r) => ({
         id: r.id,
         line: r.line,
@@ -39,11 +39,19 @@ export class LegacyBatchReviewer {
         ignored: r.status === "IGNORED",
         customerAction: r.customerAction,
         fresh: fresh.has(r.id),
+        acceptDuplicate: r.acceptDuplicate,
       })),
       candidates,
       todayInBusinessTz(),
       missing,
     );
+    // Importação repetida: dívidas do caderninho em aberto dos clientes cadastrados de destino.
+    const byId = new Map(reviewed.rows.map((r) => [r.id, r]));
+    const targets = reviewed.rows.flatMap((r) => {
+      const id = r.status === "IGNORED" ? null : targetCustomerId(r, byId);
+      return id ? [id] : [];
+    });
+    const result = flagDuplicateDebts(reviewed, await this.batches.openLegacyDebts(targets));
     // Nome do cadastro de cada cliente vinculado (inclusive vínculo automático criado agora).
     const names = new Map(present);
     for (const c of candidates) names.set(c.id, c.name);
@@ -72,6 +80,7 @@ export class LegacyBatchReviewer {
       customerAction: r.customerAction,
       customerId: null,
       financialDocumentId: null,
+      acceptDuplicate: r.acceptDuplicate ?? false,
     }));
     const result = await this.review([...stored, ...pending], fresh);
     const before = new Map(stored.map((r) => [r.id, r]));
@@ -89,9 +98,18 @@ export class LegacyBatchReviewer {
         JSON.stringify(old.data) === JSON.stringify(r.data) &&
         JSON.stringify(old.customerAction) === JSON.stringify(r.customerAction) &&
         JSON.stringify(old.issues) === JSON.stringify(r.issues) &&
-        old.customerId === r.customerId;
+        old.customerId === r.customerId &&
+        old.acceptDuplicate === r.acceptDuplicate;
       if (!same) {
-        changes.push({ id: r.id, data: r.data, issues: r.issues, status: r.status, customerAction: r.customerAction, customerId: r.customerId });
+        changes.push({
+          id: r.id,
+          data: r.data,
+          issues: r.issues,
+          status: r.status,
+          customerAction: r.customerAction,
+          customerId: r.customerId,
+          acceptDuplicate: r.acceptDuplicate,
+        });
       }
     }
     if (toInsert.length > 0) {
@@ -106,6 +124,7 @@ export class LegacyBatchReviewer {
           status: r.status,
           customerAction: r.customerAction,
           customerId: r.customerId,
+          acceptDuplicate: r.acceptDuplicate,
         })),
       );
     }

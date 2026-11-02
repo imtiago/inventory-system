@@ -34,6 +34,8 @@ export interface LegacyRowDTO {
   customerAction: CustomerActionDTO;
   /** Vínculo feito pelo sistema (nome idêntico a um único cliente), não escolhido pela usuária. */
   autoLinked: boolean;
+  /** "Importar mesmo assim" escolhido para a dívida possivelmente repetida. */
+  acceptDuplicate: boolean;
   suggestions: LegacySuggestion[];
   /** Cliente vinculado (rascunho) ou criado/vinculado na confirmação. */
   customerId: string | null;
@@ -57,6 +59,8 @@ export interface LegacyBatchListItemDTO {
 }
 
 export interface LegacyBatchDTO extends LegacyBatchListItemDTO {
+  /** Rascunho cujo arquivo (SHA-256) já foi importado num lote confirmado; null se não. */
+  sameFileAs: { id: string; confirmedAt: string } | null;
   rows: LegacyRowDTO[];
 }
 
@@ -92,6 +96,7 @@ export function toRowDTO(
     issues: r.issues,
     customerAction: actionDTO(r.customerAction),
     autoLinked: r.customerAction.kind === "LINK" && r.customerAction.auto === true,
+    acceptDuplicate: r.acceptDuplicate,
     suggestions: r.suggestions,
     customerId: imported.customerId,
     linkedCustomerName: imported.customerId ? (linkedNames.get(imported.customerId) ?? null) : null,

@@ -76,8 +76,9 @@ export const updateLegacyRowSchema = z
       ])
       .optional(),
     ignored: z.boolean({ error: "Valor inválido." }).optional(),
+    acceptDuplicate: z.boolean({ error: "Valor inválido." }).optional(),
   })
-  .refine((v) => v.data !== undefined || v.customerAction !== undefined || v.ignored !== undefined, {
+  .refine((v) => v.data !== undefined || v.customerAction !== undefined || v.ignored !== undefined || v.acceptDuplicate !== undefined, {
     message: "Informe o que alterar.",
   });
 

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import type { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import type { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
@@ -16,6 +16,7 @@ import {
   MAX_BATCH_ROWS,
 } from "../../domain/legacyErrors";
 import type {
+  BatchHeader,
   LegacyCustomerLookup,
   LegacyImportBatchReadRepository,
   LegacyImportBatchRepository,
@@ -29,6 +30,13 @@ export interface LegacyBatchDeps {
   reads: LegacyImportBatchReadRepository;
   customers: LegacyCustomerLookup;
   reviewer: LegacyBatchReviewer;
+}
+
+/** Rascunho cujo arquivo já foi importado num lote confirmado (aviso na tela). */
+async function sameFileAs(reads: LegacyImportBatchReadRepository, header: BatchHeader): Promise<LegacyBatchDTO["sameFileAs"]> {
+  if (header.status !== "DRAFT" || !header.fileSha256) return null;
+  const other = await reads.confirmedWithFile(header.fileSha256, header.id);
+  return other ? { id: other.id, confirmedAt: other.confirmedAt.toISOString() } : null;
 }
 
 const collapseName = (name: string) => name.trim().replace(/\s+/g, " ");
@@ -49,6 +57,7 @@ async function toBatchDTO(
   if (!header) throw legacyBatchNotFound();
   return {
     ...toListItemDTO(header),
+    sameFileAs: await sameFileAs(reads, header),
     summary: result.summary,
     rows: result.rows.map((r) => toRowDTO(r, undefined, result.linkedNames)),
   };
@@ -65,6 +74,7 @@ export async function storedBatchDTO(
   const names = await deps.customers.namesOf(rows.flatMap((r) => (r.customerId ? [r.customerId] : [])));
   return {
     ...toListItemDTO(header),
+    sameFileAs: null,
     rows: rows.map((r) =>
       toRowDTO(
         {
@@ -77,6 +87,7 @@ export async function storedBatchDTO(
           customerAction: r.customerAction,
           suggestions: [],
           customerId: r.customerId,
+          acceptDuplicate: r.acceptDuplicate,
         },
         { customerId: r.customerId, financialDocumentId: r.financialDocumentId },
         names,
@@ -114,7 +125,8 @@ export class UploadLegacyCsvUseCase extends TransactionalUseCase<
       }
       return { id: randomUUID(), line: r.line, raw, customerAction: { kind: "NEW" } };
     });
-    const id = await this.deps.batches.create({ source: "CSV", fileName: req.fileName, createdById: req.userId });
+    const fileSha256 = createHash("sha256").update(req.bytes).digest("hex");
+    const id = await this.deps.batches.create({ source: "CSV", fileName: req.fileName, createdById: req.userId, fileSha256 });
     await this.deps.batches.lockById(id);
     return addRows(this.deps, id, newRows);
   }
@@ -195,6 +207,8 @@ export interface UpdateLegacyRowRequest {
   data?: LegacyRowDataInput;
   customerAction?: { kind: "NEW" } | { kind: "LINK"; customerId: string } | { kind: "SAME_AS_ROW"; rowId: string };
   ignored?: boolean;
+  /** "Importar mesmo assim" (dívida possivelmente repetida); `false` desfaz a escolha. */
+  acceptDuplicate?: boolean;
 }
 
 export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRowRequest, LegacyBatchDTO> {
@@ -253,6 +267,8 @@ export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRow
     }
 
     const ignored = req.ignored ?? row.status === "IGNORED";
+    // A escolha valia para aquela dívida daquele cliente: mudar dados ou cliente a desfaz.
+    const acceptDuplicate = req.acceptDuplicate ?? (req.data || wanted || fresh.size > 0 ? false : row.acceptDuplicate);
     await batches.updateRows([
       {
         id: row.id,
@@ -263,6 +279,7 @@ export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRow
         status: ignored ? "IGNORED" : "OK",
         customerAction: action,
         customerId,
+        acceptDuplicate,
       },
     ]);
     const result = await this.deps.reviewer.reviewAndSave(req.batchId, fresh);

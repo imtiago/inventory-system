@@ -21,6 +21,7 @@
     "limitRule": "MAX_OF_PROFILE_AND_BALANCE",
     "confirmedAt": null,
     "revertedAt": null,
+    "sameFileAs": null,
     "rows": [
       {
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
@@ -62,6 +63,7 @@
           "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
         },
         "autoLinked": true,
+        "acceptDuplicate": false,
         "suggestions": [
           {
             "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
@@ -121,6 +123,7 @@
           "kind": "NEW"
         },
         "autoLinked": false,
+        "acceptDuplicate": false,
         "suggestions": [
           {
             "customerId": "4b3c2d1e-0f9a-4b8c-9d7e-6f5a4b3c2d1e",
@@ -175,6 +178,7 @@
           "kind": "NEW"
         },
         "autoLinked": false,
+        "acceptDuplicate": false,
         "suggestions": [],
         "customerId": null,
         "linkedCustomerName": null,
@@ -221,6 +225,7 @@
           "kind": "NEW"
         },
         "autoLinked": false,
+        "acceptDuplicate": false,
         "suggestions": [],
         "customerId": null,
         "linkedCustomerName": null,
@@ -286,6 +291,7 @@
           "kind": "NEW"
         },
         "autoLinked": false,
+        "acceptDuplicate": false,
         "suggestions": [
           {
             "rowId": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
@@ -342,6 +348,7 @@
           "kind": "NEW"
         },
         "autoLinked": false,
+        "acceptDuplicate": false,
         "suggestions": [],
         "customerId": null,
         "linkedCustomerName": null,

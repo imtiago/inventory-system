@@ -18,6 +18,12 @@ type Row = {
   revertedAt: Date | null;
 };
 
+/** Só as chaves do resumo (o JSON guarda também `fileSha256`). */
+const summaryOf = (raw: unknown): BatchSummary => {
+  const all: Record<string, unknown> = { ...EMPTY, ...(raw as Partial<BatchSummary>) };
+  return Object.fromEntries(Object.keys(EMPTY).map((k) => [k, all[k]])) as unknown as BatchSummary;
+};
+
 const map = (b: Row): BatchListItem => ({
   id: b.id,
   status: b.status,
@@ -25,7 +31,7 @@ const map = (b: Row): BatchListItem => ({
   fileName: b.fileName,
   createdAt: b.createdAt,
   createdBy: b.createdBy,
-  summary: { ...EMPTY, ...(b.summary as Partial<BatchSummary>) },
+  summary: summaryOf(b.summary),
   limitRule: b.limitRule === "PROFILE_ONLY" ? "PROFILE_ONLY" : "MAX_OF_PROFILE_AND_BALANCE",
   confirmedAt: b.confirmedAt,
   revertedAt: b.revertedAt,
@@ -61,6 +67,17 @@ export class PrismaLegacyImportBatchReadRepository implements LegacyImportBatchR
 
   async header(id: string): Promise<BatchHeader | null> {
     const row = await getDb().legacyImportBatch.findUnique({ where: { id }, select });
-    return row ? map(row) : null;
+    if (!row) return null;
+    const hash = (row.summary as { fileSha256?: unknown } | null)?.fileSha256;
+    return { ...map(row), fileSha256: typeof hash === "string" ? hash : null };
+  }
+
+  async confirmedWithFile(fileSha256: string, excludeId: string) {
+    const row = await getDb().legacyImportBatch.findFirst({
+      where: { status: "CONFIRMED", id: { not: excludeId }, summary: { path: ["fileSha256"], equals: fileSha256 } },
+      select: { id: true, confirmedAt: true },
+      orderBy: [{ confirmedAt: "desc" }, { id: "asc" }],
+    });
+    return row && row.confirmedAt ? { id: row.id, confirmedAt: row.confirmedAt } : null;
   }
 }

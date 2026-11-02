@@ -80,6 +80,8 @@ export interface LegacyRow {
   customerAction: LegacyCustomerAction;
   /** Vínculo feito pelo sistema (nome idêntico a um único cliente) — pede conferência. */
   autoLinked: boolean;
+  /** "Importar mesmo assim" escolhido para a dívida que parece já importada. */
+  acceptDuplicate: boolean;
   suggestions: LegacySuggestion[];
   customerId: string | null;
   /** Nome do cliente `customerId` no cadastro (pode diferir de `data.name`, o nome digitado). */
@@ -111,6 +113,8 @@ export interface LegacyBatchListItem {
 }
 
 export interface LegacyBatch extends LegacyBatchListItem {
+  /** Rascunho cujo arquivo já foi importado num lote confirmado. */
+  sameFileAs: { id: string; confirmedAt: string } | null;
   rows: LegacyRow[];
 }
 
@@ -136,6 +140,7 @@ export interface UpdateLegacyRowInput {
   data?: LegacyRowDataInput;
   customerAction?: { kind: 'NEW' } | { kind: 'LINK'; customerId: string } | { kind: 'SAME_AS_ROW'; rowId: string };
   ignored?: boolean;
+  acceptDuplicate?: boolean;
 }
 
 export interface QuickEntryDebt {
@@ -157,6 +162,16 @@ export function batchLabel(batch: Pick<LegacyBatchListItem, 'source' | 'fileName
 /** Linha vinculada a um cliente que foi excluído depois do vínculo (erro da revisão). */
 export function hasMissingLinkedCustomer(row: LegacyRow): boolean {
   return row.issues.some((issue) => issue.code === 'LINKED_CUSTOMER_MISSING');
+}
+
+/** Linha cuja dívida parece já importada (outro lote confirmado) — com ou sem decisão. */
+export function hasDuplicateDebt(row: LegacyRow): boolean {
+  return row.status !== 'IGNORED' && row.issues.some((issue) => issue.code === 'POSSIBLE_DUPLICATE_DEBT');
+}
+
+/** Dívida que parece já importada, ainda sem "importar mesmo assim". */
+export function hasPendingDuplicate(row: LegacyRow): boolean {
+  return hasDuplicateDebt(row) && !row.acceptDuplicate;
 }
 
 /** Linha com nome parecido ainda sem decisão (o servidor só emite SIMILAR_* enquanto a decisão está pendente). */

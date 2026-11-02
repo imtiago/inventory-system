@@ -12,13 +12,14 @@ import type { CreateFinancialDocumentUseCase } from "@finance/application/useCas
 import { FinancialOriginType } from "@finance/domain/enums/FinancialOriginType";
 import { FinancialPartyType } from "@finance/domain/enums/FinancialPartyType";
 import { FinancialType } from "@finance/domain/enums/FinancialType";
-import type { ReviewedRow } from "../../domain/legacyBatchReview";
+import { hasUnresolvedDuplicate, type ReviewedRow } from "../../domain/legacyBatchReview";
 import {
   legacyBatchEmpty,
   legacyBatchHasErrors,
   legacyBatchNotDraft,
   legacyBatchNotFound,
   legacyLinkedCustomerMissing,
+  legacyUnresolvedDuplicates,
   legacyUnresolvedSimilarNames,
 } from "../../domain/legacyErrors";
 import type { LegacyLimitRule } from "../contracts/LegacyImportBatchRepository";
@@ -93,6 +94,8 @@ export class ConfirmLegacyBatchUseCase extends TransactionalUseCase<ConfirmLegac
     if (withErrors.length > 0) throw legacyBatchHasErrors(withErrors.map((r) => r.line));
     const undecided = active.filter((r) => r.issues.some((i) => i.code === "SIMILAR_CUSTOMER" || i.code === "SIMILAR_ROW"));
     if (undecided.length > 0) throw legacyUnresolvedSimilarNames(undecided.map((r) => r.line));
+    const duplicates = active.filter(hasUnresolvedDuplicate);
+    if (duplicates.length > 0) throw legacyUnresolvedDuplicates(duplicates.map((r) => r.line));
 
     const groups = this.groupByCustomer(active);
 

@@ -21,6 +21,7 @@
     "limitRule": "MAX_OF_PROFILE_AND_BALANCE",
     "confirmedAt": "2026-11-01T14:30:00.000Z",
     "revertedAt": null,
+    "sameFileAs": null,
     "rows": [
       {
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
@@ -62,6 +63,7 @@
           "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
         },
         "autoLinked": true,
+        "acceptDuplicate": false,
         "suggestions": [],
         "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
         "linkedCustomerName": "Maria Silva",
@@ -108,6 +110,7 @@
           "kind": "NEW"
         },
         "autoLinked": false,
+        "acceptDuplicate": false,
         "suggestions": [],
         "customerId": "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f",
         "linkedCustomerName": "Carla Mendes",

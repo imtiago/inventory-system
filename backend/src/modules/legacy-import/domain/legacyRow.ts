@@ -19,7 +19,8 @@ export type LegacyIssueCode =
   | "FUTURE_DATE"
   | "SIMILAR_CUSTOMER"
   | "SIMILAR_ROW"
-  | "LINKED_CUSTOMER_MISSING";
+  | "LINKED_CUSTOMER_MISSING"
+  | "POSSIBLE_DUPLICATE_DEBT";
 
 export interface LegacyIssue {
   code: LegacyIssueCode;

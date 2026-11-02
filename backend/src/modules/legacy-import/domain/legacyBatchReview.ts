@@ -33,6 +33,8 @@ export interface ReviewRowInput {
   customerAction: CustomerAction;
   /** Linha recém-criada: um único cliente com nome idêntico já vira vínculo (a usuária pode trocar). */
   fresh?: boolean;
+  /** "Importar mesmo assim": a usuária confirmou que não é a mesma dívida já importada. */
+  acceptDuplicate?: boolean;
 }
 
 export interface ReviewedRow {
@@ -47,6 +49,16 @@ export interface ReviewedRow {
   suggestions: LegacySuggestion[];
   /** Cliente vinculado que ainda existe (null: novo, mesma pessoa de outra linha ou vínculo para cliente apagado). */
   customerId: string | null;
+  acceptDuplicate: boolean;
+}
+
+/** Dívida do caderninho já gravada (lote confirmado, documento em aberto), para achar importação repetida. */
+export interface ExistingLegacyDebt {
+  customerId: string;
+  openCents: number;
+  batchId: string;
+  line: number;
+  financialDocumentId: string;
 }
 
 export interface BatchSummary {
@@ -197,6 +209,7 @@ export function reviewBatch(
       customerAction: action,
       suggestions,
       customerId: action.kind === "LINK" && !linkMissing ? action.customerId : null,
+      acceptDuplicate: v.input.acceptDuplicate === true,
     };
   });
 
@@ -224,3 +237,58 @@ export function reviewBatch(
   summary.openTotal = openCents / 100;
   return { rows, summary };
 }
+
+const brl = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Cliente cadastrado de destino da linha: vínculo direto ou da raiz de SAME_AS_ROW (null: cliente novo). */
+export function targetCustomerId(row: ReviewedRow, byId: ReadonlyMap<string, ReviewedRow>): string | null {
+  if (row.customerAction.kind === "SAME_AS_ROW") return byId.get(row.customerAction.rowId)?.customerId ?? null;
+  return row.customerId;
+}
+
+/**
+ * Importação repetida: linha cujo cliente cadastrado já tem dívida do caderninho em aberto com o mesmo saldo
+ * vira WARNING `POSSIBLE_DUPLICATE_DEBT` com o lote anterior; a confirmação exige decidir ("importar mesmo
+ * assim" = `acceptDuplicate`, ou ignorar a linha). Recalcula situação e resumo (avisos). Puro.
+ */
+export function flagDuplicateDebts(
+  review: { rows: ReviewedRow[]; summary: BatchSummary },
+  debts: readonly ExistingLegacyDebt[],
+): { rows: ReviewedRow[]; summary: BatchSummary } {
+  if (debts.length === 0) return review;
+  const byCustomer = new Map<string, ExistingLegacyDebt[]>();
+  for (const d of debts) {
+    const list = byCustomer.get(d.customerId) ?? [];
+    list.push(d);
+    byCustomer.set(d.customerId, list);
+  }
+  const byId = new Map(review.rows.map((r) => [r.id, r]));
+  const summary = { ...review.summary };
+  const rows = review.rows.map((r) => {
+    if (r.status === "IGNORED" || r.data.openCents <= 0) return r;
+    const customerId = targetCustomerId(r, byId);
+    const match = customerId ? (byCustomer.get(customerId) ?? []).find((d) => d.openCents === r.data.openCents) : undefined;
+    if (!match) return r;
+    const message = r.acceptDuplicate
+      ? `Este cliente já tem uma dívida do caderninho de ${brl(match.openCents)} (lote ${match.batchId.slice(0, 8)}, linha ${match.line}). Você escolheu importar mesmo assim.`
+      : `Este cliente já tem uma dívida do caderninho de ${brl(match.openCents)} (lote ${match.batchId.slice(0, 8)}, linha ${match.line}). Se for a mesma, ignore a linha; se for outra, importe mesmo assim.`;
+    const issues: LegacyIssue[] = [
+      ...r.issues,
+      {
+        code: "POSSIBLE_DUPLICATE_DEBT",
+        severity: "WARNING",
+        field: null,
+        message,
+        details: { batchId: match.batchId, line: match.line, financialDocumentId: match.financialDocumentId, accepted: r.acceptDuplicate },
+      },
+    ];
+    const status: RowStatus = r.status === "OK" ? "WARNING" : r.status;
+    if (r.status === "OK") summary.warnings++;
+    return { ...r, issues, status };
+  });
+  return { rows, summary };
+}
+
+/** Linha com dívida possivelmente repetida ainda sem decisão. */
+export const hasUnresolvedDuplicate = (row: ReviewedRow): boolean =>
+  row.issues.some((i) => i.code === "POSSIBLE_DUPLICATE_DEBT" && i.details?.accepted !== true);

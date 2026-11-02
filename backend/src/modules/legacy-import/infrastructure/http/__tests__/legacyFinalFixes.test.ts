@@ -207,4 +207,67 @@ describe("Caderninho: correções da revisão final (nome × vínculo, dívida r
     assert.equal(after.customerAction.customerId, ana.id);
     assert.equal(after.autoLinked, true);
   });
+
+  test("I-2: mesma dívida já importada (cliente com dívida LEGACY em aberto de mesmo valor) → aviso que exige decisão; mesmo arquivo → sameFileAs", async () => {
+    const maria = await createCustomer(newName());
+    const content = [HEADER, `${maria.name};;;Sofá;300,00;;;;`, `${maria.name};;;Mesa;120,00;;;;`].join("\n");
+    const first = await uploadRaw(content);
+    assert.equal(first.statusCode, 201, first.body);
+    const a = first.json().data as Batch;
+    assert.equal(a.sameFileAs, null);
+    assert.ok(a.rows.every((r) => !r.issues.some((i) => i.code === "POSSIBLE_DUPLICATE_DEBT")));
+    assert.equal((await confirm(a.id)).statusCode, 200);
+
+    // Mesmo arquivo de novo (o dono achou que o primeiro envio falhou).
+    const second = await uploadRaw(content);
+    assert.equal(second.statusCode, 201, second.body);
+    const b = second.json().data as Batch;
+    assert.equal(b.sameFileAs?.id, a.id);
+    for (const row of b.rows) {
+      const dup = row.issues.find((i) => i.code === "POSSIBLE_DUPLICATE_DEBT");
+      assert.ok(dup, JSON.stringify(row.issues));
+      assert.equal(dup.severity, "WARNING");
+      assert.equal(dup.details?.batchId, a.id);
+      assert.equal(dup.details?.accepted, false);
+      assert.match(dup.message, new RegExp(a.id.slice(0, 8)));
+      assert.equal(row.status, "WARNING");
+      assert.equal(row.acceptDuplicate, false);
+    }
+
+    const blocked = await confirm(b.id);
+    assert.equal(blocked.statusCode, 422, blocked.body);
+    assert.equal(blocked.json().code, "UNRESOLVED_DUPLICATES");
+    assert.deepEqual(blocked.json().details.lines, [2, 3]);
+
+    // Linha 2: "Importar mesmo assim"; linha 3: ignorar.
+    const accepted = (await patch(b.id, b.rows[0].id, { acceptDuplicate: true })).rows[0];
+    assert.equal(accepted.acceptDuplicate, true);
+    assert.equal(accepted.issues.find((i) => i.code === "POSSIBLE_DUPLICATE_DEBT")?.details?.accepted, true);
+    const stillBlocked = await confirm(b.id);
+    assert.equal(stillBlocked.statusCode, 422);
+    assert.deepEqual(stillBlocked.json().details.lines, [3]);
+    await patch(b.id, b.rows[1].id, { ignored: true });
+
+    // Mudar o valor desfaz a escolha (era sobre aquela dívida).
+    const changed = (await patch(b.id, b.rows[0].id, { data: { total: 301 } })).rows[0];
+    assert.equal(changed.acceptDuplicate, false);
+    assert.ok(!changed.issues.some((i) => i.code === "POSSIBLE_DUPLICATE_DEBT"));
+    await patch(b.id, b.rows[0].id, { data: { total: 300 } });
+    await patch(b.id, b.rows[0].id, { acceptDuplicate: true });
+
+    const ok = await confirm(b.id);
+    assert.equal(ok.statusCode, 200, ok.body);
+    const docs = await prisma.financialDocument.count({ where: { partyId: maria.id, originType: "LEGACY", status: { not: "CANCELED" } } });
+    assert.equal(docs, 3);
+  });
+
+  test("I-2: dívida antiga do lote desfeito não conta como repetida", async () => {
+    const ana = await createCustomer(newName());
+    const a = await upload([`${ana.name};;;x;77,00;;;;`]);
+    assert.equal((await confirm(a.id)).statusCode, 200);
+    assert.equal((await revert(a.id)).statusCode, 200);
+    const b = await upload([`${ana.name};;;x;77,00;;;;`]);
+    assert.ok(!b.rows[0].issues.some((i) => i.code === "POSSIBLE_DUPLICATE_DEBT"));
+    assert.equal(b.sameFileAs, null);
+  });
 });

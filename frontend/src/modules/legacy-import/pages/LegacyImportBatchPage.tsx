@@ -26,6 +26,8 @@ import {
   LEGACY_ROW_STATUS_LABELS,
   LIMIT_RULE_LABELS,
   batchLabel,
+  hasDuplicateDebt,
+  hasPendingDuplicate,
   hasPendingSimilar,
   type LegacyBatch,
   type LegacyLimitRule,
@@ -103,10 +105,12 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
   const activeRows = batch.rows.filter((row) => row.status !== 'IGNORED');
   const errorLines = batch.rows.filter((row) => row.status === 'ERROR').map((row) => row.line);
   const similarLines = batch.rows.filter(hasPendingSimilar).map((row) => row.line);
+  const duplicateLines = batch.rows.filter(hasPendingDuplicate).map((row) => row.line);
   const blockers: string[] = [];
   if (activeRows.length === 0) blockers.push('Não há linhas para confirmar (todas ignoradas ou lote vazio).');
   if (errorLines.length > 0) blockers.push(`Corrija ou ignore as linhas com erro: ${joinLines(errorLines)}`);
   if (similarLines.length > 0) blockers.push(`Decida os nomes parecidos: ${similarLines.length === 1 ? 'linha' : 'linhas'} ${joinLines(similarLines)}`);
+  if (duplicateLines.length > 0) blockers.push(`Decida as dívidas que parecem já importadas: ${duplicateLines.length === 1 ? 'linha' : 'linhas'} ${joinLines(duplicateLines)}`);
 
   function changeRow(row: LegacyRow, input: UpdateLegacyRowInput) {
     setRowError(null);
@@ -232,6 +236,19 @@ function BatchView({ batch, routeId }: { batch: LegacyBatch; routeId: string }) 
         <div className="rounded-xl border border-border bg-surface-muted p-4 text-sm text-foreground">
           <p className="font-medium">{`Lote desfeito em ${formatDateTime(batch.revertedAt)}.`}</p>
           <p className="mt-1 text-muted">As dívidas foram canceladas; os clientes continuam cadastrados.</p>
+        </div>
+      )}
+
+      {draft && batch.sameFileAs && (
+        <div data-testid="same-file-warning" role="status" className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
+          <p className="flex items-center gap-2 font-medium">
+            <AlertTriangle size={16} aria-hidden="true" />
+            {`Este arquivo já foi importado (lote confirmado em ${formatDateTime(batch.sameFileAs.confirmedAt)}).`}
+          </p>
+          <p className="mt-1">Confirmar de novo duplica as dívidas. As linhas repetidas estão marcadas: ignore-as ou importe só as que forem dívidas novas.</p>
+          <Link to={`/finance/legacy-imports/${batch.sameFileAs.id}`} className="mt-1 inline-flex min-h-11 items-center font-medium underline">
+            Ver o lote anterior
+          </Link>
         </div>
       )}
 
@@ -505,8 +522,8 @@ function RowActions({ row, draft, busy, editing, onEdit, onChange }: RowProps) {
     );
   }
   const ignored = row.status === 'IGNORED';
-  // Com nome parecido pendente, "Ignorar linha" fica nas opções do nome.
-  const showIgnore = !ignored && !hasPendingSimilar(row);
+  // Com nome parecido ou dívida repetida pendente, "Ignorar linha" fica nas opções da decisão.
+  const showIgnore = !ignored && !hasPendingSimilar(row) && !hasPendingDuplicate(row);
   return (
     <div className="flex flex-wrap items-center gap-2 md:justify-end">
       {!ignored && (
@@ -546,6 +563,34 @@ function RowErrorBox({ row, rowError, busy, onChange }: RowProps) {
   );
 }
 
+/** Dívida que parece já importada: "Importar mesmo assim" ou "Ignorar linha"; aceita, dá para desfazer. */
+function DuplicateChoice({ row, draft, busy, onChange }: RowProps) {
+  if (!draft || !hasDuplicateDebt(row)) return null;
+  if (row.acceptDuplicate) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted">Será importada mesmo assim.</span>
+        <Button type="button" variant="ghost" className="min-h-11" disabled={busy} onClick={() => onChange(row, { acceptDuplicate: false })}>
+          Desfazer escolha
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1 text-sm font-medium text-warning">É outra dívida?</legend>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={() => onChange(row, { acceptDuplicate: true })}>
+          Importar mesmo assim
+        </Button>
+        <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={() => onChange(row, { ignored: true })}>
+          Ignorar linha
+        </Button>
+      </div>
+    </fieldset>
+  );
+}
+
 function StatusCell({ row }: { row: LegacyRow }) {
   return <StatusBadge status={row.status}>{LEGACY_ROW_STATUS_LABELS[row.status] ?? row.status}</StatusBadge>;
 }
@@ -572,6 +617,7 @@ function RowTable(props: RowProps) {
               <StatusCell row={row} />
             </span>
             <Issues row={row} />
+            <DuplicateChoice {...props} />
             <RowErrorBox {...props} />
           </div>
         </td>
@@ -607,6 +653,7 @@ function RowCard(props: RowProps) {
         </div>
       </div>
       <Issues row={row} />
+      <DuplicateChoice {...props} />
       <RowErrorBox {...props} />
       <RowActions {...props} />
       {editing === row.id && <LegacyRowEditor batchId={batchId} row={row} onClose={onCloseEditor} onCreateNew={() => onChange(row, { customerAction: { kind: 'NEW' } })} />}

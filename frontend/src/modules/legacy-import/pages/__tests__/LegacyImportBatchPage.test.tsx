@@ -263,6 +263,53 @@ describe('LegacyImportBatchPage — revisão', () => {
     await waitFor(() => expect(patches).toEqual([{ rowId: rowId(5), body: { data: { dueDates: [{ date: '2026-11-10', amount: 600 }] } } }]));
   });
 
+  test('dívida possivelmente repetida: aviso, "Importar mesmo assim" / "Ignorar linha", bloqueia confirmar; arquivo já importado aparece no topo', async () => {
+    const batch = cleanBatch();
+    batch.sameFileAs = { id: 'b0000000-0000-4000-8000-000000000001', confirmedAt: '2026-10-30T15:00:00.000Z' };
+    const dup = batch.rows.find((r) => r.line === 5)!;
+    dup.status = 'WARNING';
+    dup.issues = [
+      {
+        code: 'POSSIBLE_DUPLICATE_DEBT',
+        severity: 'WARNING',
+        field: null,
+        message: 'Este cliente já tem uma dívida do caderninho de R$ 600,00 (lote b0000000, linha 3). Se for a mesma, ignore a linha; se for outra, importe mesmo assim.',
+        details: { batchId: 'b0000000-0000-4000-8000-000000000001', line: 3, financialDocumentId: 'd1', accepted: false },
+      },
+    ];
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    const banner = screen.getByTestId('same-file-warning');
+    expect(banner).toHaveTextContent('Este arquivo já foi importado');
+    expect(within(banner).getByRole('link', { name: 'Ver o lote anterior' })).toHaveAttribute('href', '/finance/legacy-imports/b0000000-0000-4000-8000-000000000001');
+    expect(screen.getByTestId('confirm-blockers')).toHaveTextContent('Decida as dívidas que parecem já importadas: linha 5');
+    expect(screen.getByRole('button', { name: 'Confirmar lote' })).toBeDisabled();
+
+    const row = rowOf(5);
+    expect(within(row).getByText(/já tem uma dívida do caderninho/)).toBeInTheDocument();
+    await userEvent.click(within(row).getByRole('button', { name: 'Importar mesmo assim' }));
+    await waitFor(() => expect(patches).toEqual([{ rowId: rowId(5), body: { acceptDuplicate: true } }]));
+    await userEvent.click(within(row).getByRole('button', { name: 'Ignorar linha' }));
+    await waitFor(() => expect(patches.at(-1)).toEqual({ rowId: rowId(5), body: { ignored: true } }));
+  });
+
+  test('dívida repetida já aceita: mostra a escolha e permite desfazer', async () => {
+    const batch = cleanBatch();
+    const dup = batch.rows.find((r) => r.line === 5)!;
+    dup.status = 'WARNING';
+    dup.acceptDuplicate = true;
+    dup.issues = [{ code: 'POSSIBLE_DUPLICATE_DEBT', severity: 'WARNING', field: null, message: 'Você escolheu importar mesmo assim.', details: { accepted: true } }];
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    expect(screen.queryByTestId('confirm-blockers')).not.toBeInTheDocument();
+    const row = rowOf(5);
+    expect(within(row).queryByRole('button', { name: 'Importar mesmo assim' })).not.toBeInTheDocument();
+    await userEvent.click(within(row).getByRole('button', { name: 'Desfazer escolha' }));
+    await waitFor(() => expect(patches).toEqual([{ rowId: rowId(5), body: { acceptDuplicate: false } }]));
+  });
+
   test('confirmar fica bloqueado com erro ou nome parecido pendente e lista o motivo', async () => {
     renderPage();
     await screen.findByText('caderno-loja.csv');

@@ -37,6 +37,13 @@ export const legacyBatchHasErrors = (lines: number[]) =>
 export const legacyUnresolvedSimilarNames = (lines: number[]) =>
   new BusinessRuleError("Decida se os nomes parecidos são a mesma pessoa.", ErrorCodes.UNRESOLVED_SIMILAR_NAMES, { lines });
 
+export const legacyUnresolvedDuplicates = (lines: number[]) =>
+  new BusinessRuleError(
+    'Há dívidas que parecem já importadas. Em cada linha, escolha "Importar mesmo assim" ou ignore a linha.',
+    ErrorCodes.UNRESOLVED_DUPLICATES,
+    { lines },
+  );
+
 export const legacyBatchEmpty = () =>
   new BusinessRuleError("O lote não tem linhas para confirmar.", ErrorCodes.LEGACY_BATCH_EMPTY);
 
