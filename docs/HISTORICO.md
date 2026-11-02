@@ -113,7 +113,7 @@ Implementado na branch `feat/credit` (14 tarefas do plano `docs/superpowers/plan
 - Taxa de cartão é gravada na venda mesmo sem repasse (para o lucro); acréscimo e juros não são receita de venda.
 
 **Ficou aberto (menores)**
-- Bloqueio por atraso ainda conta dívida vencida do caderninho: a importação do caderninho precisa filtrar (anotado no `CLAUDE.md`).
+- ~~Bloqueio por atraso ainda conta dívida vencida do caderninho~~ — resolvido na migração do caderninho (`countsAsLate()`).
 - Carnê usa multa/juros/carência atuais (não o retrato da venda); recibo sem valor por extenso; nomes com caracteres fora do WinAnsi saem com "?" no PDF.
 - A senha do aprovador é conferida (bcrypt, ~100 ms) com a ficha do cliente travada.
 - Detalhe da venda sem margem (a API não traz); prévia da revisão percorre todos os clientes ativos a cada carga.
@@ -129,3 +129,41 @@ Implementado na branch `feat/credit` (14 tarefas do plano `docs/superpowers/plan
 4. Conferir os valores das **Configurações do crédito** e dos perfis (faixas, parcela mínima R$ 30, taxa 3,99% a.m., limites, entrada mínima, multa/juros/carência) e **ativar o crediário**.
 5. Aprovar os pesos da revisão mensal antes de ligar o cron do `npm run credit-review`.
 6. Testar em aparelho real (celular e tablet): fechamento da venda em cada condição, autorização de exceção, carnê/recibo (baixar e compartilhar) e o botão de WhatsApp.
+
+### Migração do caderninho (2026-11)
+Implementada na branch `feat/notebook-import` (9 tarefas do plano `docs/superpowers/plans/2026-10-26-notebook-import.md`; spec `docs/superpowers/specs/2026-10-26-notebook-import-design.md`). Sem dependência nova; uma migration (`20261102100000_legacy_import`).
+
+**Entregue**
+- Contas a receber de origem `LEGACY` ("Caderninho"), sempre sem multa/juros (`noLateFees`), sem venda nem estoque; parcela "a combinar" (`dueDateUnknown`) que nunca aparece como vencida (lista, resumo, detalhe, painel, CSV, crédito).
+- Lotes de importação: CSV pelo modelo (Excel em português ou Google Sheets) ou lançamento rápido no celular; revisão linha a linha com situação, avisos em português, edição na própria linha (com o texto original quando o valor não pôde ser lido), ignorar/restaurar, filtro de avisos/erros.
+- Nomes parecidos (conservador: "Maria Silva" × "Mariana Silva" não junta; "Maria S." e "Jose"/"José" juntam), vínculo automático por nome idêntico (marcado "confira"), "mesma pessoa da linha N", aviso de cliente vinculado excluído.
+- Confirmação atômica e idempotente: cria clientes, uma dívida por linha, aplica perfil e limite (regra `limitRule`) com histórico `LEGACY_IMPORT`. Desfazer seguro (recusado com pagamento).
+- "Parcelar saldo" a combinar em 1–24 parcelas (modal com divisão automática e edição).
+- Ficha do cliente mostra quanto do saldo é do caderninho (etiqueta "Caderninho").
+- Verificação final (Task 9): backend 1121 testes, 5 rodadas (3 verdes; uma falha instável de teste corrigida — inicial aleatória "E" virava partícula — e uma do relatório de lucro, antiga, sem relação), mais 1 rodada verde num banco novo com as 39 migrations; frontend 946 testes (2 rodadas), lint/tipos/build limpos; roteiro ponta a ponta automatizado (`legacyEndToEnd.test.ts`); QA visual 375/768/1280 nos dois temas sem rolagem horizontal e contraste sem falhas.
+
+**Decisões**
+- Dívida antiga entra **sem juros nem multa**, mesmo com vencimento anotado no passado.
+- Conta no saldo e no limite, mas **nunca bloqueia** o crediário por atraso **nem pontua** (perfil/revisão).
+- Nome idêntico a um único cliente vincula automaticamente; a tela pede conferência e permite "Criar novo".
+- Limite na confirmação: padrão = maior entre limite atual, limite inicial do perfil e saldo importado (o cliente não começa estourado); opção "só o limite do perfil".
+- **Desfazer mantém** clientes criados, perfil e limite (o histórico fica); só cancela as dívidas, e só se nenhuma recebeu pagamento.
+- Parcelar um saldo a combinar não conta como renegociação.
+- Parcela datada vencida do caderninho aparece como "Vencida" em contas a receber e no painel (é uma cobrança atrasada de fato), sem encargos e sem efeito no crédito.
+
+**Ficou aberto (menores)**
+- Busca de candidatos acima de 5.000 clientes compara só o 1º termo do nome (sem acento); nomes com apóstrofo ("D'Ávila") podem não aparecer como parecidos.
+- Inicial isolada "E." num nome é lida como partícula ("e") e some da comparação ("Maria E. Silva" × "Maria Eduarda Silva" não é sugerido).
+- Mudar a quantidade de parcelas ou a 1ª data no modal de parcelar refaz a sugestão e apaga edições manuais (há um aviso na tela).
+- Confirmação simultânea de lote muito grande (2.000 linhas) pode responder 409 `CONCURRENT_UPDATE` (trava de 5 s) em vez de `LEGACY_BATCH_NOT_DRAFT` (os dois seguros).
+- Recibo de dívida do caderninho ("Saldo anterior — caderninho") sem teste HTTP próprio (só o conteúdo).
+- Teste instável antigo do relatório de lucro (`profitReport.test.ts`, despesas estimadas) quando outro arquivo muda as configurações de preço durante a consulta: não segura `acquirePricingTestLock()`.
+
+**Passo a passo do operador**
+1. Separar o caderno. Para cada cliente com dívida: nome, celular (se tiver), data e descrição da compra, valor total, quanto já pagou, vencimentos combinados (se houver) e perfil (Novo/Regular/Bom/Excelente, se souber).
+2. Escolher a entrada: (a) baixar o **modelo** em Financeiro → Migração do caderninho e preencher no Excel/Google Sheets (uma linha por dívida; `vencimentos` como `10/12/2026=500,00; 10/01/2027=500,00`, somando o saldo); (b) **fotos**: fotografar as páginas com boa luz e pedir ao Claude que transcreva para o modelo CSV (conferir os valores antes de enviar); (c) **lançamento rápido** no celular, cliente por cliente.
+3. Enviar a planilha e **revisar**: corrigir as linhas com erro, ignorar linhas que não são dívida (totais da página, rabiscos), decidir os nomes parecidos ("É a mesma pessoa" / "Criar novo") e conferir os vínculos automáticos.
+4. Escolher a regra do limite e **confirmar**. Conferir em Contas a receber (etiqueta "Caderninho") e na ficha dos clientes.
+5. Para saldos "a combinar", quando o cliente acertar as datas: abrir a conta e usar **Parcelar saldo**.
+6. Ajustar perfis e limites na ficha do cliente quando necessário (o histórico mostra a origem "Migração do caderninho").
+7. Se algo saiu errado: **Desfazer lote** (só sem pagamentos; estorne antes). Clientes e limites continuam.
