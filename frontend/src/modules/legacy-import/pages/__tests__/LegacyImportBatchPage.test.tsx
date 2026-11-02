@@ -115,14 +115,31 @@ describe('LegacyImportBatchPage — revisão', () => {
     expect(within(row).queryByText(/automaticamente/)).not.toBeInTheDocument();
   });
 
-  test('vínculo automático sem sugestão na lista ainda mostra "confira" com o nome da linha', async () => {
+  test('nome do cliente vinculado vem do cadastro, à parte do nome digitado (nunca usa o nome da linha)', async () => {
     const batch = structuredClone(review);
     const auto = batch.rows.find((r) => r.line === 2)!;
     auto.suggestions = [];
+    auto.data.name = 'Mariana Silva';
+    auto.linkedCustomerName = 'Maria Silva';
     renderPage(batch);
     await screen.findByText('caderno-loja.csv');
 
-    expect(within(rowOf(2)).getByText('Vinculado automaticamente a Maria Silva — confira')).toBeInTheDocument();
+    const row = rowOf(2);
+    expect(within(row).getByText('Mariana Silva')).toBeInTheDocument();
+    expect(within(row).getByText('Vinculado automaticamente a Maria Silva — confira')).toBeInTheDocument();
+    expect(within(row).queryByText(/a Mariana Silva/)).not.toBeInTheDocument();
+  });
+
+  test('vínculo escolhido na busca (fora das sugestões) mostra o nome do cadastro', async () => {
+    const batch = structuredClone(review);
+    const chosen = batch.rows.find((r) => r.line === 2)!;
+    chosen.autoLinked = false;
+    chosen.suggestions = [];
+    chosen.linkedCustomerName = 'Carla Mendes';
+    renderPage(batch);
+    await screen.findByText('caderno-loja.csv');
+
+    expect(within(rowOf(2)).getByText('Vinculado a Carla Mendes')).toBeInTheDocument();
   });
 
   test('cliente vinculado apagado aparece na revisão (erro da linha) com "Criar novo"', async () => {

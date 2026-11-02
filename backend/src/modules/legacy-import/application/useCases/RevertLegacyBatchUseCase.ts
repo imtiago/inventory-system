@@ -11,7 +11,7 @@ import {
 import type { LegacyBatchDTO } from "../dto/LegacyBatchDTO";
 import { storedBatchDTO, type LegacyBatchDeps } from "./LegacyBatchUseCases";
 
-export interface RevertLegacyBatchDeps extends Pick<LegacyBatchDeps, "batches" | "reads"> {
+export interface RevertLegacyBatchDeps extends Pick<LegacyBatchDeps, "batches" | "reads" | "customers"> {
   documents: Pick<FinancialDocumentRepository, "lockById" | "hasPayments" | "update">;
 }
 

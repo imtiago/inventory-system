@@ -66,8 +66,8 @@ export interface LegacyCustomerLookup {
   /** Todos (nome, celular); acima de `LARGE_STORE` clientes, só os que dividem algum termo com os nomes dados. */
   candidates(names: string[]): Promise<CustomerCandidate[]>;
   exists(id: string): Promise<boolean>;
-  /** Quais destes ids ainda existem. */
-  existing(ids: string[]): Promise<Set<string>>;
+  /** Nome atual de cada um destes clientes que ainda existe (os apagados ficam de fora). */
+  namesOf(ids: string[]): Promise<Map<string, string>>;
   get(id: string): Promise<CustomerCandidate | null>;
 }
 

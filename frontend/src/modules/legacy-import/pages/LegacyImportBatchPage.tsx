@@ -483,7 +483,7 @@ function ImportedCustomer({ row, rowsById }: { row: LegacyRow; rowsById: Map<str
   if (row.status === 'IGNORED') return null;
   const action = row.customerAction;
   const text =
-    action.kind === 'LINK' ? 'Cliente já cadastrado' : action.kind === 'SAME_AS_ROW' ? `Mesma pessoa da linha ${rowsById.get(action.rowId)?.line ?? '?'}` : 'Cliente criado na confirmação';
+    action.kind === 'LINK' ? (row.linkedCustomerName ? `Cliente já cadastrado: ${row.linkedCustomerName}` : 'Cliente já cadastrado') : action.kind === 'SAME_AS_ROW' ? `Mesma pessoa da linha ${rowsById.get(action.rowId)?.line ?? '?'}` : 'Cliente criado na confirmação';
   return <p className="text-xs text-muted">{text}</p>;
 }
 

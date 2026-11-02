@@ -70,6 +70,7 @@
           }
         ],
         "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "linkedCustomerName": "Maria Silva",
         "financialDocumentId": null
       },
       {
@@ -128,6 +129,7 @@
           }
         ],
         "customerId": null,
+        "linkedCustomerName": null,
         "financialDocumentId": null
       },
       {
@@ -175,6 +177,7 @@
         "autoLinked": false,
         "suggestions": [],
         "customerId": null,
+        "linkedCustomerName": null,
         "financialDocumentId": null
       },
       {
@@ -220,6 +223,7 @@
         "autoLinked": false,
         "suggestions": [],
         "customerId": null,
+        "linkedCustomerName": null,
         "financialDocumentId": null
       },
       {
@@ -290,6 +294,7 @@
           }
         ],
         "customerId": null,
+        "linkedCustomerName": null,
         "financialDocumentId": null
       },
       {
@@ -339,6 +344,7 @@
         "autoLinked": false,
         "suggestions": [],
         "customerId": null,
+        "linkedCustomerName": null,
         "financialDocumentId": null
       }
     ]

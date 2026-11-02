@@ -35,10 +35,10 @@ export class PrismaLegacyCustomerLookup implements LegacyCustomerLookup {
     return (await getDb().customer.count({ where: { id } })) > 0;
   }
 
-  async existing(ids: string[]): Promise<Set<string>> {
-    if (ids.length === 0) return new Set();
-    const rows = await getDb().customer.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true } });
-    return new Set(rows.map((r) => r.id));
+  async namesOf(ids: string[]): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await getDb().customer.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, name: true } });
+    return new Map(rows.map((r) => [r.id, r.name]));
   }
 
   async get(id: string) {

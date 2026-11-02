@@ -21,7 +21,7 @@ import type {
   LegacyImportBatchRepository,
   NewRow,
 } from "../contracts/LegacyImportBatchRepository";
-import type { LegacyBatchReviewer } from "../services/LegacyBatchReviewer";
+import type { LegacyBatchReviewer, LegacyReviewResult } from "../services/LegacyBatchReviewer";
 import { toListItemDTO, toRowDTO, type LegacyBatchDTO, type LegacyBatchListItemDTO } from "../dto/LegacyBatchDTO";
 
 export interface LegacyBatchDeps {
@@ -30,6 +30,8 @@ export interface LegacyBatchDeps {
   customers: LegacyCustomerLookup;
   reviewer: LegacyBatchReviewer;
 }
+
+const collapseName = (name: string) => name.trim().replace(/\s+/g, " ");
 
 /** Trava o lote (primeira trava de toda escrita no lote) e exige rascunho. */
 async function lockDraft(batches: LegacyImportBatchRepository, id: string): Promise<void> {
@@ -41,18 +43,26 @@ async function lockDraft(batches: LegacyImportBatchRepository, id: string): Prom
 async function toBatchDTO(
   reads: LegacyImportBatchReadRepository,
   id: string,
-  result: Awaited<ReturnType<LegacyBatchReviewer["review"]>>,
+  result: LegacyReviewResult,
 ): Promise<LegacyBatchDTO> {
   const header = await reads.header(id);
   if (!header) throw legacyBatchNotFound();
-  return { ...toListItemDTO(header), summary: result.summary, rows: result.rows.map((r) => toRowDTO(r)) };
+  return {
+    ...toListItemDTO(header),
+    summary: result.summary,
+    rows: result.rows.map((r) => toRowDTO(r, undefined, result.linkedNames)),
+  };
 }
 
 /** Lote como está gravado (confirmado ou desfeito): linhas, avisos e decisões da confirmação, sem sugestões. */
-export async function storedBatchDTO(deps: Pick<LegacyBatchDeps, "batches" | "reads">, id: string): Promise<LegacyBatchDTO> {
+export async function storedBatchDTO(
+  deps: Pick<LegacyBatchDeps, "batches" | "reads" | "customers">,
+  id: string,
+): Promise<LegacyBatchDTO> {
   const header = await deps.reads.header(id);
   if (!header) throw legacyBatchNotFound();
   const rows = await deps.batches.rows(id);
+  const names = await deps.customers.namesOf(rows.flatMap((r) => (r.customerId ? [r.customerId] : [])));
   return {
     ...toListItemDTO(header),
     rows: rows.map((r) =>
@@ -69,6 +79,7 @@ export async function storedBatchDTO(deps: Pick<LegacyBatchDeps, "batches" | "re
           customerId: r.customerId,
         },
         { customerId: r.customerId, financialDocumentId: r.financialDocumentId },
+        names,
       ),
     ),
   };
@@ -226,11 +237,26 @@ export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRow
       }
     }
 
+    // Nome trocado sem nova decisão: vínculo automático, "é outra pessoa" e "novo" eram sobre o nome antigo, então a
+    // linha volta a ser nova e é reavaliada (revincula só se o nome novo for idêntico a um único cliente).
+    // O vínculo escolhido pela usuária fica (a tela mostra o nome do cadastro ao lado do digitado).
+    const raw = req.data ? applyRowInput(row.raw, req.data) : row.raw;
+    const fresh = new Set<string>();
+    const renamed = req.data?.name !== undefined && collapseName(raw.nome) !== collapseName(row.raw.nome ?? "");
+    if (renamed && !wanted) {
+      const decidedForOldName = (action.kind === "LINK" && action.auto === true) || action.kind === "NEW";
+      if (decidedForOldName) {
+        action = { kind: "NEW" };
+        customerId = null;
+        fresh.add(row.id);
+      }
+    }
+
     const ignored = req.ignored ?? row.status === "IGNORED";
     await batches.updateRows([
       {
         id: row.id,
-        raw: req.data ? applyRowInput(row.raw, req.data) : row.raw,
+        raw,
         data: row.data,
         issues: row.issues,
         // Provisória: a revisão abaixo recalcula (a situação IGNORED é a marca de "ignorada").
@@ -239,7 +265,7 @@ export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRow
         customerId,
       },
     ]);
-    const result = await this.deps.reviewer.reviewAndSave(req.batchId);
+    const result = await this.deps.reviewer.reviewAndSave(req.batchId, fresh);
     return toBatchDTO(this.deps.reads, req.batchId, result);
   }
 }

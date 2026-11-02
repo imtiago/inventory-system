@@ -70,6 +70,7 @@ export const makeRevertLegacyBatchUseCase = () =>
     {
       batches: new PrismaLegacyImportBatchRepository(),
       reads: new PrismaLegacyImportBatchReadRepository(),
+      customers: new PrismaLegacyCustomerLookup(),
       documents: new PrismaFinancialDocumentRepository(),
     },
     tm(),

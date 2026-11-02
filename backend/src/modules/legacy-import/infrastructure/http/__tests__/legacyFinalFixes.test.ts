@@ -150,4 +150,61 @@ describe("Caderninho: correções da revisão final (nome × vínculo, dívida r
     assert.equal(fits.statusCode, 201, fits.body);
     assert.equal(fits.json().data.rows.length, 500);
   });
+
+  test("I-1: editar o nome de linha vinculada automaticamente refaz o vínculo; nome do cliente vinculado vem à parte", async () => {
+    const maria = await createCustomer(newName());
+    const other = await createCustomer(newName());
+    const batch = await upload([`${maria.name};;;x;100,00;;;;`]);
+    const row = batch.rows[0];
+    assert.equal(row.autoLinked, true);
+    assert.equal(row.linkedCustomerName, maria.name);
+
+    // Nome trocado para outra pessoa (sem cadastro): o vínculo cai.
+    const typed = newName();
+    const renamed = (await patch(batch.id, row.id, { data: { name: typed } })).rows[0];
+    assert.equal(renamed.data.name, typed);
+    assert.equal(renamed.customerAction.kind, "NEW");
+    assert.equal(renamed.autoLinked, false);
+    assert.equal(renamed.customerId, null);
+    assert.equal(renamed.linkedCustomerName, null);
+
+    // Volta a vincular só se o novo nome é idêntico a um único cliente.
+    const relinked = (await patch(batch.id, row.id, { data: { name: other.name } })).rows[0];
+    assert.equal(relinked.customerAction.kind, "LINK");
+    assert.equal(relinked.customerAction.customerId, other.id);
+    assert.equal(relinked.autoLinked, true);
+    assert.equal(relinked.linkedCustomerName, other.name);
+
+    // Editar outro campo não mexe no vínculo.
+    const notes = (await patch(batch.id, row.id, { data: { notes: "x" } })).rows[0];
+    assert.equal(notes.customerAction.customerId, other.id);
+  });
+
+  test("I-1: vínculo escolhido pela usuária continua depois de editar o nome, e a tela recebe os dois nomes", async () => {
+    const maria = await createCustomer(newName());
+    const batch = await upload([`${newName()};;;x;100,00;;;;`]);
+    const row = batch.rows[0];
+    const linked = (await patch(batch.id, row.id, { customerAction: { kind: "LINK", customerId: maria.id } })).rows[0];
+    assert.equal(linked.autoLinked, false);
+    assert.equal(linked.linkedCustomerName, maria.name);
+    const typed = newName();
+    const after = (await patch(batch.id, row.id, { data: { name: typed } })).rows[0];
+    assert.equal(after.customerAction.kind, "LINK");
+    assert.equal(after.customerAction.customerId, maria.id);
+    assert.equal(after.data.name, typed);
+    assert.equal(after.linkedCustomerName, maria.name);
+  });
+
+  test("I-1: \"é outra pessoa\" decidido para o nome antigo volta a ser reavaliado quando o nome muda", async () => {
+    const maria = await createCustomer(newName());
+    const ana = await createCustomer(newName());
+    const batch = await upload([`${maria.name};;;x;100,00;;;;`]);
+    const row = batch.rows[0];
+    const decided = (await patch(batch.id, row.id, { customerAction: { kind: "NEW" } })).rows[0];
+    assert.equal(decided.customerAction.confirmedNew, true);
+    const after = (await patch(batch.id, row.id, { data: { name: ana.name } })).rows[0];
+    assert.equal(after.customerAction.kind, "LINK");
+    assert.equal(after.customerAction.customerId, ana.id);
+    assert.equal(after.autoLinked, true);
+  });
 });

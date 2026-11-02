@@ -82,6 +82,8 @@ export interface LegacyRow {
   autoLinked: boolean;
   suggestions: LegacySuggestion[];
   customerId: string | null;
+  /** Nome do cliente `customerId` no cadastro (pode diferir de `data.name`, o nome digitado). */
+  linkedCustomerName: string | null;
   financialDocumentId: string | null;
 }
 

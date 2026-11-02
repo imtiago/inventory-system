@@ -8,6 +8,13 @@ import type {
   StoredRow,
 } from "../contracts/LegacyImportBatchRepository";
 
+export interface LegacyReviewResult {
+  rows: ReviewedRow[];
+  summary: BatchSummary;
+  /** customerId → nome no cadastro (para a tela mostrar a quem a linha está vinculada, à parte do nome digitado). */
+  linkedNames: Map<string, string>;
+}
+
 /**
  * Revalida o lote inteiro: erros e avisos de cada linha, nomes parecidos (clientes e linhas do lote),
  * decisões e resumo. Os clientes são lidos uma vez por chamada.
@@ -19,12 +26,12 @@ export class LegacyBatchReviewer {
   ) {}
 
   /** Só calcula (leitura): não grava. `fresh` = linhas novas, que podem nascer vinculadas a um cliente idêntico. */
-  async review(rows: StoredRow[], fresh: ReadonlySet<string> = new Set()): Promise<{ rows: ReviewedRow[]; summary: BatchSummary }> {
+  async review(rows: StoredRow[], fresh: ReadonlySet<string> = new Set()): Promise<LegacyReviewResult> {
     const candidates = await this.customers.candidates(rows.map((r) => r.raw.nome ?? ""));
     const linked = rows.flatMap((r) => (r.customerAction.kind === "LINK" ? [r.customerAction.customerId] : []));
-    const present = await this.customers.existing(linked);
+    const present = await this.customers.namesOf(linked);
     const missing = new Set(linked.filter((id) => !present.has(id)));
-    return reviewBatch(
+    const result = reviewBatch(
       rows.map((r) => ({
         id: r.id,
         line: r.line,
@@ -37,6 +44,12 @@ export class LegacyBatchReviewer {
       todayInBusinessTz(),
       missing,
     );
+    // Nome do cadastro de cada cliente vinculado (inclusive vínculo automático criado agora).
+    const names = new Map(present);
+    for (const c of candidates) names.set(c.id, c.name);
+    const linkedNames = new Map<string, string>();
+    for (const r of result.rows) if (r.customerId && names.has(r.customerId)) linkedNames.set(r.customerId, names.get(r.customerId)!);
+    return { ...result, linkedNames };
   }
 
   /**
@@ -47,7 +60,7 @@ export class LegacyBatchReviewer {
     batchId: string,
     fresh: ReadonlySet<string> = new Set(),
     inserts: NewRow[] = [],
-  ): Promise<{ rows: ReviewedRow[]; summary: BatchSummary }> {
+  ): Promise<LegacyReviewResult> {
     const stored = await this.batches.rows(batchId);
     const pending: StoredRow[] = inserts.map((r) => ({
       id: r.id,

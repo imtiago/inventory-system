@@ -64,6 +64,7 @@
         "autoLinked": true,
         "suggestions": [],
         "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "linkedCustomerName": "Maria Silva",
         "financialDocumentId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b01"
       },
       {
@@ -109,6 +110,7 @@
         "autoLinked": false,
         "suggestions": [],
         "customerId": "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f",
+        "linkedCustomerName": "Carla Mendes",
         "financialDocumentId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b02"
       }
     ]

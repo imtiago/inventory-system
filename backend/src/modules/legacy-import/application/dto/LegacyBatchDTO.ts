@@ -37,6 +37,8 @@ export interface LegacyRowDTO {
   suggestions: LegacySuggestion[];
   /** Cliente vinculado (rascunho) ou criado/vinculado na confirmação. */
   customerId: string | null;
+  /** Nome do cliente `customerId` no cadastro (pode diferir de `data.name`, o nome digitado). */
+  linkedCustomerName: string | null;
   /** Dívida criada na confirmação; null no rascunho e em linha ignorada. */
   financialDocumentId: string | null;
 }
@@ -67,6 +69,7 @@ export function toRowDTO(
     customerId: r.customerId,
     financialDocumentId: null,
   },
+  linkedNames: ReadonlyMap<string, string> = new Map(),
 ): LegacyRowDTO {
   const d = r.data;
   return {
@@ -91,6 +94,7 @@ export function toRowDTO(
     autoLinked: r.customerAction.kind === "LINK" && r.customerAction.auto === true,
     suggestions: r.suggestions,
     customerId: imported.customerId,
+    linkedCustomerName: imported.customerId ? (linkedNames.get(imported.customerId) ?? null) : null,
     financialDocumentId: imported.financialDocumentId,
   };
 }

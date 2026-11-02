@@ -52,10 +52,15 @@ export function SimilarNameChooser({ row, rowsById, disabled = false, onChange }
   }
 
   if (action.kind === 'LINK') {
-    const linked = row.suggestions.find((s) => s.customerId === action.customerId);
-    // Vínculo automático = nome idêntico ao da linha; o nome do cadastro vem da sugestão quando há.
-    const name = linked?.name ?? (row.autoLinked ? row.data.name : null);
-    const text = row.autoLinked ? `Vinculado automaticamente a ${name} — confira` : name ? `Vinculado a ${name}` : 'Vinculado a um cliente cadastrado';
+    // Sempre o nome do cadastro (nunca o digitado na linha: depois de editado, pode ser outra pessoa).
+    const name = row.linkedCustomerName ?? row.suggestions.find((s) => s.customerId === action.customerId)?.name ?? null;
+    const text = row.autoLinked
+      ? name
+        ? `Vinculado automaticamente a ${name} — confira`
+        : 'Vinculado automaticamente a um cliente cadastrado — confira'
+      : name
+        ? `Vinculado a ${name}`
+        : 'Vinculado a um cliente cadastrado';
 
     return (
       <div className="flex flex-col gap-2">
