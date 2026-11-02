@@ -114,7 +114,12 @@ function route(method, url) {
   }
   if (p === '/credit/limit-requests/count') return j('credit/creditLimitRequestCount.json');
   if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
-  if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
+  if (s[0] === 'customers' && s[2] === 'credit') {
+    // Ficha com parte do saldo vinda do caderninho (etiqueta "Caderninho" no cartão de crédito).
+    const c = j('credit/customerCredit.json');
+    c.data = { ...c.data, openBalance: 420, legacyOpenBalance: 300, available: c.data.limit - 420 };
+    return c;
+  }
   if (p === '/settings/store') return j('credit/storeSettings.json');
   if (p === '/credit/approvers') return j('credit/creditApprovers.json');
   if (p === '/credit/settings') return j('credit/creditSettings.json');
@@ -152,6 +157,25 @@ function route(method, url) {
     b.rows = b.rows.filter((r) => r.line === 2 || r.line === 5);
     b.summary = { ...b.summary, rows: 2, warnings: 1, errors: 0, ignored: 0, newCustomers: 1, existingCustomers: 1, openTotal: 1400 };
     return { data: { ...b, id: 'clean1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'missing1') {
+    // Revisão com cliente vinculado excluído (linha 2) e valores ilegíveis na planilha (linha 4).
+    const b = j('legacy-import/legacyBatchReview.json').data;
+    const gone = b.rows.find((r) => r.line === 2);
+    Object.assign(gone, {
+      status: 'ERROR', autoLinked: false, customerId: null, suggestions: [],
+      issues: [{ code: 'LINKED_CUSTOMER_MISSING', severity: 'ERROR', field: 'nome', message: 'O cliente vinculado não existe mais (foi excluído). Escolha "Criar novo" ou vincule outro cliente.' }],
+    });
+    const bad = b.rows.find((r) => r.line === 4);
+    bad.raw = { ...bad.raw, valor_pago: '15O,00', data_compra: '31/02/2026', perfil: 'Ótimo', vencimentos: '10/12/2026=x' };
+    bad.data = { ...bad.data, paid: 0, purchaseDate: null, profileCode: null };
+    bad.issues = [
+      { code: 'INVALID_AMOUNT', severity: 'ERROR', field: 'valor_pago', message: 'Valor pago inválido. Use o formato 1.234,56.' },
+      { code: 'INVALID_DATE', severity: 'ERROR', field: 'data_compra', message: 'Data inválida. Use dd/mm/aaaa.' },
+      { code: 'UNKNOWN_PROFILE', severity: 'ERROR', field: 'perfil', message: 'Perfil desconhecido. Use Novo, Regular, Bom ou Excelente.' },
+      { code: 'INVALID_DUE_DATES', severity: 'ERROR', field: 'vencimentos', message: 'Vencimentos inválidos. Use dd/mm/aaaa=valor; dd/mm/aaaa=valor.' },
+    ];
+    return { data: { ...b, id: 'missing1' } };
   }
   if (s[0] === 'legacy-imports' && s[1]) return j('legacy-import/legacyBatchReview.json');
   if (p === '/payables') return grow(j('finance/payableList.json'));
