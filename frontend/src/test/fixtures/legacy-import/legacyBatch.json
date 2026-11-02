@@ -18,6 +18,9 @@
       "errors": 0,
       "ignored": 0
     },
+    "limitRule": "MAX_OF_PROFILE_AND_BALANCE",
+    "confirmedAt": null,
+    "revertedAt": null,
     "rows": [
       {
         "id": "0d8c5a1e-7f2b-4a3c-b6d4-9e1f0a2b3c4d",
@@ -53,7 +56,9 @@
             "name": "Maria Silva",
             "match": "SAME"
           }
-        ]
+        ],
+        "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "financialDocumentId": null
       }
     ]
   }

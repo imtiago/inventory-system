@@ -13,6 +13,9 @@ type Row = {
   createdAt: Date;
   summary: unknown;
   createdBy: { id: string; name: string } | null;
+  limitRule: string;
+  confirmedAt: Date | null;
+  revertedAt: Date | null;
 };
 
 const map = (b: Row): BatchListItem => ({
@@ -23,6 +26,9 @@ const map = (b: Row): BatchListItem => ({
   createdAt: b.createdAt,
   createdBy: b.createdBy,
   summary: { ...EMPTY, ...(b.summary as Partial<BatchSummary>) },
+  limitRule: b.limitRule === "PROFILE_ONLY" ? "PROFILE_ONLY" : "MAX_OF_PROFILE_AND_BALANCE",
+  confirmedAt: b.confirmedAt,
+  revertedAt: b.revertedAt,
 });
 
 const select = {
@@ -32,6 +38,9 @@ const select = {
   fileName: true,
   createdAt: true,
   summary: true,
+  limitRule: true,
+  confirmedAt: true,
+  revertedAt: true,
   createdBy: { select: { id: true, name: true } },
 } as const;
 

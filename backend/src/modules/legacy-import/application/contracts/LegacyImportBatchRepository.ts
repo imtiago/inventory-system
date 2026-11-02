@@ -3,6 +3,8 @@ import type { LegacyIssue, LegacyRowData } from "../../domain/legacyRow";
 
 export type LegacyBatchStatus = "DRAFT" | "CONFIRMED" | "REVERTED";
 export type LegacyBatchSource = "CSV" | "MANUAL";
+/** Regra do limite na confirmação: maior entre limite atual, limite inicial do perfil e saldo; ou só o do perfil. */
+export type LegacyLimitRule = "MAX_OF_PROFILE_AND_BALANCE" | "PROFILE_ONLY";
 
 export interface StoredRow {
   id: string;
@@ -12,6 +14,10 @@ export interface StoredRow {
   issues: LegacyIssue[];
   status: RowStatus;
   customerAction: CustomerAction;
+  /** Cliente da linha (vínculo no rascunho; o criado/vinculado depois de confirmar). */
+  customerId: string | null;
+  /** Dívida criada na confirmação. */
+  financialDocumentId: string | null;
 }
 
 export interface NewRow {
@@ -46,6 +52,10 @@ export interface LegacyImportBatchRepository {
   updateRows(changes: RowChange[]): Promise<void>;
   saveSummary(batchId: string, summary: BatchSummary): Promise<void>;
   delete(id: string): Promise<void>;
+  /** Grava o cliente e a dívida criados para a linha na confirmação. */
+  markRowImported(rowId: string, customerId: string, financialDocumentId: string): Promise<void>;
+  markConfirmed(batchId: string, input: { userId: string | null; limitRule: LegacyLimitRule }): Promise<void>;
+  markReverted(batchId: string, userId: string | null): Promise<void>;
 }
 
 /** Clientes cadastrados para a comparação de nomes. */
@@ -64,6 +74,9 @@ export interface BatchListItem {
   createdAt: Date;
   createdBy: { id: string; name: string } | null;
   summary: BatchSummary;
+  limitRule: LegacyLimitRule;
+  confirmedAt: Date | null;
+  revertedAt: Date | null;
 }
 
 export interface BatchHeader extends BatchListItem {}

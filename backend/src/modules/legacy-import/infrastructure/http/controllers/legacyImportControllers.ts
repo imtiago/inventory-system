@@ -8,6 +8,7 @@ import { buildLegacyTemplateCsv } from "../../../domain/legacyTemplate";
 import { legacyFileTooLarge } from "../../../domain/legacyErrors";
 import {
   addLegacyRowsSchema,
+  confirmLegacyBatchSchema,
   createLegacyBatchSchema,
   legacyBatchParamsSchema,
   legacyRowParamsSchema,
@@ -16,6 +17,8 @@ import {
 } from "../../../interfaces/http/schemas/legacyImportSchemas";
 import {
   makeAddLegacyRowsUseCase,
+  makeConfirmLegacyBatchUseCase,
+  makeRevertLegacyBatchUseCase,
   makeCreateManualLegacyBatchUseCase,
   makeDeleteLegacyDraftUseCase,
   makeGetLegacyBatchUseCase,
@@ -93,5 +96,23 @@ export function makeDeleteLegacyBatchController() {
     const { id } = parseInput(legacyBatchParamsSchema, request.params);
     await useCase.execute({ id });
     return reply.status(204).send();
+  };
+}
+
+export function makeConfirmLegacyBatchController() {
+  const useCase = makeConfirmLegacyBatchUseCase();
+  return async function ConfirmLegacyBatchController(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = parseInput(legacyBatchParamsSchema, request.params);
+    const body = parseInput(confirmLegacyBatchSchema, request.body);
+    const batch = await useCase.execute({ batchId: id, limitRule: body.limitRule, userId: request.user?.sub ?? null });
+    return reply.send(HttpResponse.ok(batch));
+  };
+}
+
+export function makeRevertLegacyBatchController() {
+  const useCase = makeRevertLegacyBatchUseCase();
+  return async function RevertLegacyBatchController(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = parseInput(legacyBatchParamsSchema, request.params);
+    return reply.send(HttpResponse.ok(await useCase.execute({ batchId: id, userId: request.user?.sub ?? null })));
   };
 }

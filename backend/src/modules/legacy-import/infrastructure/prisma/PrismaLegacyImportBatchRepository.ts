@@ -3,6 +3,7 @@ import { InternalErrorCodes, InternalInvariantError } from "@shared/domain/error
 import { getDb, hasActiveTransaction } from "@shared/infrastructure/prisma/transactionContext";
 import type {
   LegacyImportBatchRepository,
+  LegacyLimitRule,
   LockedBatch,
   NewRow,
   RowChange,
@@ -47,6 +48,8 @@ export class PrismaLegacyImportBatchRepository implements LegacyImportBatchRepos
       issues: r.issues as unknown as StoredRow["issues"],
       status: r.status,
       customerAction: r.customerAction as unknown as StoredRow["customerAction"],
+      customerId: r.customerId,
+      financialDocumentId: r.financialDocumentId,
     }));
   }
 
@@ -95,5 +98,23 @@ export class PrismaLegacyImportBatchRepository implements LegacyImportBatchRepos
 
   async delete(id: string): Promise<void> {
     await getDb().legacyImportBatch.delete({ where: { id } });
+  }
+
+  async markRowImported(rowId: string, customerId: string, financialDocumentId: string): Promise<void> {
+    await getDb().legacyImportRow.update({ where: { id: rowId }, data: { customerId, financialDocumentId } });
+  }
+
+  async markConfirmed(batchId: string, input: { userId: string | null; limitRule: LegacyLimitRule }): Promise<void> {
+    await getDb().legacyImportBatch.update({
+      where: { id: batchId },
+      data: { status: "CONFIRMED", limitRule: input.limitRule, confirmedById: input.userId, confirmedAt: new Date() },
+    });
+  }
+
+  async markReverted(batchId: string, userId: string | null): Promise<void> {
+    await getDb().legacyImportBatch.update({
+      where: { id: batchId },
+      data: { status: "REVERTED", revertedById: userId, revertedAt: new Date() },
+    });
   }
 }

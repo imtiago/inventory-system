@@ -23,3 +23,25 @@ export const legacyFileEmpty = () =>
 
 export const legacyTooManyRows = () =>
   new ValidationError("Lote grande demais (máx. 2.000 linhas).", []);
+
+export const legacyBatchHasErrors = (lines: number[]) =>
+  new BusinessRuleError("Corrija as linhas com erro antes de confirmar.", ErrorCodes.LEGACY_BATCH_HAS_ERRORS, { lines });
+
+export const legacyUnresolvedSimilarNames = (lines: number[]) =>
+  new BusinessRuleError("Decida se os nomes parecidos são a mesma pessoa.", ErrorCodes.UNRESOLVED_SIMILAR_NAMES, { lines });
+
+export const legacyBatchEmpty = () =>
+  new BusinessRuleError("O lote não tem linhas para confirmar.", ErrorCodes.LEGACY_BATCH_EMPTY);
+
+export const legacyLinkedCustomerMissing = (lines: number[]) =>
+  new NotFoundError(
+    `Cliente vinculado não existe mais (linha ${lines.join(", ")}). Revise o vínculo.`,
+    ErrorCodes.CUSTOMER_NOT_FOUND,
+    { lines },
+  );
+
+export const legacyBatchNotConfirmed = () =>
+  new ConflictError("Só um lote confirmado pode ser desfeito.", ErrorCodes.LEGACY_BATCH_NOT_CONFIRMED);
+
+export const legacyBatchHasPayments = () =>
+  new ConflictError("Alguma dívida deste lote já recebeu pagamento.", ErrorCodes.LEGACY_BATCH_HAS_PAYMENTS);

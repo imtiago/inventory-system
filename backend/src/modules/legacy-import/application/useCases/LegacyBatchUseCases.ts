@@ -46,7 +46,23 @@ async function toBatchDTO(
 ): Promise<LegacyBatchDTO> {
   const header = await reads.header(id);
   if (!header) throw legacyBatchNotFound();
-  return { ...toListItemDTO(header), summary: result.summary, rows: result.rows.map(toRowDTO) };
+  return { ...toListItemDTO(header), summary: result.summary, rows: result.rows.map((r) => toRowDTO(r)) };
+}
+
+/** Lote como está gravado (confirmado ou desfeito): linhas, avisos e decisões da confirmação, sem sugestões. */
+export async function storedBatchDTO(deps: Pick<LegacyBatchDeps, "batches" | "reads">, id: string): Promise<LegacyBatchDTO> {
+  const header = await deps.reads.header(id);
+  if (!header) throw legacyBatchNotFound();
+  const rows = await deps.batches.rows(id);
+  return {
+    ...toListItemDTO(header),
+    rows: rows.map((r) =>
+      toRowDTO(
+        { id: r.id, line: r.line, data: r.data, issues: r.issues, status: r.status, customerAction: r.customerAction, suggestions: [] },
+        { customerId: r.customerId, financialDocumentId: r.financialDocumentId },
+      ),
+    ),
+  };
 }
 
 /** Insere as linhas (validação inicial), revisa o lote todo e grava o que mudou. Linhas `NEW` podem nascer vinculadas. */
@@ -226,6 +242,10 @@ export class GetLegacyBatchUseCase {
   constructor(private readonly deps: LegacyBatchDeps) {}
 
   async execute(id: string): Promise<LegacyBatchDTO> {
+    const header = await this.deps.reads.header(id);
+    if (!header) throw legacyBatchNotFound();
+    // Confirmado/desfeito: mostra o que foi gravado, sem reavaliar contra os clientes de agora.
+    if (header.status !== "DRAFT") return storedBatchDTO(this.deps, id);
     const stored = await this.deps.batches.rows(id);
     const result = await this.deps.reviewer.review(stored);
     return toBatchDTO(this.deps.reads, id, result);

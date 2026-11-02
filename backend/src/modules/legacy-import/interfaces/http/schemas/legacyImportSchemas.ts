@@ -80,3 +80,12 @@ export const updateLegacyRowSchema = z
   .refine((v) => v.data !== undefined || v.customerAction !== undefined || v.ignored !== undefined, {
     message: "Informe o que alterar.",
   });
+
+export const confirmLegacyBatchSchema = z
+  .object({
+    limitRule: z
+      .enum(["MAX_OF_PROFILE_AND_BALANCE", "PROFILE_ONLY"], { error: "Regra de limite inválida." })
+      .optional(),
+  })
+  .optional()
+  .transform((v) => v ?? {});

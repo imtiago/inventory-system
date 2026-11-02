@@ -156,6 +156,9 @@ const EXTRA_ROUTES: [Permission, RouteProbe][] = [
   ["credit.manage", { method: "PUT", url: `/customers/${missing}/credit`, payload: {}, allowed: 400 }],
   ["credit.manage", { method: "POST", url: `/receivables/${missing}/parcels/${missing}/split`, payload: {}, allowed: 400 }],
   ["credit.manage", { method: "PUT", url: "/settings/store", payload: {}, allowed: 400 }],
+  // Caderninho: confirmar/desfazer lote inexistente → 404.
+  ["credit.manage", { method: "POST", url: `/legacy-imports/${missing}/confirm`, payload: {}, allowed: 404 }],
+  ["credit.manage", { method: "POST", url: `/legacy-imports/${missing}/revert`, payload: {}, allowed: 404 }],
   // Dados da loja (leitura) e PDFs: quem vende lê; recibo exige finance.read.
   ["sales.read", { method: "GET", url: "/settings/store", allowed: 200 }],
   ["sales.read", { method: "GET", url: `/sales/${missing}/carne.pdf`, allowed: 404 }],
