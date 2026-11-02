@@ -7,10 +7,13 @@ import { findSimilar, type SimilarMatch } from "./nameSimilarity";
 
 export type LegacyRawRow = Record<LegacyColumn, string>;
 
-/** Decisão da usuária sobre quem é o cliente da linha. `confirmedNew`: "é outra pessoa", decidido de propósito. */
+/**
+ * Decisão da usuária sobre quem é o cliente da linha. `confirmedNew`: "é outra pessoa", decidido de propósito.
+ * `auto`: vínculo feito pelo sistema (nome idêntico a um único cliente) — a tela pede conferência.
+ */
 export type CustomerAction =
   | { kind: "NEW"; confirmedNew?: boolean }
-  | { kind: "LINK"; customerId: string }
+  | { kind: "LINK"; customerId: string; auto?: true }
   | { kind: "SAME_AS_ROW"; rowId: string };
 
 export type RowStatus = "OK" | "WARNING" | "ERROR" | "IGNORED";
@@ -35,11 +38,15 @@ export interface ReviewRowInput {
 export interface ReviewedRow {
   id: string;
   line: number;
+  /** Colunas como foram digitadas (CSV ou lançamento rápido), para a tela mostrar valores inválidos. */
+  raw: LegacyRawRow;
   data: LegacyRowData;
   issues: LegacyIssue[];
   status: RowStatus;
   customerAction: CustomerAction;
   suggestions: LegacySuggestion[];
+  /** Cliente vinculado que ainda existe (null: novo, mesma pessoa de outra linha ou vínculo para cliente apagado). */
+  customerId: string | null;
 }
 
 export interface BatchSummary {
@@ -78,10 +85,18 @@ function resolveRoot(
   return null;
 }
 
+export const LINKED_CUSTOMER_MISSING_MESSAGE =
+  'O cliente vinculado não existe mais (foi excluído). Escolha "Criar novo" ou vincule outro cliente.';
+
+/**
+ * `missingCustomerIds`: clientes vinculados (LINK) que não existem mais — a linha vira ERROR
+ * `LINKED_CUSTOMER_MISSING` e não grava o vínculo (a FK do cliente da linha não aceitaria).
+ */
 export function reviewBatch(
   inputs: ReviewRowInput[],
   customers: CustomerCandidate[],
   today: string,
+  missingCustomerIds: ReadonlySet<string> = new Set(),
 ): { rows: ReviewedRow[]; summary: BatchSummary } {
   const sorted = [...inputs].sort((a, b) => a.line - b.line || a.id.localeCompare(b.id));
   const customerName = new Map(customers.map((c) => [c.id, c.name]));
@@ -116,7 +131,7 @@ export function reviewBatch(
       (s) => s.customerId !== undefined && s.match === "SAME",
     );
     if (v.input.fresh && action.kind === "NEW" && sameCustomer.length === 1) {
-      action = { kind: "LINK", customerId: sameCustomer[0].customerId! };
+      action = { kind: "LINK", customerId: sameCustomer[0].customerId!, auto: true };
     }
     rawActions.set(v.input.id, action);
     ignoredMap.set(v.input.id, v.input.ignored);
@@ -135,6 +150,10 @@ export function reviewBatch(
     const action = finalActions.get(v.input.id)!;
     const suggestions = suggestionsOf.get(v.input.id) ?? [];
     const issues = [...v.issues];
+    const linkMissing = action.kind === "LINK" && missingCustomerIds.has(action.customerId);
+    if (linkMissing && !v.input.ignored) {
+      issues.push({ code: "LINKED_CUSTOMER_MISSING", severity: "ERROR", field: "nome", message: LINKED_CUSTOMER_MISSING_MESSAGE });
+    }
     const pending = action.kind === "NEW" && !action.confirmedNew && !v.input.ignored;
     if (pending) {
       const customerHits = suggestions.filter((s) => s.customerId !== undefined);
@@ -165,7 +184,17 @@ export function reviewBatch(
         : issues.length > 0
           ? "WARNING"
           : "OK";
-    return { id: v.input.id, line: v.input.line, data: v.data, issues, status, customerAction: action, suggestions };
+    return {
+      id: v.input.id,
+      line: v.input.line,
+      raw: v.input.raw,
+      data: v.data,
+      issues,
+      status,
+      customerAction: action,
+      suggestions,
+      customerId: action.kind === "LINK" && !linkMissing ? action.customerId : null,
+    };
   });
 
   // 5) resumo

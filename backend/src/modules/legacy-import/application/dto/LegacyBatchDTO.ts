@@ -1,7 +1,8 @@
-import type { BatchSummary, CustomerAction, LegacySuggestion, ReviewedRow } from "../../domain/legacyBatchReview";
+import type { BatchSummary, CustomerAction, LegacyRawRow, LegacySuggestion, ReviewedRow } from "../../domain/legacyBatchReview";
 import type { LegacyIssue } from "../../domain/legacyRow";
 import type { BatchListItem } from "../contracts/LegacyImportBatchRepository";
 import { fromCents } from "@shared/domain/money";
+import { emptyRaw } from "../../domain/legacyBatchReview";
 
 export interface LegacyRowDataDTO {
   name: string;
@@ -16,13 +17,23 @@ export interface LegacyRowDataDTO {
   notes: string | null;
 }
 
+/** Decisão sobre o cliente como a API devolve (sem a marca interna `auto`; ver `autoLinked`). */
+export type CustomerActionDTO =
+  | { kind: "NEW"; confirmedNew?: boolean }
+  | { kind: "LINK"; customerId: string }
+  | { kind: "SAME_AS_ROW"; rowId: string };
+
 export interface LegacyRowDTO {
   id: string;
   line: number;
   status: string;
+  /** Colunas como foram digitadas (CSV/lançamento rápido): o editor mostra o valor inválido em vez de campo vazio. */
+  raw: LegacyRawRow;
   data: LegacyRowDataDTO;
   issues: LegacyIssue[];
-  customerAction: CustomerAction;
+  customerAction: CustomerActionDTO;
+  /** Vínculo feito pelo sistema (nome idêntico a um único cliente), não escolhido pela usuária. */
+  autoLinked: boolean;
   suggestions: LegacySuggestion[];
   /** Cliente vinculado (rascunho) ou criado/vinculado na confirmação. */
   customerId: string | null;
@@ -47,10 +58,13 @@ export interface LegacyBatchDTO extends LegacyBatchListItemDTO {
   rows: LegacyRowDTO[];
 }
 
+const actionDTO = (a: CustomerAction): CustomerActionDTO =>
+  a.kind === "LINK" ? { kind: "LINK", customerId: a.customerId } : a;
+
 export function toRowDTO(
   r: ReviewedRow,
   imported: { customerId: string | null; financialDocumentId: string | null } = {
-    customerId: r.customerAction.kind === "LINK" ? r.customerAction.customerId : null,
+    customerId: r.customerId,
     financialDocumentId: null,
   },
 ): LegacyRowDTO {
@@ -59,6 +73,7 @@ export function toRowDTO(
     id: r.id,
     line: r.line,
     status: r.status,
+    raw: { ...emptyRaw(), ...r.raw },
     data: {
       name: d.name,
       phone: d.phone,
@@ -72,7 +87,8 @@ export function toRowDTO(
       notes: d.notes,
     },
     issues: r.issues,
-    customerAction: r.customerAction,
+    customerAction: actionDTO(r.customerAction),
+    autoLinked: r.customerAction.kind === "LINK" && r.customerAction.auto === true,
     suggestions: r.suggestions,
     customerId: imported.customerId,
     financialDocumentId: imported.financialDocumentId,

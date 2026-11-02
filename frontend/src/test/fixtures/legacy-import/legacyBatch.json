@@ -26,6 +26,17 @@
         "id": "0d8c5a1e-7f2b-4a3c-b6d4-9e1f0a2b3c4d",
         "line": 2,
         "status": "WARNING",
+        "raw": {
+          "nome": "Maria Silva",
+          "celular": "",
+          "data_compra": "05/03/2026",
+          "descricao": "Sofá",
+          "valor_total": "1.000,00",
+          "valor_pago": "200,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "Maria Silva",
           "phone": null,
@@ -50,6 +61,7 @@
           "kind": "LINK",
           "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
         },
+        "autoLinked": true,
         "suggestions": [
           {
             "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",

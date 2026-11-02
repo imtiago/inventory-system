@@ -26,6 +26,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
         "line": 2,
         "status": "WARNING",
+        "raw": {
+          "nome": "Maria Silva",
+          "celular": "",
+          "data_compra": "05/03/2026",
+          "descricao": "Sofá",
+          "valor_total": "1.000,00",
+          "valor_pago": "200,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "Maria Silva",
           "phone": null,
@@ -50,6 +61,7 @@
           "kind": "LINK",
           "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
         },
+        "autoLinked": true,
         "suggestions": [
           {
             "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
@@ -64,6 +76,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4003",
         "line": 3,
         "status": "WARNING",
+        "raw": {
+          "nome": "João Souza",
+          "celular": "11977776666",
+          "data_compra": "10/04/2026",
+          "descricao": "Fogão",
+          "valor_total": "850,00",
+          "valor_pago": "",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "João Souza",
           "phone": "11977776666",
@@ -96,6 +119,7 @@
         "customerAction": {
           "kind": "NEW"
         },
+        "autoLinked": false,
         "suggestions": [
           {
             "customerId": "4b3c2d1e-0f9a-4b8c-9d7e-6f5a4b3c2d1e",
@@ -110,6 +134,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4004",
         "line": 4,
         "status": "ERROR",
+        "raw": {
+          "nome": "Ana Lima",
+          "celular": "11955554444",
+          "data_compra": "02/05/2026",
+          "descricao": "",
+          "valor_total": "100,00",
+          "valor_pago": "150,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "Ana Lima",
           "phone": "11955554444",
@@ -137,6 +172,7 @@
         "customerAction": {
           "kind": "NEW"
         },
+        "autoLinked": false,
         "suggestions": [],
         "customerId": null,
         "financialDocumentId": null
@@ -145,6 +181,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4005",
         "line": 5,
         "status": "OK",
+        "raw": {
+          "nome": "Carla Mendes",
+          "celular": "11944443333",
+          "data_compra": "01/06/2026",
+          "descricao": "Mesa",
+          "valor_total": "600,00",
+          "valor_pago": "",
+          "vencimentos": "10/11/2026=300,00; 10/12/2026=300,00",
+          "perfil": "Bom",
+          "observacao": "Paga em dia"
+        },
         "data": {
           "name": "Carla Mendes",
           "phone": "11944443333",
@@ -170,6 +217,7 @@
         "customerAction": {
           "kind": "NEW"
         },
+        "autoLinked": false,
         "suggestions": [],
         "customerId": null,
         "financialDocumentId": null
@@ -178,6 +226,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4006",
         "line": 6,
         "status": "WARNING",
+        "raw": {
+          "nome": "Maria S.",
+          "celular": "",
+          "data_compra": "",
+          "descricao": "",
+          "valor_total": "150,50",
+          "valor_pago": "",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "Maria S.",
           "phone": null,
@@ -222,6 +281,7 @@
         "customerAction": {
           "kind": "NEW"
         },
+        "autoLinked": false,
         "suggestions": [
           {
             "rowId": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
@@ -236,6 +296,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4007",
         "line": 7,
         "status": "IGNORED",
+        "raw": {
+          "nome": "Pedro",
+          "celular": "",
+          "data_compra": "",
+          "descricao": "",
+          "valor_total": "50,00",
+          "valor_pago": "",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "Pedro",
           "phone": null,
@@ -265,6 +336,7 @@
         "customerAction": {
           "kind": "NEW"
         },
+        "autoLinked": false,
         "suggestions": [],
         "customerId": null,
         "financialDocumentId": null

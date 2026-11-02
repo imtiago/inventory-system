@@ -33,6 +33,8 @@ export interface RowChange {
   issues: LegacyIssue[];
   status: RowStatus;
   customerAction: CustomerAction;
+  /** Valor da FK do cliente: só um cliente vinculado que existe (vínculo para cliente apagado grava null). */
+  customerId: string | null;
   raw?: LegacyRawRow;
 }
 
@@ -48,7 +50,7 @@ export interface LegacyImportBatchRepository {
   rows(batchId: string): Promise<StoredRow[]>;
   maxLine(batchId: string): Promise<number>;
   /** Insere linhas com validação inicial (a revisão do lote refina em seguida). */
-  insertRows(batchId: string, rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw">)[]): Promise<void>;
+  insertRows(batchId: string, rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw" | "customerId">)[]): Promise<void>;
   updateRows(changes: RowChange[]): Promise<void>;
   saveSummary(batchId: string, summary: BatchSummary): Promise<void>;
   delete(id: string): Promise<void>;
@@ -63,6 +65,8 @@ export interface LegacyCustomerLookup {
   /** Todos (nome, celular); acima de `LARGE_STORE` clientes, só os que dividem algum termo com os nomes dados. */
   candidates(names: string[]): Promise<CustomerCandidate[]>;
   exists(id: string): Promise<boolean>;
+  /** Quais destes ids ainda existem. */
+  existing(ids: string[]): Promise<Set<string>>;
   get(id: string): Promise<CustomerCandidate | null>;
 }
 

@@ -26,6 +26,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
         "line": 2,
         "status": "WARNING",
+        "raw": {
+          "nome": "Maria Silva",
+          "celular": "",
+          "data_compra": "05/03/2026",
+          "descricao": "Sofá",
+          "valor_total": "1.000,00",
+          "valor_pago": "200,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
         "data": {
           "name": "Maria Silva",
           "phone": null,
@@ -50,6 +61,7 @@
           "kind": "LINK",
           "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
         },
+        "autoLinked": true,
         "suggestions": [],
         "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
         "financialDocumentId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b01"
@@ -58,6 +70,17 @@
         "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4005",
         "line": 5,
         "status": "OK",
+        "raw": {
+          "nome": "Carla Mendes",
+          "celular": "11944443333",
+          "data_compra": "01/06/2026",
+          "descricao": "Mesa",
+          "valor_total": "600,00",
+          "valor_pago": "",
+          "vencimentos": "10/11/2026=300,00; 10/12/2026=300,00",
+          "perfil": "Bom",
+          "observacao": "Paga em dia"
+        },
         "data": {
           "name": "Carla Mendes",
           "phone": "11944443333",
@@ -83,6 +106,7 @@
         "customerAction": {
           "kind": "NEW"
         },
+        "autoLinked": false,
         "suggestions": [],
         "customerId": "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f",
         "financialDocumentId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b02"

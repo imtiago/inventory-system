@@ -20,6 +20,9 @@ export class LegacyBatchReviewer {
   /** Só calcula (leitura): não grava. `fresh` = linhas novas, que podem nascer vinculadas a um cliente idêntico. */
   async review(rows: StoredRow[], fresh: ReadonlySet<string> = new Set()): Promise<{ rows: ReviewedRow[]; summary: BatchSummary }> {
     const candidates = await this.customers.candidates(rows.map((r) => r.raw.nome ?? ""));
+    const linked = rows.flatMap((r) => (r.customerAction.kind === "LINK" ? [r.customerAction.customerId] : []));
+    const present = await this.customers.existing(linked);
+    const missing = new Set(linked.filter((id) => !present.has(id)));
     return reviewBatch(
       rows.map((r) => ({
         id: r.id,
@@ -31,6 +34,7 @@ export class LegacyBatchReviewer {
       })),
       candidates,
       todayInBusinessTz(),
+      missing,
     );
   }
 
@@ -46,8 +50,11 @@ export class LegacyBatchReviewer {
         old.status === r.status &&
         JSON.stringify(old.data) === JSON.stringify(r.data) &&
         JSON.stringify(old.customerAction) === JSON.stringify(r.customerAction) &&
-        JSON.stringify(old.issues) === JSON.stringify(r.issues);
-      if (!same) changes.push({ id: r.id, data: r.data, issues: r.issues, status: r.status, customerAction: r.customerAction });
+        JSON.stringify(old.issues) === JSON.stringify(r.issues) &&
+        old.customerId === r.customerId;
+      if (!same) {
+        changes.push({ id: r.id, data: r.data, issues: r.issues, status: r.status, customerAction: r.customerAction, customerId: r.customerId });
+      }
     }
     await this.batches.updateRows(changes);
     await this.batches.saveSummary(batchId, result.summary);

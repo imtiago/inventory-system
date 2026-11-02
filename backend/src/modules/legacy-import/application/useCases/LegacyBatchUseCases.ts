@@ -58,7 +58,17 @@ export async function storedBatchDTO(deps: Pick<LegacyBatchDeps, "batches" | "re
     ...toListItemDTO(header),
     rows: rows.map((r) =>
       toRowDTO(
-        { id: r.id, line: r.line, data: r.data, issues: r.issues, status: r.status, customerAction: r.customerAction, suggestions: [] },
+        {
+          id: r.id,
+          line: r.line,
+          raw: r.raw,
+          data: r.data,
+          issues: r.issues,
+          status: r.status,
+          customerAction: r.customerAction,
+          suggestions: [],
+          customerId: r.customerId,
+        },
         { customerId: r.customerId, financialDocumentId: r.financialDocumentId },
       ),
     ),
@@ -198,12 +208,16 @@ export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRow
     if (!row) throw legacyRowNotFound();
 
     let action: CustomerAction = row.customerAction;
+    // FK do cliente: a coluna gravada (null se o cliente vinculado foi apagado) ou o cliente escolhido agora.
+    let customerId: string | null = row.customerAction.kind === "LINK" ? row.customerId : null;
     const wanted = req.customerAction;
     if (wanted) {
+      customerId = null;
       if (wanted.kind === "NEW") action = { kind: "NEW", confirmedNew: true };
       else if (wanted.kind === "LINK") {
         if (!(await customers.exists(wanted.customerId))) throw legacyCustomerNotFound();
-        action = wanted;
+        action = { kind: "LINK", customerId: wanted.customerId };
+        customerId = wanted.customerId;
       } else {
         const byId = new Map(rows.map((r) => [r.id, r]));
         const target = byId.get(wanted.rowId);
@@ -231,6 +245,7 @@ export class UpdateLegacyRowUseCase extends TransactionalUseCase<UpdateLegacyRow
         // Provisória: a revisão abaixo recalcula (a situação IGNORED é a marca de "ignorada").
         status: ignored ? "IGNORED" : "OK",
         customerAction: action,
+        customerId,
       },
     ]);
     const result = await this.deps.reviewer.reviewAndSave(req.batchId);

@@ -60,7 +60,7 @@ export class PrismaLegacyImportBatchRepository implements LegacyImportBatchRepos
 
   async insertRows(
     batchId: string,
-    rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw">)[],
+    rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw" | "customerId">)[],
   ): Promise<void> {
     const data = rows.map((r) => ({
       id: r.id,
@@ -86,7 +86,7 @@ export class PrismaLegacyImportBatchRepository implements LegacyImportBatchRepos
           issues: json(c.issues),
           status: c.status,
           customerAction: json(c.customerAction),
-          customerId: c.customerAction.kind === "LINK" ? c.customerAction.customerId : null,
+          customerId: c.customerId,
         },
       });
     }
