@@ -11,7 +11,7 @@ export const PAGES = [
   ['suppliers', '/suppliers'], ['purchases', '/purchases'], ['purchase-new', '/purchases/new'], ['purchase-detail', '/purchases/x1'],
   ['nfe', '/nfe-imports'], ['nfe-review', '/nfe-imports/x1'],
   ['receivables', '/receivables'], ['receivable-detail', '/receivables/x1'], ['receivable-detail-fees', '/receivables/fees1'], ['receivable-detail-legacy', '/receivables/legacy1'], ['payables', '/payables'],
-  ['legacy-imports', '/finance/legacy-imports'], ['legacy-review', '/finance/legacy-imports/x1'], ['legacy-review-missing', '/finance/legacy-imports/missing1'], ['legacy-confirmed', '/finance/legacy-imports/confirmed1'], ['legacy-quick', '/finance/legacy-imports/quick'], ['profit-report', '/reports/profit'], ['payable-detail', '/payables/x1'],
+  ['legacy-imports', '/finance/legacy-imports'], ['legacy-review', '/finance/legacy-imports/x1'], ['legacy-review-missing', '/finance/legacy-imports/missing1'], ['legacy-confirmed', '/finance/legacy-imports/confirmed1'], ['legacy-reverted', '/finance/legacy-imports/reverted1'], ['legacy-review-duplicate', '/finance/legacy-imports/dup1'], ['legacy-quick', '/finance/legacy-imports/quick'], ['profit-report', '/reports/profit'], ['payable-detail', '/payables/x1'],
   ['users', '/users'],
   ['pricing-settings', '/settings/pricing'], ['credit-settings', '/settings/credit'], ['credit-requests', '/credit/requests'], ['credit-review', '/credit/review'], ['store-settings', '/settings/store'],
   ['variant-edit', '/variants/5b3e4c9a-1d6f-4a43-8c8b-3e4f5a6b7c82/edit'], ['price-reviews', '/catalog/price-reviews'],

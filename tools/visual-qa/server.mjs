@@ -158,12 +158,35 @@ function route(method, url) {
     b.summary = { ...b.summary, rows: 2, warnings: 1, errors: 0, ignored: 0, newCustomers: 1, existingCustomers: 1, openTotal: 1400 };
     return { data: { ...b, id: 'clean1' } };
   }
+  if (s[0] === 'legacy-imports' && s[1] === 'reverted1') {
+    const { creditRestore: _restore, ...b } = j('legacy-import/legacyBatchReverted.json').data;
+    return { data: { ...b, id: 'reverted1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'dup1') {
+    // Mesmo arquivo de um lote confirmado: aviso no topo; linha 2 pendente, linha 5 já "importar mesmo assim";
+    // linha 2 com nome editado (o cadastro vinculado tem outro nome).
+    const b = j('legacy-import/legacyBatchReview.json').data;
+    b.rows = b.rows.filter((r) => r.line === 2 || r.line === 5);
+    b.sameFileAs = { id: 'confirmed1', confirmedAt: '2026-10-30T15:00:00.000Z' };
+    const dupIssue = (accepted, line) => ({
+      code: 'POSSIBLE_DUPLICATE_DEBT', severity: 'WARNING', field: null,
+      message: accepted
+        ? `Este cliente já tem uma dívida do caderninho de R$ 800,00 (lote 7f6e5d4c, linha ${line}). Você escolheu importar mesmo assim.`
+        : `Este cliente já tem uma dívida do caderninho de R$ 800,00 (lote 7f6e5d4c, linha ${line}). Se for a mesma, ignore a linha; se for outra, importe mesmo assim.`,
+      details: { batchId: 'confirmed1', line, financialDocumentId: 'd1', accepted },
+    });
+    const [maria, carla] = b.rows;
+    Object.assign(maria, { data: { ...maria.data, name: 'Maria da Silva Souza' }, issues: [...maria.issues, dupIssue(false, 2)] });
+    Object.assign(carla, { status: 'WARNING', acceptDuplicate: true, customerAction: { kind: 'LINK', customerId: '5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f' }, customerId: '5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f', linkedCustomerName: 'Carla Mendes', issues: [dupIssue(true, 5)] });
+    b.summary = { ...b.summary, rows: 2, warnings: 2, errors: 0, ignored: 0, newCustomers: 0, existingCustomers: 2, openTotal: 1400 };
+    return { data: { ...b, id: 'dup1' } };
+  }
   if (s[0] === 'legacy-imports' && s[1] === 'missing1') {
     // Revisão com cliente vinculado excluído (linha 2) e valores ilegíveis na planilha (linha 4).
     const b = j('legacy-import/legacyBatchReview.json').data;
     const gone = b.rows.find((r) => r.line === 2);
     Object.assign(gone, {
-      status: 'ERROR', autoLinked: false, customerId: null, suggestions: [],
+      status: 'ERROR', autoLinked: false, customerId: null, linkedCustomerName: null, suggestions: [],
       issues: [{ code: 'LINKED_CUSTOMER_MISSING', severity: 'ERROR', field: 'nome', message: 'O cliente vinculado não existe mais (foi excluído). Escolha "Criar novo" ou vincule outro cliente.' }],
     });
     const bad = b.rows.find((r) => r.line === 4);
