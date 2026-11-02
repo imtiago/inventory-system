@@ -186,6 +186,19 @@ SELECT type, "originType", "originId", count(*) FROM "FinancialDocument"
 
 Corrija o dado com decisão do responsável (por exemplo, cancelar o documento duplicado) antes de aplicar a migration. Se o deploy já falhou nela, nada foi aplicado (transação única): depois de corrigir, `npx prisma migrate resolve --rolled-back 20261026180000_integrity_checks` e `npx prisma migrate deploy`.
 
+## Migração do caderninho
+
+Traz as dívidas antigas do caderno de fiado para Contas a receber (etiqueta "Caderninho", sem multa nem juros). Menu **Financeiro → Migração do caderninho** (só ADMIN, permissão `credit.manage`).
+
+1. **Baixar modelo**: CSV com as colunas e dois exemplos.
+2. **Enviar planilha** (Excel ou Google Sheets salvos como CSV) **ou Lançamento rápido** (tela para o celular: escolhe ou cria o cliente e lança uma ou mais dívidas com valor, data se souber e observação).
+3. **Revisar**: cada linha mostra a situação (OK, aviso, erro, ignorada) e os avisos; dá para editar na própria linha, ignorar, e decidir nomes parecidos ("é a mesma pessoa" ou "criar novo"). Nome igual a um cliente cadastrado já vem vinculado — confira.
+4. **Confirmar**: grava tudo de uma vez, aplica o perfil e o limite (padrão: o maior entre o limite do perfil e o saldo). **Desfazer lote** cancela as dívidas enquanto nenhuma recebeu pagamento; os clientes continuam cadastrados.
+
+**Colunas do modelo** (`nome` e `valor_total` obrigatórias): `nome; celular; data_compra; descricao; valor_total; valor_pago; vencimentos; perfil; observacao`. Separador `;` ou `,`, valores com vírgula (`1.234,56`), datas `dd/mm/aaaa`, `vencimentos` como `10/11/2026=500,00; 10/12/2026=500,00` (sem vencimentos a dívida fica "a combinar"), `perfil` = Novo, Regular, Bom ou Excelente. Até 1 MB / 2.000 linhas.
+
+**Fotos do caderno**: fotografe as páginas (boa luz, uma página por foto), peça ao Claude para transcrever para o modelo CSV, envie o arquivo e revise na tela. Nada é gravado sem a sua conferência.
+
 ## Testes e checagens
 
 Backend (os testes usam o banco de `DATABASE_URL`, então precisam de um PostgreSQL com as migrations aplicadas; o banco pode estar vazio):

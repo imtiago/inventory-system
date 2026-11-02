@@ -165,16 +165,18 @@ export class PrismaDashboardReadRepository implements DashboardReadRepository {
    * Restante da parcela = valor − pagamentos não estornados. Só documentos em aberto
    * (OPEN/PARTIALLY_PAID): cancelados não contam e quitados têm restante 0. Os pagamentos
    * são somados por parcela (Payment_parcelId_idx), sem agregar a tabela Payment inteira.
+   * Parcela "a combinar" (`dueDateUnknown`, caderninho) conta só em aberto: nunca vencida nem
+   * "vence em 7 dias" (a data dela é a da importação).
    */
   private async financial(type: "RECEIVABLE" | "PAYABLE", today: string): Promise<FinancialSectionDTO> {
     const [row] = await getDb().$queryRaw<FinancialRow[]>`
       SELECT
         COALESCE(SUM(remaining) FILTER (WHERE remaining > 0), 0)::text AS open,
-        COALESCE(SUM(remaining) FILTER (WHERE remaining > 0 AND due < ${today}::date), 0)::text AS overdue,
-        (COUNT(*) FILTER (WHERE remaining > 0 AND due >= ${today}::date AND due <= ${today}::date + 7))::int AS next_count,
-        COALESCE(SUM(remaining) FILTER (WHERE remaining > 0 AND due >= ${today}::date AND due <= ${today}::date + 7), 0)::text AS next_amount
+        COALESCE(SUM(remaining) FILTER (WHERE remaining > 0 AND NOT due_unknown AND due < ${today}::date), 0)::text AS overdue,
+        (COUNT(*) FILTER (WHERE remaining > 0 AND NOT due_unknown AND due >= ${today}::date AND due <= ${today}::date + 7))::int AS next_count,
+        COALESCE(SUM(remaining) FILTER (WHERE remaining > 0 AND NOT due_unknown AND due >= ${today}::date AND due <= ${today}::date + 7), 0)::text AS next_amount
       FROM (
-        SELECT fp."dueDate"::date AS due,
+        SELECT fp."dueDate"::date AS due, fp."dueDateUnknown" AS due_unknown,
                fp.amount - COALESCE(pay.paid, 0) AS remaining
         FROM "FinancialParcel" fp
         JOIN "FinancialDocument" fd ON fd.id = fp."financialDocumentId"

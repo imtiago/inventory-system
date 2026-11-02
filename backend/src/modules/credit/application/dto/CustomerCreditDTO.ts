@@ -23,6 +23,8 @@ export interface CustomerCreditDTO {
   profileName: string;
   limit: number;
   openBalance: number;
+  /** Parte de `openBalance` que veio do caderninho (dívidas antigas, sem encargos). */
+  legacyOpenBalance: number;
   available: number;
   status: CreditStatus;
   currentMaxOverdueDays: number;

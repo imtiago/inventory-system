@@ -47,6 +47,7 @@ interface FigureRow {
   paidCents: bigint;
   remainingCents: bigint;
   nextDueDate: string | null;
+  hasDueDateUnknown: boolean;
   parcelsCount: number;
 }
 
@@ -65,6 +66,7 @@ interface ExportRow {
   partyId: string;
   number: bigint;
   dueDate: string;
+  dueDateUnknown: boolean;
   amountCents: bigint;
   paidCents: bigint;
   remainingCents: bigint;
@@ -72,10 +74,11 @@ interface ExportRow {
 
 /**
  * Ordem da lista e da exportação: documentos com saldo primeiro, pelo próximo vencimento
- * em aberto; pagos/cancelados/quitados por último; desempate por criação e id.
+ * em aberto (só "a combinar" → depois dos datados); pagos/cancelados/quitados por último;
+ * desempate por criação e id.
  */
 const DOCUMENT_ORDER = Prisma.sql`
-  (f.status IN ('PAID', 'CANCELED') OR f.next_due IS NULL),
+  (f.status IN ('PAID', 'CANCELED') OR NOT f.has_balance),
   CASE WHEN f.status IN ('PAID', 'CANCELED') THEN NULL ELSE f.next_due END,
   f."createdAt",
   f.id COLLATE "C"`;
@@ -85,7 +88,9 @@ const DOCUMENT_ORDER = Prisma.sql`
  * em centavos) e `filtered` (documentos que passam em todos os filtros, com os valores
  * derivados). Regras idênticas às do domínio (receivableStatus) e do dashboard:
  * restante = max(valor − Σ pagamentos não estornados, 0); "vencido" = vencimento < hoje
- * (data de negócio). Todos os valores do usuário entram como parâmetros.
+ * (data de negócio). Parcela "a combinar" (`due_unknown`) nunca é vencida, não entra no
+ * próximo vencimento nem em filtro/resumo por intervalo de vencimento (a data dela é só a da
+ * importação). Todos os valores do usuário entram como parâmetros.
  */
 function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters, today: string): Prisma.Sql {
   const docWhere: Prisma.Sql[] = [Prisma.sql`fd.type = ${type}::"FinancialType"`];
@@ -98,17 +103,20 @@ function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters
     // Qualquer parcela no intervalo (meia-noite UTC, convenção de datas sem hora).
     docWhere.push(Prisma.sql`EXISTS (
       SELECT 1 FROM "FinancialParcel" r
-      WHERE r."financialDocumentId" = fd.id
+      WHERE r."financialDocumentId" = fd.id AND NOT r."dueDateUnknown"
         ${filters.dueFrom ? Prisma.sql`AND r."dueDate" >= ${filters.dueFrom}::date` : Prisma.empty}
         ${filters.dueTo ? Prisma.sql`AND r."dueDate" <= ${filters.dueTo}::date` : Prisma.empty})`);
   }
 
+  const ranged = Boolean(filters.dueFrom || filters.dueTo);
   // openOnly: não cancelado e alguma parcela com saldo (dentro do intervalo, se houver).
   const inRange = Prisma.sql`pa.remaining_c > 0
+    ${ranged ? Prisma.sql`AND NOT pa.due_unknown` : Prisma.empty}
     ${filters.dueFrom ? Prisma.sql`AND pa.due >= ${filters.dueFrom}::date` : Prisma.empty}
     ${filters.dueTo ? Prisma.sql`AND pa.due <= ${filters.dueTo}::date` : Prisma.empty}`;
   // Resumo: com intervalo, só as parcelas dentro dele (mesma regra da exportação); sem, todas.
   const dueInRange = Prisma.sql`TRUE
+    ${ranged ? Prisma.sql`AND NOT pa.due_unknown` : Prisma.empty}
     ${filters.dueFrom ? Prisma.sql`AND pa.due >= ${filters.dueFrom}::date` : Prisma.empty}
     ${filters.dueTo ? Prisma.sql`AND pa.due <= ${filters.dueTo}::date` : Prisma.empty}`;
   const figWhere: Prisma.Sql[] = [Prisma.sql`TRUE`];
@@ -123,6 +131,7 @@ function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters
     ),
     parcel AS (
       SELECT fp."financialDocumentId" AS doc_id, fp.id, fp."dueDate" AS due_at, fp."dueDate"::date AS due,
+             fp."dueDateUnknown" AS due_unknown,
              (fp.amount * 100)::bigint AS amount_c,
              COALESCE(pay.paid_c, 0)::bigint AS paid_c,
              GREATEST((fp.amount * 100)::bigint - COALESCE(pay.paid_c, 0), 0)::bigint AS remaining_c
@@ -141,14 +150,16 @@ function filteredDocumentsCte(type: FinancialType, filters: FinancialListFilters
              COALESCE(SUM(pa.paid_c), 0)::bigint AS paid_c,
              COALESCE(SUM(pa.remaining_c), 0)::bigint AS remaining_c,
              CASE WHEN doc.status = 'CANCELED' THEN 0
-                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due < ${today}::date AND ${dueInRange}), 0) END::bigint AS sum_overdue_c,
+                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due < ${today}::date AND NOT pa.due_unknown AND ${dueInRange}), 0) END::bigint AS sum_overdue_c,
              CASE WHEN doc.status = 'CANCELED' THEN 0
-                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE pa.due >= ${today}::date AND ${dueInRange}), 0) END::bigint AS sum_not_due_c,
+                  ELSE COALESCE(SUM(pa.remaining_c) FILTER (WHERE (pa.due >= ${today}::date OR pa.due_unknown) AND ${dueInRange}), 0) END::bigint AS sum_not_due_c,
              COALESCE(SUM(pa.paid_c) FILTER (WHERE ${dueInRange}), 0)::bigint AS sum_paid_c,
              CASE WHEN doc.status = 'CANCELED' THEN NULL
-                  ELSE MIN(pa.due) FILTER (WHERE pa.remaining_c > 0) END AS next_due,
+                  ELSE MIN(pa.due) FILTER (WHERE pa.remaining_c > 0 AND NOT pa.due_unknown) END AS next_due,
+             COALESCE(bool_or(pa.remaining_c > 0), FALSE) AS has_balance,
+             (doc.status <> 'CANCELED' AND COALESCE(bool_or(pa.remaining_c > 0 AND pa.due_unknown), FALSE)) AS has_unknown,
              CASE WHEN doc.status IN ('CANCELED', 'PAID') THEN doc.status::text
-                  WHEN bool_or(pa.remaining_c > 0 AND pa.due < ${today}::date) THEN 'OVERDUE'
+                  WHEN bool_or(pa.remaining_c > 0 AND pa.due < ${today}::date AND NOT pa.due_unknown) THEN 'OVERDUE'
                   ELSE doc.status::text END AS display_status,
              COALESCE(bool_or(${inRange}), FALSE) AS open_in_range
       FROM doc
@@ -274,7 +285,8 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
              p.id, p.status::text AS status, p.display_status AS "displayStatus",
              p."originType"::text AS "originType", p."originId", p."partyId", p."createdAt",
              p.total_c AS "totalCents", p.paid_c AS "paidCents", p.remaining_c AS "remainingCents",
-             to_char(p.next_due, 'YYYY-MM-DD') AS "nextDueDate", p.parcels_count AS "parcelsCount"
+             to_char(p.next_due, 'YYYY-MM-DD') AS "nextDueDate", p.has_unknown AS "hasDueDateUnknown",
+             p.parcels_count AS "parcelsCount"
       FROM totals t
       LEFT JOIN page p ON TRUE
       ORDER BY p.rn`);
@@ -296,6 +308,7 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
         paidAmount: fromCents(num(r.paidCents)),
         remainingAmount: fromCents(num(r.remainingCents)),
         nextDueDate: r.nextDueDate,
+        hasDueDateUnknown: r.hasDueDateUnknown,
         parcelsCount: r.parcelsCount,
         createdAt: r.createdAt,
         ...partyOf(r),
@@ -321,6 +334,8 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
     // Com intervalo de vencimento e/ou openOnly, só as parcelas que os atendem (a lista continua por documento).
     // A numeração considera todas as parcelas do documento (por vencimento, desempate por id).
     const keep: Prisma.Sql[] = [Prisma.sql`TRUE`];
+    // Parcela "a combinar" não tem vencimento: fica fora de qualquer intervalo.
+    if (filters.dueFrom || filters.dueTo) keep.push(Prisma.sql`NOT n.due_unknown`);
     if (filters.dueFrom) keep.push(Prisma.sql`n.due >= ${filters.dueFrom}::date`);
     if (filters.dueTo) keep.push(Prisma.sql`n.due <= ${filters.dueTo}::date`);
     if (filters.openOnly) keep.push(Prisma.sql`n.remaining_c > 0`);
@@ -336,7 +351,7 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
         FROM parcel pa
       )
       SELECT r.id AS "documentId", r.status::text AS "documentStatus", r."originType"::text AS "originType",
-             r."originId", r."partyId", n.number, to_char(n.due, 'YYYY-MM-DD') AS "dueDate",
+             r."originId", r."partyId", n.number, to_char(n.due, 'YYYY-MM-DD') AS "dueDate", n.due_unknown AS "dueDateUnknown",
              n.amount_c AS "amountCents", n.paid_c AS "paidCents", n.remaining_c AS "remainingCents"
       FROM ranked r
       JOIN numbered n ON n.doc_id = r.id
@@ -362,10 +377,14 @@ export class PrismaFinancialDocumentReadRepository implements FinancialDocumentR
         originId: r.originId,
         number: num(r.number),
         dueDate: r.dueDate,
+        dueDateUnknown: r.dueDateUnknown,
         amount: fromCents(amountCents),
         paidAmount: fromCents(paidCents),
         remainingAmount: fromCents(num(r.remainingCents)),
-        status: parcelStatus({ amountCents, paidCents, dueDate: r.dueDate, documentStatus: r.documentStatus }, today),
+        status: parcelStatus(
+          { amountCents, paidCents, dueDate: r.dueDate, dueDateUnknown: r.dueDateUnknown, documentStatus: r.documentStatus },
+          today,
+        ),
       };
     });
   }

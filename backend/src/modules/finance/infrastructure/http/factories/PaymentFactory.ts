@@ -1,6 +1,8 @@
 import { FinancialType } from "@finance/domain/enums/FinancialType";
 import { RegisterPaymentUseCase } from "@finance/application/useCases/commands/RegisterPaymentUseCase";
 import { ReversePaymentUseCase } from "@finance/application/useCases/commands/ReversePaymentUseCase";
+import { SplitUnknownDueParcelUseCase } from "@finance/application/useCases/commands/SplitUnknownDueParcelUseCase";
+import { PrismaFinancialParcelRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialParcelRepository";
 import { PrismaFinancialDocumentRepository } from "@finance/infrastructure/prisma/repositories/PrismaFinancialDocumentRepository";
 import { PrismaPaymentRepository } from "@finance/infrastructure/prisma/repositories/PrismaPaymentRepository";
 import { PrismaTransactionManager } from "@shared/infrastructure/prisma/PrismaTransactionManager";
@@ -36,6 +38,16 @@ export function makeReversePaymentUseCase<T extends FinancialType>(type: T) {
     type,
     new PrismaFinancialDocumentRepository(),
     new PrismaPaymentRepository(),
+    new PrismaTransactionManager(),
+    makeGetFinancialDocumentByIdUseCase(type),
+  );
+}
+
+export function makeSplitUnknownDueParcelUseCase<T extends FinancialType>(type: T) {
+  return new SplitUnknownDueParcelUseCase(
+    type,
+    new PrismaFinancialDocumentRepository(),
+    new PrismaFinancialParcelRepository(),
     new PrismaTransactionManager(),
     makeGetFinancialDocumentByIdUseCase(type),
   );

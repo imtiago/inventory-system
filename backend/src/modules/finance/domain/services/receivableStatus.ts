@@ -10,6 +10,8 @@ export interface ParcelAmounts {
   /** Soma dos pagamentos não estornados. */
   paidCents: number;
   dueDate: string;
+  /** Vencimento "a combinar": `dueDate` não vale como vencimento e a parcela nunca fica vencida. */
+  dueDateUnknown?: boolean;
 }
 
 export interface ParcelStatusInput extends ParcelAmounts {
@@ -21,23 +23,29 @@ export function remainingCents(parcel: Pick<ParcelAmounts, "amountCents" | "paid
   return Math.max(parcel.amountCents - parcel.paidCents, 0);
 }
 
+/** Vencimento anterior a hoje; parcela "a combinar" nunca está vencida. */
+function isPastDue(parcel: Pick<ParcelAmounts, "dueDate" | "dueDateUnknown">, today: string): boolean {
+  return !parcel.dueDateUnknown && parcel.dueDate < today;
+}
+
 /**
  * Parcela com saldo e vencimento anterior a hoje. Inclui parcela parcialmente
  * paga já vencida (o saldo dela está vencido), embora o status dela seja PARTIALLY_PAID.
+ * Parcela "a combinar" (`dueDateUnknown`) → false.
  */
 export function hasOverdueBalance(parcel: ParcelAmounts, today: string): boolean {
-  return remainingCents(parcel) > 0 && parcel.dueDate < today;
+  return remainingCents(parcel) > 0 && isPastDue(parcel, today);
 }
 
 /**
  * Documento CANCELED → CANCELED; pago ≥ valor → PAID; pago > 0 → PARTIALLY_PAID;
- * vencimento < hoje → OVERDUE; senão OPEN (vence hoje = OPEN).
+ * vencimento < hoje → OVERDUE (nunca para parcela "a combinar"); senão OPEN (vence hoje = OPEN).
  */
 export function parcelStatus(parcel: ParcelStatusInput, today: string): ParcelStatus {
   if (parcel.documentStatus === FinancialStatus.CANCELED) return ParcelStatus.CANCELED;
   if (parcel.paidCents >= parcel.amountCents) return ParcelStatus.PAID;
   if (parcel.paidCents > 0) return ParcelStatus.PARTIALLY_PAID;
-  if (parcel.dueDate < today) return ParcelStatus.OVERDUE;
+  if (isPastDue(parcel, today)) return ParcelStatus.OVERDUE;
   return ParcelStatus.OPEN;
 }
 

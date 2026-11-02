@@ -19,6 +19,7 @@ import { env } from "./shared/config/env";
 import { prisma } from "./shared/prisma";
 import { TooManyRequestsError } from "@shared/domain/errors";
 import { nfeImportRoutes } from "@nfe-import/infrastructure/http/routes/nfeImportRoutes";
+import { legacyImportRoutes } from "@legacy-import/infrastructure/http/routes/legacyImportRoutes";
 import { payableRoutes, receivableRoutes } from "@finance/infrastructure/http/routes/financialDocumentRoutes";
 import { dashboardRoutes } from "./modules/dashboard/infrastructure/http/routes/dashboardRoutes";
 import { reportRoutes } from "./modules/reports/infrastructure/http/routes/reportRoutes";
@@ -151,6 +152,7 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(payableRoutes, { prefix: "/payables" });
   app.register(userRoutes);
   app.register(nfeImportRoutes, { prefix: "/nfe-imports" });
+  app.register(legacyImportRoutes, { prefix: "/legacy-imports" });
   app.register(dashboardRoutes, { prefix: "/dashboard" });
   app.register(reportRoutes, { prefix: "/reports" });
   app.register(pricingRoutes, { prefix: "/pricing" });

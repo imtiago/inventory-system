@@ -142,7 +142,7 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
 
     // A exposição usa o mesmo cálculo de saldo: 70 (vencida) + 100 (a vencer).
     const exposure = await new PrismaCreditExposureReader().forCustomer(id, today);
-    assert.deepEqual(exposure, { openBalanceCents: 17000, currentMaxOverdueDays: 7 });
+    assert.deepEqual(exposure, { openBalanceCents: 17000, legacyOpenBalanceCents: 0, currentMaxOverdueDays: 7 });
   });
 
   test("só parcelas do crediário contam: vendas à vista/PIX/cartão (pagas no ato), a entrada e documentos avulsos ficam fora", async () => {
@@ -176,6 +176,38 @@ describe("PrismaCreditHistoryReader (janela de 12 meses)", () => {
     assert.equal(c.paidInstallments, 0);
     assert.equal(c.paidOnTime, 0);
     assert.equal(c.totalPaidCents, 0);
+  });
+
+  test("exposição de crédito: a combinar e caderninho somam no saldo, não no atraso nem no histórico", async () => {
+    const id = await customer(3);
+    const legacy = async (parcels: { amount: number; due: number; unknown?: boolean }[], noLateFees = true) => {
+      const doc = await prisma.financialDocument.create({
+        data: { type: "RECEIVABLE", originType: "LEGACY", originId: randomUUID(), partyId: id, partyType: "CUSTOMER", noLateFees },
+      });
+      for (const p of parcels) {
+        await prisma.financialParcel.create({
+          data: { financialDocumentId: doc.id, amount: p.amount, dueDate: at(p.due), dueDateUnknown: p.unknown ?? false },
+        });
+      }
+    };
+    // A combinar com data fictícia antiga + dívida do caderninho com vencimento anotado no passado.
+    await legacy([{ amount: 150, due: -90, unknown: true }]);
+    await legacy([{ amount: 40, due: -60 }, { amount: 40, due: 30 }]);
+    const reader = new PrismaCreditExposureReader();
+    assert.deepEqual(await reader.forCustomer(id, today), { openBalanceCents: 23000, legacyOpenBalanceCents: 23000, currentMaxOverdueDays: 0 });
+
+    const history = (await new PrismaCreditHistoryReader(new PrismaCreditSettingsRepository()).forCustomers([id], today, 12)).get(id)!;
+    assert.equal(history.currentMaxOverdueDays, 0);
+    assert.equal(history.maxDaysLateInPeriod, 0);
+
+    // Parcela a combinar de outra origem também não é atraso; vencida datada de venda comum continua sendo.
+    const other = await customer(3);
+    const manual = await prisma.financialDocument.create({
+      data: { type: "RECEIVABLE", originType: "MANUAL", originId: randomUUID(), partyId: other, partyType: "CUSTOMER" },
+    });
+    await prisma.financialParcel.create({ data: { financialDocumentId: manual.id, amount: 10, dueDate: at(-30), dueDateUnknown: true } });
+    await prisma.financialParcel.create({ data: { financialDocumentId: manual.id, amount: 10, dueDate: at(-5) } });
+    assert.deepEqual(await reader.forCustomer(other, today), { openBalanceCents: 2000, legacyOpenBalanceCents: 0, currentMaxOverdueDays: 5 });
   });
 
   test("predicado do histórico: caderninho (LEGACY + noLateFees) e cancelados ficam fora; noLateFees de outra origem conta", async () => {

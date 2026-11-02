@@ -16,8 +16,11 @@ export interface ICreateFinancialDocumentInput {
   originId: string;
   partyType: FinancialPartyType;
   partyId: string;
-  /** Parcelas em centavos inteiros; vencimento à meia-noite UTC. */
-  parcels: { amountCents: number; dueDate: Date }[];
+  /**
+   * Parcelas em centavos inteiros; vencimento à meia-noite UTC. `dueDateUnknown` = vencimento
+   * "a combinar" (caderninho): `dueDate` guarda a data da importação e a parcela nunca fica vencida.
+   */
+  parcels: { amountCents: number; dueDate: Date; dueDateUnknown?: boolean }[];
   /** Sem multa nem juros de atraso (padrão false). */
   noLateFees?: boolean;
 }
@@ -50,6 +53,7 @@ export class CreateFinancialDocumentUseCase extends TransactionalUseCase<
         new FinancialParcel({
           amountCents: parcel.amountCents,
           dueDate: toDateOnly(parcel.dueDate),
+          dueDateUnknown: parcel.dueDateUnknown ?? false,
           financialDocumentId: document.id,
         }),
     );

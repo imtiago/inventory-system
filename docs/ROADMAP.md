@@ -9,8 +9,9 @@ Ordem das próximas etapas, o que cada uma precisa e o que depende de você. His
 | 0 | Onda 9 — acabamento (em andamento) | `plans/2026-10-26-wave9-polish.md` | — | — |
 | 1 | Precificação e lucro | `plans/2026-10-26-pricing.md` | 10 tarefas · médio | onda 9 mergeada (custos `Decimal(14,4)`) |
 | 2 | Crediário — **feito** (branch `feat/credit`, aguardando revisão final e merge) | `plans/2026-10-26-credit.md` | 14 tarefas · grande | — |
-| 3 | Migração do caderninho — **próxima** | `plans/2026-10-26-notebook-import.md` | 9 tarefas · médio | crediário mergeado (perfil, limite, `noLateFees`); ver "Pendências para a importação do caderninho" no `CLAUDE.md` |
-| 4 | WhatsApp fase 2 (lembrete automático) | **não planejado** | — | crediário em uso |
+| 3 | Migração do caderninho — **feito** (branch `feat/notebook-import`, aguardando revisão final e merge) | `plans/2026-10-26-notebook-import.md` | 9 tarefas · médio | — |
+| 4 | WhatsApp fase 2 (lembrete automático) — **próxima** | **não planejado** | — | crediário em uso |
+| 5 | Menores abertos (listas em `docs/HISTORICO.md`: revisão geral, ondas, precificação, crediário, caderninho) | — | pequenos | — |
 
 Dentro do crediário:
 - **Multa e juros de atraso:** Task 11.
@@ -33,9 +34,12 @@ Paralelismo entre planos: as Tasks 1–3 do crediário (cancelamento por pedido 
 - Marcar na tela de usuários quem "Pode aprovar crédito".
 - Preencher os dados da loja (nome, CNPJ, endereço, telefone) para o carnê.
 
-**Antes do caderninho**
-- **Decidido (2026-10-26):** dívida anotada com vencimento já passado conta no saldo e no limite, mas não bloqueia por atraso nem piora o perfil. Hoje o bloqueio ainda a contaria: a importação precisa filtrar (Task 3 do plano).
-- Separar o caderno e escolher como entrar: planilha, lançamento rápido no celular ou fotos para o Claude transcrever.
+**Para usar o caderninho (pronto; depende de você)**
+- **Decidido (2026-10-26):** dívida anotada com vencimento já passado conta no saldo e no limite, mas não bloqueia por atraso nem piora o perfil (implementado).
+- Separar o caderno e escolher como entrar: planilha, lançamento rápido no celular ou fotos para o Claude transcrever. Passo a passo em `docs/HISTORICO.md` ("Migração do caderninho").
+
+**Antes do WhatsApp fase 2**
+- Decidir o canal (API oficial paga × link manual), o texto e a frequência do lembrete; ainda não há plano.
 
 ## Ações do operador pendentes
 

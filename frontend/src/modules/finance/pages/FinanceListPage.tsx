@@ -15,7 +15,7 @@ import { formatCurrency } from '@/shared/utils/money';
 import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 import { PartyFilter } from '../components/PartyFilter';
-import { FINANCE_KINDS, partyOf, summaryValue, type FinanceKind } from '../config';
+import { documentStatusBadge, DUE_TO_AGREE_LABEL, FINANCE_KINDS, LEGACY_LABEL, LEGACY_ORIGIN, partyOf, summaryValue, type FinanceKind } from '../config';
 import { useFinanceList } from '../hooks/useFinanceList';
 import { FINANCE_STATUS_LABELS, type IFinanceFilters, type IFinanceListItem, type FinanceStatus } from '../types';
 import { LoadingState } from '@/shared/components/LoadingState';
@@ -52,6 +52,8 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
         <Link to={config.originHref(item)} className="hover:underline">
           {config.originText(item)}
         </Link>
+      ) : item.originType === LEGACY_ORIGIN ? (
+        <StatusBadge status="LEGACY">{LEGACY_LABEL}</StatusBadge>
       ) : (
         item.originType
       ),
@@ -59,12 +61,15 @@ function buildColumns(kind: FinanceKind): DataTableColumn<IFinanceListItem>[] {
   { id: 'total', header: 'Total', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.totalAmount) },
   { id: 'paid', header: 'Pago', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.paidAmount) },
   { id: 'remaining', header: 'Saldo', mobile: 'meta', numeric: true, cell: (item) => formatCurrency(item.remainingAmount) },
-  { id: 'nextDueDate', header: 'Próx. vencimento', mobile: 'meta', align: 'center', cell: (item) => formatDateOnly(item.nextDueDate) },
+  { id: 'nextDueDate', header: 'Próx. vencimento', mobile: 'meta', align: 'center', cell: (item) => (!item.nextDueDate && item.hasDueDateUnknown ? DUE_TO_AGREE_LABEL : formatDateOnly(item.nextDueDate)) },
   {
     id: 'status',
     header: 'Status',
     mobile: 'meta',
-    cell: (item) => <StatusBadge status={item.displayStatus}>{FINANCE_STATUS_LABELS[item.displayStatus] ?? item.displayStatus}</StatusBadge>,
+    cell: (item) => {
+      const badge = documentStatusBadge(item);
+      return <StatusBadge status={badge.status}>{badge.label}</StatusBadge>;
+    },
   },
   {
     id: 'actions',

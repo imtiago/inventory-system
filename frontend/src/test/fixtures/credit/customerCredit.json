@@ -4,6 +4,7 @@
     "profileName": "Bom",
     "limit": 2000,
     "openBalance": 120,
+    "legacyOpenBalance": 0,
     "available": 1880,
     "status": "ACTIVE",
     "currentMaxOverdueDays": 0,

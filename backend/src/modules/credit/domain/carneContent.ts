@@ -61,6 +61,8 @@ export interface ReceiptInput {
     parcelNumber: number | null;
     parcelCount: number;
     dueDate: string;
+    /** Vencimento "a combinar" (caderninho): o recibo não mostra a data. */
+    dueDateUnknown?: boolean;
     principalCents: number;
     fineCents: number;
     interestCents: number;
@@ -209,7 +211,7 @@ export function buildReceiptContent(input: ReceiptInput): ReceiptContent {
   const parcelText = p.parcelNumber === null ? "Entrada" : `${p.parcelNumber}/${p.parcelCount}`;
   const lines: { label: string; value: string }[] = [
     { label: "Referente a", value: p.originLabel },
-    { label: "Parcela", value: `${parcelText} (venc. ${formatDateBr(p.dueDate)})` },
+    { label: "Parcela", value: `${parcelText} (venc. ${p.dueDateUnknown ? "a combinar" : formatDateBr(p.dueDate)})` },
     { label: "Data do pagamento", value: formatDateBr(p.paymentDate) },
     ...(p.backdateReason ? [{ label: "Motivo da data retroativa", value: p.backdateReason }] : []),
     { label: "Forma de pagamento", value: methodLabel(p.method) },

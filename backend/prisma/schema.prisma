@@ -47,6 +47,8 @@ enum FinancialOriginType {
   PURCHASE
   MANUAL
   INVOICE
+  /// Dívida anterior importada do caderninho (originId = LegacyImportRow.id).
+  LEGACY
 }
 
 enum FinancialPartyType {
@@ -394,6 +396,7 @@ model Customer {
   creditProfile     CreditProfile     @relation(fields: [creditProfileCode], references: [code], onDelete: Restrict)
   creditChanges     CreditLimitChange[]
   creditLimitRequests CreditLimitRequest[]
+  legacyImportRows  LegacyImportRow[]
 }
 
 model User {
@@ -426,6 +429,9 @@ model User {
   saleFinancingOverrides SaleFinancing[]     @relation("saleFinancingOverrides")
   creditLimitRequested   CreditLimitRequest[] @relation("creditLimitRequested")
   creditLimitDecided     CreditLimitRequest[] @relation("creditLimitDecided")
+  legacyImportsCreated   LegacyImportBatch[]  @relation("legacyImportsCreated")
+  legacyImportsConfirmed LegacyImportBatch[]  @relation("legacyImportsConfirmed")
+  legacyImportsReverted  LegacyImportBatch[]  @relation("legacyImportsReverted")
 
   @@map("users") // opcional: nome da tabela no banco
 }
@@ -450,6 +456,8 @@ model FinancialDocument {
 
   parcels FinancialParcel[]
 
+  legacyImportRow LegacyImportRow?
+
   // Um documento ATIVO por origem de venda/compra: índice único PARCIAL
   // "FinancialDocument_active_origin_key" (type, originType, originId) WHERE originType IN
   // ('SALE','PURCHASE') AND status <> 'CANCELED', criado à mão em
@@ -469,6 +477,9 @@ model FinancialParcel {
   amount Decimal @db.Decimal(12, 2)
 
   dueDate DateTime
+
+  /// Vencimento "a combinar" (caderninho): `dueDate` é só a data da importação; nunca conta como vencida.
+  dueDateUnknown Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -972,4 +983,69 @@ model StoreSettings {
   address   String   @db.VarChar(250)
   phone     String   @db.VarChar(20)
   updatedAt DateTime @updatedAt
+}
+
+enum LegacyImportStatus {
+  DRAFT
+  CONFIRMED
+  REVERTED
+}
+
+enum LegacyImportSource {
+  CSV
+  MANUAL
+}
+
+enum LegacyImportRowStatus {
+  OK
+  WARNING
+  ERROR
+  IGNORED
+}
+
+/// Lote de importação do caderninho (upload CSV ou lançamento rápido), editável enquanto DRAFT.
+model LegacyImportBatch {
+  id            String             @id @default(uuid())
+  status        LegacyImportStatus @default(DRAFT)
+  source        LegacyImportSource
+  fileName      String?
+  summary       Json               @default("{}")
+  /// `MAX_OF_PROFILE_AND_BALANCE` (padrão) ou `PROFILE_ONLY`.
+  limitRule     String             @default("MAX_OF_PROFILE_AND_BALANCE")
+  createdById   String?
+  createdAt     DateTime           @default(now())
+  confirmedById String?
+  confirmedAt   DateTime?
+  revertedById  String?
+  revertedAt    DateTime?
+
+  createdBy   User? @relation("legacyImportsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  confirmedBy User? @relation("legacyImportsConfirmed", fields: [confirmedById], references: [id], onDelete: SetNull)
+  revertedBy  User? @relation("legacyImportsReverted", fields: [revertedById], references: [id], onDelete: SetNull)
+  rows        LegacyImportRow[]
+
+  @@index([status, createdAt])
+}
+
+/// Linha de um lote: dados brutos, normalizados, avisos e a decisão sobre o cliente.
+model LegacyImportRow {
+  id                  String                @id @default(uuid())
+  batchId             String
+  line                Int
+  raw                 Json
+  data                Json
+  issues              Json                  @default("[]")
+  status              LegacyImportRowStatus
+  /// `{"kind":"NEW"}` | `{"kind":"LINK","customerId"}` | `{"kind":"SAME_AS_ROW","rowId"}`.
+  customerAction      Json                  @default("{\"kind\":\"NEW\"}")
+  customerId          String?
+  financialDocumentId String?               @unique
+  createdAt           DateTime              @default(now())
+
+  batch             LegacyImportBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  financialDocument FinancialDocument? @relation(fields: [financialDocumentId], references: [id], onDelete: Restrict)
+
+  @@index([batchId, line])
+  @@index([customerId])
 }

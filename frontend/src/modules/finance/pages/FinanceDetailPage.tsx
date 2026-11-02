@@ -11,7 +11,8 @@ import { formatDateOnly } from '@/shared/utils/formatDateOnly';
 
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { ReversePaymentModal } from '../components/ReversePaymentModal';
-import { FINANCE_KINDS, partyOf, type FinanceKind } from '../config';
+import { SplitParcelModal } from '../components/SplitParcelModal';
+import { DUE_TO_AGREE_LABEL, documentStatusBadge, FINANCE_KINDS, LEGACY_LABEL, LEGACY_ORIGIN, partyOf, type FinanceKind } from '../config';
 import { useFinanceDocument } from '../hooks/useFinanceDocument';
 import { PAYMENT_METHOD_LABELS, FINANCE_STATUS_LABELS, type IFinancePayment } from '../types';
 import { Can } from '@/shared/auth/Can';
@@ -30,13 +31,22 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
   const isNotFound = parsed?.status === 404 || parsed?.code === 'FINANCIAL_DOCUMENT_NOT_FOUND';
   const canceled = document?.status === 'CANCELED';
   const payingParcel = document?.parcels.find((p) => p.id === payingParcelId) ?? null;
+  const [splittingParcelId, setSplittingParcelId] = useState<string | null>(null);
+  const splittingParcel = document?.parcels.find((p) => p.id === splittingParcelId) ?? null;
 
   return (
     <Page width="narrow">
       <PageHeader
         title={document ? `${config.singular} #${document.id.slice(0, 8).toUpperCase()}` : config.singular}
         description={document ? formatDateTime(document.createdAt) : undefined}
-        meta={document ? <StatusBadge status={document.displayStatus}>{FINANCE_STATUS_LABELS[document.displayStatus] ?? document.displayStatus}</StatusBadge> : undefined}
+        meta={
+          document ? (
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <StatusBadge status={documentStatusBadge(document).status}>{documentStatusBadge(document).label}</StatusBadge>
+              {document.originType === LEGACY_ORIGIN && <StatusBadge status="LEGACY">{LEGACY_LABEL}</StatusBadge>}
+            </span>
+          ) : undefined
+        }
         backPath={config.basePath}
         backLabel={config.plural}
         actions={
@@ -89,7 +99,7 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                     <div>
                       <h3 className="font-medium">Parcela {parcel.number}</h3>
                       <p className="text-sm text-muted">
-                        Vencimento {formatDateOnly(parcel.dueDate)} · Valor {formatCurrency(parcel.amount)} · Pago {formatCurrency(parcel.paidAmount)} · Restante{' '}
+                        Vencimento {parcel.dueDateUnknown ? DUE_TO_AGREE_LABEL : formatDateOnly(parcel.dueDate)} · Valor {formatCurrency(parcel.amount)} · Pago {formatCurrency(parcel.paidAmount)} · Restante{' '}
                         {formatCurrency(parcel.remainingAmount)}
                       </p>
                       {!canceled && parcel.remainingAmount > 0 && parcel.lateFeesToday && parcel.lateFeesToday.fine + parcel.lateFeesToday.interest > 0 && (
@@ -99,8 +109,19 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <StatusBadge status={parcel.status}>{FINANCE_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {parcel.dueDateUnknown && parcel.status === 'OPEN' ? (
+                        <StatusBadge status="DUE_TO_AGREE">{DUE_TO_AGREE_LABEL}</StatusBadge>
+                      ) : (
+                        <StatusBadge status={parcel.status}>{FINANCE_STATUS_LABELS[parcel.status] ?? parcel.status}</StatusBadge>
+                      )}
+                      {kind === 'receivable' && !canceled && parcel.dueDateUnknown && parcel.remainingAmount > 0 && (
+                        <Can permission="credit.manage">
+                          <button type="button" className="min-h-11 rounded-lg border border-input px-3 py-2 text-sm hover:bg-surface-muted" onClick={() => setSplittingParcelId(parcel.id)}>
+                            Parcelar saldo
+                          </button>
+                        </Can>
+                      )}
                       <Can permission={config.pay}>
                         <button
                           type="button"
@@ -162,7 +183,8 @@ export function FinanceDetailPage({ kind }: { kind: FinanceKind }) {
       )}
 
       {document && payingParcel && <RegisterPaymentModal kind={kind} key={payingParcel.id} documentId={document.id} parcel={payingParcel} onClose={() => setPayingParcelId(null)} />}
-      {document && reversing && <ReversePaymentModal kind={kind} key={reversing.id} documentId={document.id} payment={reversing} onClose={() => setReversing(null)} />}
+      {document && splittingParcel && <SplitParcelModal key={splittingParcel.id} documentId={document.id} parcel={splittingParcel} onClose={() => setSplittingParcelId(null)} />}
+      {document && reversing &&<ReversePaymentModal kind={kind} key={reversing.id} documentId={document.id} payment={reversing} onClose={() => setReversing(null)} />}
     </Page>
   );
 }

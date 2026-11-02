@@ -1,0 +1,80 @@
+{
+  "data": {
+    "id": "6f9d4c0e-5b7a-4c1e-9a52-2f0b1c7d8e11",
+    "status": "DRAFT",
+    "source": "CSV",
+    "fileName": "caderno.csv",
+    "createdAt": "2026-11-02T13:00:00.000Z",
+    "createdBy": {
+      "id": "b0a1f6a2-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+      "name": "Administrador"
+    },
+    "summary": {
+      "newCustomers": 2,
+      "existingCustomers": 1,
+      "openTotal": 1150.5,
+      "rows": 3,
+      "warnings": 3,
+      "errors": 0,
+      "ignored": 0
+    },
+    "limitRule": "MAX_OF_PROFILE_AND_BALANCE",
+    "confirmedAt": null,
+    "revertedAt": null,
+    "sameFileAs": null,
+    "rows": [
+      {
+        "id": "0d8c5a1e-7f2b-4a3c-b6d4-9e1f0a2b3c4d",
+        "line": 2,
+        "status": "WARNING",
+        "raw": {
+          "nome": "Maria Silva",
+          "celular": "",
+          "data_compra": "05/03/2026",
+          "descricao": "Sofá",
+          "valor_total": "1.000,00",
+          "valor_pago": "200,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
+        "data": {
+          "name": "Maria Silva",
+          "phone": null,
+          "purchaseDate": "2026-03-05",
+          "description": "Sofá",
+          "total": 1000,
+          "paid": 200,
+          "open": 800,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "NO_PHONE",
+            "severity": "WARNING",
+            "field": "celular",
+            "message": "Sem celular."
+          }
+        ],
+        "customerAction": {
+          "kind": "LINK",
+          "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+        },
+        "autoLinked": true,
+        "acceptDuplicate": false,
+        "suggestions": [
+          {
+            "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+            "name": "Maria Silva",
+            "match": "SAME"
+          }
+        ],
+        "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "linkedCustomerName": "Maria Silva",
+        "financialDocumentId": null
+      }
+    ]
+  }
+}

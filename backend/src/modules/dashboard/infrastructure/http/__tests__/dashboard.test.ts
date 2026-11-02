@@ -124,12 +124,14 @@ describe("Dashboard (GET /dashboard)", () => {
   const createDoc = async (
     type: "RECEIVABLE" | "PAYABLE",
     status: "OPEN" | "PARTIALLY_PAID" | "PAID" | "CANCELED",
-    parcels: { amount: number; dueDate: string; paid?: number; reversedPaid?: number }[],
+    parcels: { amount: number; dueDate: string; paid?: number; reversedPaid?: number; dueDateUnknown?: boolean }[],
+    originType?: "LEGACY",
   ) => {
     const doc = await getDb().financialDocument.create({
       data: {
         type,
-        originType: type === "RECEIVABLE" ? "SALE" : "PURCHASE",
+        originType: originType ?? (type === "RECEIVABLE" ? "SALE" : "PURCHASE"),
+        noLateFees: originType === "LEGACY",
         originId: randomUUID(),
         partyId: randomUUID(),
         partyType: type === "RECEIVABLE" ? "CUSTOMER" : "SUPPLIER",
@@ -146,6 +148,7 @@ describe("Dashboard (GET /dashboard)", () => {
           financialDocumentId: doc.id,
           amount: p.amount,
           dueDate: asDate(p.dueDate),
+          dueDateUnknown: p.dueDateUnknown ?? false,
           payments: {
             create: payments.map((pay) => ({
               ...pay,
@@ -344,6 +347,30 @@ describe("Dashboard (GET /dashboard)", () => {
       });
     });
   }
+
+  test("dashboard: overdue e dueNext7Days ignoram a parcela a combinar", async () => {
+    await isolated(async () => {
+      const before = await readWindow();
+      // Caderninho: a combinar com data fictícia vencida, hoje e nos próximos 7 dias → só "em aberto".
+      await createDoc(
+        "RECEIVABLE",
+        "OPEN",
+        [
+          { amount: 100, dueDate: addDays(-20), dueDateUnknown: true },
+          { amount: 30, dueDate: TODAY, dueDateUnknown: true },
+          { amount: 20, dueDate: addDays(3), dueDateUnknown: true, paid: 5 },
+        ],
+        "LEGACY",
+      );
+      const after = await readWindow();
+      const b = before.receivables;
+      const a = after.receivables;
+      assert.equal(round2(a.open - b.open), 145);
+      assert.equal(round2(a.overdue - b.overdue), 0);
+      assert.equal(a.dueNext7Days.count - b.dueNext7Days.count, 0);
+      assert.equal(round2(a.dueNext7Days.amount - b.dueNext7Days.amount), 0);
+    });
+  });
 
   test("estoque: variante zerada entra; lote vencendo em 30 dias entra, vencido/fora do prazo/zerado não", async () => {
     const [v0, v1, v2, v3] = variants;

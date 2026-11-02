@@ -331,6 +331,38 @@ describe("fechamento da venda: crediário", () => {
     assert.deepEqual(keyShape(res.json()), keyShape(loadFixture("saleDetailCrediario")), "POST /sales difere de saleDetailCrediario.json");
   });
 
+  test("dívida do caderninho vencida e parcela a combinar: não bloqueiam o crediário (nem na simulação), mas ocupam o limite", async () => {
+    const variantId = await createVariant(300);
+    const past = new Date(new Date(`${todayInBusinessTz()}T00:00:00.000Z`).getTime() - 90 * DAY_MS);
+    for (const dueDateUnknown of [true, false]) {
+      await prisma.financialDocument.create({
+        data: {
+          type: "RECEIVABLE",
+          originType: "LEGACY",
+          originId: randomUUID(),
+          partyType: "CUSTOMER",
+          partyId: customerId,
+          noLateFees: true,
+          parcels: { create: [{ amount: 50, dueDate: past, dueDateUnknown }] },
+        },
+      });
+    }
+    await prisma.customer.update({ where: { id: customerId }, data: { creditLimit: 400 } });
+    const sim = (await call(seller, "POST", "/sales/simulate", { customerId, items: [{ productVariantId: variantId, quantity: 1 }] })).json().data.crediario;
+    assert.equal(sim.blockedReason, null);
+    // Limite 400 − 100 do caderninho.
+    assert.equal(sim.available, 300);
+
+    const res = await sell(seller, variantId, crediario(PLAN_3X));
+    assert.equal(res.statusCode, 201, res.body);
+
+    // Ocupam o limite: 100 + 226,97 em aberto deixam 73,03 disponíveis; a próxima passa do disponível.
+    const next = await sell(seller, variantId, crediario(PLAN_3X));
+    assert.equal(next.statusCode, 422, next.body);
+    assert.equal(next.json().code, "CREDIT_LIMIT_EXCEEDED");
+    assert.deepEqual(next.json().details, { available: 73.03, required: 226.97 });
+  });
+
   test("acima do disponível → 422 CREDIT_LIMIT_EXCEEDED com available/required; override de VENDEDOR sem a marca → 403; com a marca → 201", async () => {
     const variantId = await createVariant(300);
     await prisma.customer.update({ where: { id: customerId }, data: { creditLimit: 250 } });

@@ -35,6 +35,7 @@ export class GetCustomerCreditUseCase {
       profileName: profile.name,
       limit: fromCents(credit.limitCents),
       openBalance: fromCents(exposure.openBalanceCents),
+      legacyOpenBalance: fromCents(exposure.legacyOpenBalanceCents ?? 0),
       available: fromCents(availableCents(credit.limitCents, exposure)),
       status: credit.status,
       currentMaxOverdueDays: exposure.currentMaxOverdueDays,

@@ -1,0 +1,359 @@
+{
+  "data": {
+    "id": "7a1e2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b",
+    "status": "DRAFT",
+    "source": "CSV",
+    "fileName": "caderno-loja.csv",
+    "createdAt": "2026-11-01T13:00:00.000Z",
+    "createdBy": {
+      "id": "b0a1f6a2-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+      "name": "Administrador"
+    },
+    "summary": {
+      "newCustomers": 4,
+      "existingCustomers": 1,
+      "openTotal": 2400.5,
+      "rows": 6,
+      "warnings": 3,
+      "errors": 1,
+      "ignored": 1
+    },
+    "limitRule": "MAX_OF_PROFILE_AND_BALANCE",
+    "confirmedAt": null,
+    "revertedAt": null,
+    "sameFileAs": null,
+    "rows": [
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
+        "line": 2,
+        "status": "WARNING",
+        "raw": {
+          "nome": "Maria Silva",
+          "celular": "",
+          "data_compra": "05/03/2026",
+          "descricao": "Sofá",
+          "valor_total": "1.000,00",
+          "valor_pago": "200,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
+        "data": {
+          "name": "Maria Silva",
+          "phone": null,
+          "purchaseDate": "2026-03-05",
+          "description": "Sofá",
+          "total": 1000,
+          "paid": 200,
+          "open": 800,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "NO_PHONE",
+            "severity": "WARNING",
+            "field": "celular",
+            "message": "Sem celular."
+          }
+        ],
+        "customerAction": {
+          "kind": "LINK",
+          "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+        },
+        "autoLinked": true,
+        "acceptDuplicate": false,
+        "suggestions": [
+          {
+            "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+            "name": "Maria Silva",
+            "match": "SAME"
+          }
+        ],
+        "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "linkedCustomerName": "Maria Silva",
+        "financialDocumentId": null
+      },
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4003",
+        "line": 3,
+        "status": "WARNING",
+        "raw": {
+          "nome": "João Souza",
+          "celular": "11977776666",
+          "data_compra": "10/04/2026",
+          "descricao": "Fogão",
+          "valor_total": "850,00",
+          "valor_pago": "",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
+        "data": {
+          "name": "João Souza",
+          "phone": "11977776666",
+          "purchaseDate": "2026-04-10",
+          "description": "Fogão",
+          "total": 850,
+          "paid": 0,
+          "open": 850,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "SIMILAR_CUSTOMER",
+            "severity": "WARNING",
+            "field": "nome",
+            "message": "Parece cliente já cadastrado: João de Souza. Vincule ou confirme como novo.",
+            "details": {
+              "suggestions": [
+                {
+                  "customerId": "4b3c2d1e-0f9a-4b8c-9d7e-6f5a4b3c2d1e",
+                  "name": "João de Souza",
+                  "match": "SIMILAR"
+                }
+              ]
+            }
+          }
+        ],
+        "customerAction": {
+          "kind": "NEW"
+        },
+        "autoLinked": false,
+        "acceptDuplicate": false,
+        "suggestions": [
+          {
+            "customerId": "4b3c2d1e-0f9a-4b8c-9d7e-6f5a4b3c2d1e",
+            "name": "João de Souza",
+            "match": "SIMILAR"
+          }
+        ],
+        "customerId": null,
+        "linkedCustomerName": null,
+        "financialDocumentId": null
+      },
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4004",
+        "line": 4,
+        "status": "ERROR",
+        "raw": {
+          "nome": "Ana Lima",
+          "celular": "11955554444",
+          "data_compra": "02/05/2026",
+          "descricao": "",
+          "valor_total": "100,00",
+          "valor_pago": "150,00",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
+        "data": {
+          "name": "Ana Lima",
+          "phone": "11955554444",
+          "purchaseDate": "2026-05-02",
+          "description": null,
+          "total": 100,
+          "paid": 150,
+          "open": 0,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "PAID_EXCEEDS_TOTAL",
+            "severity": "ERROR",
+            "field": "valor_pago",
+            "message": "O valor pago é maior que o total.",
+            "details": {
+              "totalCents": 10000,
+              "paidCents": 15000
+            }
+          }
+        ],
+        "customerAction": {
+          "kind": "NEW"
+        },
+        "autoLinked": false,
+        "acceptDuplicate": false,
+        "suggestions": [],
+        "customerId": null,
+        "linkedCustomerName": null,
+        "financialDocumentId": null
+      },
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4005",
+        "line": 5,
+        "status": "OK",
+        "raw": {
+          "nome": "Carla Mendes",
+          "celular": "11944443333",
+          "data_compra": "01/06/2026",
+          "descricao": "Mesa",
+          "valor_total": "600,00",
+          "valor_pago": "",
+          "vencimentos": "10/11/2026=300,00; 10/12/2026=300,00",
+          "perfil": "Bom",
+          "observacao": "Paga em dia"
+        },
+        "data": {
+          "name": "Carla Mendes",
+          "phone": "11944443333",
+          "purchaseDate": "2026-06-01",
+          "description": "Mesa",
+          "total": 600,
+          "paid": 0,
+          "open": 600,
+          "dueDates": [
+            {
+              "date": "2026-11-10",
+              "amount": 300
+            },
+            {
+              "date": "2026-12-10",
+              "amount": 300
+            }
+          ],
+          "profileCode": "GOOD",
+          "notes": "Paga em dia"
+        },
+        "issues": [],
+        "customerAction": {
+          "kind": "NEW"
+        },
+        "autoLinked": false,
+        "acceptDuplicate": false,
+        "suggestions": [],
+        "customerId": null,
+        "linkedCustomerName": null,
+        "financialDocumentId": null
+      },
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4006",
+        "line": 6,
+        "status": "WARNING",
+        "raw": {
+          "nome": "Maria S.",
+          "celular": "",
+          "data_compra": "",
+          "descricao": "",
+          "valor_total": "150,50",
+          "valor_pago": "",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
+        "data": {
+          "name": "Maria S.",
+          "phone": null,
+          "purchaseDate": null,
+          "description": null,
+          "total": 150.5,
+          "paid": 0,
+          "open": 150.5,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "NO_PHONE",
+            "severity": "WARNING",
+            "field": "celular",
+            "message": "Sem celular."
+          },
+          {
+            "code": "NO_DATE",
+            "severity": "WARNING",
+            "field": "data_compra",
+            "message": "Sem data da compra."
+          },
+          {
+            "code": "SIMILAR_ROW",
+            "severity": "WARNING",
+            "field": "nome",
+            "message": "Parece a mesma pessoa de outra linha: Maria Silva. Junte ou confirme como outra pessoa.",
+            "details": {
+              "suggestions": [
+                {
+                  "rowId": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
+                  "name": "Maria Silva",
+                  "match": "SIMILAR"
+                }
+              ]
+            }
+          }
+        ],
+        "customerAction": {
+          "kind": "NEW"
+        },
+        "autoLinked": false,
+        "acceptDuplicate": false,
+        "suggestions": [
+          {
+            "rowId": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
+            "name": "Maria Silva",
+            "match": "SIMILAR"
+          }
+        ],
+        "customerId": null,
+        "linkedCustomerName": null,
+        "financialDocumentId": null
+      },
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4007",
+        "line": 7,
+        "status": "IGNORED",
+        "raw": {
+          "nome": "Pedro",
+          "celular": "",
+          "data_compra": "",
+          "descricao": "",
+          "valor_total": "50,00",
+          "valor_pago": "",
+          "vencimentos": "",
+          "perfil": "",
+          "observacao": ""
+        },
+        "data": {
+          "name": "Pedro",
+          "phone": null,
+          "purchaseDate": null,
+          "description": null,
+          "total": 50,
+          "paid": 0,
+          "open": 50,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "NO_PHONE",
+            "severity": "WARNING",
+            "field": "celular",
+            "message": "Sem celular."
+          },
+          {
+            "code": "NO_DATE",
+            "severity": "WARNING",
+            "field": "data_compra",
+            "message": "Sem data da compra."
+          }
+        ],
+        "customerAction": {
+          "kind": "NEW"
+        },
+        "autoLinked": false,
+        "acceptDuplicate": false,
+        "suggestions": [],
+        "customerId": null,
+        "linkedCustomerName": null,
+        "financialDocumentId": null
+      }
+    ]
+  }
+}

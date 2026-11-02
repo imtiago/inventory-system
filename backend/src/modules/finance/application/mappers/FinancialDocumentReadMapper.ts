@@ -52,7 +52,7 @@ export interface FinancialDocumentRow<P extends PaymentAmountRow = PaymentAmount
   createdAt: Date;
   /** Só o detalhe usa (sem multa/juros). */
   noLateFees?: boolean;
-  parcels: { id: string; amount: Money; dueDate: Date; payments: P[] }[];
+  parcels: { id: string; amount: Money; dueDate: Date; dueDateUnknown?: boolean; payments: P[] }[];
 }
 
 /** Valores derivados de um documento na data de negócio `today` (tudo em centavos). */
@@ -65,8 +65,10 @@ export interface FinancialFigures {
   overdueCents: number;
   /** Saldo com vencimento ≥ hoje (0 se cancelado). */
   notDueCents: number;
-  /** Menor vencimento entre parcelas com saldo; null se cancelado ou quitado. */
+  /** Menor vencimento entre parcelas com saldo e data definida; null se cancelado, quitado ou só "a combinar". */
   nextDueDate: string | null;
+  /** Alguma parcela "a combinar" com saldo (documento não cancelado). */
+  hasDueDateUnknown: boolean;
 }
 
 const activePaidCents = (payments: PaymentAmountRow[]) =>
@@ -88,6 +90,7 @@ function parcelAmounts<P extends PaymentAmountRow>(row: Pick<FinancialDocumentRo
       amountCents: cents(p.amount),
       paidCents: activePaidCents(p.payments),
       dueDate: toDateOnly(p.dueDate),
+      dueDateUnknown: p.dueDateUnknown ?? false,
     }));
 }
 
@@ -113,7 +116,8 @@ export class FinancialDocumentReadMapper {
       remainingCents: parcels.reduce((s, p) => s + remainingCents(p), 0),
       overdueCents,
       notDueCents,
-      nextDueDate: canceled || withBalance.length === 0 ? null : withBalance[0].dueDate,
+      nextDueDate: canceled ? null : (withBalance.find((p) => !p.dueDateUnknown)?.dueDate ?? null),
+      hasDueDateUnknown: !canceled && withBalance.some((p) => p.dueDateUnknown),
     };
   }
 
@@ -133,6 +137,7 @@ export class FinancialDocumentReadMapper {
       paidAmount: fromCents(figures.paidCents),
       remainingAmount: fromCents(figures.remainingCents),
       nextDueDate: figures.nextDueDate,
+      hasDueDateUnknown: figures.hasDueDateUnknown,
       parcelsCount: row.parcels.length,
       createdAt: row.createdAt,
     };
@@ -157,6 +162,7 @@ export class FinancialDocumentReadMapper {
         number: index + 1,
         amount: fromCents(p.amountCents),
         dueDate: p.dueDate,
+        dueDateUnknown: p.dueDateUnknown,
         paidAmount: fromCents(p.paidCents),
         remainingAmount: fromCents(remainingCents(p)),
         status: parcelStatus({ ...p, documentStatus: row.status }, today),

@@ -90,3 +90,25 @@ export const reversePaymentBodySchema = z.object({
     .min(3, "O motivo deve ter entre 3 e 200 caracteres.")
     .max(200, "O motivo deve ter entre 3 e 200 caracteres."),
 });
+
+export const splitParcelParamsSchema = z.object({
+  id: z.string().uuid("Conta inválida."),
+  parcelId: z.string().uuid("Parcela inválida."),
+});
+
+export const splitParcelBodySchema = z.object({
+  parcels: z
+    .array(
+      z.object({
+        dueDate: dateOnly("Vencimento"),
+        amount: z
+          .number({ message: "Informe o valor da parcela." })
+          .positive("O valor da parcela deve ser maior que zero.")
+          .max(MAX_AMOUNT, "O valor da parcela excede o máximo permitido.")
+          .refine(hasAtMostTwoDecimals, "O valor deve ter no máximo 2 casas decimais."),
+      }),
+      { message: "Informe as parcelas." },
+    )
+    .min(1, "Informe ao menos uma parcela.")
+    .max(24, "No máximo 24 parcelas."),
+});

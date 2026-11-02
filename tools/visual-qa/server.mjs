@@ -114,7 +114,12 @@ function route(method, url) {
   }
   if (p === '/credit/limit-requests/count') return j('credit/creditLimitRequestCount.json');
   if (p === '/credit/limit-requests') return grow(j('credit/creditLimitRequests.json'), 4);
-  if (s[0] === 'customers' && s[2] === 'credit') return j('credit/customerCredit.json');
+  if (s[0] === 'customers' && s[2] === 'credit') {
+    // Ficha com parte do saldo vinda do caderninho (etiqueta "Caderninho" no cartão de crédito).
+    const c = j('credit/customerCredit.json');
+    c.data = { ...c.data, openBalance: 420, legacyOpenBalance: 300, available: c.data.limit - 420 };
+    return c;
+  }
   if (p === '/settings/store') return j('credit/storeSettings.json');
   if (p === '/credit/approvers') return j('credit/creditApprovers.json');
   if (p === '/credit/settings') return j('credit/creditSettings.json');
@@ -127,10 +132,75 @@ function route(method, url) {
   if (s[0] === 'purchases') return j('purchases/purchaseDetail.json');
   if (p === '/nfe-imports') return grow(j('nfe/nfeImportList.json'), 4);
   if (s[0] === 'nfe-imports') return j('nfe/nfeImport.json');
-  if (p === '/receivables') return grow(j('finance/receivableList.json'));
+  if (p === '/receivables') {
+    const list = grow(j('finance/receivableList.json'));
+    list.data[1] = { ...j('finance/receivableListLegacy.json').data[0], id: 'legacy1' }; // linha do caderninho (a combinar)
+    return list;
+  }
   if (s[0] === 'receivables' && s[4] === 'late-fees') return j('finance/lateFeeQuote.json');
+  if (s[0] === 'receivables' && s[1] === 'legacy1') return j('finance/receivableDetailLegacy.json');
   if (s[0] === 'receivables' && s[1] === 'fees1') return j('finance/receivableDetailLateFees.json');
   if (s[0] === 'receivables') return j('finance/receivableDetail.json');
+  if (p === '/legacy-imports') {
+    // Lotes do caderninho: rascunho (CSV), confirmado e desfeito (lançamento rápido).
+    const list = grow(j('legacy-import/legacyBatches.json'), 3);
+    const confirmed = j('legacy-import/legacyBatchConfirmed.json').data;
+    const { rows: _rows, ...header } = confirmed;
+    list.data[1] = { ...header, id: 'confirmed1' };
+    list.data[2] = { ...header, id: 'reverted1', status: 'REVERTED', revertedAt: '2026-11-01T16:00:00.000Z' };
+    return { ...list, pagination: { page: 1, limit: 10, total: 3, totalPages: 1 } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'confirmed1') return { data: { ...j('legacy-import/legacyBatchConfirmed.json').data, id: 'confirmed1' } };
+  if (s[0] === 'legacy-imports' && s[1] === 'clean1') {
+    // Sem erro nem nome parecido pendente: o botão Confirmar fica liberado.
+    const b = j('legacy-import/legacyBatchReview.json').data;
+    b.rows = b.rows.filter((r) => r.line === 2 || r.line === 5);
+    b.summary = { ...b.summary, rows: 2, warnings: 1, errors: 0, ignored: 0, newCustomers: 1, existingCustomers: 1, openTotal: 1400 };
+    return { data: { ...b, id: 'clean1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'reverted1') {
+    const { creditRestore: _restore, ...b } = j('legacy-import/legacyBatchReverted.json').data;
+    return { data: { ...b, id: 'reverted1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'dup1') {
+    // Mesmo arquivo de um lote confirmado: aviso no topo; linha 2 pendente, linha 5 já "importar mesmo assim";
+    // linha 2 com nome editado (o cadastro vinculado tem outro nome).
+    const b = j('legacy-import/legacyBatchReview.json').data;
+    b.rows = b.rows.filter((r) => r.line === 2 || r.line === 5);
+    b.sameFileAs = { id: 'confirmed1', confirmedAt: '2026-10-30T15:00:00.000Z' };
+    const dupIssue = (accepted, line) => ({
+      code: 'POSSIBLE_DUPLICATE_DEBT', severity: 'WARNING', field: null,
+      message: accepted
+        ? `Este cliente já tem uma dívida do caderninho de R$ 800,00 (lote 7f6e5d4c, linha ${line}). Você escolheu importar mesmo assim.`
+        : `Este cliente já tem uma dívida do caderninho de R$ 800,00 (lote 7f6e5d4c, linha ${line}). Se for a mesma, ignore a linha; se for outra, importe mesmo assim.`,
+      details: { batchId: 'confirmed1', line, financialDocumentId: 'd1', accepted },
+    });
+    const [maria, carla] = b.rows;
+    Object.assign(maria, { data: { ...maria.data, name: 'Maria da Silva Souza' }, issues: [...maria.issues, dupIssue(false, 2)] });
+    Object.assign(carla, { status: 'WARNING', acceptDuplicate: true, customerAction: { kind: 'LINK', customerId: '5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f' }, customerId: '5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f', linkedCustomerName: 'Carla Mendes', issues: [dupIssue(true, 5)] });
+    b.summary = { ...b.summary, rows: 2, warnings: 2, errors: 0, ignored: 0, newCustomers: 0, existingCustomers: 2, openTotal: 1400 };
+    return { data: { ...b, id: 'dup1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'missing1') {
+    // Revisão com cliente vinculado excluído (linha 2) e valores ilegíveis na planilha (linha 4).
+    const b = j('legacy-import/legacyBatchReview.json').data;
+    const gone = b.rows.find((r) => r.line === 2);
+    Object.assign(gone, {
+      status: 'ERROR', autoLinked: false, customerId: null, linkedCustomerName: null, suggestions: [],
+      issues: [{ code: 'LINKED_CUSTOMER_MISSING', severity: 'ERROR', field: 'nome', message: 'O cliente vinculado não existe mais (foi excluído). Escolha "Criar novo" ou vincule outro cliente.' }],
+    });
+    const bad = b.rows.find((r) => r.line === 4);
+    bad.raw = { ...bad.raw, valor_pago: '15O,00', data_compra: '31/02/2026', perfil: 'Ótimo', vencimentos: '10/12/2026=x' };
+    bad.data = { ...bad.data, paid: 0, purchaseDate: null, profileCode: null };
+    bad.issues = [
+      { code: 'INVALID_AMOUNT', severity: 'ERROR', field: 'valor_pago', message: 'Valor pago inválido. Use o formato 1.234,56.' },
+      { code: 'INVALID_DATE', severity: 'ERROR', field: 'data_compra', message: 'Data inválida. Use dd/mm/aaaa.' },
+      { code: 'UNKNOWN_PROFILE', severity: 'ERROR', field: 'perfil', message: 'Perfil desconhecido. Use Novo, Regular, Bom ou Excelente.' },
+      { code: 'INVALID_DUE_DATES', severity: 'ERROR', field: 'vencimentos', message: 'Vencimentos inválidos. Use dd/mm/aaaa=valor; dd/mm/aaaa=valor.' },
+    ];
+    return { data: { ...b, id: 'missing1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1]) return j('legacy-import/legacyBatchReview.json');
   if (p === '/payables') return grow(j('finance/payableList.json'));
   if (s[0] === 'payables') return j('finance/payableDetail.json');
   if (p === '/pricing/settings') return j('pricing/pricingSettings.json');

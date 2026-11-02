@@ -19,9 +19,13 @@ test("instala handlers para SIGTERM e SIGINT", () => {
 });
 
 test("SIGTERM: requisição lenta termina antes de exit(0)", async () => {
+  // O sinal sai quando a requisição já está no handler (um atraso fixo falhava com a suíte carregada).
+  let started!: () => void;
+  const inHandler = new Promise<void>((resolve) => (started = resolve));
   const app = buildApp({
     ...quiet,
     healthCheck: async () => {
+      started();
       await tick(300);
     },
   });
@@ -43,7 +47,7 @@ test("SIGTERM: requisição lenta termina antes de exit(0)", async () => {
     });
   });
   const pending = fetch(`http://127.0.0.1:${port}/health`, { headers: { connection: "close" } });
-  await tick(50);
+  await inHandler;
   signals.emit("SIGTERM");
   assert.equal(await exited, 0);
   assert.equal((await pending).status, 200);

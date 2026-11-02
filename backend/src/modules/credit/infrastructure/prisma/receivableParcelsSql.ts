@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 /**
  * Parcelas de RECEIVABLE de clientes (documento filtrado por `docFilter`), com pago em centavos
  * (pagamentos ativos) e data de quitação (último pagamento ativo). Base comum de exposição e histórico.
- * Colunas: cid, id, due (date), amount_c, paid_c, remaining_c, last_paid (date|null).
+ * Colunas: cid, id, due (date), amount_c, paid_c, remaining_c, last_paid (date|null),
+ * counts_as_late (a parcela pode contar como atraso: `countsAsLate`) e is_notebook (dívida do caderninho).
  */
 export function receivableParcelsCte(customerFilter: Prisma.Sql, docFilter: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`
@@ -11,7 +12,9 @@ export function receivableParcelsCte(customerFilter: Prisma.Sql, docFilter: Pris
            (fp.amount * 100)::bigint AS amount_c,
            COALESCE(pay.paid_c, 0)::bigint AS paid_c,
            GREATEST((fp.amount * 100)::bigint - COALESCE(pay.paid_c, 0), 0)::bigint AS remaining_c,
-           pay.last_paid
+           pay.last_paid,
+           ${countsAsLate()} AS counts_as_late,
+           ${notebookDebt("fd")} AS is_notebook
     FROM "FinancialDocument" fd
     JOIN "FinancialParcel" fp ON fp."financialDocumentId" = fd.id
     LEFT JOIN LATERAL (
@@ -22,15 +25,29 @@ export function receivableParcelsCte(customerFilter: Prisma.Sql, docFilter: Pris
     WHERE fd.type = 'RECEIVABLE' AND fd."partyType" = 'CUSTOMER' AND ${customerFilter} AND ${docFilter}`;
 }
 
+/** Dívida do caderninho: origem LEGACY com `noLateFees`. `alias` = alias do documento na consulta. */
+function notebookDebt(alias: string): Prisma.Sql {
+  const doc = Prisma.raw(alias);
+  return Prisma.sql`(${doc}."noLateFees" AND ${doc}."originType" = 'LEGACY')`;
+}
+
 /**
  * Documentos que valem para pontuação/histórico: não cancelados e fora do caderninho. Dívida do caderninho
  * (origem LEGACY com `noLateFees`) nunca conta como atraso nem mexe em perfil/pontuação (spec §10).
- * A origem LEGACY ainda não existe no enum (importação do caderninho, tarefa futura): comparamos como texto.
  * `alias` é o alias do documento (`FinancialDocument`) na consulta.
  */
 export function countsTowardCreditHistory(alias = "fd"): Prisma.Sql {
   const doc = Prisma.raw(alias);
-  return Prisma.sql`(${doc}.status <> 'CANCELED' AND NOT (${doc}."noLateFees" AND ${doc}."originType"::text = 'LEGACY'))`;
+  return Prisma.sql`(${doc}.status <> 'CANCELED' AND NOT ${notebookDebt(alias)})`;
+}
+
+/**
+ * Parcela que pode contar como atraso (bloqueio do crediário, situação da ficha): nem "a combinar"
+ * (`dueDateUnknown`) nem dívida do caderninho — essas contam só no saldo/limite (decisão de 2026-10-26).
+ * `fd` = documento, `fp` = parcela na consulta.
+ */
+export function countsAsLate(): Prisma.Sql {
+  return Prisma.sql`(NOT fp."dueDateUnknown" AND NOT ${notebookDebt("fd")})`;
 }
 
 /**

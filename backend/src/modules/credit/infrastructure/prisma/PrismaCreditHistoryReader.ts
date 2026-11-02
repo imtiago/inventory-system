@@ -23,6 +23,7 @@ type Row = {
  * e `paidOnTime` (mesma janela: quitação dentro dela). Dias de atraso = quitação − vencimento;
  * em dia = atraso ≤ carência; `totalDaysLate` soma só as atrasadas (além da carência);
  * `maxDaysLateInPeriod` = maior entre os atrasos das quitadas no período e das vencidas em aberto.
+ * Parcela "a combinar" nunca tem atraso (`counts_as_late`).
  */
 export class PrismaCreditHistoryReader implements CreditHistoryReader {
   constructor(private readonly settings: CreditSettingsReader) {}
@@ -45,9 +46,9 @@ export class PrismaCreditHistoryReader implements CreditHistoryReader {
       ),
       parcel AS (${parcels}),
       classified AS (
-        SELECT pa.cid, pa.due, pa.remaining_c,
+        SELECT pa.cid, pa.due, pa.remaining_c, pa.counts_as_late,
                (pa.remaining_c = 0 AND pa.last_paid IS NOT NULL AND pa.last_paid BETWEEN win.start AND win.today) AS paid_in_period,
-               GREATEST(pa.last_paid - pa.due, 0) AS days_late
+               CASE WHEN pa.counts_as_late THEN GREATEST(pa.last_paid - pa.due, 0) ELSE 0 END AS days_late
         FROM parcel pa CROSS JOIN win
       ),
       paid_window AS (
@@ -68,7 +69,7 @@ export class PrismaCreditHistoryReader implements CreditHistoryReader {
              COUNT(cl.cid) FILTER (WHERE cl.paid_in_period AND cl.days_late > 30)::int AS paid_late30,
              COALESCE(SUM(cl.days_late) FILTER (WHERE cl.paid_in_period AND cl.days_late > ${grace}::int), 0)::int AS total_days_late,
              COALESCE(MAX(cl.days_late) FILTER (WHERE cl.paid_in_period), 0)::int AS max_paid_late,
-             COALESCE(MAX(win.today - cl.due) FILTER (WHERE cl.remaining_c > 0 AND cl.due < win.today), 0)::int AS current_overdue,
+             COALESCE(MAX(win.today - cl.due) FILTER (WHERE cl.remaining_c > 0 AND cl.due < win.today AND cl.counts_as_late), 0)::int AS current_overdue,
              COALESCE(MAX(pw.total_c), 0)::bigint AS total_paid_c
       FROM cust
       CROSS JOIN win

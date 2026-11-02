@@ -192,6 +192,18 @@ describe("buildReceiptContent", () => {
     assert.ok(labels.includes("Total recebido"));
   });
 
+  test("parcela a combinar do caderninho: vencimento 'a combinar' e origem do caderninho", () => {
+    const rows = Object.fromEntries(receipt({
+      payment: {
+        code: "X", paymentDate: "2026-11-10", method: "CASH", reference: null, parcelNumber: 1, parcelCount: 1,
+        dueDate: "2026-09-01", dueDateUnknown: true, principalCents: 5000, fineCents: 0, interestCents: 0, waivedCents: 0,
+        waiverReason: null, receivedBy: null, originLabel: "Saldo anterior — caderninho",
+      },
+    }).lines.map((r) => [r.label, r.value]));
+    assert.equal(rows["Parcela"], "1/1 (venc. a combinar)");
+    assert.equal(rows["Referente a"], "Saldo anterior — caderninho");
+  });
+
   test("declaração e título", () => {
     const c = receipt();
     assert.equal(c.title, "Recibo nº A1B2C3D4");

@@ -12,6 +12,7 @@ import { keyShape } from "../../../../../test/keyShape";
 import { parseCsv } from "../../../../../test/csvParse";
 import { createTestUser, TestUser } from "../../../../../test/authFixtures";
 import { createTestVariant } from "../../../../../test/inventoryFixtures";
+import { acquirePricingTestLock } from "../../../../../test/pricingTestLock";
 
 const FIXTURE = new URL("../../../../../../../frontend/src/test/fixtures/reports/profit.json", import.meta.url);
 
@@ -33,6 +34,8 @@ describe("GET /reports/profit", () => {
   let customerId: string;
   const variants: { variantId: string; cleanup(): Promise<void> }[] = [];
   const saleIds: string[] = [];
+  // Despesas % vêm de PricingSettings (linha única que outros arquivos alteram em paralelo).
+  let releasePricing: (() => Promise<void>) | undefined;
 
   const get = (user: TestUser, url: string) =>
     app.inject({ method: "GET", url, headers: { authorization: `Bearer ${user.token}` } });
@@ -81,6 +84,7 @@ describe("GET /reports/profit", () => {
   };
 
   before(async () => {
+    releasePricing = await acquirePricingTestLock();
     admin = await createTestUser({ role: "ADMIN" });
     seller = await createTestUser({ role: "VENDEDOR" });
     other = await createTestUser({ role: "VENDEDOR" });
@@ -125,6 +129,7 @@ describe("GET /reports/profit", () => {
     for (const v of variants) await v.cleanup();
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await Promise.all([admin, seller, other].map((u) => u.cleanup()));
+    await releasePricing?.();
     await prisma.$disconnect();
   });
 
@@ -142,18 +147,15 @@ describe("GET /reports/profit", () => {
     assert.equal(totals.revenue, 55.5);
     assert.equal(totals.cost, 9.33);
     assert.equal(totals.itemsWithoutCost, 1);
-    const afterBps = (await new PrismaPricingSettingsReader().getMarginSettings()).expensesBps;
-    if (bps === afterBps) {
-      const expenses = (rev: number) => applyBps(toCents(rev), bps) / 100;
-      assert.equal(d1.estimatedExpenses, expenses(25.5));
-      assert.equal(d2.estimatedExpenses, expenses(30));
-      assert.equal(totals.estimatedExpenses, Math.round((d1.estimatedExpenses + d2.estimatedExpenses) * 100) / 100);
-      assert.equal(
-        totals.profit,
-        Math.round((totals.revenue - totals.cost - totals.estimatedExpenses) * 100) / 100,
-      );
-      assert.equal(d1.marginPercent, Math.round((d1.profit / d1.revenue) * 10_000) / 100);
-    }
+    const expenses = (rev: number) => applyBps(toCents(rev), bps) / 100;
+    assert.equal(d1.estimatedExpenses, expenses(25.5));
+    assert.equal(d2.estimatedExpenses, expenses(30));
+    assert.equal(totals.estimatedExpenses, Math.round((d1.estimatedExpenses + d2.estimatedExpenses) * 100) / 100);
+    assert.equal(
+      totals.profit,
+      Math.round((totals.revenue - totals.cost - totals.estimatedExpenses) * 100) / 100,
+    );
+    assert.equal(d1.marginPercent, Math.round((d1.profit / d1.revenue) * 10_000) / 100);
   });
 
   test("views sale/variant/category somam igual ao total; filtro sellerId", async () => {
@@ -194,12 +196,9 @@ describe("GET /reports/profit", () => {
     assert.equal(totals.cost, 140);
     assert.equal(totals.cardFees, 3.49);
     assert.equal(rows[0].cardFees, 3.49);
-    const afterBps = (await new PrismaPricingSettingsReader().getMarginSettings()).expensesBps;
-    if (bps === afterBps) {
-      const expenses = applyBps(35_000, bps);
-      assert.equal(totals.estimatedExpenses, expenses / 100);
-      assert.equal(totals.profit, (35_000 - 14_000 - expenses - 349) / 100);
-    }
+    const expenses = applyBps(35_000, bps);
+    assert.equal(totals.estimatedExpenses, expenses / 100);
+    assert.equal(totals.profit, (35_000 - 14_000 - expenses - 349) / 100);
 
     const bySale = (await get(admin, `/reports/profit?from=${D3}&to=${D3}&view=sale`)).json().data;
     assert.deepEqual(

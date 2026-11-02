@@ -7,6 +7,7 @@ import { makeListFinancialDocumentsController } from "../controllers/ListFinanci
 import { makeGetFinancialDocumentController } from "../controllers/GetFinancialDocumentController";
 import { makeRegisterPaymentController } from "../controllers/RegisterPaymentController";
 import { makeReversePaymentController } from "../controllers/ReversePaymentController";
+import { makeSplitUnknownDueParcelController } from "../controllers/SplitUnknownDueParcelController";
 import { makeGetLateFeeQuoteController } from "../controllers/GetLateFeeQuoteController";
 
 interface FinancialRoutesOptions {
@@ -29,6 +30,12 @@ function financialDocumentRoutes({ type, permissions }: FinancialRoutesOptions) 
         "/:id/parcels/:parcelId/late-fees",
         { preHandler: [authorize(permissions.pay)] },
         makeGetLateFeeQuoteController(),
+      );
+      // Parcelar o saldo "a combinar" do caderninho (só quem administra o crédito).
+      app.post(
+        "/:id/parcels/:parcelId/split",
+        { preHandler: [authorize("credit.manage")] },
+        idempotent(makeSplitUnknownDueParcelController(type)),
       );
     }
     app.post(

@@ -1,0 +1,37 @@
+{
+  "data": {
+    "id": "b2d4f6a8-3c5e-4a7b-9d1f-5e7a9c1b3d25",
+    "status": "OPEN",
+    "displayStatus": "OPEN",
+    "originType": "LEGACY",
+    "originId": "b2d4f6a8-3c5e-4a7b-9d1f-5e7a9c1b3d25",
+    "customer": {
+      "id": "6a1e9d3c-2b7f-4c8a-9e5d-1f3b7a9c2e64",
+      "name": "Maria Oliveira"
+    },
+    "createdAt": "2026-11-01T12:00:00.000Z",
+    "totalAmount": 350,
+    "paidAmount": 0,
+    "remainingAmount": 350,
+    "noLateFees": true,
+    "parcels": [
+      {
+        "id": "c3e5a7b9-4d6f-4b8c-8e2a-6f8b0d2c4e36",
+        "number": 1,
+        "amount": 350,
+        "dueDate": "2026-11-01",
+        "dueDateUnknown": true,
+        "paidAmount": 0,
+        "remainingAmount": 350,
+        "status": "OPEN",
+        "payments": [],
+        "lateFeesToday": {
+          "daysLate": 0,
+          "fine": 0,
+          "interest": 0,
+          "totalDue": 350
+        }
+      }
+    ]
+  }
+}
