@@ -250,6 +250,16 @@ describe("Carnê, recibo e dados da loja", () => {
       assert.ok(!summary.includes("1% ao mês"), "carnê usou os juros atuais");
     });
 
+    test("data da venda no carnê é a data de negócio (venda às 23h30 em São Paulo não vira o dia seguinte)", async () => {
+      await saveStore();
+      const { saleId } = await createCrediarioSale({ parcels: [100, 100], cashPrice: 190, surcharge: 10 });
+      // 02h30Z de D = 23h30 de D−1 em São Paulo.
+      await prisma.sale.update({ where: { id: saleId }, data: { createdAt: new Date(`${addDays(-1)}T02:30:00.000Z`) } });
+      const br = (iso: string) => iso.split("-").reverse().join("/");
+      const [summary] = pdfPages((await call(admin, "GET", `/sales/${saleId}/carne.pdf`)).rawPayload);
+      assert.ok(summary.includes(`em ${br(addDays(-2))}`), `carnê sem a data de negócio ${br(addDays(-2))}`);
+    });
+
     test("sem dados da loja → 422 STORE_SETTINGS_MISSING", async () => {
       const { saleId } = await createCrediarioSale({ parcels: [100, 100], cashPrice: 190, surcharge: 10 });
       const res = await call(seller, "GET", `/sales/${saleId}/carne.pdf`);

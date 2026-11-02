@@ -1,5 +1,6 @@
 import { getDb } from "@shared/infrastructure/prisma/transactionContext";
 import { toCents } from "@shared/domain/money";
+import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { toDateOnly } from "@finance/domain/services/receivableStatus";
 import type { CarneInput, ReceiptInput } from "@credit/domain/carneContent";
 import type { CreditDocumentsReader } from "@credit/application/contracts/CreditDocumentsReader";
@@ -51,7 +52,7 @@ export class PrismaCreditDocumentsReader implements CreditDocumentsReader {
       customer: { name: sale.customer.name, document: sale.customer.document, phone: sale.customer.phone, address: sale.customer.address },
       sale: {
         code: codeOf(sale.id),
-        date: toDateOnly(sale.createdAt),
+        date: todayInBusinessTz(sale.createdAt), // data de negócio (São Paulo), não o dia UTC
         items: sale.items.map((i) => ({ name: i.productName, quantity: i.quantity })),
       },
       financing: {

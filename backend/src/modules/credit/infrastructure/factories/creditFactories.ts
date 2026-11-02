@@ -75,6 +75,7 @@ export function makeApproveCreditLimitRequestUseCase(): ApproveCreditLimitReques
     new PrismaCreditLimitRequestRepository(),
     makeCustomerCreditService(),
     new PrismaTransactionManager(),
+    new PrismaCustomerCreditRepository(),
   );
 }
 

@@ -1,5 +1,6 @@
 import { BusinessRuleError, ConflictError, ErrorCodes, NotFoundError } from "@shared/domain/errors";
 import { todayInBusinessTz } from "@shared/domain/businessDate";
+import { fromCents } from "@shared/domain/money";
 import type { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
 import type { PaginationRequest } from "@shared/application/dtos/PaginationRequest";
 import type { TransactionManager } from "@shared/application/transaction/TransactionManager";
@@ -99,12 +100,17 @@ export interface DecideCreditLimitRequestInput {
   reason?: string;
 }
 
-/** Aprova (pode ajustar o valor): trava o pedido → valida PENDING → ficha do cliente (`applyChange`) → decisão. */
+/**
+ * Aprova (pode ajustar o valor): trava o pedido → valida PENDING → trava a ficha do cliente e confere que o
+ * valor aprovado ainda é maior que o limite atual (o limite pode ter mudado depois do pedido; aprovar nunca
+ * baixa o limite → 422 CREDIT_LIMIT_NOT_HIGHER) → `applyChange` (reentrante) → decisão.
+ */
 export class ApproveCreditLimitRequestUseCase {
   constructor(
     private readonly requests: CreditLimitRequestRepository,
     private readonly credit: CustomerCreditService,
     private readonly transactionManager: TransactionManager,
+    private readonly customers: Pick<CustomerCreditRepository, "lock">,
   ) {}
 
   execute({ id, userId, approvedLimitCents, reason }: DecideCreditLimitRequestInput): Promise<CreditLimitRequestDTO> {
@@ -112,6 +118,15 @@ export class ApproveCreditLimitRequestUseCase {
       const request = await this.requests.lockById(id);
       if (!request) throw new NotFoundError("Pedido de aumento não encontrado.", ErrorCodes.CREDIT_REQUEST_NOT_FOUND);
       const limitCents = request.approve(userId, approvedLimitCents, reason ?? null);
+      const current = await this.customers.lock(request.customerId);
+      if (!current) throw new NotFoundError("Cliente não encontrado.", ErrorCodes.CUSTOMER_NOT_FOUND);
+      if (limitCents <= current.limitCents) {
+        throw new BusinessRuleError(
+          "O limite aprovado deve ser maior que o limite atual do cliente.",
+          ErrorCodes.CREDIT_LIMIT_NOT_HIGHER,
+          { currentLimit: fromCents(current.limitCents) },
+        );
+      }
       await this.credit.applyChange({
         customerId: request.customerId,
         limitCents,

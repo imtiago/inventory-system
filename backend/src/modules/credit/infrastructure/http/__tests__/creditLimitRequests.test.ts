@@ -200,6 +200,23 @@ describe("Pedidos de aumento de limite (/credit/limit-requests)", () => {
     assert.equal((await call("ADMIN", "POST", `/credit/limit-requests/${randomUUID()}/approve`, {})).statusCode, 404);
   });
 
+  test("aprovar não baixa o limite: valor ≤ limite atual (mudado depois do pedido) → 422 CREDIT_LIMIT_NOT_HIGHER, pedido segue pendente", async () => {
+    const id = await customer({ profile: "REGULAR" });
+    const created = (await request("VENDEDOR", id, 1500)).json().data;
+    // Limite subiu por outro caminho enquanto o pedido esperava.
+    await prisma.customer.update({ where: { id }, data: { creditLimit: 2000 } });
+    const res = await call("ADMIN", "POST", `/credit/limit-requests/${created.id}/approve`, {});
+    assert.equal(res.statusCode, 422, res.body);
+    assert.equal(res.json().code, "CREDIT_LIMIT_NOT_HIGHER");
+    const adjusted = await call("ADMIN", "POST", `/credit/limit-requests/${created.id}/approve`, { approvedLimit: 1999.99 });
+    assert.equal(adjusted.statusCode, 422, adjusted.body);
+    assert.equal(await creditOf(id), 2000);
+    assert.equal((await prisma.creditLimitRequest.findUniqueOrThrow({ where: { id: created.id } })).status, "PENDING");
+    const ok = await call("ADMIN", "POST", `/credit/limit-requests/${created.id}/approve`, { approvedLimit: 2500 });
+    assert.equal(ok.statusCode, 200, ok.body);
+    assert.equal(await creditOf(id), 2500);
+  });
+
   test("aprovar sem valor usa o pedido; valor inválido → 400; replay com a mesma chave não repete a mudança", async () => {
     const id = await customer({ profile: "REGULAR" });
     const created = (await request("VENDEDOR", id, 2500)).json().data;
