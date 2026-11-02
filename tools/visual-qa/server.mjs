@@ -136,6 +136,24 @@ function route(method, url) {
   if (s[0] === 'receivables' && s[1] === 'legacy1') return j('finance/receivableDetailLegacy.json');
   if (s[0] === 'receivables' && s[1] === 'fees1') return j('finance/receivableDetailLateFees.json');
   if (s[0] === 'receivables') return j('finance/receivableDetail.json');
+  if (p === '/legacy-imports') {
+    // Lotes do caderninho: rascunho (CSV), confirmado e desfeito (lançamento rápido).
+    const list = grow(j('legacy-import/legacyBatches.json'), 3);
+    const confirmed = j('legacy-import/legacyBatchConfirmed.json').data;
+    const { rows: _rows, ...header } = confirmed;
+    list.data[1] = { ...header, id: 'confirmed1' };
+    list.data[2] = { ...header, id: 'reverted1', status: 'REVERTED', revertedAt: '2026-11-01T16:00:00.000Z' };
+    return { ...list, pagination: { page: 1, limit: 10, total: 3, totalPages: 1 } };
+  }
+  if (s[0] === 'legacy-imports' && s[1] === 'confirmed1') return { data: { ...j('legacy-import/legacyBatchConfirmed.json').data, id: 'confirmed1' } };
+  if (s[0] === 'legacy-imports' && s[1] === 'clean1') {
+    // Sem erro nem nome parecido pendente: o botão Confirmar fica liberado.
+    const b = j('legacy-import/legacyBatchReview.json').data;
+    b.rows = b.rows.filter((r) => r.line === 2 || r.line === 5);
+    b.summary = { ...b.summary, rows: 2, warnings: 1, errors: 0, ignored: 0, newCustomers: 1, existingCustomers: 1, openTotal: 1400 };
+    return { data: { ...b, id: 'clean1' } };
+  }
+  if (s[0] === 'legacy-imports' && s[1]) return j('legacy-import/legacyBatchReview.json');
   if (p === '/payables') return grow(j('finance/payableList.json'));
   if (s[0] === 'payables') return j('finance/payableDetail.json');
   if (p === '/pricing/settings') return j('pricing/pricingSettings.json');

@@ -34,6 +34,12 @@ export const statusTone: Record<string, Tone> = {
   RESERVED: 'info',
   OUT_OF_STOCK: 'danger',
 
+  // Linhas do lote do caderninho (o lote usa DRAFT/CONFIRMED/REVERTED, acima)
+  OK: 'success',
+  WARNING: 'warning',
+  ERROR: 'danger',
+  IGNORED: 'neutral',
+
   // Usuários
   ACTIVE: 'success',
   INACTIVE: 'neutral',

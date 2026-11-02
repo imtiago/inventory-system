@@ -28,6 +28,11 @@ export const queryKeys = {
 
   nfeImports: ['nfe-imports'] as const,
 
+  /** Lotes da migração do caderninho (lista e detalhe sob o mesmo prefixo). */
+  legacyImports: ['legacy-imports'] as const,
+
+  legacyImport: (id: string) => ['legacy-imports', 'detail', id] as const,
+
   products: ['products'] as const,
 
   customers: ['customers'] as const,

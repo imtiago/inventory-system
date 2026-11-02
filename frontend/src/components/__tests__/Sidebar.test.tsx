@@ -67,6 +67,14 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Importar NF-e')).not.toBeInTheDocument();
   });
 
+  test('só ADMIN vê Migração do caderninho (Financeiro)', () => {
+    renderSidebar('ADMIN');
+    expect(screen.getByRole('link', { name: /Migração do caderninho/ })).toHaveAttribute('href', '/finance/legacy-imports');
+    cleanup();
+    renderSidebar('VENDEDOR');
+    expect(screen.queryByText('Migração do caderninho')).not.toBeInTheDocument();
+  });
+
   test('ESTOQUISTA não vê Contas a pagar', () => {
     renderSidebar('ESTOQUISTA');
     expect(screen.queryByText('Contas a pagar')).not.toBeInTheDocument();

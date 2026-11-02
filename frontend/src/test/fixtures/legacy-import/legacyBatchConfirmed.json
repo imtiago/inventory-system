@@ -1,0 +1,92 @@
+{
+  "data": {
+    "id": "8b2f3c4d-5e6f-4071-8b9c-0d1e2f3a4b5c",
+    "status": "CONFIRMED",
+    "source": "MANUAL",
+    "fileName": null,
+    "createdAt": "2026-11-01T13:00:00.000Z",
+    "createdBy": {
+      "id": "b0a1f6a2-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+      "name": "Administrador"
+    },
+    "summary": {
+      "newCustomers": 1,
+      "existingCustomers": 1,
+      "openTotal": 1400,
+      "rows": 2,
+      "warnings": 1,
+      "errors": 0,
+      "ignored": 0
+    },
+    "limitRule": "MAX_OF_PROFILE_AND_BALANCE",
+    "confirmedAt": "2026-11-01T14:30:00.000Z",
+    "revertedAt": null,
+    "rows": [
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4002",
+        "line": 2,
+        "status": "WARNING",
+        "data": {
+          "name": "Maria Silva",
+          "phone": null,
+          "purchaseDate": "2026-03-05",
+          "description": "Sofá",
+          "total": 1000,
+          "paid": 200,
+          "open": 800,
+          "dueDates": null,
+          "profileCode": null,
+          "notes": null
+        },
+        "issues": [
+          {
+            "code": "NO_PHONE",
+            "severity": "WARNING",
+            "field": "celular",
+            "message": "Sem celular."
+          }
+        ],
+        "customerAction": {
+          "kind": "LINK",
+          "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+        },
+        "suggestions": [],
+        "customerId": "3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "financialDocumentId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b01"
+      },
+      {
+        "id": "1e2d3c4b-5a69-4788-9a0b-0c1d2e3f4005",
+        "line": 5,
+        "status": "OK",
+        "data": {
+          "name": "Carla Mendes",
+          "phone": "11944443333",
+          "purchaseDate": "2026-06-01",
+          "description": "Mesa",
+          "total": 600,
+          "paid": 0,
+          "open": 600,
+          "dueDates": [
+            {
+              "date": "2026-11-10",
+              "amount": 300
+            },
+            {
+              "date": "2026-12-10",
+              "amount": 300
+            }
+          ],
+          "profileCode": "GOOD",
+          "notes": "Paga em dia"
+        },
+        "issues": [],
+        "customerAction": {
+          "kind": "NEW"
+        },
+        "suggestions": [],
+        "customerId": "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f",
+        "financialDocumentId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b02"
+      }
+    ]
+  }
+}
