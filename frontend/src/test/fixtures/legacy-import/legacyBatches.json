@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "id": "6f9d4c0e-5b7a-4c1e-9a52-2f0b1c7d8e11",
+      "status": "DRAFT",
+      "source": "CSV",
+      "fileName": "caderno.csv",
+      "createdAt": "2026-11-02T13:00:00.000Z",
+      "createdBy": { "id": "b0a1f6a2-3c4d-4e5f-8a9b-0c1d2e3f4a5b", "name": "Administrador" },
+      "summary": {
+        "newCustomers": 2,
+        "existingCustomers": 1,
+        "openTotal": 1150.5,
+        "rows": 3,
+        "warnings": 3,
+        "errors": 0,
+        "ignored": 0
+      }
+    }
+  ],
+  "pagination": { "page": 1, "limit": 10, "total": 1, "totalPages": 1 }
+}
