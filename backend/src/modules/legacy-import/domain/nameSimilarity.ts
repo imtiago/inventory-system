@@ -79,7 +79,7 @@ export function nameMatch(a: string, b: string): NameMatch | null {
 }
 
 /** Celular só com dígitos (sem +55), ou null se curto demais. */
-function phoneKey(phone: string | null | undefined): string | null {
+export function phoneKey(phone: string | null | undefined): string | null {
   if (!phone) return null;
   let d = phone.replace(/\D/g, "");
   if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
@@ -88,20 +88,66 @@ function phoneKey(phone: string | null | undefined): string | null {
 
 const MAX_RESULTS = 5;
 
+interface IndexedCandidate {
+  order: number;
+  id: string;
+  tokens: string[];
+  phone: string | null;
+}
+
+/**
+ * Candidatos normalizados uma vez e agrupados pela inicial do 1º termo: todo SAME/SIMILAR tem a mesma
+ * inicial no 1º termo (igualdade, abreviação "M. Silva", erro de digitação no 1º nome que mantém a 1ª letra),
+ * então só o grupo da inicial precisa de comparação; o celular entra por um mapa à parte.
+ * `add` aceita candidatos aos poucos (linhas anteriores do lote).
+ */
+export class SimilarityIndex {
+  private readonly byInitial = new Map<string, IndexedCandidate[]>();
+  private readonly byPhone = new Map<string, IndexedCandidate[]>();
+  private size = 0;
+
+  constructor(candidates: { id: string; name: string; phone?: string | null }[] = []) {
+    for (const c of candidates) this.add(c.id, normalizeName(c.name), c.phone);
+  }
+
+  add(id: string, tokens: string[], phone?: string | null): void {
+    const entry: IndexedCandidate = { order: this.size++, id, tokens, phone: phoneKey(phone) };
+    if (tokens.length > 0) {
+      const initial = tokens[0][0];
+      const list = this.byInitial.get(initial);
+      if (list) list.push(entry);
+      else this.byInitial.set(initial, [entry]);
+    }
+    if (entry.phone) {
+      const list = this.byPhone.get(entry.phone);
+      if (list) list.push(entry);
+      else this.byPhone.set(entry.phone, [entry]);
+    }
+  }
+
+  /** Mesmo resultado de comparar com todos, na ordem dos candidatos: fortes (SAME/PHONE) e depois SIMILAR, até 5. */
+  find(tokens: string[], phone?: string | null): { id: string; match: SimilarMatch }[] {
+    const key = phoneKey(phone);
+    const pool = new Map<number, IndexedCandidate>();
+    if (tokens.length > 0) for (const c of this.byInitial.get(tokens[0][0]) ?? []) pool.set(c.order, c);
+    if (key) for (const c of this.byPhone.get(key) ?? []) pool.set(c.order, c);
+    const ordered = [...pool.values()].sort((a, b) => a.order - b.order);
+    const strong: { id: string; match: SimilarMatch }[] = [];
+    const weak: { id: string; match: SimilarMatch }[] = [];
+    for (const c of ordered) {
+      const byName = matchTokens(tokens, c.tokens);
+      if (byName === "SAME") strong.push({ id: c.id, match: "SAME" });
+      else if (key !== null && c.phone === key) strong.push({ id: c.id, match: "PHONE" });
+      else if (byName === "SIMILAR") weak.push({ id: c.id, match: "SIMILAR" });
+    }
+    return [...strong, ...weak].slice(0, MAX_RESULTS);
+  }
+}
+
 export function findSimilar(
   name: string,
   candidates: { id: string; name: string; phone?: string | null }[],
   phone?: string | null,
 ): { id: string; match: SimilarMatch }[] {
-  const tokens = normalizeName(name);
-  const key = phoneKey(phone);
-  const strong: { id: string; match: SimilarMatch }[] = [];
-  const weak: { id: string; match: SimilarMatch }[] = [];
-  for (const c of candidates) {
-    const byName = matchTokens(tokens, normalizeName(c.name));
-    if (byName === "SAME") strong.push({ id: c.id, match: "SAME" });
-    else if (key !== null && phoneKey(c.phone) === key) strong.push({ id: c.id, match: "PHONE" });
-    else if (byName === "SIMILAR") weak.push({ id: c.id, match: "SIMILAR" });
-  }
-  return [...strong, ...weak].slice(0, MAX_RESULTS);
+  return new SimilarityIndex(candidates).find(normalizeName(name), phone);
 }

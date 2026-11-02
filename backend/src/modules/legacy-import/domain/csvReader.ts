@@ -1,8 +1,9 @@
 import { ValidationError } from "@shared/domain/errors";
+import { legacyTooManyRows, MAX_BATCH_ROWS } from "./legacyErrors";
 
 export const MAX_CSV_CHARS = 1_000_000;
-export const MAX_CSV_DATA_LINES = 2000;
-const TOO_BIG = "Arquivo grande demais (máx. 2.000 linhas).";
+export const MAX_CSV_DATA_LINES = MAX_BATCH_ROWS;
+const TOO_BIG = "Arquivo grande demais (máx. 1 MB).";
 
 /** UTF-8 estrito (sem BOM); se os bytes não forem UTF-8 válido, windows-1252. */
 export function decodeCsvBytes(bytes: Uint8Array): string {
@@ -100,7 +101,7 @@ export function parseCsv(text: string): { header: string[]; rows: { line: number
 
   const [head, ...rows] = records;
   if (!head) return { header: [], rows: [] };
-  if (rows.length > MAX_CSV_DATA_LINES) throw new ValidationError(TOO_BIG, []);
+  if (rows.length > MAX_CSV_DATA_LINES) throw legacyTooManyRows();
   return { header: head.cells, rows };
 }
 export { LEGACY_COLUMNS, mapHeader, type LegacyColumn } from "./legacyTemplate";

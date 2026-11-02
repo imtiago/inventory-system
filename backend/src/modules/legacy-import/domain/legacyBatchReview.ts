@@ -3,7 +3,7 @@
 import type { LegacyColumn } from "./legacyTemplate";
 import { LEGACY_COLUMNS } from "./legacyTemplate";
 import { validateLegacyRow, type LegacyIssue, type LegacyRowData } from "./legacyRow";
-import { findSimilar, type SimilarMatch } from "./nameSimilarity";
+import { normalizeName, SimilarityIndex, type SimilarMatch } from "./nameSimilarity";
 
 export type LegacyRawRow = Record<LegacyColumn, string>;
 
@@ -104,20 +104,23 @@ export function reviewBatch(
   // 1) validação por linha
   const validated = sorted.map((r) => ({ input: r, ...validateLegacyRow(r.raw, today) }));
 
-  // 2) sugestões
+  // 2) sugestões (clientes normalizados uma vez, por inicial; linhas anteriores entram no índice aos poucos)
+  const customerIndex = new SimilarityIndex(customers);
+  const rowIndex = new SimilarityIndex();
+  const nameOfRow = new Map<string, string>();
   const suggestionsOf = new Map<string, LegacySuggestion[]>();
-  const earlier: { id: string; name: string; phone: string | null }[] = [];
   for (const v of validated) {
     const list: LegacySuggestion[] = [];
     if (!v.input.ignored && v.data.name !== "") {
-      for (const m of findSimilar(v.data.name, customers, v.data.phone)) {
+      const tokens = normalizeName(v.data.name);
+      for (const m of customerIndex.find(tokens, v.data.phone)) {
         list.push({ customerId: m.id, name: customerName.get(m.id) ?? "", match: m.match });
       }
-      const nameOfRow = new Map(earlier.map((e) => [e.id, e.name]));
-      for (const m of findSimilar(v.data.name, earlier, v.data.phone)) {
+      for (const m of rowIndex.find(tokens, v.data.phone)) {
         list.push({ rowId: m.id, name: nameOfRow.get(m.id) ?? "", match: m.match });
       }
-      earlier.push({ id: v.input.id, name: v.data.name, phone: v.data.phone });
+      rowIndex.add(v.input.id, tokens, v.data.phone);
+      nameOfRow.set(v.input.id, v.data.name);
     }
     suggestionsOf.set(v.input.id, list);
   }

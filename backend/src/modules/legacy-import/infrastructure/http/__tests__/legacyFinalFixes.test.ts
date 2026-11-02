@@ -125,4 +125,29 @@ describe("Caderninho: correções da revisão final (nome × vínculo, dívida r
     assert.deepEqual(res.json().details.lines, [2, 3]);
     assert.equal(await prisma.customer.count({ where: { name: longName } }), 0);
   });
+
+  test("I-3: lote de no máximo 500 linhas: CSV com 501 → 422 LEGACY_BATCH_TOO_LARGE; lançamento rápido que passaria de 500 → 422", async () => {
+    const line = () => `${newName()};;;x;10,00;;;;`;
+    const big = await uploadRaw([HEADER, ...Array.from({ length: 501 }, line)].join("\n"));
+    assert.equal(big.statusCode, 422, big.body);
+    assert.equal(big.json().code, "LEGACY_BATCH_TOO_LARGE");
+    assert.match(big.json().message, /500 linhas/);
+
+    const t0 = performance.now();
+    const batch = await upload(Array.from({ length: 450 }, line));
+    assert.ok(performance.now() - t0 < 8000, "upload de 450 linhas dentro do prazo da transação");
+    assert.equal(batch.rows.length, 450);
+    const add = await call("POST", `/legacy-imports/${batch.id}/rows`, {
+      customer: { name: newName() },
+      debts: Array.from({ length: 51 }, () => ({ amount: 10 })),
+    });
+    assert.equal(add.statusCode, 422, add.body);
+    assert.equal(add.json().code, "LEGACY_BATCH_TOO_LARGE");
+    const fits = await call("POST", `/legacy-imports/${batch.id}/rows`, {
+      customer: { name: newName() },
+      debts: Array.from({ length: 50 }, () => ({ amount: 10 })),
+    });
+    assert.equal(fits.statusCode, 201, fits.body);
+    assert.equal(fits.json().data.rows.length, 500);
+  });
 });

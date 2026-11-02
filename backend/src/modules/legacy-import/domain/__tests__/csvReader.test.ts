@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decodeCsvBytes, parseCsv } from "@legacy-import/domain/csvReader";
 import { LEGACY_COLUMNS, mapHeader, buildLegacyTemplateCsv } from "@legacy-import/domain/legacyTemplate";
-import { ValidationError } from "@shared/domain/errors";
+import { BusinessRuleError, ValidationError } from "@shared/domain/errors";
 
 const enc = (s: string) => new TextEncoder().encode(s);
 
@@ -47,11 +47,14 @@ test("células com =,+,-,@ ficam como texto", () => {
   assert.deepEqual(r.rows[0].cells, ["=CMD()", "-5"]);
 });
 
-test("limites: > 2000 linhas de dados", () => {
-  const big = "nome;valor_total\n" + Array.from({ length: 2001 }, () => "A;1").join("\n");
+test("limites: > 500 linhas de dados → 422 LEGACY_BATCH_TOO_LARGE", () => {
+  const ok = "nome;valor_total\n" + Array.from({ length: 500 }, () => "A;1").join("\n");
+  assert.equal(parseCsv(ok).rows.length, 500);
+  const big = "nome;valor_total\n" + Array.from({ length: 501 }, () => "A;1").join("\n");
   assert.throws(
     () => parseCsv(big),
-    (e: unknown) => e instanceof ValidationError && /2\.000 linhas/.test((e as Error).message),
+    (e: unknown) =>
+      e instanceof BusinessRuleError && (e as BusinessRuleError).code === "LEGACY_BATCH_TOO_LARGE" && /500 linhas/.test((e as Error).message),
   );
 });
 

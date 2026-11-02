@@ -21,8 +21,15 @@ export const legacyFileTooLarge = () =>
 export const legacyFileEmpty = () =>
   new ValidationError("O arquivo não tem linhas para importar.", [{ field: "file", message: "O arquivo não tem linhas para importar." }]);
 
+/** Máximo de linhas de um lote (CSV e lançamento rápido somados). */
+export const MAX_BATCH_ROWS = 500;
+
 export const legacyTooManyRows = () =>
-  new ValidationError("Lote grande demais (máx. 2.000 linhas).", []);
+  new BusinessRuleError(
+    `Lote grande demais (máx. ${MAX_BATCH_ROWS} linhas). Divida o caderninho em mais de um arquivo.`,
+    ErrorCodes.LEGACY_BATCH_TOO_LARGE,
+    { max: MAX_BATCH_ROWS },
+  );
 
 export const legacyBatchHasErrors = (lines: number[]) =>
   new BusinessRuleError("Corrija as linhas com erro antes de confirmar.", ErrorCodes.LEGACY_BATCH_HAS_ERRORS, { lines });

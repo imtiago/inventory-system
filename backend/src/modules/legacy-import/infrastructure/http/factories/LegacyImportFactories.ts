@@ -36,11 +36,13 @@ export function makeLegacyBatchDeps(): LegacyBatchDeps {
 }
 
 const tm = () => new PrismaTransactionManager();
+/** Escritas no rascunho (upload, linhas, edição): revisão do lote inteiro (até 500 linhas) sob a trava. */
+const draftTm = () => new PrismaTransactionManager({ timeout: 30_000 });
 
-export const makeUploadLegacyCsvUseCase = () => new UploadLegacyCsvUseCase(makeLegacyBatchDeps(), tm());
-export const makeCreateManualLegacyBatchUseCase = () => new CreateManualLegacyBatchUseCase(makeLegacyBatchDeps(), tm());
-export const makeAddLegacyRowsUseCase = () => new AddLegacyRowsUseCase(makeLegacyBatchDeps(), tm());
-export const makeUpdateLegacyRowUseCase = () => new UpdateLegacyRowUseCase(makeLegacyBatchDeps(), tm());
+export const makeUploadLegacyCsvUseCase = () => new UploadLegacyCsvUseCase(makeLegacyBatchDeps(), draftTm());
+export const makeCreateManualLegacyBatchUseCase = () => new CreateManualLegacyBatchUseCase(makeLegacyBatchDeps(), draftTm());
+export const makeAddLegacyRowsUseCase = () => new AddLegacyRowsUseCase(makeLegacyBatchDeps(), draftTm());
+export const makeUpdateLegacyRowUseCase = () => new UpdateLegacyRowUseCase(makeLegacyBatchDeps(), draftTm());
 export const makeGetLegacyBatchUseCase = () => new GetLegacyBatchUseCase(makeLegacyBatchDeps());
 export const makeListLegacyBatchesUseCase = () => new ListLegacyBatchesUseCase(new PrismaLegacyImportBatchReadRepository());
 export const makeDeleteLegacyDraftUseCase = () => new DeleteLegacyDraftUseCase(new PrismaLegacyImportBatchRepository(), tm());

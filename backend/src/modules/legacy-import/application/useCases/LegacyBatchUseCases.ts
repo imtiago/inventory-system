@@ -2,10 +2,8 @@ import { randomUUID } from "node:crypto";
 import { TransactionalUseCase } from "@shared/application/useCases/TransactionalUseCase";
 import type { TransactionManager } from "@shared/application/transaction/TransactionManager";
 import type { PaginatedResult } from "@shared/application/dtos/PaginatedResult";
-import { todayInBusinessTz } from "@shared/domain/businessDate";
-import { decodeCsvBytes, LEGACY_COLUMNS, mapHeader, MAX_CSV_DATA_LINES, parseCsv } from "../../domain/csvReader";
+import { decodeCsvBytes, LEGACY_COLUMNS, mapHeader, parseCsv } from "../../domain/csvReader";
 import { emptyRaw, type CustomerAction } from "../../domain/legacyBatchReview";
-import { validateLegacyRow } from "../../domain/legacyRow";
 import { applyRowInput, type LegacyRowDataInput } from "../../domain/legacyRowInput";
 import {
   legacyBatchNotDraft,
@@ -15,6 +13,7 @@ import {
   legacyInvalidTarget,
   legacyRowNotFound,
   legacyTooManyRows,
+  MAX_BATCH_ROWS,
 } from "../../domain/legacyErrors";
 import type {
   LegacyCustomerLookup,
@@ -75,20 +74,12 @@ export async function storedBatchDTO(deps: Pick<LegacyBatchDeps, "batches" | "re
   };
 }
 
-/** Insere as linhas (validação inicial), revisa o lote todo e grava o que mudou. Linhas `NEW` podem nascer vinculadas. */
+/** Revisa o lote com as linhas novas e as insere já revisadas (uma escrita por linha). Linhas `NEW` podem nascer vinculadas. */
 async function addRows(deps: LegacyBatchDeps, batchId: string, rows: NewRow[]): Promise<LegacyBatchDTO> {
-  const today = todayInBusinessTz();
-  const current = (await deps.batches.rows(batchId)).length;
-  if (current + rows.length > MAX_CSV_DATA_LINES) throw legacyTooManyRows();
-  await deps.batches.insertRows(
-    batchId,
-    rows.map((r) => {
-      const { data, issues } = validateLegacyRow(r.raw, today);
-      return { ...r, data, issues, status: "OK" as const };
-    }),
-  );
+  const current = await deps.batches.countRows(batchId);
+  if (current + rows.length > MAX_BATCH_ROWS) throw legacyTooManyRows();
   const fresh = new Set(rows.filter((r) => r.customerAction.kind === "NEW").map((r) => r.id));
-  const result = await deps.reviewer.reviewAndSave(batchId, fresh);
+  const result = await deps.reviewer.reviewAndSave(batchId, fresh, rows);
   return toBatchDTO(deps.reads, batchId, result);
 }
 

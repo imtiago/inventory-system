@@ -1,6 +1,7 @@
 import { todayInBusinessTz } from "@shared/domain/businessDate";
 import { reviewBatch, type BatchSummary, type ReviewedRow } from "../../domain/legacyBatchReview";
 import type {
+  NewRow,
   LegacyCustomerLookup,
   LegacyImportBatchRepository,
   RowChange,
@@ -38,13 +39,37 @@ export class LegacyBatchReviewer {
     );
   }
 
-  /** Recalcula e grava só o que mudou, mais o resumo. Exige a trava do lote (transação). */
-  async reviewAndSave(batchId: string, fresh: ReadonlySet<string> = new Set()): Promise<{ rows: ReviewedRow[]; summary: BatchSummary }> {
+  /**
+   * Recalcula e grava só o que mudou, mais o resumo. Exige a trava do lote (transação).
+   * `inserts`: linhas novas, revisadas junto com as gravadas e inseridas já com o resultado (uma escrita só).
+   */
+  async reviewAndSave(
+    batchId: string,
+    fresh: ReadonlySet<string> = new Set(),
+    inserts: NewRow[] = [],
+  ): Promise<{ rows: ReviewedRow[]; summary: BatchSummary }> {
     const stored = await this.batches.rows(batchId);
-    const result = await this.review(stored, fresh);
+    const pending: StoredRow[] = inserts.map((r) => ({
+      id: r.id,
+      line: r.line,
+      raw: r.raw,
+      data: null as unknown as StoredRow["data"],
+      issues: [],
+      status: "OK",
+      customerAction: r.customerAction,
+      customerId: null,
+      financialDocumentId: null,
+    }));
+    const result = await this.review([...stored, ...pending], fresh);
     const before = new Map(stored.map((r) => [r.id, r]));
+    const inserted = new Set(inserts.map((r) => r.id));
     const changes: RowChange[] = [];
+    const toInsert: ReviewedRow[] = [];
     for (const r of result.rows) {
+      if (inserted.has(r.id)) {
+        toInsert.push(r);
+        continue;
+      }
       const old = before.get(r.id)!;
       const same =
         old.status === r.status &&
@@ -55,6 +80,21 @@ export class LegacyBatchReviewer {
       if (!same) {
         changes.push({ id: r.id, data: r.data, issues: r.issues, status: r.status, customerAction: r.customerAction, customerId: r.customerId });
       }
+    }
+    if (toInsert.length > 0) {
+      await this.batches.insertRows(
+        batchId,
+        toInsert.map((r) => ({
+          id: r.id,
+          line: r.line,
+          raw: r.raw,
+          data: r.data,
+          issues: r.issues,
+          status: r.status,
+          customerAction: r.customerAction,
+          customerId: r.customerId,
+        })),
+      );
     }
     await this.batches.updateRows(changes);
     await this.batches.saveSummary(batchId, result.summary);

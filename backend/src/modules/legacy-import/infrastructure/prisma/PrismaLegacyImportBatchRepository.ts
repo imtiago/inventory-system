@@ -58,9 +58,13 @@ export class PrismaLegacyImportBatchRepository implements LegacyImportBatchRepos
     return agg._max.line ?? 1;
   }
 
+  async countRows(batchId: string): Promise<number> {
+    return getDb().legacyImportRow.count({ where: { batchId } });
+  }
+
   async insertRows(
     batchId: string,
-    rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw" | "customerId">)[],
+    rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw">)[],
   ): Promise<void> {
     const data = rows.map((r) => ({
       id: r.id,
@@ -71,7 +75,7 @@ export class PrismaLegacyImportBatchRepository implements LegacyImportBatchRepos
       issues: json(r.issues),
       status: r.status,
       customerAction: json(r.customerAction),
-      customerId: r.customerAction.kind === "LINK" ? r.customerAction.customerId : null,
+      customerId: r.customerId,
     }));
     await getDb().legacyImportRow.createMany({ data });
   }

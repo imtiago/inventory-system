@@ -49,8 +49,9 @@ export interface LegacyImportBatchRepository {
   lockById(id: string): Promise<LockedBatch | null>;
   rows(batchId: string): Promise<StoredRow[]>;
   maxLine(batchId: string): Promise<number>;
-  /** Insere linhas com validação inicial (a revisão do lote refina em seguida). */
-  insertRows(batchId: string, rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw" | "customerId">)[]): Promise<void>;
+  countRows(batchId: string): Promise<number>;
+  /** Insere linhas já revisadas (`customerId`: FK do cliente vinculado que existe). */
+  insertRows(batchId: string, rows: (NewRow & Omit<RowChange, "id" | "customerAction" | "raw">)[]): Promise<void>;
   updateRows(changes: RowChange[]): Promise<void>;
   saveSummary(batchId: string, summary: BatchSummary): Promise<void>;
   delete(id: string): Promise<void>;

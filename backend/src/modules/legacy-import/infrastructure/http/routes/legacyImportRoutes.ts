@@ -31,7 +31,7 @@ export async function legacyImportRoutes(app: FastifyInstance) {
   app.delete("/:id", manage, makeDeleteLegacyBatchController());
   app.post("/:id/rows", manage, makeAddLegacyRowsController());
   app.patch("/:id/rows/:rowId", manage, makeUpdateLegacyRowController());
-  // Dinheiro (dívidas) e ficha de crédito: idempotentes. Confirmação de até 2.000 linhas numa transação só.
+  // Dinheiro (dívidas) e ficha de crédito: idempotentes. Confirmação de até 500 linhas numa transação só.
   app.post("/:id/confirm", manage, idempotent(makeConfirmLegacyBatchController(), { timeout: 60_000 }));
   app.post("/:id/revert", manage, idempotent(makeRevertLegacyBatchController(), { timeout: 30_000 }));
 }

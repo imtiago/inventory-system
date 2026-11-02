@@ -168,7 +168,7 @@ export function LegacyImportListPage() {
           <div className="rounded-xl border border-border p-4 text-sm">
             <h3 className="font-medium text-foreground">Formatos aceitos na planilha</h3>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
-              <li>Arquivo .csv de até 1 MB (2.000 linhas), com separador &quot;;&quot; ou &quot;,&quot;. O Excel e o Google Sheets salvam assim em &quot;Salvar como&quot; / &quot;Fazer download&quot; → CSV.</li>
+              <li>Arquivo .csv de até 1 MB (500 linhas), com separador &quot;;&quot; ou &quot;,&quot;. O Excel e o Google Sheets salvam assim em &quot;Salvar como&quot; / &quot;Fazer download&quot; → CSV.</li>
               <li>Valores com vírgula (1.234,56) e datas dd/mm/aaaa.</li>
               <li>
                 Colunas: <strong className="text-foreground">nome</strong> e <strong className="text-foreground">valor_total</strong> (obrigatórias), celular, data_compra, descricao, valor_pago, vencimentos (ex.: &quot;10/11/2026=500,00; 10/12/2026=500,00&quot;), perfil (Novo, Regular, Bom ou Excelente) e observacao.
